@@ -51,3 +51,33 @@ body {
               border-color 0.3s ease, 
               color 0.3s ease;
 }
+
+
+/* Tambahkan di tailwind.config.js jika belum ada */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: slide-in-from-bottom 0.5s ease-out;
+}

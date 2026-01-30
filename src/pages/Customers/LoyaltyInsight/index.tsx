@@ -1,4 +1,4 @@
-// src/pages/Customers/Members/LoyaltyInsight/index.tsx
+// src/pages/Customers/LoyaltyInsight/index.tsx
 export default function LoyaltyInsight() {
   return (
     <div>

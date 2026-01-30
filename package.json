@@ -8,13 +8,16 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "tailwind:init": "npx tailwindcss init -p --full" 
+    "tailwind:init": "npx tailwindcss init -p --full"
   },
   "dependencies": {
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.563.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.0"
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.13.0",
+    "recharts": "^3.7.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

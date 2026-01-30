@@ -1,56 +1,62 @@
-import type { NavigationConfig } from '../types/navigation'; 
-
-export const navigationConfig: NavigationConfig = {
+export const navigationConfig = {
   mainMenu: [
-    {
-      id: 'dashboard',
-      title: 'Dashboard',
-      iconName: 'Home',
-      type: 'link',
-      path: '/',
+    { 
+      id: 'dashboard', 
+      title: 'Dashboard', 
+      path: '/', 
+      iconName: 'LayoutDashboard', 
+      type: 'link' 
     },
-    {
-      id: 'pos',
-      title: 'Point of Sale',
-      iconName: 'ShoppingCart',
-      type: 'link',
-      path: '/pos',
+    { 
+      id: 'pos', 
+      title: 'Point of Sale', 
+      path: '/pos', 
+      iconName: 'ShoppingCart', 
+      type: 'link' 
     },
-    {
-      id: 'insights',
-      title: 'Business Insights',
-      iconName: 'BarChart3',
-      type: 'link',
-      path: '/insights',
+    { 
+      id: 'insights', 
+      title: 'Business Insights', 
+      path: '/insights', 
+      iconName: 'BarChart3', 
+      type: 'link' 
     },
     {
       id: 'operation',
       title: 'Operation',
-      iconName: 'Package',
+      iconName: 'Box',
       type: 'collapse',
       subItems: [
-        {
-          id: 'waste-log',
-          title: 'Waste Log',
-          path: '/operation/waste-log',
-          iconName: 'Trash2',
-          type: 'link',
+        // Penempatan di dalam subItems agar muncul di SidebarCollapse
+        { 
+          id: 'prod-mgmt', 
+          title: 'Manage Products', 
+          path: '/operation/products', 
+          iconName: 'PackagePlus', 
+          type: 'link' 
         },
-        {
-          id: 'inventory-usage',
-          title: 'Inventory Usage',
-          path: '/operation/inventory-usage',
-          iconName: 'Package',
-          type: 'link',
+        { 
+          id: 'waste-log', 
+          title: 'Waste Log', 
+          path: '/operation/waste-log', 
+          iconName: 'Trash2', 
+          type: 'link' 
         },
-        {
-          id: 'cost-summary',
-          title: 'Cost Summary',
-          path: '/operation/cost-summary',
-          iconName: 'DollarSign',
-          type: 'link',
+        { 
+          id: 'inv-usage', 
+          title: 'Inventory Usage', 
+          path: '/operation/inventory-usage', 
+          iconName: 'History', 
+          type: 'link' 
         },
-      ],
+        { 
+          id: 'cost-summary', 
+          title: 'Cost Summary', 
+          path: '/operation/cost-summary', 
+          iconName: 'DollarSign', 
+          type: 'link' 
+        },
+      ]
     },
     {
       id: 'customers',
@@ -58,52 +64,51 @@ export const navigationConfig: NavigationConfig = {
       iconName: 'Users',
       type: 'collapse',
       subItems: [
-        {
-          id: 'members',
-          title: 'Members',
-          path: '/customers/members',
-          iconName: 'Users',
-          type: 'link',
+        { 
+          id: 'members', 
+          title: 'Members', 
+          path: '/customers/members', 
+          iconName: 'UserCheck', 
+          type: 'link' 
         },
-        {
-          id: 'visit-history',
-          title: 'Visit History',
-          path: '/customers/visit-history',
-          iconName: 'Calendar',
-          type: 'link',
+        { 
+          id: 'visit-history', 
+          title: 'Visit History', 
+          path: '/customers/visit-history', 
+          iconName: 'Clock', 
+          type: 'link' 
         },
-        {
-          id: 'loyalty-insight',
-          title: 'Loyalty Insight',
-          path: '/customers/loyalty-insight',
-          iconName: 'Award',
-          type: 'link',
+        { 
+          id: 'loyalty-insight', 
+          title: 'Loyalty Insight', 
+          path: '/customers/loyalty-insight', 
+          iconName: 'Gem', 
+          type: 'link' 
         },
-      ],
+      ]
     },
   ],
-  
   bottomMenu: [
-    {
-      id: 'settings',
-      title: 'Settings',
-      iconName: 'Settings',
-      type: 'link',
-      path: '/settings',
+    { 
+      id: 'settings', 
+      title: 'Settings', 
+      path: '/settings', 
+      iconName: 'Settings', 
+      type: 'link' 
     },
-    {
-      id: 'help',
-      title: 'Help Center',
-      iconName: 'HelpCircle',
-      type: 'link',
-      path: '/help',
+    { 
+      id: 'help', 
+      title: 'Help Center', 
+      path: '/help', 
+      iconName: 'HelpCircle', 
+      type: 'link' 
     },
-    {
-      id: 'logout',
-      title: 'Logout',
-      iconName: 'LogOut',
-      type: 'link',
-      path: '/logout',
+    { 
+      id: 'logout', 
+      title: 'Logout', 
+      path: '/logout', 
+      iconName: 'LogOut', 
+      type: 'link' 
     },
-  ],
+  ]
 };
