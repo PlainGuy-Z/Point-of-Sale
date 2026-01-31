@@ -23,17 +23,17 @@ export default function ProductGrid({ products, onAddToCart }: ProductGridProps)
             onClick={() => onAddToCart(product.id)}
             disabled={isOutOfStock}
             className={`
-              rounded-xl border p-3 text-left transition-all group relative flex flex-col
+              rounded-xl border p-3 text-left transition-all group relative flex flex-col bg-gradient-to-b
               ${isDark 
-                ? 'bg-gray-800 border-gray-700 hover:border-amber-500/50 hover:bg-gray-750 shadow-sm' 
-                : 'bg-white border-gray-200 hover:border-amber-500 hover:shadow-sm hover:bg-gray-50'
+                ? 'from-gray-800 via-gray-800 to-gray-900 border-gray-700 hover:border-amber-500/50 hover:from-gray-750 hover:via-gray-750 hover:to-gray-800 shadow-sm' 
+                : 'from-white via-white to-gray-50 border-gray-200 hover:border-amber-500 hover:shadow-sm hover:from-gray-50 hover:via-gray-50 hover:to-white'
               }
               ${isOutOfStock ? 'opacity-60 cursor-not-allowed grayscale-[0.5]' : ''}
             `}
           >
             {/* Area Gambar Produk */}
-            <div className={`w-full aspect-square rounded-lg mb-3 flex items-center justify-center overflow-hidden transition-colors ${
-              isDark ? 'bg-gray-900' : 'bg-gray-50'
+            <div className={`w-full aspect-square rounded-lg mb-3 flex items-center justify-center overflow-hidden transition-colors bg-gradient-to-br ${
+              isDark ? 'from-gray-900 to-gray-800' : 'from-gray-50 to-gray-100'
             }`}>
               {product.image ? (
                 // Menampilkan gambar dinamis dari state global
@@ -69,10 +69,10 @@ export default function ProductGrid({ products, onAddToCart }: ProductGridProps)
                   </span>
                   
                   {/* Badge Stok Dinamis */}
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-black uppercase ${
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-black uppercase bg-gradient-to-br ${
                     product.stock > 10 
-                      ? isDark ? 'text-green-400 bg-green-900/30' : 'text-green-600 bg-green-50'
-                      : isDark ? 'text-red-400 bg-red-900/30' : 'text-red-600 bg-red-50'
+                      ? isDark ? 'from-green-900/30 to-green-800/20 text-green-400' : 'from-green-50 to-green-100 text-green-600'
+                      : isDark ? 'from-red-900/30 to-red-800/20 text-red-400' : 'from-red-50 to-red-100 text-red-600'
                   }`}>
                     {isOutOfStock ? '0' : product.stock}
                   </span>
@@ -80,8 +80,8 @@ export default function ProductGrid({ products, onAddToCart }: ProductGridProps)
             </div>
             
             {/* Overlay Tombol Tambah (Hanya Desktop) */}
-            <div className="hidden md:flex absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 items-center justify-center rounded-xl transition-all pointer-events-none">
-               <div className="bg-amber-500 text-white p-2 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+            <div className="hidden md:flex absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 items-center justify-center rounded-xl transition-all pointer-events-none">
+               <div className="bg-gradient-to-br from-amber-500 to-orange-500 text-white p-2 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
                   <Plus className="w-6 h-6" />
                </div>
             </div>

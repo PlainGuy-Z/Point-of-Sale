@@ -52,7 +52,7 @@ export default function Sidebar() {
               return (
                 <SidebarCollapse
                   key={item.id}
-                  item={item}
+                  item={item as any}
                   icon={Icon || undefined}
                   isOpen={openMenus[item.id] || false}
                   onToggle={() => toggleMenu(item.id)}
@@ -65,7 +65,7 @@ export default function Sidebar() {
             return (
               <SidebarItem
                 key={item.id}
-                item={item}
+                item={item as any}
                 icon={Icon || undefined}
                 // TIDAK PERLU PASS theme prop!
               />
@@ -81,7 +81,7 @@ export default function Sidebar() {
             return (
               <SidebarItem
                 key={item.id}
-                item={item}
+                item={item as any}
                 icon={Icon || undefined}
               />
             );

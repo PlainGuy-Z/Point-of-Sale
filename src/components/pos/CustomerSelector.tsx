@@ -26,12 +26,12 @@ export default function CustomerSelector({
   const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
 
   return (
-    <div className={`rounded-2xl border p-4 transition-all duration-300 ${
-      isDark ? 'bg-gray-800 border-gray-700 shadow-xl' : 'bg-white border-gray-100 shadow-sm'
+    <div className={`rounded-2xl border p-4 transition-all duration-300 bg-gradient-to-br ${
+      isDark ? 'from-gray-800 via-gray-800 to-gray-900 border-gray-700 shadow-xl' : 'from-white via-white to-gray-50 border-gray-100 shadow-sm'
     }`}>
       {/* Header - Tombol New dihapus sesuai permintaan */}
       <div className="flex items-center gap-2 mb-4">
-        <div className={`p-1.5 rounded-lg ${isDark ? 'bg-amber-500/10' : 'bg-amber-50'}`}>
+        <div className={`p-1.5 rounded-lg bg-gradient-to-br ${isDark ? 'from-amber-500/10 to-orange-500/5' : 'from-amber-50 to-orange-50'}`}>
            <User className="w-4 h-4 text-amber-500" />
         </div>
         <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-gray-800'}`}>
@@ -45,10 +45,10 @@ export default function CustomerSelector({
         <input
           type="text"
           placeholder="Search name or phone..."
-          className={`w-full pl-10 pr-4 py-2.5 rounded-xl border-2 text-sm outline-none transition-all ${
+          className={`w-full pl-10 pr-4 py-2.5 rounded-xl border-2 text-sm outline-none transition-all bg-gradient-to-br ${
             isDark 
-              ? 'bg-gray-900 border-gray-700 text-white focus:border-amber-500' 
-              : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-amber-500 focus:bg-white'
+              ? 'from-gray-900 to-gray-800 border-gray-700 text-white focus:border-amber-500' 
+              : 'from-gray-50 to-white border-gray-200 text-gray-800 focus:border-amber-500 focus:from-white focus:to-gray-50'
           }`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -72,14 +72,14 @@ export default function CustomerSelector({
               <button
                 key={customer.id}
                 onClick={() => onSelect(customer.id)}
-                className={`w-full text-left p-3 rounded-xl transition-all group ${
+                className={`w-full text-left p-3 rounded-xl transition-all group bg-gradient-to-r ${
                   isSelected
                     ? isDark 
-                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' 
-                      : 'bg-amber-500 text-white shadow-sm'
+                      ? 'from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20' 
+                      : 'from-amber-500 to-orange-500 text-white shadow-sm'
                     : isDark 
-                      ? 'hover:bg-gray-700/50 text-gray-300 border border-transparent' 
-                      : 'hover:bg-gray-50 text-gray-600 border border-transparent hover:border-gray-200'
+                      ? 'from-gray-800/50 via-gray-800/40 to-gray-900/30 hover:from-gray-700/50 hover:via-gray-700/40 hover:to-gray-800/30 text-gray-300 border border-transparent' 
+                      : 'from-gray-50/50 via-gray-50/40 to-white/30 hover:from-gray-100/50 hover:via-gray-100/40 hover:to-gray-50/30 text-gray-600 border border-transparent hover:border-gray-200'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -109,10 +109,10 @@ export default function CustomerSelector({
 
       {/* Selected Indicator Footer */}
       {selectedCustomer && (
-        <div className={`mt-4 p-3 rounded-2xl border-2 flex items-center justify-between animate-in slide-in-from-top-2 duration-300 ${
+        <div className={`mt-4 p-3 rounded-2xl border-2 flex items-center justify-between animate-in slide-in-from-top-2 duration-300 bg-gradient-to-r ${
           isDark 
-            ? 'bg-gray-900/50 border-gray-700' 
-            : 'bg-gray-50 border-gray-100'
+            ? 'from-gray-900/50 via-gray-900/40 to-gray-800/30 border-gray-700' 
+            : 'from-gray-50 via-gray-50/80 to-white/50 border-gray-100'
         }`}>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
