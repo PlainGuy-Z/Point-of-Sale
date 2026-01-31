@@ -28,10 +28,10 @@ export default function TopProducts({ transactions, products }: TopProductsProps
       return { product, quantity, revenue };
     })
     .filter((item): item is { product: Product, quantity: number, revenue: number } => item.product !== undefined)
-    .sort((a, b) => b.revenue - a.revenue)
+    .sort((a, b) => b.quantity - a.quantity) // PERBAIKAN: Urutkan berdasarkan QUANTITY
     .slice(0, 5);
 
-  const maxRevenue = Math.max(...topProducts.map(p => p.revenue), 1);
+  const maxQuantity = Math.max(...topProducts.map(p => p.quantity), 1); // PERBAIKAN: Gunakan quantity untuk progress bar
 
   const rankColors = [
     'from-amber-500 to-yellow-500',  // 1st
@@ -40,6 +40,10 @@ export default function TopProducts({ transactions, products }: TopProductsProps
     'from-blue-400 to-cyan-500',     // 4th
     'from-purple-400 to-violet-500', // 5th
   ];
+
+  // Hitung total revenue dari semua transaksi untuk persentase
+  const totalRevenueAll = transactions.reduce((sum, t) => sum + t.total, 0);
+  const totalRevenueTopProducts = topProducts.reduce((sum, p) => sum + p.revenue, 0);
 
   return (
     <div className={`
@@ -56,7 +60,7 @@ export default function TopProducts({ transactions, products }: TopProductsProps
           </div>
           <div>
             <h3 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Top Products</h3>
-            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>By revenue today</p>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>By sales volume today</p> {/* PERBAIKAN: Teks diubah */}
           </div>
         </div>
         <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
@@ -99,19 +103,19 @@ export default function TopProducts({ transactions, products }: TopProductsProps
                   </span>
                 </div>
                 
-                {/* Progress bar */}
+                {/* Progress bar - PERBAIKAN: Tampilkan berdasarkan quantity */}
                 <div className="mt-2">
                   <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
                     <div 
                       className={`h-full rounded-full bg-gradient-to-r ${rankColors[index]}`}
-                      style={{ width: `${(revenue / maxRevenue) * 100}%` }}
+                      style={{ width: `${(quantity / maxQuantity) * 100}%` }} 
                     />
                   </div>
                   <div className="flex justify-between text-xs mt-1">
-                    <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                    <span className={`font-semibold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}> {/* PERBAIKAN: Warna quantity lebih menonjol */}
                       {quantity} sold
                     </span>
-                    <span className={`font-semibold ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>
+                    <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
                       Rp {revenue.toLocaleString()}
                     </span>
                   </div>
@@ -150,17 +154,18 @@ export default function TopProducts({ transactions, products }: TopProductsProps
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Total revenue from top products
+                Total units sold (Top 5)
               </p>
               <p className={`text-lg font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Rp {topProducts.reduce((sum, p) => sum + p.revenue, 0).toLocaleString()}
+                {topProducts.reduce((sum, p) => sum + p.quantity, 0).toLocaleString()} units
               </p>
             </div>
             <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
               isDark ? 'bg-gray-700 text-green-400' : 'bg-green-50 text-green-700'
             }`}>
-              {((topProducts.reduce((sum, p) => sum + p.revenue, 0) / 
-                (transactions.reduce((sum, t) => sum + t.total, 0) || 1)) * 100).toFixed(1)}% of total
+              {totalRevenueAll > 0 
+                ? `${((totalRevenueTopProducts / totalRevenueAll) * 100).toFixed(1)}% of revenue`
+                : '100% of revenue'}
             </div>
           </div>
         </div>

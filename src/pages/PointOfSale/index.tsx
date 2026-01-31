@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, ShoppingCart, Trash2, User, X, PlusCircle, Hash } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, User, X, PlusCircle, Hash, Percent, Flame, Trophy, Award, TrendingUp } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import ProductGrid from '../../components/pos/ProductGrid';
@@ -7,7 +7,7 @@ import CustomerSelector from '../../components/pos/CustomerSelector';
 import CategoryPills from '../../components/pos/CategoryPills';
 import PaymentModal from '../../components/pos/PaymentModal';
 import ProductDetailModal from '../../components/pos/ProductDetailModal';
-import type { Transaction, TransactionItem } from '../../types';
+import type { Transaction, TransactionItem, Product } from '../../types';
 
 export default function PointOfSale() {
   const { products, customers, addTransaction, settings } = useApp();
@@ -45,11 +45,91 @@ export default function PointOfSale() {
     return value.toLocaleString('id-ID');
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+// --- Logic Filter & Sorting Produk ---
+  const filteredProducts = products
+    .filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      // 1. Prioritas Utama: Status Promo
+      if (a.isPromo && !b.isPromo) return -1;
+      if (!a.isPromo && b.isPromo) return 1;
+
+      // 2. Prioritas Kedua: Produk Terlaris (Berdasarkan salesCount)
+      // Default salesCount ke 0 jika undefined
+      const salesA = a.salesCount || 0;
+      const salesB = b.salesCount || 0;
+      if (salesA !== salesB) {
+        return salesB - salesA; // Terbanyak di atas
+      }
+
+      // 3. Prioritas Terakhir: Urutan Abjad
+      return a.name.localeCompare(b.name);
+    });
+
+  // Sort produk dengan prioritas:
+  // 1. Promo aktif
+  // 2. Best seller (3 teratas berdasarkan sales count)
+  // 3. Produk biasa
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    // Prioritas 1: Promo aktif
+    const aIsPromo = a.isPromo && a.promoPrice && a.promoPrice > 0;
+    const bIsPromo = b.isPromo && b.promoPrice && b.promoPrice > 0;
+    
+    if (aIsPromo && !bIsPromo) return -1;
+    if (!aIsPromo && bIsPromo) return 1;
+    
+    // Jika keduanya promo, sort berdasarkan persentase diskon
+    if (aIsPromo && bIsPromo) {
+      const aDiscount = ((a.price - a.promoPrice!) / a.price) * 100;
+      const bDiscount = ((b.price - b.promoPrice!) / b.price) * 100;
+      if (bDiscount !== aDiscount) return bDiscount - aDiscount;
+    }
+    
+    // Prioritas 2: Best seller (hanya 3 teratas)
+    const aIsBestSeller = a.isBestSeller;
+    const bIsBestSeller = b.isBestSeller;
+    
+    if (aIsBestSeller && !bIsBestSeller) return -1;
+    if (!aIsBestSeller && bIsBestSeller) return 1;
+    
+    // Jika keduanya best seller, sort berdasarkan sales count
+    if (aIsBestSeller && bIsBestSeller) {
+      return (b.salesCount || 0) - (a.salesCount || 0);
+    }
+    
+    // Prioritas 3: Produk dengan stok rendah
+    const aLowStock = a.stock <= a.minStock;
+    const bLowStock = b.stock <= b.minStock;
+    
+    if (aLowStock && !bLowStock) return -1;
+    if (!aLowStock && bLowStock) return 1;
+    
+    // Prioritas 4: Produk habis stok di bawah
+    const aOutOfStock = a.stock === 0;
+    const bOutOfStock = b.stock === 0;
+    
+    if (aOutOfStock && !bOutOfStock) return 1;
+    if (!aOutOfStock && bOutOfStock) return -1;
+    
+    // Prioritas 5: Sort by name
+    return a.name.localeCompare(b.name);
   });
+
+  // Ambil 3 best seller teratas untuk ditampilkan di banner
+  const topBestSellers = sortedProducts
+    .filter(p => p.isBestSeller)
+    .slice(0, 3);
+
+  // Hitung jumlah produk promo
+  const promoProductsCount = sortedProducts.filter(p => 
+    p.isPromo && p.promoPrice && p.promoPrice > 0
+  ).length;
+
+  // Hitung jumlah best seller
+  const bestSellerCount = sortedProducts.filter(p => p.isBestSeller).length;
 
   const addManualItemToCart = () => {
     if (!manualItemName || !manualItemPrice) return;
@@ -88,6 +168,9 @@ export default function PointOfSale() {
     const product = products.find(p => p.id === productId);
     if (!product || product.stock <= 0) return;
 
+    // Tentukan harga yang akan digunakan
+    const priceToUse = (product.isPromo && product.promoPrice) ? product.promoPrice : product.price;
+    
     setCart(prev => {
       const existingIndex = prev.findIndex(item => 
         item.productId === productId && !item.note && (!item.modifiers || item.modifiers.length === 0)
@@ -100,7 +183,25 @@ export default function PointOfSale() {
         }
         return newCart;
       }
-      return [...prev, { productId, quantity: 1, price: product.price, cost: product.cost }];
+      
+      // Buat item dengan informasi promo jika ada
+      const newItem: TransactionItem = {
+        productId,
+        quantity: 1,
+        price: priceToUse,
+        cost: product.cost,
+        modifiers: []
+      };
+      
+      // Tambahkan info promo jika produk sedang promo
+      if (product.isPromo && product.promoPrice) {
+        newItem.isPromo = true;
+        newItem.originalPrice = product.price;
+        newItem.promoPrice = product.promoPrice;
+        newItem.promoLabel = product.promoLabel;
+      }
+      
+      return [...prev, newItem];
     });
   };
 
@@ -212,7 +313,7 @@ export default function PointOfSale() {
     : null;
 
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col lg:flex-row gap-4 overflow-hidden relative">
+    <div className="h-[calc(100vh-2rem)] flex flex-col lg:flex-row gap-4 -hidden relative">
       {/* LEFT: Catalog */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
         <div className="flex-shrink-0 space-y-4 mb-4">
@@ -247,9 +348,73 @@ export default function PointOfSale() {
             </div>
           </div>
           <CategoryPills selected={selectedCategory} onSelect={setSelectedCategory} />
+          
+          {/* Promo Banner */}
+          {promoProductsCount > 0 && (
+            <div className={`mt-2 p-3 rounded-2xl border bg-gradient-to-r ${isDark 
+              ? 'from-red-900/30 via-red-800/20 to-amber-900/10 border-red-700/30' 
+              : 'from-red-50 via-amber-50 to-red-50/50 border-red-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${isDark ? 'bg-red-700/30' : 'bg-red-100'}`}>
+                  <Flame className={`w-5 h-5 ${isDark ? 'text-red-400' : 'text-red-500'}`} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold text-sm ${isDark ? 'text-red-300' : 'text-red-600'}`}>
+                      HOT PROMO!
+                    </span>
+                    <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {promoProductsCount} items on special discount
+                    </span>
+                  </div>
+                  <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-500'} mt-0.5`}>
+                    Promo items appear first. Don't miss out on great deals!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Best Seller Banner */}
+          {topBestSellers.length > 0 && (
+            <div className={`mt-2 p-3 rounded-2xl border bg-gradient-to-r ${isDark 
+              ? 'from-amber-900/30 via-amber-800/20 to-yellow-900/10 border-amber-700/30' 
+              : 'from-amber-50 via-yellow-50 to-amber-50/50 border-amber-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${isDark ? 'bg-amber-700/30' : 'bg-amber-100'}`}>
+                  <Trophy className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold text-sm ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>
+                      CUSTOMER FAVORITES!
+                    </span>
+                    <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {bestSellerCount} best selling items
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {topBestSellers.map((product, index) => (
+                      <div key={product.id} className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${isDark ? 'bg-amber-900/40 text-amber-300' : 'bg-amber-100 text-amber-700'}`}>
+                        <span className={`px-1 ${isDark ? 'bg-amber-700' : 'bg-amber-200'} rounded`}>
+                          #{index + 1}
+                        </span>
+                        <span>{product.name}</span>
+                        {product.salesCount && (
+                          <span className={`text-[9px] ${isDark ? 'text-amber-200' : 'text-amber-600'}`}>
+                            ({product.salesCount} sold)
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="flex-1 overflow-y-auto custom-scrollbar pb-24 lg:pb-0 pr-1">
-          <ProductGrid products={filteredProducts} onAddToCart={addToCart} />
+        <div className="flex-1 overflow-y-auto horizontal-scrollbar-thin pb-24 lg:pb-0 pr-1">
+          <ProductGrid products={sortedProducts} onAddToCart={addToCart} />
         </div>
       </div>
 
@@ -345,25 +510,62 @@ export default function PointOfSale() {
                 const product = products.find(p => p.id === item.productId);
                 const itemName = product ? product.name : (item.note || 'Custom Item');
                 const itemPrice = item.price * item.quantity;
+                const isPromoItem = item.isPromo && item.originalPrice;
                 
                 return (
                   <div 
                     key={`${item.productId}-${idx}`} 
                     onClick={() => setEditingItemIndex(idx)} 
-                    className={`p-4 rounded-2xl cursor-pointer border-2 border-transparent transition-all bg-gradient-to-r ${
-                      isDark 
-                        ? 'from-gray-700/40 via-gray-700/30 to-gray-700/20 hover:from-gray-700 hover:via-gray-700/80 hover:to-gray-700/60 hover:border-amber-500/30' 
-                        : 'from-gray-50 via-gray-50/80 to-white hover:from-white hover:via-white hover:to-gray-50 hover:border-amber-500/50 hover:shadow-sm'
+                    className={`p-4 rounded-2xl cursor-pointer border-2 border-transparent transition-all bg-gradient-to-r relative overflow-hidden ${
+                      isPromoItem
+                        ? isDark 
+                          ? 'from-red-900/20 via-gray-700/20 to-gray-700/10 hover:from-red-900/30 hover:via-gray-700/30 hover:to-gray-700/20 hover:border-red-500/30' 
+                          : 'from-red-50/50 via-gray-50/80 to-white hover:from-red-100 hover:via-white hover:to-gray-50 hover:border-red-500/50 hover:shadow-sm'
+                        : isDark 
+                          ? 'from-gray-700/40 via-gray-700/30 to-gray-700/20 hover:from-gray-700 hover:via-gray-700/80 hover:to-gray-700/60 hover:border-amber-500/30' 
+                          : 'from-gray-50 via-gray-50/80 to-white hover:from-white hover:via-white hover:to-gray-50 hover:border-amber-500/50 hover:shadow-sm'
                     }`}
                   >
+                    {/* Promo Badge */}
+                    {isPromoItem && (
+                      <div className="absolute top-2 right-2">
+                        <div className="px-2 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-sm">
+                          {item.promoLabel || 'PROMO'}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Best Seller Badge */}
+                    {product?.isBestSeller && !isPromoItem && (
+                      <div className="absolute top-2 right-2">
+                        <div className="px-2 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                          <Trophy size={8} className="inline mr-1" />
+                          Best Seller
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between items-center">
-                      <div className="flex-1 min-w-0 pr-2">
+                      <div className="flex-1 min-w-0 pr-10">
                         <p className={`font-bold text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
                           {itemName}
                         </p>
-                        <p className={`text-xs font-black mt-0.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                          Rp {item.price.toLocaleString()}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {isPromoItem ? (
+                            <>
+                              <p className={`text-xs font-black line-through ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                Rp {item.originalPrice?.toLocaleString()}
+                              </p>
+                              <p className={`text-xs font-black ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                                Rp {item.price.toLocaleString()}
+                              </p>
+                            </>
+                          ) : (
+                            <p className={`text-xs font-black ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                              Rp {item.price.toLocaleString()}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
@@ -386,7 +588,7 @@ export default function PointOfSale() {
                           </button>
                         </div>
                         
-                        <div className={`text-sm font-bold text-right min-w-[80px] ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                        <div className={`text-sm font-bold text-right min-w-[80px] ${isPromoItem ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-amber-400' : 'text-amber-600')}`}>
                           Rp {itemPrice.toLocaleString()}
                         </div>
                         
@@ -398,6 +600,33 @@ export default function PointOfSale() {
                         </button>
                       </div>
                     </div>
+                    
+                    {/* Discount saved info */}
+                    {isPromoItem && item.originalPrice && (
+                      <div className="mt-2 flex items-center gap-1">
+                        <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'}`}>
+                          Save Rp {((item.originalPrice - item.price) * item.quantity).toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-gray-500">
+                          ({Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% off)
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Best Seller info */}
+                    {product?.isBestSeller && !isPromoItem && (
+                      <div className="mt-2 flex items-center gap-1">
+                        <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
+                          <Trophy size={8} className="inline mr-1" />
+                          Customer Favorite
+                        </div>
+                        {product.salesCount && (
+                          <div className="text-[10px] text-gray-500">
+                            ({product.salesCount} sold)
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -405,6 +634,26 @@ export default function PointOfSale() {
           </div>
 
           <div className={`p-6 space-y-4 rounded-t-3xl border-t bg-gradient-to-b ${isDark ? 'from-gray-900/80 via-gray-900/60 to-gray-800 border-gray-700' : 'from-gray-50/80 via-gray-50/60 to-gray-50/40 border-gray-100'}`}>
+            {/* Discount Summary */}
+            {cart.some(item => item.isPromo) && (
+              <div className={`p-3 rounded-xl ${isDark ? 'bg-green-900/20 border border-green-800/30' : 'bg-green-50 border border-green-200'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Percent className={`w-4 h-4 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+                    <span className={`text-xs font-bold ${isDark ? 'text-green-300' : 'text-green-700'}`}>Total Savings</span>
+                  </div>
+                  <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                    Rp {cart.reduce((sum, item) => {
+                      if (item.isPromo && item.originalPrice) {
+                        return sum + ((item.originalPrice - item.price) * item.quantity);
+                      }
+                      return sum;
+                    }, 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
                 <span>Subtotal</span>

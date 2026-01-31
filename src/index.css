@@ -22,27 +22,52 @@ body {
   @apply bg-gray-900 text-gray-100;
 }
 
-/* Custom scrollbar untuk light mode */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+
+
+/* Horizontal Scrollbar yang Kecil (untuk CategoryPills) */
+.horizontal-scrollbar-thin::-webkit-scrollbar {
+  height: 3px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgb(77, 77, 82);
-  border-radius: 9999px;
+.horizontal-scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(243, 244, 246, 0.1);
+  border-radius: 2px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+.horizontal-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 2px;
+  transition: background 0.2s ease;
 }
 
-/* Custom scrollbar untuk dark mode */
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgb(107, 114, 128); /* gray-500 */
+.horizontal-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
 }
 
-.dark .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgb(31, 41, 55); /* gray-800 */
+/* Dark mode untuk horizontal scrollbar */
+.dark .horizontal-scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.1);
+}
+
+.dark .horizontal-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.4);
+}
+
+.dark .horizontal-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+}
+
+/* Firefox support */
+.horizontal-scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.horizontal-scrollbar-thin {
+  scrollbar-color: rgba(156, 163, 175, 0.4) rgba(243, 244, 246, 0.1);
+}
+
+.dark .horizontal-scrollbar-thin {
+  scrollbar-color: rgba(75, 85, 99, 0.4) rgba(31, 41, 55, 0.1);
 }
 
 /* Smooth transitions */
@@ -51,7 +76,6 @@ body {
               border-color 0.3s ease, 
               color 0.3s ease;
 }
-
 
 /* Tambahkan di tailwind.config.js jika belum ada */
 @keyframes pulse-subtle {

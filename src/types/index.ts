@@ -3,12 +3,23 @@ export interface Product {
   image: any;
   id: string;
   name: string;
-  category: 'Coffee' | 'Tea' | 'Pastry' | 'Food' | 'Merchandise';
+  category: 'Coffee' | 'Tea' | 'Pastry' | 'Food' | 'Merchandise' | string;
   price: number;
-  cost: number; // Harga modal
+  cost: number;
   stock: number;
   minStock: number;
   unit: string;
+  
+  // PROPERTI PROMO
+  isPromo?: boolean;
+  promoPrice?: number;
+  promoStart?: string; // TETAP sebagai string
+  promoEnd?: string;   // TETAP sebagai string
+  promoLabel?: string;
+
+  // PROPERTI BEST SELLER
+  isBestSeller?: boolean;
+  salesCount?: number; // Jumlah penjualan
 }
 
 export interface Transaction {
@@ -16,8 +27,8 @@ export interface Transaction {
   date: Date;
   items: TransactionItem[];
   total: number;
-  cost: number; // Total modal
-  profit: number; // Profit = total - cost
+  cost: number;
+  profit: number;
   paymentMethod: 'cash' | 'card' | 'qris';
   customerId?: string;
 }
@@ -27,8 +38,20 @@ export interface TransactionItem {
   quantity: number;
   price: number;
   cost: number;
-  note?: string; 
-  modifiers?: string[]; 
+  note?: string;
+  modifiers?: string[];
+  
+  // TAMBAHKAN UNTUK MENYIMPAN INFO PROMO
+  isPromo?: boolean;
+  originalPrice?: number;
+  promoPrice?: number;
+  promoLabel?: string;
+
+  fromBestSellerProduct?: boolean; // Jika perlu tracking di laporan
+  // **HAPUS properti best seller dari sini**
+  // Best seller info sudah ada di Product, tidak perlu duplicate
+  // Hanya menyimpan apakah item ini dari produk best seller atau tidak
+  // Tapi tidak perlu salesCount karena itu adalah properti produk, bukan transaksi individual
 }
 
 export interface WasteLog {

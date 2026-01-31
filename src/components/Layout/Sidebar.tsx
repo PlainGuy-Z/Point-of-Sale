@@ -43,7 +43,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 p-4 overflow-y-auto horizontal-scrollbar-thin">
         <div className="space-y-1">
           {navigationConfig.mainMenu.map((item) => {
             const Icon = getIconComponent(item.iconName);

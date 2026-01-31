@@ -1,4 +1,4 @@
-import { TrendingUp, MoreVertical, BarChart3, LineChart, AreaChart } from 'lucide-react';
+import { TrendingUp, BarChart3, LineChart, AreaChart } from 'lucide-react';
 import type { Transaction } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useState } from 'react';
@@ -452,7 +452,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - VERSI DIPERBAIKI */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className={`p-4 rounded-xl border ${isDark 
           ? 'bg-gray-800/50 border-gray-700' 
@@ -461,20 +461,22 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
           <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-amber-700'}`}>
             Total Profit
           </p>
-          <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <p className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Rp {totalProfit.toLocaleString()}
           </p>
-          <div className="flex items-center gap-2 mt-2">
-            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
-              profitChange >= 0
-                ? isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-50 text-green-700'
-                : isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-700'
-            }`}>
-              <TrendingUp className={`w-3 h-3 ${profitChange >= 0 ? '' : 'rotate-180'}`} />
-              {Math.abs(profitChange).toFixed(1)}%
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
+                profitChange >= 0
+                  ? isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-50 text-green-700'
+                  : isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-700'
+              }`}>
+                <TrendingUp className={`w-3 h-3 ${profitChange >= 0 ? '' : 'rotate-180'}`} />
+                {Math.abs(profitChange).toFixed(1)}%
+              </div>
             </div>
             <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-              vs previous period
+              vs previous
             </span>
           </div>
         </div>
@@ -486,10 +488,10 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
           <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-blue-700'}`}>
             Total Revenue
           </p>
-          <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <p className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Rp {totalRevenue.toLocaleString()}
           </p>
-          <div className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+          <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
             {data.length} {timeRange === '7d' ? 'days' : timeRange === '30d' ? 'days' : 'weeks'} average
           </div>
         </div>
@@ -501,10 +503,10 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
           <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-green-700'}`}>
             Avg Daily Profit
           </p>
-          <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <p className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Rp {avgProfit.toLocaleString()}
           </p>
-          <div className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+          <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
             Per {timeRange === '7d' ? 'day' : timeRange === '30d' ? 'day' : 'week'} average
           </div>
         </div>

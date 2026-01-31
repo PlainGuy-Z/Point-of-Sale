@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Plus, Edit2, Trash2, Camera, X, Package, Tag, AlertTriangle, Search, ChevronRight, Star, TrendingUp, Filter, MoreVertical, DollarSign, BarChart3, TrendingDown, Box } from 'lucide-react';
-import type { Product } from '../../../types'; // TAMBAHKAN INI
+import { Plus, Edit2, Trash2, Camera, X, Package, Tag, AlertTriangle, Search, ChevronRight, Star, TrendingUp, Filter, MoreVertical, DollarSign, BarChart3, TrendingDown, Box, Clock, Percent, Calendar, Award, Trophy, Flame } from 'lucide-react';
+import type { Product } from '../../../types';
 
 // Array of gradient colors for categories
 const CATEGORY_GRADIENTS = [
@@ -30,6 +30,58 @@ export default function ProductManagement() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  
+  // State untuk promo
+  const [isPromo, setIsPromo] = useState(false);
+  const [promoPrice, setPromoPrice] = useState('');
+  const [promoLabel, setPromoLabel] = useState('');
+  const [promoStart, setPromoStart] = useState('');
+  const [promoEnd, setPromoEnd] = useState('');
+  
+  // State untuk best seller
+  const [isBestSeller, setIsBestSeller] = useState(false);
+  const [salesCount, setSalesCount] = useState('');
+
+  // Event listener untuk keyboard
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isModalOpen) {
+        handleCloseModal();
+      }
+      // Enter untuk submit form (kecuali di textarea atau input date)
+      if (e.key === 'Enter' && isModalOpen && e.target instanceof HTMLInputElement) {
+        // Cek jika bukan textarea dan bukan date picker
+        if (e.target.type !== 'textarea' && e.target.type !== 'date') {
+          e.preventDefault();
+          const form = document.querySelector('form');
+          if (form) {
+            const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+            if (submitButton) {
+              submitButton.click();
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
+
+  // Reset form ketika modal dibuka/tutup
+  useEffect(() => {
+    if (isModalOpen && editingProduct) {
+      setIsPromo(editingProduct.isPromo || false);
+      setPromoPrice(editingProduct.promoPrice?.toString() || '');
+      setPromoLabel(editingProduct.promoLabel || '');
+      setPromoStart(editingProduct.promoStart || '');
+      setPromoEnd(editingProduct.promoEnd || '');
+      setIsBestSeller(editingProduct.isBestSeller || false);
+      setSalesCount(editingProduct.salesCount?.toString() || '');
+    } else if (!isModalOpen) {
+      resetForm();
+    }
+  }, [isModalOpen, editingProduct]);
 
   // Format category name: capitalize first letter
   const formatCategoryName = (name: string): string => {
@@ -272,6 +324,33 @@ export default function ProductManagement() {
     reader.readAsDataURL(file);
   };
 
+  // Reset form
+  const resetForm = () => {
+    setIsPromo(false);
+    setPromoPrice('');
+    setPromoLabel('');
+    setPromoStart('');
+    setPromoEnd('');
+    setIsBestSeller(false);
+    setSalesCount('');
+  };
+
+  // Handle open modal untuk edit
+  const handleOpenEditModal = (product: Product) => {
+    setEditingProduct(product);
+    setPreviewImage(product.image || null);
+    setModalOpen(true);
+  };
+
+  // Handle close modal
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setEditingProduct(null);
+    setPreviewImage(null);
+    resetForm();
+  };
+
+  // Handle form submit
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -290,23 +369,28 @@ export default function ProductManagement() {
     const productData: Product = {
       id: editingProduct?.id || `P${Date.now()}`,
       name: formattedProductName,
-      category: formattedCategory as any, // Konversi ke tipe yang sesuai
+      category: formattedCategory,
       price: Number(formData.get('price')),
       cost: Number(formData.get('cost')),
       stock: Number(formData.get('stock')),
       minStock: Number(formData.get('minStock')),
       unit: 'pcs',
-      image: previewImage || null // Pastikan sesuai dengan tipe di types/index.ts
+      image: previewImage || null,
+      
+      // Promo data
+      isPromo: isPromo,
+      promoPrice: isPromo && promoPrice ? Number(promoPrice) : undefined,
+      promoLabel: isPromo && promoLabel ? promoLabel : undefined,
+      promoStart: isPromo && promoStart ? promoStart : undefined,
+      promoEnd: isPromo && promoEnd ? promoEnd : undefined,
+      
+      // Best seller data
+      isBestSeller: isBestSeller,
+      salesCount: isBestSeller && salesCount ? Number(salesCount) : (editingProduct?.salesCount || 0)
     };
     
     editingProduct ? updateProduct(productData) : addProduct(productData);
     handleCloseModal();
-  };
-
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setEditingProduct(null);
-    setPreviewImage(null);
   };
 
   const filteredProducts = products.filter(p => {
@@ -324,6 +408,19 @@ export default function ProductManagement() {
   const avgMargin = products.length > 0 
     ? (products.reduce((sum, p) => sum + ((p.price - p.cost) / p.price * 100), 0) / products.length).toFixed(1)
     : '0';
+
+  // Hitung promo aktif
+  const activePromoProducts = products.filter(p => p.isPromo && p.promoPrice && p.promoPrice > 0);
+  const promoCount = activePromoProducts.length;
+
+  // Hitung best seller
+  const bestSellerProducts = products.filter(p => p.isBestSeller).sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
+  const bestSellerCount = bestSellerProducts.length;
+
+  // Format price untuk preview
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('id-ID');
+  };
 
   return (
     <div className={`space-y-6 animate-in fade-in duration-500`}>
@@ -413,6 +510,18 @@ export default function ProductManagement() {
                 <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-700'}`}>
                   {filteredProducts.length} Products
                 </div>
+                {promoCount > 0 && (
+                  <div className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-red-700 text-red-200' : 'bg-red-100 text-red-700'}`}>
+                    <Percent size={10} />
+                    {promoCount} Promo Active
+                  </div>
+                )}
+                {bestSellerCount > 0 && (
+                  <div className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-amber-700 text-amber-200' : 'bg-amber-100 text-amber-700'}`}>
+                    <Trophy size={10} />
+                    {bestSellerCount} Best Sellers
+                  </div>
+                )}
               </div>
             </div>
 
@@ -466,8 +575,8 @@ export default function ProductManagement() {
                     <th className="p-4">Product Info</th>
                     <th className="p-4">Category</th>
                     <th className="p-4 text-right">Price</th>
-                    <th className="p-4 text-right">Cost</th>
-                    <th className="p-4 text-right">Margin</th>
+                    <th className="p-4 text-right">Promo</th>
+                    <th className="p-4 text-right">Sales</th>
                     <th className="p-4 text-right">Stock</th>
                     <th className="p-4 text-right">Status</th>
                     <th className="p-4 text-right">Actions</th>
@@ -479,6 +588,11 @@ export default function ProductManagement() {
                     const marginPercent = ((margin / p.price) * 100).toFixed(1);
                     const isLowStock = p.stock <= p.minStock;
                     const isOutOfStock = p.stock === 0;
+                    const isPromoActive = p.isPromo && p.promoPrice && p.promoPrice > 0;
+                    const discountPercent = isPromoActive 
+                      ? Math.round(((p.price - p.promoPrice!) / p.price) * 100)
+                      : 0;
+                    const isBestSellerActive = p.isBestSeller;
                     
                     return (
                       <tr key={p.id} className={`group transition-colors ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'}`}>
@@ -495,6 +609,27 @@ export default function ProductManagement() {
                             </div>
                             <div>
                               <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{p.name}</p>
+                              <div className="flex items-center gap-1 mt-1">
+                                {isPromoActive && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white">
+                                      {p.promoLabel || `-${discountPercent}%`}
+                                    </span>
+                                    {p.promoStart && p.promoEnd && (
+                                      <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                        <Clock size={8} />
+                                        {p.promoStart} - {p.promoEnd}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                {isBestSellerActive && (
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                                    <Trophy size={8} className="inline mr-1" />
+                                    Best Seller
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -504,33 +639,48 @@ export default function ProductManagement() {
                           </span>
                         </td>
                         <td className="p-4 text-right">
-                          <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            Rp {p.price.toLocaleString()}
-                          </p>
-                        </td>
-                        <td className="p-4 text-right">
-                          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Rp {p.cost.toLocaleString()}
-                          </p>
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {parseFloat(marginPercent) >= 50 ? (
-                              <TrendingUp className="w-3 h-3 text-green-500" />
-                            ) : parseFloat(marginPercent) >= 30 ? (
-                              <TrendingUp className="w-3 h-3 text-amber-500" />
+                          <div className="flex flex-col items-end">
+                            {isPromoActive ? (
+                              <>
+                                <p className={`font-bold line-through text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                  Rp {p.price.toLocaleString()}
+                                </p>
+                                <p className={`font-bold text-red-500 dark:text-red-400`}>
+                                  Rp {p.promoPrice!.toLocaleString()}
+                                </p>
+                              </>
                             ) : (
-                              <TrendingDown className="w-3 h-3 text-red-500" />
+                              <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                Rp {p.price.toLocaleString()}
+                              </p>
                             )}
-                            <span className={`font-bold ${
-                              parseFloat(marginPercent) >= 50 ? 'text-green-600 dark:text-green-400' :
-                              parseFloat(marginPercent) >= 30 ? 'text-amber-600 dark:text-amber-400' :
-                              'text-red-600 dark:text-red-400'
-                            }`}>
-                              {marginPercent}%
-                            </span>
                           </div>
-                          <p className="text-xs text-gray-500">Rp {margin.toLocaleString()}</p>
+                        </td>
+                        <td className="p-4 text-right">
+                          {isPromoActive ? (
+                            <div className="flex flex-col items-end">
+                              <span className="px-2 py-0.5 rounded text-xs font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white">
+                                {discountPercent}% OFF
+                              </span>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                Save: Rp {(p.price - p.promoPrice!).toLocaleString()}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>-</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex flex-col items-end">
+                            <span className={`font-bold ${isBestSellerActive ? (isDark ? 'text-amber-400' : 'text-amber-600') : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+                              {p.salesCount || 0} sold
+                            </span>
+                            {isBestSellerActive && p.salesCount && p.salesCount > 100 && (
+                              <span className="text-[10px] text-green-500 dark:text-green-400">
+                                Hot Item
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex flex-col items-end">
@@ -560,7 +710,7 @@ export default function ProductManagement() {
                         <td className="p-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button 
-                              onClick={() => { setEditingProduct(p); setPreviewImage(p.image || null); setModalOpen(true); }}
+                              onClick={() => handleOpenEditModal(p)}
                               className={`p-2 rounded-lg transition-all ${isDark ? 'bg-gray-700 text-blue-400 hover:bg-blue-500/20' : 'bg-gray-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}
                               title="Edit"
                             >
@@ -589,9 +739,43 @@ export default function ProductManagement() {
                 const marginPercent = ((margin / p.price) * 100).toFixed(1);
                 const isLowStock = p.stock <= p.minStock;
                 const isOutOfStock = p.stock === 0;
+                const isPromoActive = p.isPromo && p.promoPrice && p.promoPrice > 0;
+                const discountPercent = isPromoActive 
+                  ? Math.round(((p.price - p.promoPrice!) / p.price) * 100)
+                  : 0;
+                const isBestSellerActive = p.isBestSeller;
                 
                 return (
-                  <div key={p.id} className={`rounded-xl border p-4 transition-all ${isDark ? 'bg-gray-800/50 border-gray-700 hover:border-amber-500/50' : 'bg-white border-gray-200 hover:border-amber-500 hover:shadow-sm'}`}>
+                  <div key={p.id} className={`rounded-xl border p-4 transition-all relative ${isDark ? 'bg-gray-800/50 border-gray-700 hover:border-amber-500/50' : 'bg-white border-gray-200 hover:border-amber-500 hover:shadow-sm'}`}>
+                    {/* Promo Badge */}
+                    {isPromoActive && (
+                      <div className="absolute -top-2 -right-2 z-10">
+                        <div className="px-3 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
+                          {p.promoLabel || `${discountPercent}% OFF`}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Best Seller Badge */}
+                    {isBestSellerActive && !isPromoActive && (
+                      <div className="absolute -top-2 -right-2 z-10">
+                        <div className="px-3 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg">
+                          <Trophy size={10} className="inline mr-1" />
+                          Best Seller
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Jika ada promo DAN best seller */}
+                    {isPromoActive && isBestSellerActive && (
+                      <div className="absolute -top-2 -left-2 z-10">
+                        <div className="px-3 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg">
+                          <Trophy size={10} className="inline mr-1" />
+                          Best Seller
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Product Image */}
                     <div className={`w-full h-32 rounded-lg mb-3 overflow-hidden flex items-center justify-center ${isDark ? 'bg-gray-900' : 'bg-gray-100'}`}>
                       {p.image ? (
@@ -620,13 +804,35 @@ export default function ProductManagement() {
                       </div>
                       
                       {/* Price and Stock */}
-                      <div className="flex items-center justify-between">
-                        <div>
+                      <div className="space-y-1">
+                        {isPromoActive ? (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <p className={`font-bold line-through text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                Rp {p.price.toLocaleString()}
+                              </p>
+                              <p className={`font-bold text-red-500 dark:text-red-400`}>
+                                Rp {p.promoPrice!.toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white">
+                                Save {discountPercent}%
+                              </span>
+                              <span className="text-[10px] text-gray-500">
+                                Save Rp {(p.price - p.promoPrice!).toLocaleString()}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
                           <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                             Rp {p.price.toLocaleString()}
                           </p>
-                          <p className="text-xs text-gray-500">Cost: Rp {p.cost.toLocaleString()}</p>
-                        </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-gray-500">Cost: Rp {p.cost.toLocaleString()}</div>
                         <div className="text-right">
                           <div className="flex items-center gap-1">
                             <span className={`font-bold ${isLowStock ? 'text-red-600 dark:text-red-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -637,6 +843,23 @@ export default function ProductManagement() {
                           <p className="text-xs text-gray-500">{p.unit}</p>
                         </div>
                       </div>
+                      
+                      {/* Sales Count */}
+                      {isBestSellerActive && (
+                        <div className={`p-2 rounded-lg ${isDark ? 'bg-amber-900/20 border border-amber-800/30' : 'bg-amber-50 border border-amber-200'}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <Trophy className={`w-3 h-3 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                              <span className={`text-xs font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
+                                Best Seller
+                              </span>
+                            </div>
+                            <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {p.salesCount || 0} sold
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Status Bar */}
                       <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
@@ -666,7 +889,7 @@ export default function ProductManagement() {
                         </div>
                         <div className="flex gap-1">
                           <button 
-                            onClick={() => { setEditingProduct(p); setPreviewImage(p.image || null); setModalOpen(true); }}
+                            onClick={() => handleOpenEditModal(p)}
                             className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                             title="Edit"
                           >
@@ -871,153 +1094,312 @@ export default function ProductManagement() {
             </div>
           </div>
         </div>
-
-        {/* Delete Category Instructions */}
-        {showDeleteConfirm && (
-          <div className={`mt-4 p-3 rounded-xl ${isDark ? 'bg-red-900/30 border border-red-800' : 'bg-red-50 border border-red-200'}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-red-500" />
-                <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                  Are you sure you want to delete "{showDeleteConfirm}"?
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="px-3 py-1 text-xs rounded-lg bg-gray-200 dark:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    if (showDeleteConfirm) {
-                      handleDeleteCategory(showDeleteConfirm);
-                      setShowDeleteConfirm(null);
-                    }
-                  }}
-                  className="px-3 py-1 text-xs rounded-lg bg-red-500 text-white"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Modern Modal Form */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in zoom-in duration-200">
-          <form 
-            onSubmit={handleSubmit} 
-            className={`w-full max-w-xs p-5 rounded-[1.5rem] shadow-2xl ${
-              isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'
-            }`}
-          >
-            {/* Header Modal */}
-            <div className="flex justify-between items-center mb-3">
-              <h2 className={`text-base font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {editingProduct ? 'Edit Item' : 'New Creation'}
-              </h2>
-              <button type="button" onClick={handleCloseModal} className="p-1 hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors">
-                <X size={18} />
-              </button>
+ {/* Modern Modal Form - DENGAN BEST SELLER */}
+{isModalOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div 
+      className={`w-full max-w-md rounded-[1.5rem] shadow-2xl overflow-hidden ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'}`}
+    >
+      <form 
+        onSubmit={handleSubmit} 
+        className="flex flex-col h-full"
+      >
+        {/* Header Modal - STICKY */}
+        <div className={`p-5 border-b ${isDark ? 'border-gray-700' : 'border-gray-100'} flex-shrink-0`}>
+          <div className="flex justify-between items-center">
+            <h2 className={`text-base font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {editingProduct ? 'Edit Item' : 'New Creation'}
+            </h2>
+            <button 
+              type="button" 
+              onClick={handleCloseModal} 
+              className="p-1 hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto horizontal-scrollbar-thin  max-h-[60vh] p-5 ">
+          <div className="space-y-4">
+            {/* Profile Image Upload */}
+            <div className="flex justify-center relative group">
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className={`relative w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition-all ${
+                  isDark ? 'bg-gray-900 border-gray-700 hover:border-amber-500' : 'bg-gray-50 border-gray-200 hover:border-amber-500'
+                }`}
+              >
+                {previewImage ? (
+                  <img src={previewImage} className="w-full h-full object-cover" alt="Product preview" />
+                ) : (
+                  <div className="text-center text-gray-400">
+                    <Camera size={20} className="mx-auto" />
+                  </div>
+                )}
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
             </div>
 
+            {/* Basic Information Section */}
             <div className="space-y-3">
-              {/* Profile Image Upload */}
-              <div className="flex justify-center relative group">
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`relative w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition-all ${
-                    isDark ? 'bg-gray-900 border-gray-700 hover:border-amber-500' : 'bg-gray-50 border-gray-200 hover:border-amber-500'
-                  }`}
+              <div>
+                <label className="text-[9px] font-black uppercase text-amber-500 ml-1 tracking-widest">Name</label>
+                <input 
+                  name="name" 
+                  defaultValue={editingProduct?.name} 
+                  className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm transition-all mt-1 ${isDark ? 'border-gray-700 focus:border-amber-500 text-white' : 'border-gray-100 focus:border-amber-500 text-gray-900'}`} 
+                  required 
+                  placeholder="Arabica Gold" 
+                  onBlur={(e) => {
+                    // Auto-capitalize product name on blur
+                    if (e.target.value) {
+                      e.target.value = formatProductName(e.target.value);
+                    }
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black uppercase text-amber-500 ml-1 tracking-widest">Category</label>
+                <select 
+                  name="category" 
+                  defaultValue={editingProduct?.category} 
+                  className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100 text-gray-900'}`}
                 >
-                  {previewImage ? (
-                    <img src={previewImage} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-center text-gray-400">
-                      <Camera size={20} className="mx-auto" />
+                  {categories.map(cat => <option key={cat} value={cat} className={isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>{cat}</option>)}
+                </select>
+              </div>
+
+              {/* Price & Stock Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Cost</label>
+                  <input 
+                    name="cost" 
+                    type="number" 
+                    defaultValue={editingProduct?.cost} 
+                    className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Price</label>
+                  <input 
+                    name="price" 
+                    type="number" 
+                    defaultValue={editingProduct?.price} 
+                    className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Stock</label>
+                  <input 
+                    name="stock" 
+                    type="number" 
+                    defaultValue={editingProduct?.stock} 
+                    className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Min Alert</label>
+                  <input 
+                    name="minStock" 
+                    type="number" 
+                    defaultValue={editingProduct?.minStock} 
+                    className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
+                    required 
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* BEST SELLER SECTION */}
+            <div className={`p-4 rounded-xl transition-all duration-300 ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-blue-50 border border-blue-200'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Trophy className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                  <label className="text-sm font-bold">Best Seller Settings</label>
+                </div>
+                <div className="relative">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={isBestSeller}
+                      onChange={(e) => setIsBestSeller(e.target.checked)}
+                      className="sr-only peer" 
+                    />
+                    <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-gray-600 peer-checked:bg-amber-500' : 'bg-gray-300 peer-checked:bg-amber-500'} peer-focus:ring-2 peer-focus:ring-amber-300 transition-colors`}>
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isBestSeller ? 'translate-x-4' : ''}`}></div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {isBestSeller && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div>
+                    <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Sales Count</label>
+                    <input 
+                      type="number" 
+                      value={salesCount}
+                      onChange={(e) => setSalesCount(e.target.value)}
+                      className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-600 focus:border-amber-500 text-white' : 'border-blue-200 focus:border-amber-500 text-gray-900'}`}
+                      placeholder="Number of sales"
+                      min="0"
+                    />
+                  </div>
+                  
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800/70' : 'bg-blue-100/70'}`}>
+                    <div className="flex items-start gap-2">
+                      <Trophy className={`w-4 h-4 mt-0.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                      <div className="text-xs">
+                        <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                          This product will appear at the top of POS (below promo items) with a "Best Seller" badge.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* PROMO SECTION */}
+            <div className={`p-4 rounded-xl transition-all duration-300 ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-amber-50 border border-amber-200'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Percent className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                  <label className="text-sm font-bold">Promo Settings</label>
+                </div>
+                <div className="relative">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={isPromo}
+                      onChange={(e) => setIsPromo(e.target.checked)}
+                      className="sr-only peer" 
+                    />
+                    <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-gray-600 peer-checked:bg-amber-500' : 'bg-gray-300 peer-checked:bg-amber-500'} peer-focus:ring-2 peer-focus:ring-amber-300 transition-colors`}>
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isPromo ? 'translate-x-4' : ''}`}></div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {isPromo && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Promo Price</label>
+                      <input 
+                        type="number" 
+                        value={promoPrice}
+                        onChange={(e) => setPromoPrice(e.target.value)}
+                        className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-600 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                        placeholder="Discount price"
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Promo Label</label>
+                      <input 
+                        type="text" 
+                        value={promoLabel}
+                        onChange={(e) => setPromoLabel(e.target.value)}
+                        className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-600 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                        placeholder="e.g., Flash Sale"
+                        maxLength={20}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Start Date</label>
+                      <input 
+                        type="date" 
+                        value={promoStart}
+                        onChange={(e) => setPromoStart(e.target.value)}
+                        className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-600 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black uppercase text-gray-500 ml-1">End Date</label>
+                      <input 
+                        type="date" 
+                        value={promoEnd}
+                        onChange={(e) => setPromoEnd(e.target.value)}
+                        className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-600 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preview Promo */}
+                  {promoPrice && editingProduct?.price && (
+                    <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800/70' : 'bg-amber-100/70'}`}>
+                      <div className="flex flex-col gap-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Original:</span>
+                          <span className={`line-through ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            Rp {formatPrice(editingProduct.price)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Promo:</span>
+                          <span className="font-bold text-red-500">
+                            Rp {formatPrice(Number(promoPrice))}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-gray-200 dark:border-gray-700">
+                          <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Savings:</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white`}>
+                              -{Math.round(((editingProduct.price - Number(promoPrice)) / editingProduct.price) * 100)}%
+                            </span>
+                            <span className="text-xs text-green-600 dark:text-green-400 font-semibold">
+                              Rp {formatPrice(editingProduct.price - Number(promoPrice))}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-                <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
-              </div>
-
-              {/* Input Fields */}
-              <div className="space-y-2.5">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-amber-500 ml-1 tracking-widest">Name</label>
-                  <input 
-                    name="name" 
-                    defaultValue={editingProduct?.name} 
-                    className={`w-full p-2 rounded-xl border-2 bg-transparent outline-none text-xs transition-all ${isDark ? 'border-gray-700 focus:border-amber-500 text-white' : 'border-gray-100 focus:border-amber-500 text-gray-900'}`} 
-                    required 
-                    placeholder="Arabica Gold" 
-                    onBlur={(e) => {
-                      // Auto-capitalize product name on blur
-                      if (e.target.value) {
-                        e.target.value = formatProductName(e.target.value);
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-amber-500 ml-1 tracking-widest">Category</label>
-                  <select 
-                    name="category" 
-                    defaultValue={editingProduct?.category} 
-                    className={`w-full p-2 rounded-xl border-2 bg-transparent outline-none text-xs ${isDark ? 'border-gray-700 text-white' : 'border-gray-100 text-gray-900'}`}
-                  >
-                    {categories.map(cat => <option key={cat} value={cat} className="bg-gray-800 text-white">{cat}</option>)}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Cost</label>
-                    <input name="cost" type="number" defaultValue={editingProduct?.cost} className={`w-full p-2 rounded-xl border-2 bg-transparent outline-none text-xs ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} required />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Price</label>
-                    <input name="price" type="number" defaultValue={editingProduct?.price} className={`w-full p-2 rounded-xl border-2 bg-transparent outline-none text-xs ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} required />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Stock</label>
-                    <input name="stock" type="number" defaultValue={editingProduct?.stock} className={`w-full p-2 rounded-xl border-2 bg-transparent outline-none text-xs ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} required />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Min Alert</label>
-                    <input name="minStock" type="number" defaultValue={editingProduct?.minStock} className={`w-full p-2 rounded-xl border-2 bg-transparent outline-none text-xs ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} required />
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2 mt-5">
-              <button 
-                type="button" 
-                onClick={handleCloseModal} 
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase"
-              >
-                {editingProduct ? 'Update' : 'Confirm'}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
-      )}
+
+        {/* Footer Modal - STICKY */}
+        <div className={`p-5 border-t ${isDark ? 'border-gray-700' : 'border-gray-100'} flex-shrink-0`}>
+          <div className="flex gap-3">
+            <button 
+              type="button" 
+              onClick={handleCloseModal} 
+              className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white text-sm font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase"
+            >
+              {editingProduct ? 'Update' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
     </div>
   );
 }
