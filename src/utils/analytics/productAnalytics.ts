@@ -169,11 +169,11 @@ export function updateProductsWithBestSellerStatus(
   if (validTransactions.length === 0 || products.length === 0) {
     return products.map(product => ({
       ...product,
-     isBestSeller: bestSellerIds.has(product.id),
-    recentSalesCount: bestSellers.find(bs => bs.product.id === product.id)?.quantity || 0,
-    bestSellerRank: bestSellers.find(bs => bs.product.id === product.id)?.rank,
-    bestSellerPeriod: periodDays,
-    bestSellerUpdatedAt: new Date().toISOString()
+      isBestSeller: false,
+      recentSalesCount: 0,
+      bestSellerRank: undefined,
+      bestSellerPeriod: periodDays,
+      bestSellerUpdatedAt: new Date().toISOString()
     }));
   }
   

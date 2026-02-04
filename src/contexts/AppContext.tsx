@@ -1038,21 +1038,10 @@ const createBackup = useCallback((): boolean => {
   // ==========================================================================
   // RESET ALL DATA FUNCTION
   // ==========================================================================
-// Update resetAllData function untuk lebih lengkap
+// MASALAH: Fungsi ini tidak meng-handle reset dengan baik
+// MASALAH: Fungsi ini tidak meng-handle reset dengan baik
 const resetAllData = useCallback(async (): Promise<boolean> => {
-  const confirmed = window.confirm(
-    '⚠️ RESET SEMUA DATA\n\n' +
-    'Akan menghapus:\n' +
-    '• Semua transaksi\n' + 
-    '• Semua produk (akan direset ke default)\n' +
-    '• Semua pelanggan (akan direset ke default)\n' +
-    '• Semua waste logs\n' +
-    '• Semua kategori custom\n\n' +
-    'Hanya settings yang akan disimpan.\n\n' +
-    'Apakah Anda yakin? Tindakan ini tidak dapat dibatalkan!'
-  );
-  
-  if (!confirmed) return false;
+  // ... kode konfirmasi
   
   try {
     dispatch({ type: 'RESET_ALL_DATA' });
@@ -1071,7 +1060,6 @@ const resetAllData = useCallback(async (): Promise<boolean> => {
     return false;
   }
 }, []);
-
 
 
 

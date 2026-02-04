@@ -15,7 +15,7 @@ const Members = lazy(() => import('./pages/Customers/Members'));
 const VisitHistory = lazy(() => import('./pages/Customers/VisitHistory'));
 const LoyaltyInsight = lazy(() => import('./pages/Customers/LoyaltyInsight'));
 const Settings = lazy(() => import('./pages/Settings/Settings'));
-const DataReset = lazy(() => import('./pages/Settings//Settings/DataReset'));
+const DataReset = lazy(() => import('./pages/Settings/Settings/DataReset'));
 const HelpCenter = lazy(() => import('./pages/HelpCenter'));
 const ProductManagement = lazy(() => import('./pages/Operation/ProductManagement'));
 
@@ -86,17 +86,19 @@ function App() {
               } />
             </Route>
             
-            {/* Other Routes */}
-            <Route path="settings" element={
-              <Suspense fallback={<LoadingSpinner text="Memuat Settings..." />}>
-                <Settings />
-              </Suspense>
-            } />
-            <Route path="data-reset" element={
-              <Suspense fallback={<LoadingSpinner text="Memuat Data Reset..." />}>
-                <DataReset />
-              </Suspense>
-            } />
+            <Route path="settings">
+              <Route index element={
+                <Suspense fallback={<LoadingSpinner text="Memuat Settings..." />}>
+                  <Settings />
+                </Suspense>
+              } />
+              <Route path="data-reset" element={
+                <Suspense fallback={<LoadingSpinner text="Memuat Data Reset..." />}>
+                  <DataReset />
+                </Suspense>
+              } />
+            </Route>
+
             <Route path="help" element={
               <Suspense fallback={<LoadingSpinner text="Memuat Help Center..." />}>
                 <HelpCenter />
