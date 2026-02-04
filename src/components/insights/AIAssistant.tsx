@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Send, Brain, TrendingUp, AlertTriangle, DollarSign, Package, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Send, Brain, TrendingUp, AlertTriangle, DollarSign, Package, Users, X } from 'lucide-react';
 import type { Transaction, WasteLog, Product } from '../../types';
-import { useTheme } from '../../contexts/ThemeContext'; // Import context tema
+import { useTheme } from '../../contexts/ThemeContext';
 import { 
   getTopProducts, 
   analyzeWasteTrends, 
@@ -22,7 +22,6 @@ interface Insight {
   description: string;
   action: string;
   severity: 'low' | 'medium' | 'high';
-  data?: any;
 }
 
 interface Message {
@@ -33,22 +32,21 @@ interface Message {
 }
 
 const predefinedQuestions = [
-  "Kenapa profit saya turun minggu ini?",
-  "Produk mana yang sebaiknya saya promosikan?",
-  "Biaya mana yang paling bocor?",
-  "Customer saya yang paling loyal siapa?",
-  "Bagaimana meningkatkan penjualan di jam sepi?",
-  "Apakah saya perlu tambah stok bahan baku?",
+  "Kenapa profit saya turun?",
+  "Produk mana yang paling laku?",
+  "Berapa total kerugian waste?",
+  "Siapa customer paling loyal?",
+  "Bagaimana stok bahan baku saat ini?",
 ];
 
 export default function AIAssistant({ transactions, wasteLogs, products }: AIAssistantProps) {
-  const { theme } = useTheme(); // Gunakan hook tema
+  const { theme } = useTheme();
   const isDark = theme === 'dark';
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Halo! Saya asisten AI untuk bisnis kopi Anda. Tanyakan apa saja tentang bisnis Anda.",
+      text: "Halo! Saya asisten AI bisnis Anda. Saya sudah menganalisis data transaksi dan operasional Anda. Ada yang bisa saya bantu?",
       isUser: false,
       timestamp: new Date(),
     }
@@ -57,95 +55,109 @@ export default function AIAssistant({ transactions, wasteLogs, products }: AIAss
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<Insight[]>([]);
 
-  // Analisis data untuk insights otomatis (Logika tetap sama)
+  // Jalankan analisis otomatis saat pertama kali dibuka
+  useEffect(() => {
+    analyzeBusiness();
+  }, [transactions, wasteLogs]);
+
   const analyzeBusiness = () => {
+    const now = new Date();
     const last7Days = transactions.filter(t => {
       const date = new Date(t.date);
       const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
+      weekAgo.setDate(now.getDate() - 7);
       return date >= weekAgo;
     });
 
     const weeklyRevenue = last7Days.reduce((sum, t) => sum + t.total, 0);
     const weeklyProfit = last7Days.reduce((sum, t) => sum + t.profit, 0);
-    const previousWeekRevenue = 0; 
-
+    
     const newInsights: Insight[] = [];
 
-    if (weeklyRevenue < (previousWeekRevenue * 0.8)) {
-      newInsights.push({
-        id: '1', type: 'revenue', title: 'Revenue Menurun',
-        description: `Revenue minggu ini turun ${Math.round((1 - weeklyRevenue/previousWeekRevenue) * 100)}% dari minggu lalu.`,
-        action: 'Cek apakah ada perubahan menu atau promosi yang kurang efektif.',
-        severity: 'high'
-      });
-    }
-
+    // 1. Analisis Waste (Kerugian)
     const wasteAnalysis = analyzeWasteTrends(wasteLogs);
-    if (wasteAnalysis.totalLoss > 500000) {
+    if (wasteAnalysis.totalLoss > 100000) {
       newInsights.push({
-        id: '2', type: 'waste', title: 'Waste Tinggi',
-        description: `Total waste mencapai Rp ${wasteAnalysis.totalLoss.toLocaleString()} bulan ini.`,
-        action: wasteAnalysis.byProduct[0] ? `Fokus kurangi waste pada ${wasteAnalysis.byProduct[0][0]}` : 'Tinjau proses penyimpanan.',
-        severity: 'high'
+        id: 'waste-alert',
+        type: 'waste',
+        title: 'Deteksi Pemborosan',
+        description: `Kerugian waste mencapai Rp ${wasteAnalysis.totalLoss.toLocaleString()}.`,
+        action: 'Tinjau kembali porsi atau cara penyimpanan bahan baku.',
+        severity: wasteAnalysis.totalLoss > 300000 ? 'high' : 'medium'
       });
     }
 
-    const topProducts = getTopProducts(last7Days, 3);
-    if (topProducts.length > 0) {
-      const topProductName = products.find(p => p.id === topProducts[0][0])?.name || 'Unknown';
+    // 2. Analisis Produk (Sinkron dengan Top Products)
+    const topData = getTopProducts(transactions, products, 1);
+    if (topData.length > 0) {
       newInsights.push({
-        id: '3', type: 'products', title: 'Produk Unggulan',
-        description: `${topProductName} adalah produk terlaris dengan ${topProducts[0][1].quantity} penjualan.`,
-        action: 'Pertimbangkan bundle promo.',
+        id: 'top-prod',
+        type: 'products',
+        title: 'Produk Powerhouse',
+        description: `${topData[0].product.name} menyumbang penjualan terbanyak (${topData[0].quantity} unit).`,
+        action: 'Pastikan stok produk ini selalu aman.',
         severity: 'low'
       });
     }
 
-    const profitMargin = weeklyRevenue > 0 ? (weeklyProfit / weeklyRevenue) * 100 : 0;
-    if (profitMargin < 40) {
+    // 3. Analisis Margin
+    const margin = weeklyRevenue > 0 ? (weeklyProfit / weeklyRevenue) * 100 : 0;
+    if (margin < 30 && weeklyRevenue > 0) {
       newInsights.push({
-        id: '4', type: 'profit', title: 'Margin Profit Rendah',
-        description: `Margin profit saat ini ${profitMargin.toFixed(1)}%, di bawah target 50%.`,
-        action: 'Tinjau harga jual.',
-        severity: 'medium'
+        id: 'profit-alert',
+        type: 'profit',
+        title: 'Margin Menipis',
+        description: `Margin keuntungan rata-rata Anda hanya ${margin.toFixed(1)}%.`,
+        action: 'Cek kenaikan harga bahan baku atau kurangi diskon berlebih.',
+        severity: 'high'
       });
     }
+
     setInsights(newInsights);
   };
 
-  const handleQuestion = (question: string) => {
-    setInput(question);
-    setTimeout(() => handleSend(question), 100);
-  };
-
   const processQuestion = (question: string): string => {
-    const lowerQuestion = question.toLowerCase();
-    if (lowerQuestion.includes('profit') && lowerQuestion.includes('turun')) return "Profit harian rata-rata minggu ini perlu diperhatikan. Periksa waste dan biaya bahan baku.";
-    if (lowerQuestion.includes('produk') && lowerQuestion.includes('promosikan')) return "Promosikan produk dengan margin tinggi. Cek daftar produk terlaris di menu utama.";
-    return `Saya menganalisis data Anda. Total transaksi saat ini: ${transactions.length}. Produk terjual: ${transactions.flatMap(t => t.items).reduce((sum, item) => sum + item.quantity, 0)}.`;
-  };
-
-  const handleSend = (overrideInput?: string) => {
-    const textToSend = overrideInput || input;
-    if (!textToSend.trim()) return;
-
-    const userMessage: Message = { id: Date.now().toString(), text: textToSend, isUser: true, timestamp: new Date() };
-    setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
+    const q = question.toLowerCase();
     
-    setTimeout(() => {
-      const aiResponse = processQuestion(textToSend);
-      const aiMessage: Message = { id: (Date.now() + 1).toString(), text: aiResponse, isUser: false, timestamp: new Date() };
-      setMessages(prev => [...prev, aiMessage]);
-      setIsLoading(false);
-      setInput('');
-      analyzeBusiness();
-    }, 1000);
+    if (q.includes('profit') || q.includes('untung')) {
+      const weeklyProfit = transactions.slice(0, 10).reduce((s, t) => s + t.profit, 0);
+      return `Profit Anda sangat bergantung pada efisiensi bahan. Saat ini rata-rata profit per transaksi adalah Rp ${(weeklyProfit / (transactions.length || 1)).toLocaleString()}.`;
+    }
+    
+    if (q.includes('produk') || q.includes('laku')) {
+      const top = getTopProducts(transactions, products, 3);
+      if (top.length === 0) return "Belum ada data penjualan produk yang cukup untuk dianalisis.";
+      return `3 Produk terlaris Anda adalah: ${top.map(t => t.product.name).join(', ')}. Fokus pada stok barang-barang ini.`;
+    }
+
+    if (q.includes('waste') || q.includes('rugi')) {
+      const waste = analyzeWasteTrends(wasteLogs);
+      return `Total kerugian dari waste adalah Rp ${waste.totalLoss.toLocaleString()}. Penyebab utama biasanya adalah produk kedaluwarsa atau kesalahan pembuatan.`;
+    }
+
+    if (q.includes('stok') || q.includes('bahan')) {
+      const lowStock = products.filter(p => p.stock <= p.minStock).length;
+      return `Ada ${lowStock} produk yang berada di bawah batas minimum stok. Segera lakukan restock untuk mencegah kehilangan potensi penjualan.`;
+    }
+
+    return `Berdasarkan ${transactions.length} transaksi, bisnis Anda berjalan cukup stabil. Ada hal spesifik lain yang ingin Anda ketahui?`;
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  const handleSend = (text?: string) => {
+    const msgText = text || input;
+    if (!msgText.trim()) return;
+
+    const userMsg: Message = { id: Date.now().toString(), text: msgText, isUser: true, timestamp: new Date() };
+    setMessages(prev => [...prev, userMsg]);
+    setIsLoading(true);
+    setInput('');
+
+    setTimeout(() => {
+      const aiResponse = processQuestion(msgText);
+      const aiMsg: Message = { id: (Date.now() + 1).toString(), text: aiResponse, isUser: false, timestamp: new Date() };
+      setMessages(prev => [...prev, aiMsg]);
+      setIsLoading(false);
+    }, 800);
   };
 
   const getInsightIcon = (type: InsightType) => {
@@ -161,45 +173,54 @@ export default function AIAssistant({ transactions, wasteLogs, products }: AIAss
 
   const getSeverityClasses = (severity: Insight['severity']) => {
     switch (severity) {
-      case 'high': return isDark ? 'bg-red-900/30 border-red-800 text-red-300' : 'bg-red-50 border-red-200 text-red-800';
-      case 'medium': return isDark ? 'bg-amber-900/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800';
-      case 'low': return isDark ? 'bg-blue-900/30 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800';
+      case 'high': return isDark ? 'bg-red-900/20 border-red-800 text-red-300' : 'bg-red-50 border-red-200 text-red-800';
+      case 'medium': return isDark ? 'bg-amber-900/20 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800';
+      case 'low': return isDark ? 'bg-blue-900/20 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800';
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* AI Header */}
-      <div className={`rounded-xl p-6 border transition-colors ${
-        isDark ? 'bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border-purple-800' : 'bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200'
+    <div className="space-y-6 max-w-5xl mx-auto pb-10">
+      {/* AI Hero Header */}
+      <div className={`rounded-3xl p-8 border relative overflow-hidden transition-all ${
+        isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'
       }`}>
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg shadow-lg">
-            <Brain className="w-8 h-8 text-white" />
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <Brain size={120} className="text-purple-500" />
+        </div>
+        
+        <div className="relative z-10 flex items-center gap-6">
+          <div className="p-4 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-lg shadow-purple-500/30">
+            <Brain className="w-10 h-10 text-white" />
           </div>
           <div>
-            <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>AI Business Assistant</h2>
-            <p className={`${isDark ? 'text-purple-200/70' : 'text-gray-600'}`}>Owner tidak perlu pintar data. Tanya apa saja tentang bisnis Anda.</p>
+            <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>Asisten Bisnis Pintar</h2>
+            <p className={`mt-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              Menganalisis <span className="text-purple-500 font-bold">{transactions.length}</span> transaksi secara real-time.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Auto Insights */}
+      {/* Auto Insights Row */}
       {insights.length > 0 && (
-        <div>
-          <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : ''}`}>Auto Insights</h3>
+        <div className="animate-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1.5 h-6 bg-purple-500 rounded-full"></div>
+            <h3 className={`text-lg font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Temuan Penting</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {insights.map(insight => (
-              <div key={insight.id} className={`p-4 rounded-lg border transition-all ${getSeverityClasses(insight.severity)}`}>
-                <div className="flex items-start gap-3">
-                  <div className={`p-2 rounded-lg ${isDark ? 'bg-gray-900/50' : 'bg-white shadow-sm'}`}>
+              <div key={insight.id} className={`p-5 rounded-2xl border transition-all hover:scale-[1.02] ${getSeverityClasses(insight.severity)}`}>
+                <div className="flex items-start gap-4">
+                  <div className={`p-2.5 rounded-xl ${isDark ? 'bg-black/20' : 'bg-white shadow-sm'}`}>
                     {getInsightIcon(insight.type)}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold">{insight.title}</h4>
-                    <p className="text-sm mt-1 opacity-80">{insight.description}</p>
-                    <div className={`mt-3 p-2 rounded text-sm ${isDark ? 'bg-gray-900/40' : 'bg-white/50'}`}>
-                      💡 <span className="font-medium">Saran:</span> {insight.action}
+                    <h4 className="font-bold text-base">{insight.title}</h4>
+                    <p className="text-sm mt-1 leading-relaxed opacity-90">{insight.description}</p>
+                    <div className={`mt-4 p-3 rounded-xl flex items-center gap-2 text-xs font-bold ${isDark ? 'bg-black/20 text-white' : 'bg-white/60 text-slate-800'}`}>
+                      <span className="text-lg">💡</span> {insight.action}
                     </div>
                   </div>
                 </div>
@@ -210,25 +231,27 @@ export default function AIAssistant({ transactions, wasteLogs, products }: AIAss
       )}
 
       {/* Chat Interface */}
-      <div className={`rounded-xl border shadow-sm overflow-hidden transition-colors ${
-        isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      <div className={`rounded-3xl border shadow-xl overflow-hidden flex flex-col transition-all ${
+        isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
       }`}>
-        <div className={`p-4 flex items-center gap-3 border-b ${isDark ? 'bg-gray-900/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_#22c55e]"></div>
-          <span className={`font-medium ${isDark ? 'text-gray-200' : ''}`}>Live Chat Assistant</span>
-          <span className="text-sm text-gray-500 ml-auto">{messages.length} pesan</span>
+        <div className={`p-5 flex items-center justify-between border-b ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <span className={`font-black text-sm uppercase tracking-widest ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Chat Assistant</span>
+          </div>
+          <button onClick={() => setMessages([messages[0]])} className="text-xs font-bold text-red-400 hover:underline">Reset Chat</button>
         </div>
 
-        <div className="h-96 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        <div className="h-[450px] overflow-y-auto p-6 space-y-6 custom-scrollbar">
           {messages.map(message => (
-            <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
+            <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} animate-in fade-in duration-300`}>
+              <div className={`max-w-[85%] rounded-2xl px-5 py-3.5 shadow-sm ${
                 message.isUser
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-br-none'
-                  : isDark ? 'bg-gray-700 text-gray-200 rounded-bl-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-br-none font-medium'
+                  : isDark ? 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700' : 'bg-slate-100 text-slate-800 rounded-bl-none'
               }`}>
-                <p className="whitespace-pre-wrap">{message.text}</p>
-                <p className={`text-[10px] mt-2 font-medium ${message.isUser ? 'text-amber-100/70' : 'text-gray-500'}`}>
+                <p className="text-sm leading-relaxed">{message.text}</p>
+                <p className={`text-[9px] mt-2 font-bold uppercase tracking-widest opacity-50`}>
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -236,63 +259,52 @@ export default function AIAssistant({ transactions, wasteLogs, products }: AIAss
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <div className={`rounded-2xl rounded-bl-none px-4 py-3 ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+              <div className={`rounded-2xl rounded-bl-none px-6 py-4 ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                <div className="flex gap-1.5">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        <div className={`p-4 border-t ${isDark ? 'bg-gray-900/30 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-          <p className="text-sm text-gray-500 mb-3">Pertanyaan cepat:</p>
-          <div className="flex flex-wrap gap-2">
+        {/* Input Area */}
+        <div className={`p-5 border-t ${isDark ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+          <div className="flex flex-wrap gap-2 mb-4">
             {predefinedQuestions.map((q, i) => (
-              <button key={i} onClick={() => handleQuestion(q)} className={`px-3 py-2 rounded-lg text-sm transition-all border ${
-                isDark ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:border-gray-600' : 'bg-white border-gray-300 hover:bg-gray-50'
-              }`}>{q}</button>
+              <button 
+                key={i} 
+                onClick={() => handleSend(q)} 
+                className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${
+                  isDark ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {q}
+              </button>
             ))}
           </div>
-        </div>
 
-        <div className="p-4 border-t border-gray-700/50">
-          <div className="flex gap-3">
+          <div className="relative">
             <textarea
-              value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={handleKeyPress}
-              placeholder="Tanyakan apa saja..."
-              className={`flex-1 px-4 py-3 rounded-lg outline-none transition-all resize-none ${
-                isDark ? 'bg-gray-900 border border-gray-700 text-white focus:border-purple-500' : 'bg-white border border-gray-300 focus:ring-2 focus:ring-purple-500'
+              value={input} 
+              onChange={(e) => setInput(e.target.value)} 
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+              placeholder="Tulis pesan..."
+              className={`w-full pl-5 pr-16 py-4 rounded-2xl outline-none transition-all resize-none font-medium text-sm ${
+                isDark ? 'bg-slate-900 border-slate-700 text-white focus:border-purple-500' : 'bg-white border-slate-200 focus:ring-2 focus:ring-purple-500'
               }`}
-              rows={2}
+              rows={1}
             />
             <button
-              onClick={() => handleSend()} disabled={!input.trim() || isLoading}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2 font-semibold"
+              onClick={() => handleSend()} 
+              disabled={!input.trim() || isLoading}
+              className="absolute right-2 top-2 bottom-2 px-5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center shadow-lg"
             >
-              <Send className="w-4 h-4" /> Kirim
+              <Send className="w-4 h-4" />
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Data Source Info */}
-      <div className={`rounded-xl p-4 border transition-colors ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-        <h4 className={`font-medium mb-3 flex items-center gap-2 ${isDark ? 'text-gray-200' : ''}`}>📊 Data dinalisis secara real-time:</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          {[
-            { label: 'Total Transaksi', val: transactions.length },
-            { label: 'Produk Terjual', val: transactions.flatMap(t => t.items).reduce((s, i) => s + i.quantity, 0) },
-            { label: 'Waste Records', val: wasteLogs.length },
-            { label: 'Produk di Menu', val: products.length }
-          ].map((item, idx) => (
-            <div key={idx} className={`p-3 rounded-lg border ${isDark ? 'bg-gray-900 border-gray-700 text-gray-300' : 'bg-white border-gray-200'}`}>
-              <div className="font-bold text-lg">{item.val}</div>
-              <div className="opacity-60 text-xs">{item.label}</div>
-            </div>
-          ))}
         </div>
       </div>
     </div>

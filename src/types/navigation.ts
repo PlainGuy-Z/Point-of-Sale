@@ -1,3 +1,4 @@
+// src/types/navigation.ts
 export type MenuItemType = 'link' | 'collapse';
 
 export interface SubMenuItem {

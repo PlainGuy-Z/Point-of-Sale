@@ -26,8 +26,16 @@ export default function CategoryPills({ selected, onSelect }: CategoryPillsProps
   };
 
   return (
-    <div className="category-pills-container">
-      <div className="flex gap-2 pb-2 overflow-x-auto horizontal-scrollbar-thin w-full max-w-full">
+    /* Container dengan width yang dijamin 100% */
+    <div className="w-full">
+      {/* Scroll container yang proper */}
+      <div 
+        className="flex flex-nowrap items-center gap-2 pb-3 overflow-x-auto w-full horizontal-scrollbar-thin"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          scrollBehavior: 'smooth',
+        }}
+      >
         {allCategories.map(category => {
           const isActive = selected === category;
 
@@ -36,23 +44,29 @@ export default function CategoryPills({ selected, onSelect }: CategoryPillsProps
               key={category}
               onClick={() => onSelect(category)}
               className={`
-                flex items-center gap-1.5 px-4 py-2.5 rounded-xl
-                text-xs sm:text-sm font-bold whitespace-nowrap
+                flex items-center gap-2 px-4 py-2.5 rounded-xl
+                text-xs font-bold whitespace-nowrap
                 transition-all duration-200
-                shrink-0 active:scale-95
+                flex-shrink-0 active:scale-95
+                min-w-max
                 ${isActive 
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg ' 
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20' 
                   : isDark 
-                    ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-gray-300 border border-gray-700 hover:from-gray-700 hover:to-gray-800 hover:text-white' 
-                    : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-600 border border-gray-200 hover:from-gray-100 hover:to-gray-200 hover:text-gray-800'
+                    ? 'bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700 hover:text-white' 
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-amber-600 shadow-sm'
                 }
               `}
+              aria-label={`Select ${category} category`}
+              aria-pressed={isActive}
             >
               {getIcon(category)}
-              {category}
+              <span>{category}</span>
             </button>
           );
         })}
+        
+        {/* Padding untuk scroll yang nyaman */}
+        <div className="flex-shrink-0 w-2" />
       </div>
     </div>
   );

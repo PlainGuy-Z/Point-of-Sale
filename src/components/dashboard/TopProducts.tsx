@@ -1,172 +1,114 @@
-import { Coffee, Trophy, TrendingUp } from 'lucide-react';
-import type { Product, Transaction } from '../../types';
+import { TrendingUp, Star, Package } from 'lucide-react';
+import type { Product } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface TopProductsProps {
-  transactions: Transaction[];
-  products: Product[];
+  products: (Product & { quantity?: number; revenue?: number })[];
+  title?: string;
+  limit?: number;
 }
 
-export default function TopProducts({ transactions, products }: TopProductsProps) {
+export default function TopProducts({ 
+  products, 
+  title = "Produk Terlaris", 
+  limit = 5 
+}: TopProductsProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-
-  const productSales: Record<string, number> = {};
-  const productRevenue: Record<string, number> = {};
   
-  transactions.forEach(t => {
-    t.items.forEach(item => {
-      productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity;
-      productRevenue[item.productId] = (productRevenue[item.productId] || 0) + (item.price * item.quantity);
-    });
-  });
-
-  const topProducts = Object.entries(productSales)
-    .map(([productId, quantity]) => {
-      const product = products.find(p => p.id === productId);
-      const revenue = productRevenue[productId] || 0;
-      return { product, quantity, revenue };
-    })
-    .filter((item): item is { product: Product, quantity: number, revenue: number } => item.product !== undefined)
-    .sort((a, b) => b.quantity - a.quantity) // PERBAIKAN: Urutkan berdasarkan QUANTITY
-    .slice(0, 5);
-
-  const maxQuantity = Math.max(...topProducts.map(p => p.quantity), 1); // PERBAIKAN: Gunakan quantity untuk progress bar
-
-  const rankColors = [
-    'from-amber-500 to-yellow-500',  // 1st
-    'from-gray-400 to-gray-500',     // 2nd
-    'from-orange-500 to-amber-700',  // 3rd
-    'from-blue-400 to-cyan-500',     // 4th
-    'from-purple-400 to-violet-500', // 5th
-  ];
-
-  // Hitung total revenue dari semua transaksi untuk persentase
-  const totalRevenueAll = transactions.reduce((sum, t) => sum + t.total, 0);
-  const totalRevenueTopProducts = topProducts.reduce((sum, p) => sum + p.revenue, 0);
-
-  return (
-    <div className={`
-      rounded-2xl border p-6 transition-all duration-300
-      ${isDark 
-        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' 
-        : 'bg-white border-gray-100 shadow-sm'
-      }
-    `}>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-xl ${isDark ? 'bg-gray-700/50' : 'bg-amber-50'}`}>
-            <Trophy className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
-          </div>
-          <div>
-            <h3 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Top Products</h3>
-            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>By sales volume today</p> {/* PERBAIKAN: Teks diubah */}
-          </div>
+  // Pastikan ada data
+  const topProducts = products.slice(0, limit).filter(p => p !== null);
+  
+  if (topProducts.length === 0) {
+    return (
+      <div className={`rounded-2xl p-5 ${isDark 
+        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' 
+        : 'bg-gradient-to-br from-white to-gray-50 border border-gray-100'
+      }`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {title}
+          </h3>
+          <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
-          isDark 
-            ? 'bg-gray-700 text-amber-400' 
-            : 'bg-amber-100 text-amber-700'
-        }`}>
-          <TrendingUp className="w-3 h-3" />
-          Top 5
+        <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p>Tidak ada data penjualan hari ini</p>
         </div>
       </div>
-
-      <div className="space-y-4">
-        {topProducts.map(({ product, quantity, revenue }, index) => (
-          <div 
-            key={product.id} 
-            className="flex items-center justify-between group cursor-pointer hover:scale-[1.01] transition-transform"
-          >
-            {/* Ranking dan info produk */}
-            <div className="flex items-center gap-3 flex-1">
-              {/* Ranking badge */}
-              <div className={`
-                w-8 h-8 rounded-lg flex items-center justify-center
-                bg-gradient-to-br ${rankColors[index]} text-white text-xs font-bold
-                shadow-sm
-              `}>
-                #{index + 1}
-              </div>
-              
-              {/* Product info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className={`font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+    );
+  }
+  
+  return (
+    <div className={`rounded-2xl p-5 ${isDark 
+      ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' 
+      : 'bg-gradient-to-br from-white to-gray-50 border border-gray-100'
+    }`}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          {title}
+        </h3>
+        <TrendingUp className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-500'}`} />
+      </div>
+      
+      <div className="space-y-3">
+        {topProducts.map((product, index) => {
+          const rank = index + 1;
+          const quantity = product.quantity || 0;
+          const revenue = product.revenue || 0;
+          
+          return (
+            <div 
+              key={product.id} 
+              className={`flex items-center justify-between p-3 rounded-xl transition-all ${isDark 
+                ? 'bg-gray-700/50 hover:bg-gray-700/70' 
+                : 'bg-gray-50 hover:bg-gray-100'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                  rank === 1 ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white' :
+                  rank === 2 ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-white' :
+                  rank === 3 ? 'bg-gradient-to-r from-amber-700 to-amber-800 text-white' :
+                  isDark ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {rank}
+                </div>
+                <div>
+                  <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     {product.name}
                   </p>
-                  <span className={`text-xs px-1.5 py-0.5 rounded ${
-                    isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {product.category}
-                  </span>
-                </div>
-                
-                {/* Progress bar - PERBAIKAN: Tampilkan berdasarkan quantity */}
-                <div className="mt-2">
-                  <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                    <div 
-                      className={`h-full rounded-full bg-gradient-to-r ${rankColors[index]}`}
-                      style={{ width: `${(quantity / maxQuantity) * 100}%` }} 
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs mt-1">
-                    <span className={`font-semibold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}> {/* PERBAIKAN: Warna quantity lebih menonjol */}
-                      {quantity} sold
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {quantity} terjual
                     </span>
-                    <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                      Rp {revenue.toLocaleString()}
-                    </span>
+
                   </div>
                 </div>
               </div>
+              
+              <div className="text-right">
+                <p className={`font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                  Rp {revenue.toLocaleString('id-ID')}
+                </p>
+                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Rp {product.price.toLocaleString('id-ID')}/pc
+                </p>
+              </div>
             </div>
-            
-            {/* Price per unit */}
-            <div className="text-right ml-4">
-              <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                Rp {product.price.toLocaleString()}
-              </p>
-              <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                per unit
-              </p>
-            </div>
-          </div>
-        ))}
-        
-        {topProducts.length === 0 && (
-          <div className="text-center py-8">
-            <Coffee className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-700' : 'text-gray-300'}`} />
-            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-              No sales data today
-            </p>
-            <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-              Start selling to see top products
-            </p>
-          </div>
-        )}
+          );
+        })}
       </div>
-
-      {/* Footer dengan summary */}
+      
       {topProducts.length > 0 && (
-        <div className={`mt-6 pt-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Total units sold (Top 5)
-              </p>
-              <p className={`text-lg font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {topProducts.reduce((sum, p) => sum + p.quantity, 0).toLocaleString()} units
-              </p>
-            </div>
-            <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
-              isDark ? 'bg-gray-700 text-green-400' : 'bg-green-50 text-green-700'
-            }`}>
-              {totalRevenueAll > 0 
-                ? `${((totalRevenueTopProducts / totalRevenueAll) * 100).toFixed(1)}% of revenue`
-                : '100% of revenue'}
-            </div>
+        <div className={`mt-4 pt-3 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="flex justify-between text-sm">
+            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+              Total {topProducts.length} produk
+            </span>
+            <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+              Rp {topProducts.reduce((sum, p) => sum + (p.revenue || 0), 0).toLocaleString('id-ID')}
+            </span>
           </div>
         </div>
       )}

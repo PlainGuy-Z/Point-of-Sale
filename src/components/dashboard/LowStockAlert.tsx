@@ -44,7 +44,7 @@ export default function LowStockAlert({ products }: LowStockAlertProps) {
               <Package className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             )}
             
-            {/* Animated dot untuk alert */}
+            {/* Titik animasi untuk alert */}
             {lowStockProducts.length > 0 && (
               <div className="absolute -top-1 -right-1">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
@@ -54,10 +54,10 @@ export default function LowStockAlert({ products }: LowStockAlertProps) {
           </div>
           <div>
             <h3 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Stock Alerts
+              Peringatan Stok
             </h3>
             <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {lowStockProducts.length > 0 ? 'Needs attention' : 'All good'}
+              {lowStockProducts.length > 0 ? 'Perlu perhatian' : 'Semua baik'}
             </p>
           </div>
         </div>
@@ -69,12 +69,12 @@ export default function LowStockAlert({ products }: LowStockAlertProps) {
               : 'bg-red-100 text-red-600 border border-red-200'
           }`}>
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-            {lowStockProducts.length} alert{lowStockProducts.length !== 1 ? 's' : ''}
+            {lowStockProducts.length} peringatan{lowStockProducts.length !== 1 ? '' : ''}
           </div>
         )}
       </div>
       
-      {/* Content */}
+      {/* Konten */}
       {lowStockProducts.length > 0 ? (
         <div className="space-y-3">
           {lowStockProducts.slice(0, 3).map(product => {
@@ -116,10 +116,10 @@ export default function LowStockAlert({ products }: LowStockAlertProps) {
                           ? isDark ? 'bg-orange-900/60 text-orange-300' : 'bg-orange-100 text-orange-700'
                           : isDark ? 'bg-amber-900/60 text-amber-300' : 'bg-amber-100 text-amber-700'
                       }`}>
-                        {product.stock === 0 ? 'OUT OF STOCK' : 'LOW STOCK'}
+                        {product.stock === 0 ? 'STOK HABIS' : 'STOK RENDAH'}
                       </span>
                       <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                        Stock: {product.stock}/{product.minStock} {product.unit}
+                        Stok: {product.stock}/{product.minStock} {product.unit}
                       </span>
                     </div>
                   </div>
@@ -139,7 +139,7 @@ export default function LowStockAlert({ products }: LowStockAlertProps) {
             );
           })}
           
-          {/* View All Button */}
+          {/* Tombol Lihat Semua */}
           {lowStockProducts.length > 3 && (
             <button 
               onClick={() => navigate(`/operation/products`)}
@@ -152,7 +152,7 @@ export default function LowStockAlert({ products }: LowStockAlertProps) {
                 }
               `}
             >
-              View all {lowStockProducts.length} alerts
+              Lihat semua {lowStockProducts.length} peringatan
               <ArrowRight className="w-3 h-3" />
             </button>
           )}
@@ -165,10 +165,10 @@ export default function LowStockAlert({ products }: LowStockAlertProps) {
             <Package className={`w-8 h-8 ${isDark ? 'text-green-500' : 'text-green-600'}`} />
           </div>
           <p className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>
-            All stocks are sufficient
+            Semua stok mencukupi
           </p>
           <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-            No items need reordering
+            Tidak ada item yang perlu dipesan ulang
           </p>
         </div>
       )}

@@ -1,11 +1,13 @@
+// src/components/dashboard/StatCard.tsx - FIXED VERSION
 import type { ReactNode } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react'; // IMPORT INI
 
 interface StatCardProps {
   title: string;
   value: string | number;
-  icon: ReactNode;
+  icon: LucideIcon; // PERBAIKAN DI SINI: Ganti ReactNode dengan LucideIcon
   trend: 'up' | 'down' | 'stable';
   trendValue?: string;
   subtitle?: string;
@@ -16,7 +18,7 @@ interface StatCardProps {
 export default function StatCard({ 
   title, 
   value, 
-  icon, 
+  icon: Icon, // PERHATIKAN: rename jadi Icon (capital I) karena ini component
   trend, 
   trendValue, 
   subtitle,
@@ -66,7 +68,7 @@ export default function StatCard({
       <div className="flex items-center justify-between mb-4">
         <div className={`p-2 rounded-xl ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
           <div className={`p-2 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white shadow-sm'}`}>
-            {icon}
+            <Icon className={`w-6 h-6 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} /> {/* PERBAIKAN: Gunakan Icon sebagai component */}
           </div>
         </div>
         
