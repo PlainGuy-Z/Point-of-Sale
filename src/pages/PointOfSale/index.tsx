@@ -8,8 +8,12 @@ import CustomerSelector from '../../components/pos/CustomerSelector';
 import CategoryPills from '../../components/pos/CategoryPills';
 import PaymentModal from '../../components/pos/PaymentModal';
 import ProductDetailModal from '../../components/pos/ProductDetailModal';
-import ReceiptModal from '../../components/pos/ReceiptModal';
+import ReceiptModal from '../../components/pos/ReceiptModal';const formatCurrency = (value: number): string => {
+  return value.toLocaleString('id-ID');
+};
 import type { Transaction, TransactionItem, Product, CartItemWithInput } from '../../types';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+
 
 export default function PointOfSale() {
   const [receiptTransaction, setReceiptTransaction] = useState<Transaction | null>(null);
@@ -45,6 +49,9 @@ export default function PointOfSale() {
   const [manualItemPrice, setManualItemPrice] = useState('');
   const [manualItemDescription, setManualItemDescription] = useState('');
 
+
+    const { format: formatCurrency, formatInput: formatCurrencyInput, parse: parseCurrency } = useCurrencyFormatter();
+
   // ✅ USE CUSTOM HOOK untuk product catalog
   const {
     sortedProducts,
@@ -61,18 +68,7 @@ export default function PointOfSale() {
     localStorage.setItem('posBestSellerPeriod', bestSellerPeriod.toString());
   }, [bestSellerPeriod]);
 
-  // ==================== HELPER FUNCTIONS ====================
-  const formatCurrencyInput = (value: string): string => {
-    const cleanValue = value.replace(/\./g, '');
-    if (!cleanValue) return '';
-    const numValue = parseFloat(cleanValue);
-    if (isNaN(numValue)) return '';
-    return numValue.toLocaleString('id-ID');
-  };
 
-  const formatCurrency = (value: number): string => {
-    return value.toLocaleString('id-ID');
-  };
 
   // ==================== VALIDATION FUNCTIONS ====================
   const validateStock = useCallback((productId: string, currentQuantity: number, delta: number): boolean => {
@@ -399,7 +395,7 @@ export default function PointOfSale() {
               <select 
                 value={bestSellerPeriod}
                 onChange={(e) => setBestSellerPeriod(Number(e.target.value))}
-                className={`bg-transparent border-none outline-none text-xs font-bold appearance-none cursor-pointer ${
+                className={`${isDark ? 'bg-gray-700' : 'bg-amber-100'} border-none outline-none text-xs font-bold appearance-none cursor-pointer ${
                   isDark ? 'text-amber-300' : 'text-amber-600'
                 }`}
                 aria-label="Select best seller period"
@@ -487,7 +483,7 @@ export default function PointOfSale() {
           {!isCartExpanded && (
             <div className="flex justify-between w-full px-6">
               <span className={`font-bold ${isDark ? 'text-amber-400' : 'text-amber-500'}`}>{cart.length} Items</span>
-              <span className={`font-black ${isDark ? 'text-white' : 'text-gray-800'}`}>Rp {grandTotal.toLocaleString()}</span>
+              <span className={`font-black ${isDark ? 'text-white' : 'text-gray-800'}`}>{formatCurrency(grandTotal)}</span>
             </div>
           )}
         </button>
@@ -647,7 +643,7 @@ export default function PointOfSale() {
                         <span className="font-bold text-amber-500">{selectedCustomerData.totalVisits || 0}</span> visits
                       </span>
                       <span className="text-gray-500 hidden sm:inline">
-                        <span className="font-bold text-green-500">Rp {(selectedCustomerData.totalSpent || 0).toLocaleString()}</span>
+                        <span className="font-bold text-green-500">{formatCurrency(selectedCustomerData.totalSpent || 0)}</span>
                       </span>
                     </div>
                   </div>
@@ -722,15 +718,15 @@ export default function PointOfSale() {
                           {isPromoItem ? (
                             <>
                               <p className={`text-xs font-black line-through ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                Rp {item.originalPrice?.toLocaleString()}
+                                {formatCurrency(item.originalPrice || 0)}
                               </p>
                               <p className={`text-xs font-black ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                                Rp {item.price.toLocaleString()}
+                                {formatCurrency(item.price)}
                               </p>
                             </>
                           ) : (
                             <p className={`text-xs font-black ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                              Rp {item.price.toLocaleString()}
+                              {formatCurrency(item.price)}
                             </p>
                           )}
                         </div>
@@ -738,7 +734,7 @@ export default function PointOfSale() {
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {isPromoItem && item.originalPrice && (
                             <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'}`}>
-                              Save Rp {((item.originalPrice - item.price) * item.quantity).toLocaleString()}
+                              Save {formatCurrency((item.originalPrice - item.price) * item.quantity)}
                             </div>
                           )}
                         </div>
@@ -746,7 +742,7 @@ export default function PointOfSale() {
 
                       <div className="flex flex-col items-end gap-2" onClick={e => e.stopPropagation()}>
                         <div className={`text-sm font-bold ${isPromoItem ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-amber-400' : 'text-amber-600')}`}>
-                          Rp {itemPrice.toLocaleString()}
+                          {formatCurrency(itemPrice)}
                         </div>
                         
                         <div className="flex items-center gap-2">
@@ -797,7 +793,7 @@ export default function PointOfSale() {
                     <span className={`text-xs font-bold ${isDark ? 'text-green-300' : 'text-green-700'}`}>Total Savings</span>
                   </div>
                   <span className={`text-sm font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                    Rp {totalSavings.toLocaleString()}
+                    {formatCurrency(totalSavings)}
                   </span>
                 </div>
               </div>
@@ -806,17 +802,17 @@ export default function PointOfSale() {
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
                 <span>Subtotal</span>
-                <span className="text-gray-800 dark:text-gray-200 font-black">Rp {subtotal.toLocaleString()}</span>
+                <span className="text-gray-800 dark:text-gray-200 font-black">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
                 <span>Tax ({settings?.taxRate || 0}%)</span>
-                <span className="text-gray-800 dark:text-gray-200 font-black">Rp {tax.toLocaleString()}</span>
+                <span className="text-gray-800 dark:text-gray-200 font-black">{formatCurrency(tax)}</span>
               </div>
             </div>
             
             <div className="flex items-center justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700">
               <span className={`font-bold text-base uppercase ${isDark ? 'text-white' : 'text-gray-800'}`}>Total</span>
-              <span className="text-xl font-black text-amber-500">Rp {grandTotal.toLocaleString()}</span>
+              <span className="text-xl font-black text-amber-500">{formatCurrency(grandTotal)}</span>
             </div>
             
             <button 
@@ -956,7 +952,7 @@ export default function PointOfSale() {
                           ? `${(price/1000000).toFixed(0)}jt` 
                           : price >= 1000 
                             ? `${(price/1000).toFixed(0)}k` 
-                            : price}
+                            : formatCurrency(price)}
                       </button>
                     );
                   })}
@@ -972,7 +968,7 @@ export default function PointOfSale() {
                         {manualItemName.trim().charAt(0).toUpperCase() + manualItemName.trim().slice(1)}
                       </span>
                       <span className="text-amber-500 font-medium text-sm">
-                        Rp {formatCurrency(parseFloat(manualItemPrice.replace(/\./g, '')) || 0)}
+                        {formatCurrency(parseFloat(manualItemPrice.replace(/\./g, '')) || 0)}
                       </span>
                     </div>
                     {manualItemDescription && (

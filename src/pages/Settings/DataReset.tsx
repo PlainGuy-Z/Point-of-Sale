@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useApp } from '../../../contexts/AppContext';
-import { useTheme } from '../../../contexts/ThemeContext'; // Tambah ini
+import { useApp } from '../../contexts/AppContext';
+import { useTheme } from '../../contexts/ThemeContext'; // Tambah ini
 import { 
   Trash2, 
   AlertTriangle, 

@@ -37,7 +37,6 @@ type AppAction =
   | { type: 'SET_CATEGORIES'; payload: string[] }
   | { type: 'RESET_ALL_DATA' }
   | { type: 'RESTORE_BACKUP'; payload: Partial<AppState> };
-  
 
 interface AppContextType extends AppState {
   addProduct: (product: Product) => void;
@@ -502,8 +501,19 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // ==========================================================================
-  // INITIAL STATE
+  // INITIAL STATE - Default Settings dengan format mata uang
   // ==========================================================================
+  const defaultSettings = {
+    storeName: 'Coffee Shop',
+    address: 'Jl. Utama No. 123',
+    taxRate: 11,
+    currency: 'IDR', // Wajib ada, bukan optional
+    currencyPosition: 'before',
+    decimalPlaces: 0,
+    thousandsSeparator: 'comma',
+    receiptFooter: 'Terima kasih telah berbelanja!'
+  };
+
   const initialState: AppState = {
     products: (() => {
       try {
@@ -536,26 +546,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     })(),
     
     settings: (() => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-        return saved ? JSON.parse(saved) : {
-          storeName: 'Coffee Shop',
-          address: 'Jl. Utama No. 123',
-          taxRate: 11,
-          currency: 'IDR',
-          receiptFooter: 'Terima kasih telah berbelanja!'
-        };
-      } catch (e) {
-        console.error('Error loading settings:', e);
-        return {
-          storeName: 'Coffee Shop',
-          address: 'Jl. Utama No. 123',
-          taxRate: 11,
-          currency: 'IDR',
-          receiptFooter: 'Terima kasih telah berbelanja!'
-        };
-      }
-    })(),
+        try {
+          const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+          if (saved) {
+            const parsedSettings = JSON.parse(saved);
+            // Ensure all required fields exist with defaults
+            return {
+              ...defaultSettings,
+              ...parsedSettings,
+              // Provide defaults for new fields if missing
+              currency: parsedSettings.currency || defaultSettings.currency,
+              currencyPosition: parsedSettings.currencyPosition || defaultSettings.currencyPosition,
+              decimalPlaces: parsedSettings.decimalPlaces ?? defaultSettings.decimalPlaces,
+              thousandsSeparator: parsedSettings.thousandsSeparator || defaultSettings.thousandsSeparator
+            };
+          }
+          return defaultSettings;
+        } catch (e) {
+          console.error('Error loading settings:', e);
+          return defaultSettings;
+        }
+      })(),
     
     transactions: (() => {
       try {
@@ -808,78 +819,74 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // ==========================================================================
   // STORAGE INFO
   // ==========================================================================
- // Tambahkan getStorageInfo untuk dashboard
-const getStorageInfo = useCallback((): { used: number; total: number; percent: number } => {
-  const total = 10 * 1024 * 1024; // 10MB limit
-  let used = 0;
-  
-  try {
-    // Hitung ukuran localStorage
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        const value = localStorage.getItem(key) || '';
-        used += key.length + value.length;
+  const getStorageInfo = useCallback((): { used: number; total: number; percent: number } => {
+    const total = 10 * 1024 * 1024; // 10MB limit
+    let used = 0;
+    
+    try {
+      // Hitung ukuran localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          const value = localStorage.getItem(key) || '';
+          used += key.length + value.length;
+        }
       }
+    } catch (error) {
+      console.error('Error calculating storage:', error);
     }
-  } catch (error) {
-    console.error('Error calculating storage:', error);
-  }
-  
-  return {
-    used: Math.round(used / 1024), // Convert to KB
-    total: Math.round(total / 1024),
-    percent: Math.min(100, Math.round((used / total) * 1000) / 10)
-  };
-}, []);
+    
+    return {
+      used: Math.round(used / 1024), // Convert to KB
+      total: Math.round(total / 1024),
+      percent: Math.min(100, Math.round((used / total) * 1000) / 10)
+    };
+  }, []);
+
   // ==========================================================================
   // BACKUP & RESTORE OPERATIONS
   // ==========================================================================
-// Tambahkan function untuk export backup
-const createBackup = useCallback((): boolean => {
-  try {
-    const backupData = {
-      version: '1.0',
-      timestamp: new Date().toISOString(),
-      data: {
-        products,
-        customers,
-        transactions,
-        wasteLogs,
-        categories,
-        settings
-      },
-      stats: {
-        products: products.length,
-        customers: customers.length,
-        transactions: transactions.length,
-        wasteLogs: wasteLogs.length
-      }
-    };
-    
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { 
-      type: 'application/json' 
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `coffee-pos-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
-    
-    return true;
-  } catch (error) {
-    console.error('Backup error:', error);
-    return false;
-  }
-}, [products, customers, transactions, wasteLogs, categories, settings]);
-
-
-
+  const createBackup = useCallback((): boolean => {
+    try {
+      const backupData = {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        data: {
+          products,
+          customers,
+          transactions,
+          wasteLogs,
+          categories,
+          settings
+        },
+        stats: {
+          products: products.length,
+          customers: customers.length,
+          transactions: transactions.length,
+          wasteLogs: wasteLogs.length
+        }
+      };
+      
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { 
+        type: 'application/json' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `coffee-pos-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      return true;
+    } catch (error) {
+      console.error('Backup error:', error);
+      return false;
+    }
+  }, [products, customers, transactions, wasteLogs, categories, settings]);
 
   const restoreBackup = useCallback(async (file: File): Promise<{
     success: boolean;
@@ -991,13 +998,19 @@ const createBackup = useCallback((): boolean => {
             date: new Date(w.date)
           }));
           
+          // Process settings - tambahkan defaults untuk backward compatibility
+          const processedSettings = {
+            ...defaultSettings,
+            ...backupData.settings
+          };
+          
           // Dispatch restore action
           dispatch({
             type: 'RESTORE_BACKUP',
             payload: {
               products: processedProducts,
               customers: backupData.customers,
-              settings: backupData.settings,
+              settings: processedSettings,
               categories: backupData.categories,
               transactions: processedTransactions,
               wasteLogs: processedWasteLogs
@@ -1038,30 +1051,39 @@ const createBackup = useCallback((): boolean => {
   // ==========================================================================
   // RESET ALL DATA FUNCTION
   // ==========================================================================
-// MASALAH: Fungsi ini tidak meng-handle reset dengan baik
-// MASALAH: Fungsi ini tidak meng-handle reset dengan baik
-const resetAllData = useCallback(async (): Promise<boolean> => {
-  // ... kode konfirmasi
-  
-  try {
-    dispatch({ type: 'RESET_ALL_DATA' });
+  const resetAllData = useCallback(async (): Promise<boolean> => {
+    // Konfirmasi
+    if (!window.confirm(
+      '⚠️ WARNING: Reset All Data\n\n' +
+      'This will delete ALL data including:\n' +
+      '• All transactions\n' +
+      '• All waste logs\n' +
+      '• All custom products\n' +
+      '• All customer data\n\n' +
+      'Only default products and settings will remain.\n\n' +
+      'THIS ACTION CANNOT BE UNDONE!\n\n' +
+      'Are you absolutely sure?'
+    )) {
+      return false;
+    }
     
-    // Simpan ke localStorage
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(initialProducts));
-    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(initialCustomers));
-    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.WASTE_LOGS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(['Coffee', 'Tea', 'Pastry', 'Food', 'Merchandise']));
-    
-    console.log('Data reset completed');
-    return true;
-  } catch (error) {
-    console.error('Reset error:', error);
-    return false;
-  }
-}, []);
-
-
+    try {
+      dispatch({ type: 'RESET_ALL_DATA' });
+      
+      // Simpan ke localStorage
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(initialProducts));
+      localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(initialCustomers));
+      localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.WASTE_LOGS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(['Coffee', 'Tea', 'Pastry', 'Food', 'Merchandise']));
+      
+      console.log('Data reset completed');
+      return true;
+    } catch (error) {
+      console.error('Reset error:', error);
+      return false;
+    }
+  }, []);
 
   // ==========================================================================
   // CONTEXT VALUE

@@ -6,6 +6,7 @@ import WeeklySummary from '../../components/insights/WeeklySummary';
 import TrendsAnalysis from '../../components/insights/TrendsAnalysis';
 import AIAssistant from '../../components/insights/AIAssistant';
 import InsightCard from '../../components/insights/InsightCard';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 type InsightTab = 'weekly' | 'trends' | 'ai';
 
@@ -20,6 +21,8 @@ export default function BusinessInsights() {
     weekAgo.setDate(weekAgo.getDate() - 7);
     return date >= weekAgo;
   });
+
+    const { format } = useCurrencyFormatter();
 
   const weeklyRevenue = last7Days.reduce((sum, t) => sum + t.total, 0);
   const weeklyProfit = last7Days.reduce((sum, t) => sum + t.profit, 0);
@@ -49,7 +52,7 @@ export default function BusinessInsights() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <InsightCard
           title="Weekly Revenue"
-          value={`Rp ${weeklyRevenue.toLocaleString()}`}
+          value={format(weeklyRevenue)}
           icon={<DollarSign className="w-6 h-6" />}
           description="Last 7 days"
           trend={weeklyRevenue > 7000000 ? "up" : "down"}
@@ -57,7 +60,7 @@ export default function BusinessInsights() {
         
         <InsightCard
           title="Daily Profit Avg"
-          value={`Rp ${avgDailyProfit.toLocaleString()}`}
+          value={format(avgDailyProfit)}
           icon={<TrendingUp className="w-6 h-6" />}
           description="Per day average"
           trend={avgDailyProfit > 500000 ? "up" : "down"}
@@ -65,7 +68,7 @@ export default function BusinessInsights() {
         
         <InsightCard
           title="Waste Loss"
-          value={`Rp ${wasteLoss.toLocaleString()}`}
+          value={format(wasteLoss)}
           icon={<AlertTriangle className="w-6 h-6" />}
           description="Cost leakage"
           trend={wasteLoss > 200000 ? "danger" : "safe"}

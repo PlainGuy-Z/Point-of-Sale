@@ -13,6 +13,7 @@ export default function LowStockAlert({ products }: LowStockAlertProps) {
   const isDark = theme === 'dark';
   const lowStockProducts = products.filter(p => p.stock <= p.minStock);
 
+  
   const getSeverity = (product: Product) => {
     if (product.stock === 0) return 'critical';
     if (product.stock <= product.minStock * 0.5) return 'high';

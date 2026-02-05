@@ -70,20 +70,23 @@ export function getBestSellersByPeriod(
     return [];
   }
   
-  // PERUBAHAN: Set cutoff date ke 12:00 AM (tengah malam)
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - periodDays);
-  cutoffDate.setHours(0, 0, 0, 0); // Jam 00:00:00.000
-  
-  const recentTransactions = validTransactions.filter(t => {
-    const transactionDate = safeParseDate(t.date);
-    return transactionDate >= cutoffDate;
-  });
-  
-  // DEBUG LOG (optional)
-  console.log(`Best Seller Period: ${periodDays} days`);
-  console.log(`Cutoff Date: ${cutoffDate.toLocaleString()}`);
-  console.log(`Transactions in period: ${recentTransactions.length}`);
+      const now = new Date();
+        // Set ke 00:00:00 hari ini
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        // Jika period 1 = mulai hari ini jam 00:00
+        // Jika period 3 = mulai 2 hari lalu jam 00:00 sampai sekarang
+        const cutoffDate = new Date(startOfToday);
+        cutoffDate.setDate(startOfToday.getDate() - (periodDays - 1));
+
+        console.log(`Filtering from: ${cutoffDate.toLocaleString('id-ID')}`); // Pastikan muncul jam 00:00
+
+        const recentTransactions = validTransactions.filter(t => {
+          const transactionDate = safeParseDate(t.date);
+          return transactionDate >= cutoffDate;
+        });
+        
+
   
   const productSales = new Map<string, {
     quantity: number;

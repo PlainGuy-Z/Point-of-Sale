@@ -1,6 +1,7 @@
 import { Plus, Package, Trophy } from 'lucide-react';
 import type { Product, Transaction} from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface ProductGridProps {
   products: Product[]; // Produk sudah terurut dari parent
@@ -18,33 +19,45 @@ export default function ProductGrid({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
+    const { format } = useCurrencyFormatter();
+
+
   // Hitung total penjualan per produk untuk periode yang dipilih
-  const calculateProductSales = (productId: string): number => {
-    if (transactions.length === 0) return 0;
-    
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - bestSellerPeriod);
-    cutoffDate.setHours(0, 0, 0, 0);
-    
-    let totalSold = 0;
-    
-    transactions.forEach(transaction => {
-      try {
-        const transactionDate = new Date(transaction.date);
-        if (transactionDate >= cutoffDate) {
-          transaction.items.forEach(item => {
-            if (item.productId === productId) {
-              totalSold += item.quantity;
-            }
-          });
-        }
-      } catch (error) {
-        // Skip invalid dates
+// Di dalam ProductGrid component
+const calculateProductSales = (productId: string): number => {
+  if (transactions.length === 0) return 0;
+  
+  // 1. Ambil waktu sekarang dalam WIB
+  const now = new Date();
+  
+  // 2. Set ke jam 00:00:00 hari ini (Tengah Malam)
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  // 3. Tarik mundur sesuai periode (misal 3 hari lalu jam 00:00)
+  const cutoffDate = new Date(startOfToday);
+  cutoffDate.setDate(startOfToday.getDate() - (bestSellerPeriod - 1)); 
+  // Catatan: Jika ingin "Hari ini saja" (period=1), maka cutoff tetap di 00:00 hari ini.
+
+  let totalSold = 0;
+  
+  transactions.forEach(transaction => {
+    try {
+      const transactionDate = new Date(transaction.date);
+      // Bandingkan: Transaksi harus lebih baru atau sama dengan awal hari yang ditentukan
+      if (transactionDate >= cutoffDate) {
+        transaction.items.forEach(item => {
+          if (item.productId === productId) {
+            totalSold += item.quantity;
+          }
+        });
       }
-    });
-    
-    return totalSold;
-  };
+    } catch (error) {
+      // Skip invalid dates
+    }
+  });
+  
+  return totalSold;
+};
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
@@ -187,13 +200,13 @@ export default function ProductGrid({
                     text-xs font-semibold
                     ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-gray-400' : 'text-gray-500')}
                   `}>
-                    Rp
+                    
                   </span>
                   <span className={`
                     font-bold text-sm md:text-base
                     ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-amber-400' : 'text-amber-600')}
                   `}>
-                    {priceToShow.toLocaleString()}
+                    {format(priceToShow)}
                   </span>
                 </div>
                 
@@ -204,7 +217,7 @@ export default function ProductGrid({
                       text-[10px] line-through
                       ${isDark ? 'text-gray-500' : 'text-gray-400'}
                     `}>
-                      Rp {product.price.toLocaleString()}
+                       {format(product.price)}
                     </span>
                     <span className={`
                       text-[10px] px-1 py-0.5 rounded font-bold

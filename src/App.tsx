@@ -14,8 +14,8 @@ const CostSummary = lazy(() => import('./pages/Operation/CostSummary'));
 const Members = lazy(() => import('./pages/Customers/Members'));
 const VisitHistory = lazy(() => import('./pages/Customers/VisitHistory'));
 const LoyaltyInsight = lazy(() => import('./pages/Customers/LoyaltyInsight'));
-const Settings = lazy(() => import('./pages/Settings/Settings'));
-const DataReset = lazy(() => import('./pages/Settings/Settings/DataReset'));
+const Settings = lazy(() => import('./pages/Settings'));
+const DataReset = lazy(() => import('./pages/Settings/DataReset'));
 const HelpCenter = lazy(() => import('./pages/HelpCenter'));
 const ProductManagement = lazy(() => import('./pages/Operation/ProductManagement'));
 

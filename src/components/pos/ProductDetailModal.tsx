@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Minus, Plus, MessageSquare, CheckCircle, Hash, Package, AlertCircle } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { Product, TransactionItem } from '../../types';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -13,6 +14,7 @@ interface ProductDetailModalProps {
 export default function ProductDetailModal({ product, item, onClose, onSave }: ProductDetailModalProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { format } = useCurrencyFormatter();
 
   const isManual = item.productId.startsWith('manual-');
   const [quantity, setQuantity] = useState(item.quantity);
@@ -198,11 +200,11 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 dark:text-slate-400">Unit Price</span>
-                <span className="font-bold">Rp {item.price.toLocaleString()}</span>
+                <span className="font-bold">{format(item.price)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 dark:text-slate-400">Total</span>
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">Rp {totalPrice.toLocaleString()}</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{format(totalPrice)}</span>
               </div>
             </div>
           </div>
@@ -217,7 +219,7 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
             title="Save Enter"
           >
             <CheckCircle size={18} />
-            Update • Rp {totalPrice.toLocaleString()}
+            Update • {format(totalPrice)}
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, DollarSign, Calendar, TrendingUp, UserPlus, Edit2, Trash2, X } from 'lucide-react';
+import { Users, DollarSign, Calendar, TrendingUp, UserPlus, Edit2, Trash2, X, QrCode } from 'lucide-react';
 import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import CustomerStats from '../../../components/customers/CustomerStats';
@@ -10,8 +10,10 @@ export default function Members() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // --- STATE UNTUK MODAL & EDIT ---
+  // --- STATE UNTUK MODAL, EDIT & QR ---
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isQrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedCustomerForQr, setSelectedCustomerForQr] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
   // --- METRICS CALCULATION ---
@@ -48,9 +50,9 @@ export default function Members() {
     };
 
     if (editingCustomer) {
-      updateCustomer(customerData); // Update member yang sudah ada
+      updateCustomer(customerData);
     } else {
-      addCustomer(customerData); // Registrasi member baru
+      addCustomer(customerData);
     }
     
     handleCloseModal();
@@ -66,6 +68,11 @@ export default function Members() {
     setModalOpen(true);
   };
 
+  const handleShowQr = (customer: Customer) => {
+    setSelectedCustomerForQr(customer);
+    setQrModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -75,7 +82,7 @@ export default function Members() {
             Customer Members
           </h1>
           <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-            Kelola data pelanggan dan pantau loyalitas mereka secara dinamis
+            Kelola data pelanggan, QR Code, dan status member
           </p>
         </div>
         <button 
@@ -118,61 +125,79 @@ export default function Members() {
         />
       </div>
 
-      {/* Main Table Area - Mengganti CustomerTable statis dengan tabel interaktif CRUD */}
+      {/* Main Table Area */}
       <div className={`rounded-2xl border shadow-sm overflow-hidden ${
         isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
-        <div className="p-6 border-b border-gray-700/50 flex justify-between items-center">
-          <h2 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>Member Directory</h2>
-        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className={isDark ? 'bg-gray-900/50' : 'bg-gray-50'}>
               <tr className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                 <th className="p-4">Customer Name</th>
-                <th className="p-4">Phone Number</th>
-                <th className="p-4">Join Date</th>
-                <th className="p-4">Total Spent</th>
+                <th className="p-4">Contact</th>
+                <th className="p-4">Stats</th>
+                <th className="p-4">Status</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-100'}`}>
-              {customers.map(customer => (
-                <tr key={customer.id} className={`transition-colors ${isDark ? 'text-gray-300 hover:bg-gray-700/30' : 'text-gray-700 hover:bg-gray-50'}`}>
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold text-xs">
-                        {customer.name.charAt(0)}
+              {customers.map(customer => {
+                 const lastVisit = customer.lastVisit ? new Date(customer.lastVisit) : null;
+                 const isActive = lastVisit && (new Date().getTime() - lastVisit.getTime()) < (30 * 24 * 60 * 60 * 1000);
+                 
+                 return (
+                  <tr key={customer.id} className={`transition-colors ${isDark ? 'text-gray-300 hover:bg-gray-700/30' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => handleShowQr(customer)}
+                          className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white flex items-center justify-center transition-all shadow-sm"
+                          title="View QR Code"
+                        >
+                          <QrCode size={18} />
+                        </button>
+                        <div>
+                          <div className="font-bold">{customer.name}</div>
+                          <div className="text-xs text-gray-500">ID: {customer.id}</div>
+                        </div>
                       </div>
-                      <span className="font-semibold">{customer.name}</span>
-                    </div>
-                  </td>
-                  <td className="p-4 text-sm">{customer.phone}</td>
-                  <td className="p-4 text-sm">{new Date(customer.joinDate).toLocaleDateString()}</td>
-                  <td className="p-4 font-bold text-amber-500">Rp {customer.totalSpent.toLocaleString()}</td>
-                  <td className="p-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => handleEdit(customer)}
-                        className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        onClick={() => deleteCustomer(customer.id)}
-                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {customers.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="p-10 text-center text-gray-500">No members registered yet.</td>
-                </tr>
-              )}
+                    </td>
+                    <td className="p-4">
+                      <div className="text-sm font-medium">{customer.phone}</div>
+                      <div className="text-xs text-gray-500">{customer.email || '-'}</div>
+                    </td>
+                    <td className="p-4">
+                       <div className="flex flex-col">
+                          <span className="font-bold text-amber-500">Rp {customer.totalSpent.toLocaleString()}</span>
+                          <span className="text-xs text-gray-500">{customer.totalVisits} visits</span>
+                       </div>
+                    </td>
+                    <td className="p-4">
+                      {isActive ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Inactive</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => handleEdit(customer)}
+                          className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => deleteCustomer(customer.id)}
+                          className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -185,6 +210,7 @@ export default function Members() {
             onSubmit={handleSubmit} 
             className={`w-full max-w-md p-6 rounded-3xl shadow-2xl ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}
           >
+            {/* ... (Isi form sama seperti sebelumnya) ... */}
             <div className="flex justify-between items-center mb-6">
               <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingCustomer ? 'Update Member' : 'New Member Registration'}
@@ -244,6 +270,40 @@ export default function Members() {
             </div>
           </form>
         </div>
+      )}
+
+      {/* QR Code Modal (Simulasi) */}
+      {isQrModalOpen && selectedCustomerForQr && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in zoom-in-95 duration-200">
+            <div className="bg-white p-8 rounded-3xl max-w-sm w-full text-center relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-amber-400 to-orange-500 rounded-b-[50%] -mt-16 z-0"></div>
+               
+               <div className="relative z-10 mt-6">
+                 <div className="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center shadow-lg mb-4">
+                    <Users size={32} className="text-amber-500" />
+                 </div>
+                 
+                 <h3 className="text-2xl font-bold text-gray-800">{selectedCustomerForQr.name}</h3>
+                 <p className="text-gray-500 text-sm mb-6">{selectedCustomerForQr.id}</p>
+                 
+                 <div className="bg-white p-4 border-2 border-dashed border-gray-300 rounded-2xl inline-block mb-6">
+                    {/* Placeholder untuk QR Library - di real app gunakan 'react-qr-code' */}
+                    <div className="w-48 h-48 bg-gray-900 flex items-center justify-center text-white text-xs rounded-lg">
+                       [QR CODE GENERATED HERE]
+                    </div>
+                 </div>
+                 
+                 <p className="text-xs text-gray-400 mb-6">Scan ini di kasir untuk identifikasi member</p>
+                 
+                 <button 
+                   onClick={() => setQrModalOpen(false)}
+                   className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl transition-colors"
+                 >
+                   Close Card
+                 </button>
+               </div>
+            </div>
+         </div>
       )}
     </div>
   );

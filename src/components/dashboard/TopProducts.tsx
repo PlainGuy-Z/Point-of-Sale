@@ -1,6 +1,7 @@
 import { TrendingUp, Star, Package } from 'lucide-react';
 import type { Product } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface TopProductsProps {
   products: (Product & { quantity?: number; revenue?: number })[];
@@ -15,6 +16,7 @@ export default function TopProducts({
 }: TopProductsProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { format } = useCurrencyFormatter();
   
   // Pastikan ada data
   const topProducts = products.slice(0, limit).filter(p => p !== null);
@@ -82,17 +84,16 @@ export default function TopProducts({
                     <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {quantity} terjual
                     </span>
-
                   </div>
                 </div>
               </div>
               
               <div className="text-right">
                 <p className={`font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                  Rp {revenue.toLocaleString('id-ID')}
+                  {format(revenue)}
                 </p>
                 <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Rp {product.price.toLocaleString('id-ID')}/pc
+                  {format(product.price)}/pc
                 </p>
               </div>
             </div>
@@ -107,7 +108,7 @@ export default function TopProducts({
               Total {topProducts.length} produk
             </span>
             <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-              Rp {topProducts.reduce((sum, p) => sum + (p.revenue || 0), 0).toLocaleString('id-ID')}
+              {format(topProducts.reduce((sum, p) => sum + (p.revenue || 0), 0))}
             </span>
           </div>
         </div>

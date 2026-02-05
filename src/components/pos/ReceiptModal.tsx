@@ -1,6 +1,7 @@
 import { X, Copy, Printer } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { Transaction } from '../../types';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface ReceiptTransaction extends Transaction {
   customerName?: string;
@@ -25,6 +26,8 @@ export default function ReceiptModal({
 }: ReceiptModalProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+    const { format: formatCurrency } = useCurrencyFormatter();
 
   const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString('id-ID', {
@@ -73,13 +76,13 @@ ${tableInfo}
 ${transaction.items
   .map(
     i =>
-      `${i.quantity}x ${i.note || 'Item'} - Rp ${(i.price * i.quantity).toLocaleString()}`
+      `${i.quantity}x ${i.note || 'Item'} - Rp ${formatCurrency(i.price * i.quantity)}`
   )
   .join('\n')}
 
-Subtotal: Rp ${subtotal.toLocaleString()}
-${taxAmount > 0 ? `Pajak: Rp ${taxAmount.toLocaleString()}` : ''}
-TOTAL: Rp ${transaction.total.toLocaleString()}
+Subtotal: Rp ${formatCurrency(subtotal)}
+${taxAmount > 0 ? `Pajak: Rp ${formatCurrency(taxAmount)}` : ''}
+TOTAL: Rp ${formatCurrency(transaction.total)}
 Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
 `.trim();
 
@@ -150,11 +153,11 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
                     {item.note || 'Product'}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {item.quantity} × Rp {item.price.toLocaleString()}
+                    {item.quantity} × Rp {formatCurrency(item.price)}
                   </div>
                 </div>
                 <div>
-                  Rp {(item.price * item.quantity).toLocaleString()}
+                  Rp {formatCurrency(item.price * item.quantity)}
                 </div>
               </div>
             ))}
@@ -164,19 +167,19 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
           <div className="pt-3 space-y-1 border-t border-gray-200 dark:border-gray-700">
             <div className="flex justify-between">
               <span className="text-gray-500">Subtotal</span>
-              <span>Rp {subtotal.toLocaleString()}</span>
+              <span>Rp {formatCurrency(subtotal)}</span>
             </div>
 
             {taxAmount > 0 && (
               <div className="flex justify-between">
                 <span className="text-gray-500">Pajak</span>
-                <span>Rp {taxAmount.toLocaleString()}</span>
+                <span>Rp {formatCurrency(taxAmount)}</span>
               </div>
             )}
 
             <div className="flex justify-between font-semibold pt-1">
               <span>Total</span>
-              <span>Rp {transaction.total.toLocaleString()}</span>
+              <span>Rp {formatCurrency(transaction.total)}</span>
             </div>
 
             <div className="pt-2 text-xs text-gray-500">
@@ -189,13 +192,13 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
                   <div className="flex justify-between text-xs">
                     <span>Tunai</span>
                     <span>
-                      Rp {transaction.cashReceived.toLocaleString()}
+                      Rp {formatCurrency(transaction.cashReceived)}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span>Kembali</span>
                     <span>
-                      Rp {transaction.change?.toLocaleString()}
+                      Rp {formatCurrency(transaction.change || 0)}
                     </span>
                   </div>
                 </>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useApp } from '../../../contexts/AppContext';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { useApp } from '../../contexts/AppContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { 
   Sun, 
   Moon, 
@@ -16,9 +16,15 @@ import {
   Download,
   Shield,
   AlertTriangle,
-  HardDrive
+  HardDrive,
+  DollarSign,
+  Hash,
+  Percent,
+  Type,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import type { BusinessSettings } from '../../types';
 
 export default function Settings() {
   const { settings, updateSettings, createBackup, restoreBackup, getStorageInfo } = useApp();
@@ -28,18 +34,37 @@ export default function Settings() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
-  // Handle save business profile
+  // Helper functions untuk type safety
+  const parseCurrencyPosition = (value: string | null): 'before' | 'after' | 'before-space' | 'after-space' => {
+    const validPositions = ['before', 'after', 'before-space', 'after-space'];
+    return (validPositions.includes(value || '') ? value as any : 'before');
+  };
+
+  const parseThousandsSeparator = (value: string | null): 'comma' | 'dot' | 'space' | 'none' => {
+    const validSeparators = ['comma', 'dot', 'space', 'none'];
+    return (validSeparators.includes(value || '') ? value as any : 'comma');
+  };
+
+  const parseDecimalPlaces = (value: string | null): 0 | 2 => {
+    const num = Number(value);
+    return num === 2 ? 2 : 0;
+  };
+
+  // Handle save business profile dengan format mata uang
   const handleSaveSettings = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    const newSettings = {
+    const newSettings: BusinessSettings = {
       ...settings,
-      storeName: formData.get('storeName') as string || settings.storeName,
-      address: formData.get('address') as string || settings.address,
+      storeName: (formData.get('storeName') as string) || settings.storeName,
+      address: (formData.get('address') as string) || settings.address,
       taxRate: Number(formData.get('taxRate')) || settings.taxRate,
-      currency: formData.get('currency') as string || settings.currency,
-      receiptFooter: formData.get('receiptFooter') as string || settings.receiptFooter
+      currency: (formData.get('currency') as string) || settings.currency || 'IDR',
+      currencyPosition: parseCurrencyPosition(formData.get('currencyPosition') as string),
+      decimalPlaces: parseDecimalPlaces(formData.get('decimalPlaces') as string),
+      thousandsSeparator: parseThousandsSeparator(formData.get('thousandsSeparator') as string),
+      receiptFooter: (formData.get('receiptFooter') as string) || settings.receiptFooter
     };
     
     updateSettings(newSettings);
@@ -125,6 +150,69 @@ export default function Settings() {
 
   // Get storage info
   const storageInfo = getStorageInfo();
+
+  // Helper untuk preview format mata uang
+  const getCurrencyPreview = () => {
+    const sampleAmount = 1234567.89;
+    const symbols: Record<string, string> = {
+      'IDR': 'Rp', 'USD': '$', 'EUR': '€', 'SGD': 'S$',
+      'GBP': '£', 'JPY': '¥', 'AUD': 'A$', 'CAD': 'C$',
+      'CHF': 'CHF', 'CNY': '¥', 'KRW': '₩', 'MYR': 'RM',
+      'THB': '฿', 'VND': '₫'
+    };
+    
+    const safeCurrency = settings.currency || 'IDR';
+    const safeDecimalPlaces = settings.decimalPlaces ?? 0;
+    const safeThousandsSeparator = settings.thousandsSeparator || 'comma';
+    const safeCurrencyPosition = settings.currencyPosition || 'before';
+    
+    let formatted = sampleAmount.toFixed(safeDecimalPlaces);
+    
+    // Apply thousands separator
+    if (safeThousandsSeparator !== 'none') {
+      const parts = formatted.split('.');
+      const integerPart = parts[0];
+      const decimalPart = parts[1] || '';
+      
+      let separator = ',';
+      if (safeThousandsSeparator === 'dot') separator = '.';
+      if (safeThousandsSeparator === 'space') separator = ' ';
+      
+      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+      formatted = decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+    }
+    
+    const symbol = symbols[safeCurrency] || safeCurrency;
+    
+    switch (safeCurrencyPosition) {
+      case 'before': return `${symbol}${formatted}`;
+      case 'after': return `${formatted}${symbol}`;
+      case 'before-space': return `${symbol} ${formatted}`;
+      case 'after-space': return `${formatted} ${symbol}`;
+      default: return `${symbol}${formatted}`;
+    }
+  };
+
+  // Helper untuk format summary
+  const formatCurrencyPositionSummary = (): string => {
+    switch(settings.currencyPosition || 'before') {
+      case 'before': return 'Before';
+      case 'after': return 'After';
+      case 'before-space': return 'Before (space)';
+      case 'after-space': return 'After (space)';
+      default: return 'Before';
+    }
+  };
+
+  const formatThousandsSeparatorSummary = (): string => {
+    switch(settings.thousandsSeparator || 'comma') {
+      case 'comma': return 'Comma';
+      case 'dot': return 'Dot';
+      case 'space': return 'Space';
+      case 'none': return 'None';
+      default: return 'Comma';
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -264,7 +352,106 @@ export default function Settings() {
                     <option value="USD">USD - US Dollar</option>
                     <option value="EUR">EUR - Euro</option>
                     <option value="SGD">SGD - Singapore Dollar</option>
+                    <option value="GBP">GBP - British Pound</option>
+                    <option value="JPY">JPY - Japanese Yen</option>
+                    <option value="AUD">AUD - Australian Dollar</option>
+                    <option value="CAD">CAD - Canadian Dollar</option>
+                    <option value="CHF">CHF - Swiss Franc</option>
+                    <option value="CNY">CNY - Chinese Yuan</option>
+                    <option value="KRW">KRW - South Korean Won</option>
+                    <option value="MYR">MYR - Malaysian Ringgit</option>
+                    <option value="THB">THB - Thai Baht</option>
+                    <option value="VND">VND - Vietnamese Dong</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Currency Format Settings */}
+              <div className={`p-4 rounded-xl border ${
+                isDark ? 'bg-gray-900/50 border-gray-700' : 'bg-gray-50/50 border-gray-200'
+              }`}>
+                <h3 className="flex items-center gap-2 font-bold text-sm mb-4 text-gray-900 dark:text-white">
+                  <DollarSign className="w-4 h-4 text-amber-500" />
+                  Currency Format
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Symbol Position */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                      <Type className="w-3 h-3" />
+                      Symbol Position
+                    </label>
+                    <select 
+                      name="currencyPosition"
+                      defaultValue={settings.currencyPosition || 'before'}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                        isDark 
+                          ? 'bg-gray-800 border-gray-700 text-white' 
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    >
+                      <option value="before">Before (Rp100,000)</option>
+                      <option value="after">After (100,000Rp)</option>
+                      <option value="before-space">Before with space (Rp 100,000)</option>
+                      <option value="after-space">After with space (100,000 Rp)</option>
+                    </select>
+                  </div>
+                  
+                  {/* Decimal Places */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                      <Hash className="w-3 h-3" />
+                      Decimal Places
+                    </label>
+                    <select 
+                      name="decimalPlaces"
+                      defaultValue={settings.decimalPlaces ?? 0}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                        isDark 
+                          ? 'bg-gray-800 border-gray-700 text-white' 
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    >
+                      <option value="0">0 decimals (100,000)</option>
+                      <option value="2">2 decimals (100,000.00)</option>
+                    </select>
+                  </div>
+                  
+                  {/* Thousands Separator */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                      <Percent className="w-3 h-3" />
+                      Thousands Separator
+                    </label>
+                    <select 
+                      name="thousandsSeparator"
+                      defaultValue={settings.thousandsSeparator || 'comma'}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                        isDark 
+                          ? 'bg-gray-800 border-gray-700 text-white' 
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    >
+                      <option value="comma">Comma (1,000,000)</option>
+                      <option value="dot">Dot (1.000.000)</option>
+                      <option value="space">Space (1 000 000)</option>
+                      <option value="none">None (1000000)</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Preview Section */}
+                <div className="mt-4 pt-4 border-t border-gray-700/30 dark:border-gray-700">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Preview:</p>
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                    <code className={`text-sm font-mono ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
+                      {getCurrencyPreview()}
+                    </code>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Sample: 1,234,567.89
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -617,6 +804,38 @@ export default function Settings() {
                 <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium rounded">
                   Production
                 </span>
+              </div>
+
+              {/* Currency Settings Summary */}
+              <div className="pt-4 border-t border-gray-700/30 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-2">
+                  <SettingsIcon className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Currency Settings
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Currency:</span>
+                    <span className="font-medium">{settings.currency || 'IDR'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Format:</span>
+                    <span className="font-medium">
+                      {formatCurrencyPositionSummary()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Decimals:</span>
+                    <span className="font-medium">{settings.decimalPlaces ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Separator:</span>
+                    <span className="font-medium">
+                      {formatThousandsSeparatorSummary()}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

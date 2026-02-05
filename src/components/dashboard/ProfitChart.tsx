@@ -2,6 +2,7 @@ import { TrendingUp, BarChart3, LineChart, AreaChart } from 'lucide-react';
 import type { Transaction } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useState } from 'react';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface ChartData {
   date: string;
@@ -12,27 +13,15 @@ interface ChartData {
 }
 
 type ChartType = 'bar' | 'line' | 'area';
-type TimeRange = '7h' | '30h' | '90h';
 
 export default function ProfitChart({ transactions }: { transactions: Transaction[] }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [timeRange, setTimeRange] = useState<TimeRange>('7h');
   const [chartType, setChartType] = useState<ChartType>('bar');
-
-  const getDefaultChartType = (range: TimeRange): ChartType => {
-    if (range === '7h') return 'bar';
-    if (range === '30h') return 'area';
-    return 'line';
-  };
-
-  const handleTimeRangeChange = (range: TimeRange) => {
-    setTimeRange(range);
-    setChartType(getDefaultChartType(range));
-  };
+  const { format } = useCurrencyFormatter();
 
   const getChartData = (): ChartData[] => {
-    const days = timeRange === '7h' ? 7 : timeRange === '30h' ? 30 : 90;
+    const days = 30;
 
     // Buat array tanggal dengan format yang konsisten
     const dates = Array.from({ length: days }, (_, i) => {
@@ -61,7 +50,8 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       }
     });
 
-    const groupSize = timeRange === '90h' ? 7 : 1;
+    // Group per 2 hari untuk mengurangi clutter pada chart
+    const groupSize = 2;
     const result: ChartData[] = [];
 
     for (let i = 0; i < dates.length; i += groupSize) {
@@ -81,32 +71,19 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       let label = '';
       let fullDateLabel = '';
 
-      if (timeRange === '7h') {
-        label = startDate.toLocaleDateString('id-ID', { weekday: 'short' });
+      if (groupDates.length === 1) {
+        // Hari tunggal
+        label = startDate.getDate().toString();
         fullDateLabel = startDate.toLocaleDateString('id-ID', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
           day: 'numeric'
         });
-      } else if (timeRange === '30h') {
-        if (groupSize === 1) {
-          label = startDate.getDate().toString();
-          fullDateLabel = startDate.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-        } else {
-          const weekNumber = Math.floor(i / groupSize) + 1;
-          label = `M${weekNumber}`;
-          fullDateLabel = `${startDate.getDate()} ${startDate.toLocaleDateString('id-ID', { month: 'short' })} – ${endDate.getDate()} ${endDate.toLocaleDateString('id-ID', { month: 'short' })}`;
-        }
       } else {
-        const weekNumber = Math.floor(i / groupSize) + 1;
-        label = `M${weekNumber}`;
-        fullDateLabel = `Minggu ${weekNumber}: ${startDate.getDate()} ${startDate.toLocaleDateString('id-ID', { month: 'short' })} – ${endDate.getDate()} ${endDate.toLocaleDateString('id-ID', { month: 'short' })}`;
+        // Rentang hari
+        label = `${startDate.getDate()}-${endDate.getDate()}`;
+        fullDateLabel = `${startDate.getDate()} ${startDate.toLocaleDateString('id-ID', { month: 'short' })} – ${endDate.getDate()} ${endDate.toLocaleDateString('id-ID', { month: 'short' })}`;
       }
 
       result.push({
@@ -140,28 +117,28 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
             <div
               className={`
                 w-full rounded-t-lg transition-all duration-300 cursor-pointer
-                group-hover:opacity-90
+                group-hover:opacity-90 hover:opacity-80
                 ${isDark ? 'bg-gradient-to-t from-amber-500 to-orange-500' : 'bg-gradient-to-t from-amber-500 to-orange-500'}
               `}
               style={{
-                height: `${(day.profit / maxProfit) * 80}%`,
+                height: `${(day.profit / maxProfit) * 100}%`,
                 minHeight: '2px'
               }}
-              title={`${day.fullDate}\nKeuntungan: Rp ${day.profit.toLocaleString('id-ID')}`}
+              title={`${day.fullDate}\nKeuntungan: ${format(day.profit)}\nPendapatan: ${format(day.revenue)}`}
             ></div>
 
             {day.revenue > 0 && (
               <div
                 className={`
                   w-full rounded-t-lg mt-1 transition-all duration-300 cursor-pointer
-                  group-hover:opacity-90
+                  group-hover:opacity-90 hover:opacity-80
                   ${isDark ? 'bg-gradient-to-t from-blue-500 to-cyan-500' : 'bg-gradient-to-t from-blue-500 to-cyan-500'}
                 `}
                 style={{
-                  height: `${(day.revenue / maxRevenue) * 40}%`,
+                  height: `${(day.revenue / maxRevenue) * 100}%`,
                   minHeight: '1px'
                 }}
-                title={`Pendapatan: Rp ${day.revenue.toLocaleString('id-ID')}`}
+                title={`${day.fullDate}\nPendapatan: ${format(day.revenue)}`}
               ></div>
             )}
           </div>
@@ -238,11 +215,28 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
               bottom: `${(day.profit / maxValue) * 100}%`,
               transform: 'translate(-50%, 50%)'
             }}
-            title={`${day.fullDate}\nKeuntungan: Rp ${day.profit.toLocaleString('id-ID')}`}
+            title={`${day.fullDate}\nKeuntungan: ${format(day.profit)}\nPendapatan: ${format(day.revenue)}`}
           >
             <div className={`w-3 h-3 rounded-full border-2 ${
               isDark ? 'bg-gray-900 border-amber-500' : 'bg-white border-amber-500'
             } group-hover:w-4 group-hover:h-4 transition-all`}></div>
+          </div>
+        ))}
+        
+        {data.map((day, index) => (
+          <div
+            key={`rev-${index}`}
+            className="absolute cursor-pointer group"
+            style={{
+              left: `${(index / (data.length - 1)) * 100}%`,
+              bottom: `${(day.revenue / maxValue) * 100}%`,
+              transform: 'translate(-50%, 50%)'
+            }}
+            title={`${day.fullDate}\nPendapatan: ${format(day.revenue)}`}
+          >
+            <div className={`w-2 h-2 rounded-full border ${
+              isDark ? 'bg-blue-500 border-blue-700' : 'bg-blue-500 border-white'
+            } group-hover:w-3 group-hover:h-3 transition-all`}></div>
           </div>
         ))}
       </div>
@@ -262,6 +256,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       </div>
 
       <svg className="absolute inset-0 w-full h-full">
+        {/* Profit area */}
         <path
           d={`
             M 0,${100 - (data[0]?.profit / maxValue) * 100 || 100}
@@ -276,6 +271,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
           opacity="0.3"
         />
         
+        {/* Profit line */}
         <path
           d={`
             M 0,${100 - (data[0]?.profit / maxValue) * 100 || 100}
@@ -288,6 +284,20 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
           fill="none"
         />
         
+        {/* Revenue line (dashed) */}
+        <path
+          d={`
+            M 0,${100 - (data[0]?.revenue / maxValue) * 100 || 100}
+            ${data.map((day, index) => 
+              `L ${(index / (data.length - 1)) * 100},${100 - (day.revenue / maxValue) * 100}`
+            ).join(' ')}
+          `}
+          stroke="url(#revenueGradient)"
+          strokeWidth="2"
+          fill="none"
+          strokeDasharray="4,4"
+        />
+        
         <defs>
           <linearGradient id="areaProfitGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.4" />
@@ -296,6 +306,10 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
           <linearGradient id="profitGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#f59e0b" />
             <stop offset="100%" stopColor="#f97316" />
+          </linearGradient>
+          <linearGradient id="revenueGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#06b6d4" />
           </linearGradient>
         </defs>
       </svg>
@@ -309,7 +323,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
             bottom: `${(day.profit / maxValue) * 100}%`,
             transform: 'translate(-50%, 50%)'
           }}
-          title={`${day.fullDate}\nKeuntungan: Rp ${day.profit.toLocaleString('id-ID')}`}
+          title={`${day.fullDate}\nKeuntungan: ${format(day.profit)}\nPendapatan: ${format(day.revenue)}`}
         >
           <div className={`w-2 h-2 rounded-full ${
             isDark ? 'bg-amber-500' : 'bg-amber-500'
@@ -331,10 +345,10 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div>
           <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Tren Keuntungan & Pendapatan
+            Tren Keuntungan & Pendapatan (30 Hari)
           </h3>
           <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            {timeRange === '7h' ? '7 hari terakhir' : timeRange === '30h' ? '30 hari terakhir' : '90 hari terakhir'}
+            30 hari terakhir (data dikelompokkan per 2 hari)
           </p>
         </div>
 
@@ -374,36 +388,16 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
               <LineChart className="w-4 h-4" />
             </button>
           </div>
-
-          <div className={`flex items-center gap-1 p-1 rounded-xl ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
-            {(['7h', '30h', '90h'] as const).map(range => (
-              <button
-                key={range}
-                onClick={() => handleTimeRangeChange(range)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                  timeRange === range
-                    ? isDark
-                      ? 'bg-amber-500 text-white shadow'
-                      : 'bg-amber-500 text-white shadow-sm'
-                    : isDark
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {range}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-amber-50 border-amber-100'}`}>
           <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-amber-700'}`}>
-            Total Keuntungan
+            Total Keuntungan (30 hari)
           </p>
           <p className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Rp {totalProfit.toLocaleString('id-ID')}
+            {format(totalProfit)}
           </p>
           <div className="flex items-center justify-between">
             <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
@@ -415,32 +409,32 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
               {Math.abs(profitChange).toFixed(1)}%
             </div>
             <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-              dibanding periode sebelumnya
+              vs periode sebelumnya
             </span>
           </div>
         </div>
 
         <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-blue-50 border-blue-100'}`}>
           <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-blue-700'}`}>
-            Total Pendapatan
+            Total Pendapatan (30 hari)
           </p>
           <p className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Rp {totalRevenue.toLocaleString('id-ID')}
+            {format(totalRevenue)}
           </p>
           <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-            Rata-rata {data.length} {timeRange === '7h' ? 'hari' : timeRange === '30h' ? 'hari' : 'minggu'}
+            Rata-rata per 2 hari: {format(totalRevenue / data.length)}
           </div>
         </div>
 
         <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-green-50 border-green-100'}`}>
           <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-green-700'}`}>
-            Rata-rata Keuntungan Harian
+            Rata-rata Keuntungan
           </p>
           <p className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Rp {avgProfit.toLocaleString('id-ID')}
+            {format(avgProfit)}
           </p>
           <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-            Rata-rata per {timeRange === '7h' || timeRange === '30h' ? 'hari' : 'minggu'}
+            Per 2 hari
           </div>
         </div>
       </div>
@@ -485,9 +479,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       </div>
 
       <div className={`mt-4 text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-        {timeRange === '7h' && 'Data harian selama 7 hari terakhir'}
-        {timeRange === '30h' && 'Data harian berdasarkan tanggal'}
-        {timeRange === '90h' && 'Data mingguan selama 90 hari terakhir'}
+        Data dikelompokkan per 2 hari untuk tampilan yang lebih jelas
       </div>
     </div>
   );

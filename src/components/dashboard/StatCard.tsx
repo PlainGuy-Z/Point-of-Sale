@@ -71,12 +71,6 @@ export default function StatCard({
             <Icon className={`w-6 h-6 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} /> {/* PERBAIKAN: Gunakan Icon sebagai component */}
           </div>
         </div>
-        
-        {/* Trend indicator */}
-        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold ${trendStyle.bg} ${trendStyle.border} ${trendStyle.color}`}>
-          {trendStyle.icon}
-          {trendValue && <span>{trendValue}</span>}
-        </div>
       </div>
 
       {/* Value dengan animasi */}

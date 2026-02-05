@@ -140,15 +140,19 @@ export interface TopProduct {
   profit: number;
 }
 
+
+
 // ==================== UTILITY TYPES ====================
 export interface BusinessSettings {
   storeName: string;
   address: string;
   taxRate: number;
-  currency?: string;
+  currency: string;
   timezone?: string;
- receiptFooter: string; // Tambah property ini
-  
+  receiptFooter: string;
+  currencyPosition: 'before' | 'after' | 'before-space' | 'after-space';
+  decimalPlaces: 0 | 2;
+  thousandsSeparator: 'comma' | 'dot' | 'space' | 'none';
 }
 
 // ==================== CART ITEM EXTENSION ====================
