@@ -7,7 +7,7 @@ export interface Product {
   description?: string;
   category: 'Coffee' | 'Tea' | 'Pastry' | 'Food' | 'Merchandise' | string;
   price: number;
-  cost: number;
+  cost?: number;
   stock: number;
   minStock: number;
   unit: string;
@@ -45,7 +45,7 @@ export interface TransactionItem {
   productId: string;
   quantity: number;
   price: number;
-  cost: number;
+  cost?: number;
   note?: string;
   modifiers?: string[];
   
@@ -154,6 +154,28 @@ export interface BusinessSettings {
   currencyPosition: 'before' | 'after' | 'before-space' | 'after-space';
   decimalPlaces: 0 | 2;
   thousandsSeparator: 'comma' | 'dot' | 'space' | 'none';
+}
+
+// ==================== SERVICE TYPES ====================
+export interface AppDataState {
+  products: Product[];
+  transactions: Transaction[];
+  wasteLogs: WasteLog[];
+  customers: Customer[];
+  settings: BusinessSettings;
+  categories: string[];
+}
+
+export interface CheckoutParams {
+  cart: CartItemWithInput[];
+  paymentMethod: Transaction['paymentMethod'];
+  selectedCustomer?: string;
+  customCustomerName?: string;
+  orderType: 'dine-in' | 'take-away';
+  tableNumber?: string;
+  cashReceived?: number;
+  change?: number;
+  orderNote?: string;
 }
 
 // ==================== CART ITEM EXTENSION ====================

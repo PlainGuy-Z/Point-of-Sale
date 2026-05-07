@@ -21,7 +21,7 @@ export function getTopProducts(
       const existing = productSales.get(item.productId);
       const quantity = item.quantity;
       const revenue = item.price * quantity;
-      const profit = (item.price - item.cost) * quantity;
+      const profit = (item.price - (item.cost || 0)) * quantity;
       
       if (existing) {
         existing.quantity += quantity;
@@ -251,7 +251,7 @@ export function updateProductSalesFromTransactions(
       const existing = productSales.get(item.productId);
       const quantity = item.quantity;
       const revenue = item.price * quantity;
-      const profit = (item.price - item.cost) * quantity;
+      const profit = (item.price - (item.cost || 0)) * quantity;
       const transactionDate = safeParseDate(transaction.date);
       
       if (existing) {

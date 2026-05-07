@@ -1,13 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Light mode default */
-:root {
-  --sidebar-bg-light: #e5e7eb; /* gray-200 */
-  --sidebar-bg-dark: #1f2937;  /* gray-800 */
+@theme {
+  /* Global radius token (rounded-3xl) */
+  --radius-3xl: 24px;
+
+  /* App semantic colors (light defaults) */
+  --color-background: #f8fafc; /* slate-50 */
+  --color-surface: #ffffff; /* white */
+  --color-border: #e2e8f0; /* slate-200 */
+
+  /* Constant accent */
+  --color-primary: #f59e0b; /* amber-500 */
+  --color-primary-2: #ea580c; /* orange-600 (for gradients) */
+
+  /* Text */
+  --color-foreground: #0f172a; /* slate-900 */
+  --color-muted: #475569; /* slate-600 */
 }
 
 body {
@@ -15,11 +25,28 @@ body {
   margin: 0;
   padding: 0;
   transition: background-color 0.3s ease, color 0.3s ease;
+  background: var(--color-background);
+  color: var(--color-foreground);
 }
 
-/* Dark mode body styles */
-.dark body {
-  @apply bg-gray-900 text-gray-100;
+/* Dark theme tokens */
+.dark {
+  --color-background: #020617; /* slate-950 */
+  --color-surface: #0f172a; /* slate-900 */
+  --color-border: #1e293b; /* slate-800 */
+  --color-foreground: #e2e8f0; /* slate-200 */
+  --color-muted: #94a3b8; /* slate-400 */
+}
+
+/* Helpful semantic utilities via CSS vars */
+.app-bg {
+  background: var(--color-background);
+}
+.app-surface {
+  background: var(--color-surface);
+}
+.app-border {
+  border-color: var(--color-border);
 }
 
 

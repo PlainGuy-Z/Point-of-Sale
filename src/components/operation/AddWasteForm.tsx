@@ -30,7 +30,7 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
       productName: selectedProduct.name,
       quantity: formData.quantity,
       reason: formData.reason,
-      costLoss: selectedProduct.cost * formData.quantity,
+      costLoss: (selectedProduct.cost || 0) * formData.quantity,
       notes: formData.notes,
     };
 
@@ -125,10 +125,10 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
               </div>
               <div className="text-right">
                 <p className={`text-xl font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                  {selectedProduct.cost * formData.quantity}
+                  {(selectedProduct.cost || 0) * formData.quantity}
                 </p>
                 <p className={`text-xs ${isDark ? 'text-red-500/50' : 'text-red-500'}`}>
-                  {formData.quantity} × {selectedProduct.cost}
+                  {formData.quantity} × {selectedProduct.cost || 0}
                 </p>
               </div>
             </div>

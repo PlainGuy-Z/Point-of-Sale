@@ -32,21 +32,29 @@ export default function SidebarCollapse({
       <button
         onClick={onToggle}
         className={`
-          w-full flex items-center justify-between px-4 py-3 rounded-lg 
-          transition-all duration-150 mb-1
+          w-full flex items-center justify-between px-4 py-3 rounded-3xl
+          transition-all duration-150 mb-1 border
           ${isActive
             ? theme === 'dark'
-              ? 'bg-gray-700 text-cyan-300'
-              : 'bg-gray-300 text-cyan-700'
+              ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+              : 'bg-amber-500/10 text-slate-900 border-amber-500/40'
             : theme === 'dark'
-              ? 'hover:bg-gray-600 text-white'
-              : 'hover:bg-gray-300 text-slate-900'
+              ? 'hover:bg-slate-800 text-slate-200 border-transparent hover:border-slate-800'
+              : 'hover:bg-slate-100 text-slate-800 border-transparent hover:border-slate-200'
           }
         `}
       >
         <div className="flex items-center gap-3">
-          {Icon && <Icon className="w-5 h-5" />}
-          <span className="font-medium">{item.title}</span>
+          <div className={`w-9 h-9 rounded-3xl flex items-center justify-center border ${
+            isActive
+              ? 'border-amber-500/40'
+              : theme === 'dark'
+                ? 'border-slate-800'
+                : 'border-slate-200'
+          }`}>
+            {Icon && <Icon className={`w-5 h-5 ${isActive ? 'text-amber-500' : theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} />}
+          </div>
+          <span className="font-semibold">{item.title}</span>
         </div>
         {isOpen ? (
           <ChevronDown className="w-4 h-4" />
@@ -67,20 +75,20 @@ export default function SidebarCollapse({
                 key={subItem.id}
                 to={subItem.path}
                 className={`
-                  flex items-center gap-3 px-4 py-2 rounded-lg 
-                  transition-all duration-150
+                  flex items-center gap-3 px-4 py-2 rounded-3xl
+                  transition-all duration-150 border
                   ${isSubActive
                     ? theme === 'dark'
-                      ? 'bg-gray-700 text-cyan-300 border-l-4 border-cyan-400'
-                      : 'bg-gray-300 text-cyan-700 border-l-4 border-cyan-500'
+                      ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                      : 'bg-amber-500/10 text-slate-900 border-amber-500/40'
                     : theme === 'dark'
-                      ? 'hover:bg-gray-600 text-white'
-                      : 'hover:bg-gray-300 text-slate-900'
+                      ? 'hover:bg-slate-800 text-slate-200 border-transparent hover:border-slate-800'
+                      : 'hover:bg-slate-100 text-slate-800 border-transparent hover:border-slate-200'
                   }
                 `}
               >
-                {SubIcon && <SubIcon className="w-4 h-4" />}
-                <span className="text-sm font-medium">{subItem.title}</span>
+                {SubIcon && <SubIcon className={`w-4 h-4 ${isSubActive ? 'text-amber-500' : theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} />}
+                <span className="text-sm font-semibold">{subItem.title}</span>
               </Link>
             );
           })}

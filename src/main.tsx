@@ -11,7 +11,6 @@ import ErrorBoundary from './components/common/ErrorBoundary'
 // ============================================================================
 
 // Gunakan Vite environment variables
-const isDevelopment = import.meta.env.DEV;
 const isProduction = import.meta.env.PROD;
 
 // ============================================================================
@@ -69,50 +68,7 @@ if (typeof window !== 'undefined') {
   };
 }
 
-// ============================================================================
-// PERFORMANCE MONITORING (Development only)
-// ============================================================================
-
-if (isDevelopment && typeof React !== 'undefined') {
-  // Monitor high render counts
-  let renderCount = 0;
-  const maxRenderWarnings = 10;
-  let warningCount = 0;
-  
-  const checkRenderPerformance = () => {
-    renderCount++;
-    
-    // Reset counter periodically
-    if (renderCount % 500 === 0) {
-      if (renderCount > 2000 && warningCount < maxRenderWarnings) {
-        console.warn(`High render count detected: ${renderCount} renders`);
-        warningCount++;
-      }
-    }
-  };
-  
-  // Debounced performance check
-  let lastCheck = 0;
-  const performanceCheckInterval = 1000; // 1 second
-  
-  const debouncedPerformanceCheck = () => {
-    const now = Date.now();
-    if (now - lastCheck > performanceCheckInterval) {
-      checkRenderPerformance();
-      lastCheck = now;
-    }
-  };
-  
-  // Monkey patch untuk monitoring (opsional, hati-hati!)
-  if (typeof window !== 'undefined' && isDevelopment) {
-    // Ini hanya untuk debugging, jangan dipakai di production
-    const originalSetState = React.Component.prototype.setState;
-    React.Component.prototype.setState = function(...args) {
-      debouncedPerformanceCheck();
-      return originalSetState.apply(this, args);
-    };
-  }
-}
+// Performance monitoring can be implemented using official React profiling tools if needed.
 
 // ============================================================================
 // OFFLINE DETECTION

@@ -45,18 +45,20 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
   const totalPrice = item.price * quantity;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
       <div 
-        className={`w-full max-w-sm rounded-lg shadow-xl overflow-hidden ${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-200'}`}
+        className={`w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border ${
+          isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white/80 border-slate-200'
+        }`}
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
       >
         
         {/* Header */}
-        <div className={`p-4 border-b ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+        <div className={`p-5 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3">
-              <div className={`p-2 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-amber-50'}`}>
+              <div className={`p-3 rounded-3xl border ${isDark ? 'bg-slate-950/30 border-slate-800' : 'bg-amber-50 border-amber-100'}`}>
                 <Package className={isDark ? 'text-amber-400' : 'text-amber-600'} size={20} />
               </div>
               <div>
@@ -64,7 +66,7 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
                   {isManual ? 'Custom Entry' : product.name}
                 </h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`px-2 py-1 rounded-3xl text-[10px] font-black uppercase border ${isDark ? 'bg-slate-950/30 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                     {isManual ? 'Manual Item' : product.category}
                   </span>
                   {!isManual && product.stock <= product.minStock && (
@@ -79,7 +81,7 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
             
             <button 
               onClick={onClose}
-              className={`p-2 rounded-lg ${isDark ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'}`}
+              className={`p-2 rounded-3xl ${isDark ? 'bg-slate-900 border border-slate-800 hover:bg-slate-800' : 'bg-white border border-slate-200 hover:bg-slate-50'}`}
               tabIndex={0}
               aria-label="Close modal"
               title="Close (ESC)"
@@ -109,10 +111,10 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
               <button 
                 onClick={() => setQuantity(Math.max(1, quantity - 1))} 
                 disabled={quantity <= 1}
-                className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-xl ${
+                className={`w-12 h-12 rounded-3xl flex items-center justify-center font-black text-xl border ${
                   quantity <= 1 
-                    ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed' 
-                    : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'
+                    ? 'bg-slate-200 dark:bg-slate-900 text-slate-400 cursor-not-allowed border-transparent' 
+                    : isDark ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'
                 }`}
                 tabIndex={0}
               >
@@ -142,10 +144,10 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
               <button 
                 onClick={() => setQuantity(isManual ? quantity + 1 : Math.min(quantity + 1, product.stock))}
                 disabled={!isManual && quantity >= product.stock}
-                className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-xl ${
+                className={`w-12 h-12 rounded-3xl flex items-center justify-center font-black text-xl border ${
                   (!isManual && quantity >= product.stock)
-                    ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed' 
-                    : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'
+                    ? 'bg-slate-200 dark:bg-slate-900 text-slate-400 cursor-not-allowed border-transparent' 
+                    : isDark ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'
                 }`}
                 tabIndex={0}
               >
@@ -181,9 +183,9 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
               value={note} 
               onChange={(e) => setNote(e.target.value)} 
               rows={2} 
-              className={`w-full p-3 rounded-lg border text-sm outline-none resize-none ${
+              className={`w-full p-3 rounded-3xl border text-sm outline-none resize-none ${
                 isDark 
-                  ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' 
+                  ? 'bg-slate-950/30 border-slate-800 text-white placeholder-slate-500' 
                   : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
               }`} 
               placeholder={isManual ? "Enter item name..." : "Add special instructions, requests, or notes..."} 
@@ -192,7 +194,7 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
           </div>
 
           {/* Summary */}
-          <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
+          <div className={`rounded-3xl p-4 border ${isDark ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 dark:text-slate-400">Quantity</span>
@@ -204,17 +206,17 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 dark:text-slate-400">Total</span>
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{format(totalPrice)}</span>
+                <span className="text-lg font-black text-amber-500">{format(totalPrice)}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className={`p-4 border-t ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-white/50 border-slate-100'}`}>
+        <div className={`p-5 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
           <button 
             onClick={handleSave} 
-            className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 text-sm"
+            className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-90 text-white font-black rounded-3xl shadow-lg flex items-center justify-center gap-2 text-sm"
             tabIndex={0}
             title="Save Enter"
           >

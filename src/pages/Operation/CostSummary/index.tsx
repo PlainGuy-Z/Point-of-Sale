@@ -19,7 +19,7 @@ export default function CostSummary() {
   const summary = useMemo(() => {
     const revenue = transactions.reduce((sum, t) => sum + t.total, 0);
     const cogs = transactions.reduce((sum, t) => {
-      const transactionCost = t.items.reduce((iSum, item) => iSum + (item.cost * item.quantity), 0);
+      const transactionCost = t.items.reduce((iSum, item) => iSum + ((item.cost || 0) * item.quantity), 0);
       return sum + transactionCost;
     }, 0);
     const wasteLoss = wasteLogs.reduce((sum, w) => sum + w.costLoss, 0);

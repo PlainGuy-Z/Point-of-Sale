@@ -9,7 +9,7 @@ import CategoryPills from '../../components/pos/CategoryPills';
 import PaymentModal from '../../components/pos/PaymentModal';
 import ProductDetailModal from '../../components/pos/ProductDetailModal';
 import ReceiptModal from '../../components/pos/ReceiptModal';
-import type { Transaction, TransactionItem, CartItemWithInput } from '../../types';
+import type { Transaction, TransactionItem, CartItemWithInput, Product } from '../../types';
 import { posApi } from '../../services/posApi';
 
 
@@ -114,7 +114,6 @@ export default function PointOfSale() {
       productId: createManualItemId(),
       quantity: manualItemQuantity > 0 ? manualItemQuantity : 1,
       price: price,
-      cost: price * 0.7,
       note: note,
       modifiers: categoryModifier ? [categoryModifier] : []
     };
@@ -149,7 +148,6 @@ export default function PointOfSale() {
       productId: createManualItemId(),
       quantity: manualItemQuantity > 0 ? manualItemQuantity : 1,
       price: price,
-      cost: price * 0.7,
       note,
       modifiers: categoryModifier ? [categoryModifier] : []
     };
@@ -185,7 +183,6 @@ export default function PointOfSale() {
         productId,
         quantity: 1,
         price: priceToUse,
-        cost: product.cost,
         modifiers: []
       };
       
@@ -323,13 +320,13 @@ export default function PointOfSale() {
   
   const editingItem = editingItemIndex !== null ? cart[editingItemIndex] : null;
   const editingProduct = editingItem 
-    ? (products.find(p => p.id === editingItem.productId) || { 
+    ? (products.find(p => p.id === editingItem.productId) || ({ 
         id: editingItem.productId, 
         name: editingItem.note || 'Manual Item', 
         price: editingItem.price, 
         stock: 999, 
         minStock: 0,
-        category: 'Custom' as any,
+        category: 'Custom',
         cost: editingItem.cost,
         unit: 'pcs',
         image: null,
@@ -342,7 +339,7 @@ export default function PointOfSale() {
         salesCount: 0,
         bestSellerPeriod: 0,
         bestSellerUpdatedAt: new Date().toISOString()
-      }) 
+      } as Product)) 
     : null;
 
   const handleOrderType = (type: 'dine-in' | 'take-away') => {
@@ -1020,10 +1017,10 @@ export default function PointOfSale() {
                   </label>
                   <textarea
                     rows={2}
-                    className={`w-full text-xs p-2 rounded-lg border outline-none transition-all ${
+                    className={`w-full text-xs p-3 rounded-3xl border outline-none transition-all ${
                       isDark
-                        ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-500'
-                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                        ? 'bg-slate-950/30 border-slate-800 text-white placeholder-slate-500'
+                        : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                     }`}
                     placeholder="e.g. No sugar, extra hot..."
                     value={orderNote}
@@ -1034,10 +1031,10 @@ export default function PointOfSale() {
                 <button
                   onClick={() => setPaymentModalOpen(true)}
                   disabled={cart.length === 0 || isServiceLoading || isQuoteLoading || grandTotal <= 0}
-                  className={`w-full py-3 text-white font-bold rounded-xl shadow-lg transition-all uppercase tracking-wider text-sm bg-gradient-to-r focus:outline-none focus:ring-4 focus:ring-amber-500/50 ${
+                  className={`w-full py-4 text-white font-black rounded-3xl shadow-lg transition-all uppercase tracking-wider text-sm bg-gradient-to-r focus:outline-none focus:ring-4 focus:ring-amber-500/50 ${
                     cart.length === 0 || isServiceLoading || isQuoteLoading || grandTotal <= 0
                       ? 'from-gray-300 to-gray-400 cursor-not-allowed' 
-                      : 'from-amber-500 via-orange-500 to-amber-600 hover:opacity-90 active:scale-95 shadow-md shadow-amber-500/20'
+                      : 'from-amber-500 via-orange-500 to-orange-600 hover:opacity-90 active:scale-[0.99] shadow-md shadow-amber-500/20'
                   }`}
                   aria-label="Proceed to payment"
                 >
@@ -1051,20 +1048,22 @@ export default function PointOfSale() {
 
       {isManualInputOpen && (
         <div 
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in"
           role="dialog"
           aria-label="Manual item entry"
           aria-modal="true"
         >
-          <div className={`w-full max-w-sm rounded-2xl shadow-2xl bg-gradient-to-br ${isDark ? 'from-gray-800 via-gray-800 to-gray-900 border border-gray-700' : 'from-white via-white to-gray-50 border border-gray-200'} mx-4`}>
-            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+          <div className={`w-full max-w-sm rounded-3xl shadow-2xl border ${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white/80 border-slate-200'} mx-4`}>
+            <div className={`flex justify-between items-center p-5 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
               <div>
                 <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Custom Item</h2>
                 <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Isi data item manual</p>
               </div>
               <button 
                 onClick={handleCloseManualInput}
-                className="p-1 rounded-full hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                className={`p-2 rounded-3xl border transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 ${
+                  isDark ? 'border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-red-400' : 'border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-red-500'
+                }`}
                 aria-label="Close manual entry"
               >
                 <X size={18} />
@@ -1079,10 +1078,10 @@ export default function PointOfSale() {
                   autoFocus
                   type="text" 
                   placeholder="e.g., Extra Service, Special Order..." 
-                  className={`w-full p-2 rounded-lg border outline-none transition-all text-sm focus:ring-2 focus:ring-amber-500 ${
+                  className={`w-full p-3 rounded-3xl border outline-none transition-all text-sm focus:ring-2 focus:ring-amber-500 ${
                     isDark 
-                      ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-500' 
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                      ? 'bg-slate-950/30 border-slate-800 text-white placeholder-slate-500' 
+                      : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                   }`} 
                   value={manualItemName} 
                   onChange={(e) => setManualItemName(e.target.value)} 
@@ -1097,10 +1096,10 @@ export default function PointOfSale() {
                 <input 
                   type="text" 
                   placeholder="e.g., Service, Custom, Other..." 
-                  className={`w-full p-2 rounded-lg border outline-none transition-all text-sm focus:ring-2 focus:ring-amber-500 ${
+                  className={`w-full p-3 rounded-3xl border outline-none transition-all text-sm focus:ring-2 focus:ring-amber-500 ${
                     isDark 
-                      ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-500' 
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                      ? 'bg-slate-950/30 border-slate-800 text-white placeholder-slate-500' 
+                      : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                   }`} 
                   value={manualItemCategory} 
                   onChange={(e) => setManualItemCategory(e.target.value)} 
@@ -1115,10 +1114,10 @@ export default function PointOfSale() {
                   <input 
                     type="text" 
                     placeholder="0" 
-                    className={`w-full p-2 pl-8 pr-3 rounded-lg border outline-none text-right text-sm font-bold focus:ring-2 focus:ring-amber-500 ${
+                    className={`w-full p-3 pl-8 pr-3 rounded-3xl border outline-none text-right text-sm font-black focus:ring-2 focus:ring-amber-500 ${
                       isDark 
-                        ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-500' 
-                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                        ? 'bg-slate-950/30 border-slate-800 text-white placeholder-slate-500' 
+                        : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                     }`} 
                     value={manualItemPrice} 
                     onChange={(e) => {
@@ -1141,12 +1140,12 @@ export default function PointOfSale() {
                         key={price}
                         type="button"
                         onClick={() => setManualItemPrice(price.toString())}
-                        className={`p-1.5 rounded text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                        className={`p-2 rounded-3xl text-xs font-black transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 ${
                           isSelected
                             ? 'bg-amber-500 text-white'
                             : isDark 
-                              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              ? 'bg-slate-900 border border-slate-800 text-slate-200 hover:bg-slate-800'
+                              : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
                         }`}
                         aria-label={`Set price to ${price}`}
                       >
@@ -1169,8 +1168,8 @@ export default function PointOfSale() {
                   <button
                     type="button"
                     onClick={() => setManualItemQuantity(q => Math.max(1, q - 1))}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold ${
-                      isDark ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'
+                    className={`w-10 h-10 flex items-center justify-center rounded-3xl text-sm font-black border ${
+                      isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
                     }`}
                   >
                     -
@@ -1181,8 +1180,8 @@ export default function PointOfSale() {
                   <button
                     type="button"
                     onClick={() => setManualItemQuantity(q => q + 1)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold ${
-                      isDark ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'
+                    className={`w-10 h-10 flex items-center justify-center rounded-3xl text-sm font-black border ${
+                      isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
                     }`}
                   >
                     +
@@ -1194,10 +1193,10 @@ export default function PointOfSale() {
                 <button 
                   onClick={quickPayManualItem} 
                   disabled={!manualItemName || !manualItemPrice}
-                  className={`flex-1 py-2.5 text-white font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 text-sm focus:outline-none focus:ring-4 focus:ring-amber-500/50 ${
+                  className={`flex-1 py-3 text-white font-black rounded-3xl transition-all flex items-center justify-center gap-1.5 text-sm focus:outline-none focus:ring-4 focus:ring-amber-500/50 ${
                     !manualItemName || !manualItemPrice
                       ? 'bg-gray-500 cursor-not-allowed' 
-                      : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 active:scale-[0.98]'
+                      : 'bg-amber-500 hover:bg-amber-600 active:scale-[0.99]'
                   }`}
                   aria-label="Quick pay custom item"
                 >
@@ -1206,14 +1205,14 @@ export default function PointOfSale() {
                 <button 
                   onClick={addManualItemToCart} 
                   disabled={!manualItemName || !manualItemPrice} 
-                  className={`flex-1 py-2.5 font-medium rounded-lg transition-all flex items-center justify-center text-sm focus:outline-none focus:ring-2 ${
+                  className={`flex-1 py-3 font-black rounded-3xl transition-all flex items-center justify-center text-sm focus:outline-none focus:ring-2 border ${
                     !manualItemName || !manualItemPrice
                       ? isDark
-                        ? 'bg-gray-800/60 text-gray-500 cursor-not-allowed'
-                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        ? 'bg-slate-900/60 border-slate-800 text-slate-500 cursor-not-allowed'
+                        : 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
                       : isDark
-                        ? 'bg-gray-800/40 hover:bg-gray-800 text-gray-200'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                        ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-200'
+                        : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'
                   }`}
                   aria-label="Cart"
                 >

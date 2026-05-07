@@ -37,11 +37,10 @@ export default function ProductGrid({
             onClick={() => onAddToCart(product.id)}
             disabled={isOutOfStock}
             className={`
-              rounded-xl border p-3 text-left transition-all group relative flex flex-col 
-              bg-gradient-to-b overflow-hidden
-              ${isDark 
-                ? 'from-gray-800 via-gray-800 to-gray-900 border-gray-700 hover:border-amber-500/50 hover:from-gray-750 hover:via-gray-750 hover:to-gray-800 shadow-sm' 
-                : 'from-white via-white to-gray-50 border-gray-200 hover:border-amber-500 hover:shadow-sm hover:from-gray-50 hover:via-gray-50 hover:to-white'
+              rounded-3xl border p-4 text-left transition-all group relative flex flex-col overflow-hidden
+              ${isDark
+                ? 'bg-slate-900 border-slate-800 hover:border-amber-500/40'
+                : 'bg-white border-slate-200 hover:border-amber-500/50'
               }
               ${isOutOfStock ? 'opacity-60 cursor-not-allowed grayscale-[0.5]' : ''}
               animate-in
@@ -87,9 +86,9 @@ export default function ProductGrid({
 
             {/* Area Gambar Produk */}
             <div className={`
-              w-full aspect-square rounded-lg mb-3 flex items-center justify-center 
-              overflow-hidden relative bg-gradient-to-br
-              ${isDark ? 'from-gray-900 to-gray-800' : 'from-gray-50 to-gray-100'}
+              w-full aspect-square rounded-3xl mb-4 flex items-center justify-center
+              overflow-hidden relative
+              ${isDark ? 'bg-slate-950' : 'bg-slate-50'}
               ${isOutOfStock ? 'animate-pulse-subtle' : ''}
             `}>
               {product.image ? (
@@ -149,14 +148,8 @@ export default function ProductGrid({
                 {/* Harga saat ini */}
                 <div className="flex items-baseline gap-1 w-full">
                   <span className={`
-                    text-xs font-semibold
-                    ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-gray-400' : 'text-gray-500')}
-                  `}>
-                    
-                  </span>
-                  <span className={`
                     font-bold text-sm md:text-base
-                    ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-amber-400' : 'text-amber-600')}
+                      ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : 'text-amber-500'}
                   `}>
                     {priceToShow}
                   </span>
@@ -199,7 +192,7 @@ export default function ProductGrid({
                 
                 {/* Info Stok */}
                 <div className="flex justify-between items-center w-full mt-1">
-                  <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
                     Stok:
                   </span>
                   <span className={`
@@ -208,14 +201,14 @@ export default function ProductGrid({
                     ${
                       product.stock > 10 
                         ? isDark 
-                          ? 'from-green-900/30 to-green-800/20 text-green-400' 
+                          ? 'from-green-900/30 to-green-800/20 text-green-400'
                           : 'from-green-50 to-green-100 text-green-600'
                         : product.stock > 0
                           ? isDark 
-                            ? 'from-amber-900/30 to-amber-800/20 text-amber-400' 
+                            ? 'from-amber-900/30 to-amber-800/20 text-amber-400'
                             : 'from-amber-50 to-amber-100 text-amber-600'
                           : isDark 
-                            ? 'from-red-900/30 to-red-800/20 text-red-400' 
+                            ? 'from-red-900/30 to-red-800/20 text-red-400'
                             : 'from-red-50 to-red-100 text-red-600'
                     }
                   `}>
@@ -226,7 +219,7 @@ export default function ProductGrid({
             </div>
             
             {/* Overlay Tombol Tambah (Hanya Desktop) */}
-            <div className="hidden md:flex absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 items-center justify-center rounded-xl transition-all pointer-events-none">
+            <div className="hidden md:flex absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 items-center justify-center rounded-3xl transition-all pointer-events-none">
               <div className={`
                 p-2 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform
                 ${
@@ -254,11 +247,11 @@ export default function ProductGrid({
         <div className="col-span-full text-center py-12 animate-in">
           <Package className={`
             w-12 h-12 mx-auto mb-2 animate-pulse-subtle
-            ${isDark ? 'text-gray-700' : 'text-gray-300'}
+            ${isDark ? 'text-slate-700' : 'text-slate-300'}
           `} />
           <p className={`
             animate-in
-            ${isDark ? 'text-gray-500' : 'text-gray-400 font-medium'}
+            ${isDark ? 'text-slate-500' : 'text-slate-400 font-medium'}
           `} style={{ animationDelay: '0.2s' }}>
             No products found
           </p>

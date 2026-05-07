@@ -35,8 +35,6 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     
     // Simpan ke localStorage
     localStorage.setItem('coffee-pos-theme', theme);
-    
-    console.log('Theme changed to:', theme); // Debug
   }, [theme]);
 
   const toggleTheme = () => {

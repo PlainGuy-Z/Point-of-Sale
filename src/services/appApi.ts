@@ -1,5 +1,4 @@
-import type { AppDataState } from './appDataService';
-import type { Customer, Transaction, WasteLog } from '../types';
+import type { AppDataState, Customer, Transaction, WasteLog } from '../types';
 
 type IsoDateString = string;
 
@@ -19,6 +18,10 @@ type AppStateWire = Omit<AppDataState, 'transactions' | 'wasteLogs' | 'customers
 function getApiBaseUrl(): string {
   const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
   if (!base) {
+    if (import.meta.env.DEV) {
+      console.error('VITE_API_BASE_URL is not set. Please check your .env file.');
+      return 'http://localhost:3000'; // Default fallback for local development
+    }
     throw new Error('VITE_API_BASE_URL is not set. Configure backend base URL to load app data.');
   }
   return base.replace(/\/+$/, '');

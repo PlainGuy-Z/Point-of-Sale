@@ -44,7 +44,7 @@ export default function CategoryPills({ selected, onSelect }: CategoryPillsProps
               key={category}
               onClick={() => onSelect(category)}
               className={`
-                flex items-center gap-2 px-4 py-2.5 rounded-xl
+                flex items-center gap-2 px-4 py-2.5 rounded-3xl
                 text-xs font-bold whitespace-nowrap
                 transition-all duration-200
                 flex-shrink-0 active:scale-95
@@ -52,8 +52,8 @@ export default function CategoryPills({ selected, onSelect }: CategoryPillsProps
                 ${isActive 
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20' 
                   : isDark 
-                    ? 'bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700 hover:text-white' 
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-amber-600 shadow-sm'
+                    ? 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:text-white' 
+                    : 'bg-slate-200 text-slate-700 border border-slate-200 hover:bg-slate-300 hover:text-slate-900'
                 }
               `}
               aria-label={`Select ${category} category`}

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import type { Product, Transaction, WasteLog, Customer, BusinessSettings } from '../types';
-import type { CheckoutParams } from '../services/appDataService';
+import type { Product, Transaction, WasteLog, Customer, BusinessSettings, CheckoutParams, CartItemWithInput } from '../types';
 import { appApi } from '../services/appApi';
 import { posApi } from '../services/posApi';
 
@@ -117,7 +116,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsServiceLoading(true);
     try {
       const transaction = await posApi.createTransaction({
-        cart: params.cart.map((i) => ({
+        cart: params.cart.map((i: CartItemWithInput) => ({
           productId: i.productId,
           quantity: i.quantity,
           note: i.note,

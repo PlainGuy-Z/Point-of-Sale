@@ -35,6 +35,10 @@ type TransactionResponse = Omit<Transaction, 'date' | 'items'> & {
 function getApiBaseUrl(): string {
   const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
   if (!base) {
+    if (import.meta.env.DEV) {
+      console.error('VITE_API_BASE_URL is not set for POS. Please check your .env file.');
+      return 'http://localhost:3000'; // Default fallback for local development
+    }
     throw new Error('VITE_API_BASE_URL is not set. Configure backend base URL to enable POS checkout.');
   }
   return base.replace(/\/+$/, '');

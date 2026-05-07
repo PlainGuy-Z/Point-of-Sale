@@ -663,7 +663,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-100'}`}>
               {sortedProducts.map((product) => {
-                const margin = product.price - product.cost;
+                const margin = product.price - (product.cost || 0);
                 const marginPercent = ((margin / product.price) * 100).toFixed(1);
                 const isLowStock = product.stock <= product.minStock;
                 const isOutOfStock = product.stock === 0;
@@ -737,7 +737,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                           </p>
                         )}
                         <p className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                          Cost: {format(product.cost)}
+                          Cost: {format(product.cost || 0)}
                         </p>
                       </div>
                     </td>

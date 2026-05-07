@@ -29,12 +29,12 @@ export default function InventoryUsage() {
         .reduce((acc, w) => acc + w.quantity, 0);
 
       const totalUsage = soldQty + wastedQty;
-      const usageValue = totalUsage * product.cost;
+      const usageValue = totalUsage * (product.cost || 0);
 
       const currentStock = product.stock;
       const physical = physicalStockInput[product.id] ?? currentStock;
       const discrepancy = physical - currentStock;
-      const discrepancyValue = discrepancy * product.cost;
+      const discrepancyValue = discrepancy * (product.cost || 0);
 
       return {
         ...product,

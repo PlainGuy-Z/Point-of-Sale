@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Banknote, CreditCard, QrCode, CheckCircle, DollarSign } from 'lucide-react';
+import { X, Banknote, CreditCard, QrCode, CheckCircle } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface PaymentModalProps {
@@ -167,20 +167,24 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
     : true;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-3">
       <div 
         ref={modalRef}
-        className={`w-full max-w-xl rounded-xl shadow-xl overflow-hidden bg-gradient-to-b ${isDark ? 'from-gray-800 via-gray-800 to-gray-900' : 'from-white via-white to-gray-50'}`}
+        className={`w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border ${
+          isDark
+            ? 'bg-slate-900/80 border-slate-800'
+            : 'bg-white/80 border-slate-200'
+        }`}
         onKeyDown={handleKeyDown}
         tabIndex={0}
         autoFocus
       >
         {/* Header */}
-        <div className={`flex items-center justify-between p-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
-          <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Payment</h2>
+        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+          <h2 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>Payment</h2>
           <button 
             onClick={onClose} 
-            className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+            className={`p-2 rounded-3xl transition-colors ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
             aria-label="Close payment modal"
           >
             <X className="w-5 h-5 text-gray-400" />
@@ -189,9 +193,11 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
 
         <div className="p-4">
           {/* Total Amount */}
-          <div className={`mb-4 p-3 rounded-lg flex justify-between items-center bg-gradient-to-r ${isDark ? 'from-gray-900/50 to-gray-800/30' : 'from-gray-50 to-gray-100'}`}>
-            <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Total Amount</span>
-            <div className={`text-xl font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+          <div className={`mb-4 p-4 rounded-3xl flex justify-between items-center border ${
+            isDark ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <span className={`text-sm font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Total</span>
+            <div className="text-xl font-black text-amber-500">
               {total}
             </div>
           </div>
@@ -206,15 +212,15 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
               <button
                 key={m.id}
                 onClick={() => setMethod(m.id as any)}
-                className={`flex items-center justify-center gap-2 p-2 rounded-lg border transition-all bg-gradient-to-br ${
+                className={`flex items-center justify-center gap-2 p-3 rounded-3xl border transition-all ${
                   method === m.id 
-                    ? `border-amber-500 ${m.color} text-white shadow-lg shadow-amber-500/25` 
+                    ? `border-amber-500 bg-amber-500/10 text-amber-500` 
                     : isDark 
-                      ? 'from-gray-800 to-gray-700 border-gray-700 text-gray-400' 
-                      : 'from-white to-gray-50 border-gray-200 text-gray-700'
+                      ? 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800' 
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <m.icon className={`w-4 h-4 ${method === m.id ? 'text-white' : 'text-gray-400'}`} />
+                <m.icon className={`w-4 h-4 ${method === m.id ? 'text-amber-500' : isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                 <span className={`text-xs font-bold ${method === m.id ? 'text-white' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   {m.label}
                 </span>
@@ -226,7 +232,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left Column: Cash Input Info */}
               <div className="space-y-3">
-                <div className={`p-3 rounded-lg border bg-gradient-to-br ${isDark ? 'from-gray-900/50 to-gray-800/30 border-gray-700' : 'from-white to-gray-50 border-gray-200'}`}>
+                <div className={`p-4 rounded-3xl border ${isDark ? 'bg-slate-950/30 border-slate-800' : 'bg-white border-slate-200'}`}>
                   <div className="flex justify-between mb-1">
                     <span className="text-xs text-gray-400 font-semibold uppercase">Received</span>
                     <button
@@ -237,15 +243,14 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                     </button>
                   </div>
                   <div className="flex items-center gap-2 mb-3">
-                    <DollarSign className="w-4 h-4 text-gray-500" />
-                    <div className="text-lg font-bold">{rawCashValue || '0'}</div>
+                    <div className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{rawCashValue || '0'}</div>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {quickAmounts().map((amount) => (
                       <button 
                         key={amount} 
                         onClick={() => handleQuickCash(amount)} 
-                        className={`py-1.5 px-2 rounded text-[10px] font-bold border bg-gradient-to-br ${isDark ? 'from-gray-700 to-gray-600 border-gray-600 text-gray-300' : 'from-gray-100 to-gray-50 border-gray-200 text-gray-700'}`}
+                        className={`py-2 px-2 rounded-3xl text-[10px] font-black border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}
                       >
                         {amount}
                       </button>
@@ -253,7 +258,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                   </div>
                 </div>
 
-                <div className={`p-3 rounded-lg border bg-gradient-to-r ${change >= 0 ? (isDark ? 'from-green-900/10 to-green-800/20 border-green-800' : 'from-green-50 to-green-100 border-green-200') : (isDark ? 'from-red-900/10 to-red-800/20 border-red-800' : 'from-red-50 to-red-100 border-red-200')}`}>
+                <div className={`p-4 rounded-3xl border ${change >= 0 ? (isDark ? 'bg-green-900/10 border-green-800' : 'bg-green-50 border-green-200') : (isDark ? 'bg-red-900/10 border-red-800' : 'bg-red-50 border-red-200')}`}>
                   <span className="text-xs text-gray-400 font-semibold uppercase">Change</span>
                   <div className={`text-lg font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                     {Math.abs(change)}
@@ -267,21 +272,21 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                   <button 
                     key={btn} 
                     onClick={() => handleKeypadInput(btn)} 
-                    className={`py-2.5 rounded-lg text-sm font-bold border bg-gradient-to-b ${isDark ? 'from-gray-800 to-gray-700 border-gray-700 text-white active:from-gray-700 active:to-gray-600' : 'from-white to-gray-50 border-gray-200 text-gray-700 active:from-gray-50 active:to-gray-100'} active:scale-95`}
+                    className={`py-3 rounded-3xl text-sm font-black border ${isDark ? 'bg-slate-900 border-slate-800 text-white active:bg-slate-800' : 'bg-white border-slate-200 text-slate-800 active:bg-slate-50'} active:scale-[0.99]`}
                   >
                     {btn}
                   </button>
                 ))}
                 <button 
                   onClick={handleClear}
-                  className="col-span-3 py-2 rounded-lg text-xs font-bold border border-red-200 bg-gradient-to-r from-red-50 to-red-100 text-red-600 dark:from-red-900/20 dark:to-red-800/20 dark:border-red-800"
+                  className="col-span-3 py-3 rounded-3xl text-xs font-black border border-red-200 bg-red-50 text-red-600 dark:bg-red-900/20 dark:border-red-800"
                 >
                   CLEAR (C)
                 </button>
               </div>
             </div>
           ) : (
-            <div className={`py-8 rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-gradient-to-br ${isDark ? 'from-gray-900/30 via-gray-900/20 to-gray-800/10 border-gray-700' : 'from-gray-50 via-gray-50/50 to-gray-100/30 border-gray-200'}`}>
+            <div className={`py-10 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center ${isDark ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
               {method === 'qris' ? (
                 <QrCode className="w-20 h-20 text-purple-500 mb-3" />
               ) : (
@@ -298,7 +303,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
           <button
             onClick={handleSubmit}
             disabled={!canProcessPayment}
-            className={`w-full mt-5 py-3.5 text-white font-bold rounded-xl flex items-center justify-center gap-2 bg-gradient-to-r ${
+            className={`w-full mt-5 py-4 text-white font-black rounded-3xl flex items-center justify-center gap-2 bg-gradient-to-r ${
               canProcessPayment
                 ? 'from-amber-500 via-orange-500 to-amber-600 shadow-md hover:shadow-lg active:scale-[0.98] transition-all'
                 : 'from-gray-400 to-gray-500 cursor-not-allowed'
