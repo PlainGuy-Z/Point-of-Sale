@@ -49,7 +49,7 @@ export default function WasteLogTable({ wasteLogs, products }: WasteLogTableProp
                 </td>
                 <td className="py-3 px-4">
                   <div className="font-bold text-red-600">
-                    Rp {waste.costLoss.toLocaleString()}
+                    {waste.costLoss}
                   </div>
                 </td>
               </tr>

@@ -1,14 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext'; // Import context tema
 import { 
   Search, 
   ArrowDownRight, 
-  AlertTriangle, 
   CheckCircle2, 
   Save, 
-  RefreshCw,
-  TrendingDown
+  RefreshCw
 } from 'lucide-react';
 
 export default function InventoryUsage() {
@@ -165,13 +163,13 @@ export default function InventoryUsage() {
                       {item.name}
                     </div>
                     <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                      Total Usage Value: Rp {item.usageValue.toLocaleString()}
+                      Total Usage Value: {item.usageValue}
                     </div>
                   </td>
                   <td className={`px-6 py-4 text-right text-sm ${
                     isDark ? 'text-gray-300' : 'text-gray-600'
                   }`}>
-                    Rp {item.cost.toLocaleString()}
+                    {item.cost}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -235,7 +233,7 @@ export default function InventoryUsage() {
                             <span className={`text-[10px] ${
                               isDark ? 'text-gray-400' : 'text-gray-500'
                             }`}>
-                              Rp {item.discrepancyValue.toLocaleString()}
+                              {item.discrepancyValue}
                             </span>
                           </div>
                         ) : (

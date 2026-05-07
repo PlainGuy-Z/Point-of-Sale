@@ -1,11 +1,10 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext'; // Import context tema
 import { getBusinessHealth } from '../../../utils/analytics/inventoryAnalytics';
 import { 
   DollarSign, 
   TrendingUp, 
-  TrendingDown, 
   Activity, 
   PieChart,
   AlertTriangle
@@ -95,7 +94,7 @@ export default function CostSummary() {
             Total Revenue
           </div>
           <div className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Rp {summary.revenue.toLocaleString()}
+            {summary.revenue}
           </div>
         </div>
 
@@ -126,7 +125,7 @@ export default function CostSummary() {
               ? isDark ? 'text-green-400' : 'text-green-700' 
               : 'text-red-600'
           }`}>
-            Rp {summary.netOperationalProfit.toLocaleString()}
+            {summary.netOperationalProfit}
           </div>
         </div>
       </div>
@@ -153,7 +152,7 @@ export default function CostSummary() {
                   Cost of Goods Sold (Bahan Baku)
                 </span>
                 <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  Rp {summary.cogs.toLocaleString()}
+                  {summary.cogs}
                 </span>
               </div>
               <div className={`w-full rounded-full h-3 overflow-hidden ${
@@ -181,7 +180,7 @@ export default function CostSummary() {
                    <AlertTriangle className="w-3 h-3 text-red-500" />
                 </span>
                 <span className="font-medium text-red-500">
-                  Rp {summary.wasteLoss.toLocaleString()}
+                  {summary.wasteLoss}
                 </span>
               </div>
               <div className={`w-full rounded-full h-3 overflow-hidden ${
@@ -238,18 +237,18 @@ export default function CostSummary() {
             <div className="flex justify-between">
               <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>Gross Profit</span>
               <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Rp {summary.grossProfit.toLocaleString()}
+                {summary.grossProfit}
               </span>
             </div>
             <div className="flex justify-between text-red-500">
               <span>- Waste</span>
-              <span className="font-medium">Rp {summary.wasteLoss.toLocaleString()}</span>
+              <span className="font-medium">{summary.wasteLoss}</span>
             </div>
             <div className={`border-t my-2 pt-2 flex justify-between font-bold ${
               isDark ? 'border-gray-700 text-white' : 'border-gray-200 text-gray-900'
             }`}>
               <span>Net Profit</span>
-              <span>Rp {summary.netOperationalProfit.toLocaleString()}</span>
+              <span>{summary.netOperationalProfit}</span>
             </div>
           </div>
         </div>

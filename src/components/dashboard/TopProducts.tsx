@@ -1,4 +1,4 @@
-import { TrendingUp, Star, Package } from 'lucide-react';
+import { TrendingUp, Package } from 'lucide-react';
 import type { Product } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';

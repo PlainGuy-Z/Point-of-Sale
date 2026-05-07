@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Send, Brain, TrendingUp, AlertTriangle, DollarSign, Package, Users, X } from 'lucide-react';
+import { Send, Brain, TrendingUp, AlertTriangle, DollarSign, Package, Users } from 'lucide-react';
 import type { Transaction, WasteLog, Product } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { 
@@ -81,7 +81,7 @@ export default function AIAssistant({ transactions, wasteLogs, products }: AIAss
         id: 'waste-alert',
         type: 'waste',
         title: 'Deteksi Pemborosan',
-        description: `Kerugian waste mencapai Rp ${wasteAnalysis.totalLoss.toLocaleString()}.`,
+        description: `Kerugian waste mencapai ${wasteAnalysis.totalLoss}.`,
         action: 'Tinjau kembali porsi atau cara penyimpanan bahan baku.',
         severity: wasteAnalysis.totalLoss > 300000 ? 'high' : 'medium'
       });
@@ -121,7 +121,7 @@ export default function AIAssistant({ transactions, wasteLogs, products }: AIAss
     
     if (q.includes('profit') || q.includes('untung')) {
       const weeklyProfit = transactions.slice(0, 10).reduce((s, t) => s + t.profit, 0);
-      return `Profit Anda sangat bergantung pada efisiensi bahan. Saat ini rata-rata profit per transaksi adalah Rp ${(weeklyProfit / (transactions.length || 1)).toLocaleString()}.`;
+      return `Profit Anda sangat bergantung pada efisiensi bahan. Saat ini rata-rata profit per transaksi adalah ${weeklyProfit / (transactions.length || 1)}.`;
     }
     
     if (q.includes('produk') || q.includes('laku')) {
@@ -132,7 +132,7 @@ export default function AIAssistant({ transactions, wasteLogs, products }: AIAss
 
     if (q.includes('waste') || q.includes('rugi')) {
       const waste = analyzeWasteTrends(wasteLogs);
-      return `Total kerugian dari waste adalah Rp ${waste.totalLoss.toLocaleString()}. Penyebab utama biasanya adalah produk kedaluwarsa atau kesalahan pembuatan.`;
+      return `Total kerugian dari waste adalah ${waste.totalLoss}. Penyebab utama biasanya adalah produk kedaluwarsa atau kesalahan pembuatan.`;
     }
 
     if (q.includes('stok') || q.includes('bahan')) {

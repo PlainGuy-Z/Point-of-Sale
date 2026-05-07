@@ -1,4 +1,4 @@
-import type { Product, Transaction, Customer, WasteLog } from '../types';
+import type { Product, Transaction, Customer } from '../types';
 
 // Comprehensive validation functions
 export function validateProduct(product: any): product is Product {

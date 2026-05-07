@@ -1,7 +1,6 @@
-import { X, Copy, Printer } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { Transaction } from '../../types';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface ReceiptTransaction extends Transaction {
   customerName?: string;
@@ -27,8 +26,6 @@ export default function ReceiptModal({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-    const { format: formatCurrency } = useCurrencyFormatter();
-
   const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString('id-ID', {
       day: '2-digit',
@@ -37,15 +34,6 @@ export default function ReceiptModal({
       hour: '2-digit',
       minute: '2-digit'
     });
-
-  const subtotal = transaction.items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
-  const taxAmount = transaction.taxRate
-    ? subtotal * (transaction.taxRate / 100)
-    : 0;
 
   // ✅ TAMBAH: Fungsi untuk mendapatkan label order type
   const getOrderTypeLabel = () => {
@@ -76,13 +64,11 @@ ${tableInfo}
 ${transaction.items
   .map(
     i =>
-      `${i.quantity}x ${i.note || 'Item'} - Rp ${formatCurrency(i.price * i.quantity)}`
+      `${i.quantity}x ${i.note || 'Item'} - ${i.price * i.quantity}`
   )
   .join('\n')}
 
-Subtotal: Rp ${formatCurrency(subtotal)}
-${taxAmount > 0 ? `Pajak: Rp ${formatCurrency(taxAmount)}` : ''}
-TOTAL: Rp ${formatCurrency(transaction.total)}
+TOTAL: ${transaction.total}
 Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
 `.trim();
 
@@ -153,11 +139,11 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
                     {item.note || 'Product'}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {item.quantity} × Rp {formatCurrency(item.price)}
+                    {item.quantity} × {item.price}
                   </div>
                 </div>
                 <div>
-                  Rp {formatCurrency(item.price * item.quantity)}
+                  {item.price * item.quantity}
                 </div>
               </div>
             ))}
@@ -165,21 +151,9 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
 
           {/* Totals */}
           <div className="pt-3 space-y-1 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Subtotal</span>
-              <span>Rp {formatCurrency(subtotal)}</span>
-            </div>
-
-            {taxAmount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">Pajak</span>
-                <span>Rp {formatCurrency(taxAmount)}</span>
-              </div>
-            )}
-
             <div className="flex justify-between font-semibold pt-1">
               <span>Total</span>
-              <span>Rp {formatCurrency(transaction.total)}</span>
+              <span>{transaction.total}</span>
             </div>
 
             <div className="pt-2 text-xs text-gray-500">
@@ -192,13 +166,13 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
                   <div className="flex justify-between text-xs">
                     <span>Tunai</span>
                     <span>
-                      Rp {formatCurrency(transaction.cashReceived)}
+                      {transaction.cashReceived}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span>Kembali</span>
                     <span>
-                      Rp {formatCurrency(transaction.change || 0)}
+                      {transaction.change || 0}
                     </span>
                   </div>
                 </>

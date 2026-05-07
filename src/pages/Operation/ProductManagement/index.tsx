@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Plus, Edit2, Trash2, Camera, Eye, X, Package, Tag, AlertTriangle,Check , Search, ChevronRight, TrendingUp, Filter, DollarSign, Trophy, Percent } from 'lucide-react';
-import type { Product, Transaction } from '../../../types';
+import type { Product } from '../../../types';
 import { getBestSellersByPeriod } from '../../../utils/analytics';
 import { useCurrencyFormatter } from '../../../hooks/useCurrencyFormatter';
 
@@ -19,6 +19,8 @@ const CATEGORY_GRADIENTS = [
 ];
 
 export default function ProductManagement() {
+  const createProductId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `product-${Date.now()}`);
+
   const { products, addProduct, updateProduct, deleteProduct, categories, addCategory, deleteCategory, transactions } = useApp();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -30,7 +32,7 @@ export default function ProductManagement() {
   const [newCatName, setNewCatName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products');
   
   // State untuk sales period - SAMA DENGAN POS (default 3 hari)
@@ -330,8 +332,6 @@ const handleSaveCategoryEdit = (originalName: string) => {
     reader.onloadend = async () => {
       try {
         const result = reader.result as string;
-        const originalBase64SizeKB = Math.round((result.length * 3) / 4 / 1024);
-        
         const compressed = await compressImage(result, fileSizeKB);
         const compressedSizeKB = Math.round((compressed.length * 3) / 4 / 1024);
         
@@ -393,7 +393,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
     const salesData = bestSellers.find(bs => bs.product.id === editingProduct?.id);
     
     const productData: Product = {
-      id: editingProduct?.id || `P${Date.now()}`,
+      id: editingProduct?.id || createProductId(),
       name: formattedProductName,
       category: formattedCategory,
       price: Number(formData.get('price')),
@@ -549,10 +549,6 @@ const handleSaveCategoryEdit = (originalName: string) => {
   
   const totalProducts = products.length;
   const lowStockCount = products.filter(p => p.stock <= p.minStock).length;
-  const outOfStockCount = products.filter(p => p.stock === 0).length;
-  const avgMargin = products.length > 0 
-    ? (products.reduce((sum, p) => sum + ((p.price - p.cost) / p.price * 100), 0) / products.length).toFixed(1)
-    : '0';
 
   // Hitung promo aktif
   const activePromoProducts = products.filter(p => p.isPromo && p.promoPrice && p.promoPrice > 0);

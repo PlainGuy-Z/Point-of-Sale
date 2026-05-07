@@ -20,10 +20,12 @@ export default function WasteLog() {
     .filter(w => new Date(w.date).toDateString() === today)
     .reduce((sum, w) => sum + w.costLoss, 0);
 
+  const createWasteId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `waste-${Date.now()}`);
+
   const handleAddWaste = (waste: Omit<WasteLog, 'id' | 'date'>) => {
     const newWaste: WasteLog = {
       ...waste,
-      id: `W${Date.now()}`,
+      id: createWasteId(),
       date: new Date(),
     };
     addWasteLog(newWaste);
@@ -52,7 +54,7 @@ export default function WasteLog() {
             <div>
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Waste Loss</p>
               <p className={`text-2xl font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                Rp {totalLoss.toLocaleString()}
+                {totalLoss}
               </p>
             </div>
             <div className={`p-3 rounded-lg ${isDark ? 'bg-red-900/20' : 'bg-red-50'}`}>
@@ -70,7 +72,7 @@ export default function WasteLog() {
             <div>
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Today's Loss</p>
               <p className={`text-2xl font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                Rp {todayLoss.toLocaleString()}
+                {todayLoss}
               </p>
             </div>
             <div className={`p-3 rounded-lg ${isDark ? 'bg-amber-900/20' : 'bg-amber-50'}`}>

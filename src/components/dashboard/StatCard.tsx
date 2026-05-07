@@ -1,5 +1,4 @@
 // src/components/dashboard/StatCard.tsx - FIXED VERSION
-import type { ReactNode } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react'; // IMPORT INI
@@ -82,9 +81,17 @@ export default function StatCard({
 
       {/* Title dan subtitle */}
       <div className="space-y-1">
-        <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-          {title}
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            {title}
+          </p>
+          {trendValue && (
+            <div className={`text-[10px] font-black px-2 py-1 rounded-full border flex items-center gap-1 ${trendStyle.bg} ${trendStyle.border} ${trendStyle.color}`}>
+              {trendStyle.icon}
+              <span>{trendValue}</span>
+            </div>
+          )}
+        </div>
         {subtitle && (
           <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
             {subtitle}

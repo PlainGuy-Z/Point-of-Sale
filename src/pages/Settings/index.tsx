@@ -6,7 +6,6 @@ import {
   Moon, 
   Save, 
   Store, 
-  ReceiptText, 
   MapPin, 
   Palette,
   CheckCircle2,
@@ -155,7 +154,7 @@ export default function Settings() {
   const getCurrencyPreview = () => {
     const sampleAmount = 1234567.89;
     const symbols: Record<string, string> = {
-      'IDR': 'Rp', 'USD': '$', 'EUR': '€', 'SGD': 'S$',
+      'IDR': 'IDR', 'USD': 'USD', 'EUR': 'EUR', 'SGD': 'SGD',
       'GBP': '£', 'JPY': '¥', 'AUD': 'A$', 'CAD': 'C$',
       'CHF': 'CHF', 'CNY': '¥', 'KRW': '₩', 'MYR': 'RM',
       'THB': '฿', 'VND': '₫'
@@ -391,10 +390,10 @@ export default function Settings() {
                           : 'bg-white border-gray-300 text-gray-900'
                       }`}
                     >
-                      <option value="before">Before (Rp100,000)</option>
-                      <option value="after">After (100,000Rp)</option>
-                      <option value="before-space">Before with space (Rp 100,000)</option>
-                      <option value="after-space">After with space (100,000 Rp)</option>
+                      <option value="before">Before (IDR100000)</option>
+                      <option value="after">After (100000IDR)</option>
+                      <option value="before-space">Before with space (IDR 100000)</option>
+                      <option value="after-space">After with space (100000 IDR)</option>
                     </select>
                   </div>
                   

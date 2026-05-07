@@ -92,36 +92,6 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
     setRawCashValue(amount.toString());
   };
 
-  // Format display value with thousand separators
-  const formatDisplayValue = useCallback((value: string): string => {
-    if (!value) return '0';
-    
-    try {
-      // Check if value has decimal point
-      const hasDecimal = value.includes('.');
-      let integerPart = value;
-      let decimalPart = '';
-      
-      if (hasDecimal) {
-        [integerPart, decimalPart] = value.split('.');
-        // Ensure decimal part has max 2 digits
-        decimalPart = decimalPart.slice(0, 2);
-      }
-      
-      // Format integer part with thousand separators
-      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-      
-      if (hasDecimal) {
-        return `${formattedInteger},${decimalPart.padEnd(2, '0')}`;
-      }
-      
-      return formattedInteger;
-    } catch (error) {
-      console.error('Formatting error:', error);
-      return value;
-    }
-  }, []);
-
   const handleSubmit = () => {
     const received = parseFloat(rawCashValue) || 0;
     
@@ -134,11 +104,6 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
     } else { 
       onConfirm(method); 
     }
-  };
-
-  // Format currency for display (total, change, etc.)
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID').format(value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -227,7 +192,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
           <div className={`mb-4 p-3 rounded-lg flex justify-between items-center bg-gradient-to-r ${isDark ? 'from-gray-900/50 to-gray-800/30' : 'from-gray-50 to-gray-100'}`}>
             <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Total Amount</span>
             <div className={`text-xl font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-              Rp {formatCurrency(total)}
+              {total}
             </div>
           </div>
 
@@ -273,7 +238,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                   </div>
                   <div className="flex items-center gap-2 mb-3">
                     <DollarSign className="w-4 h-4 text-gray-500" />
-                    <div className="text-lg font-bold">Rp {formatDisplayValue(rawCashValue)}</div>
+                    <div className="text-lg font-bold">{rawCashValue || '0'}</div>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {quickAmounts().map((amount) => (
@@ -282,7 +247,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                         onClick={() => handleQuickCash(amount)} 
                         className={`py-1.5 px-2 rounded text-[10px] font-bold border bg-gradient-to-br ${isDark ? 'from-gray-700 to-gray-600 border-gray-600 text-gray-300' : 'from-gray-100 to-gray-50 border-gray-200 text-gray-700'}`}
                       >
-                        {formatCurrency(amount)}
+                        {amount}
                       </button>
                     ))}
                   </div>
@@ -291,7 +256,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                 <div className={`p-3 rounded-lg border bg-gradient-to-r ${change >= 0 ? (isDark ? 'from-green-900/10 to-green-800/20 border-green-800' : 'from-green-50 to-green-100 border-green-200') : (isDark ? 'from-red-900/10 to-red-800/20 border-red-800' : 'from-red-50 to-red-100 border-red-200')}`}>
                   <span className="text-xs text-gray-400 font-semibold uppercase">Change</span>
                   <div className={`text-lg font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    Rp {formatCurrency(Math.abs(change))}
+                    {Math.abs(change)}
                   </div>
                 </div>
               </div>

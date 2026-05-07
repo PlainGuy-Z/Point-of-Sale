@@ -38,10 +38,10 @@ export default function WeeklySummary({ transactions }: WeeklySummaryProps) {
 
   // 3. Konfigurasi Statistik untuk Mapping
   const statsConfig = [
-    { label: 'Weekly Revenue', value: `Rp ${totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'blue' },
+    { label: 'Weekly Revenue', value: `${totalRevenue}`, icon: DollarSign, color: 'blue' },
     { label: 'Total Transactions', value: totalTransactions.toString(), icon: Package, color: 'green' },
-    { label: 'Avg Ticket', value: `Rp ${avgTicket.toLocaleString()}`, icon: TrendingUp, color: 'amber' },
-    { label: 'Daily Profit Avg', value: `Rp ${avgProfit.toLocaleString()}`, icon: Users, color: 'purple' },
+    { label: 'Avg Ticket', value: `${avgTicket}`, icon: TrendingUp, color: 'amber' },
+    { label: 'Daily Profit Avg', value: `${avgProfit}`, icon: Users, color: 'purple' },
   ];
 
   // Map warna manual untuk menghindari dynamic class error di Tailwind
@@ -94,7 +94,7 @@ export default function WeeklySummary({ transactions }: WeeklySummaryProps) {
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Rp {day.revenue.toLocaleString()}
+                    {day.revenue}
                   </span>
                   <span className={`text-xs font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                     {day.transactions} trans

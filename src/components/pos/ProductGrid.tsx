@@ -1,76 +1,28 @@
 import { Plus, Package, Trophy } from 'lucide-react';
-import type { Product, Transaction} from '../../types';
+import type { Product } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+
 
 interface ProductGridProps {
   products: Product[]; // Produk sudah terurut dari parent
   onAddToCart: (productId: string) => void;
-  bestSellerPeriod?: number; // Periode untuk ditampilkan di badge
-  transactions: Transaction[]; // Tambahkan ini
 }
 
 export default function ProductGrid({ 
   products, 
-  onAddToCart,
-  transactions,
-  bestSellerPeriod = 3 // Default 3 hari
+  onAddToCart
 }: ProductGridProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-
-    const { format } = useCurrencyFormatter();
-
-
-  // Hitung total penjualan per produk untuk periode yang dipilih
-// Di dalam ProductGrid component
-const calculateProductSales = (productId: string): number => {
-  if (transactions.length === 0) return 0;
-  
-  // 1. Ambil waktu sekarang dalam WIB
-  const now = new Date();
-  
-  // 2. Set ke jam 00:00:00 hari ini (Tengah Malam)
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
-  // 3. Tarik mundur sesuai periode (misal 3 hari lalu jam 00:00)
-  const cutoffDate = new Date(startOfToday);
-  cutoffDate.setDate(startOfToday.getDate() - (bestSellerPeriod - 1)); 
-  // Catatan: Jika ingin "Hari ini saja" (period=1), maka cutoff tetap di 00:00 hari ini.
-
-  let totalSold = 0;
-  
-  transactions.forEach(transaction => {
-    try {
-      const transactionDate = new Date(transaction.date);
-      // Bandingkan: Transaksi harus lebih baru atau sama dengan awal hari yang ditentukan
-      if (transactionDate >= cutoffDate) {
-        transaction.items.forEach(item => {
-          if (item.productId === productId) {
-            totalSold += item.quantity;
-          }
-        });
-      }
-    } catch (error) {
-      // Skip invalid dates
-    }
-  });
-  
-  return totalSold;
-};
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
       {products.map((product, index) => {
         const isOutOfStock = product.stock <= 0;
         const isPromoActive = product.isPromo && product.promoPrice && product.promoPrice > 0;
-        const discountPercent = isPromoActive 
-          ? Math.round(((product.price - product.promoPrice!) / product.price) * 100)
-          : 0;
         const priceToShow = isPromoActive ? product.promoPrice! : product.price;
         
-        // Hitung total penjualan produk ini dalam periode yang dipilih
-        const totalSold = calculateProductSales(product.id);
+        const totalSold = product.recentSalesCount || 0;
         
         // Tentukan apakah produk ini best seller (untuk styling saja)
         const isBestSeller = product.isBestSeller || false;
@@ -103,7 +55,7 @@ const calculateProductSales = (productId: string): number => {
             {isPromoActive && (
               <div className="absolute top-2 left-2 z-10">
                 <div className="px-2 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
-                  {product.promoLabel || `${discountPercent}% OFF`}
+                  {product.promoLabel || 'PROMO'}
                 </div>
               </div>
             )}
@@ -206,7 +158,7 @@ const calculateProductSales = (productId: string): number => {
                     font-bold text-sm md:text-base
                     ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-amber-400' : 'text-amber-600')}
                   `}>
-                    {format(priceToShow)}
+                    {priceToShow}
                   </span>
                 </div>
                 
@@ -217,13 +169,13 @@ const calculateProductSales = (productId: string): number => {
                       text-[10px] line-through
                       ${isDark ? 'text-gray-500' : 'text-gray-400'}
                     `}>
-                       {format(product.price)}
+                       {product.price}
                     </span>
                     <span className={`
                       text-[10px] px-1 py-0.5 rounded font-bold
                       ${isDark ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-700'}
                     `}>
-                      Save {discountPercent}%
+                      Promo
                     </span>
                   </div>
                 )}

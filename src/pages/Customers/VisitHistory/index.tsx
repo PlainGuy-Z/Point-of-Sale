@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Search, Calendar, ShoppingBag, ArrowUpRight, User, Filter } from 'lucide-react';
+import { Search, Calendar, ShoppingBag, User } from 'lucide-react';
 import { useApp } from '../../../contexts/AppContext'; // Sesuaikan path jika perlu
 import { useTheme } from '../../../contexts/ThemeContext';
-import type { Transaction } from '../../../types';
 
 export default function VisitHistory() {
   const { transactions, customers } = useApp();
@@ -151,7 +150,7 @@ export default function VisitHistory() {
                   </td>
                   <td className="p-4 text-right">
                     <div className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      Rp {t.total.toLocaleString()}
+                      {t.total}
                     </div>
                   </td>
                 </tr>

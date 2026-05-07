@@ -83,7 +83,7 @@ export default function CustomerTable({ customers }: CustomerTableProps) {
                     <div className="flex items-center gap-2">
                       <DollarSign className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} />
                       <span className={`font-bold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
-                        Rp {customer.totalSpent.toLocaleString()}
+                        {customer.totalSpent}
                       </span>
                     </div>
                   </td>

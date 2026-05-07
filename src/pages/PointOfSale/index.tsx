@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Search, ShoppingCart, Trash2, User, X, PlusCircle, Percent, Flame, Trophy, TrendingUp } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, ShoppingCart, Trash2, User, X, PlusCircle, Percent, Flame, Trophy, TrendingUp, Zap } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useProductCatalog } from '../../hooks/useProductCatalog'; // ✅ Custom hook baru
@@ -8,17 +8,21 @@ import CustomerSelector from '../../components/pos/CustomerSelector';
 import CategoryPills from '../../components/pos/CategoryPills';
 import PaymentModal from '../../components/pos/PaymentModal';
 import ProductDetailModal from '../../components/pos/ProductDetailModal';
-import ReceiptModal from '../../components/pos/ReceiptModal';const formatCurrency = (value: number): string => {
-  return value.toLocaleString('id-ID');
-};
-import type { Transaction, TransactionItem, Product, CartItemWithInput } from '../../types';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import ReceiptModal from '../../components/pos/ReceiptModal';
+import type { Transaction, TransactionItem, CartItemWithInput } from '../../types';
+import { posApi } from '../../services/posApi';
 
 
 export default function PointOfSale() {
   const [receiptTransaction, setReceiptTransaction] = useState<Transaction | null>(null);
+  const createManualItemId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return `manual-${crypto.randomUUID()}`;
+    }
+    return `manual-${Date.now()}`;
+  };
   
-  const { products, customers, addTransaction, settings, transactions } = useApp();
+  const { products, customers, checkout, settings, transactions, isServiceLoading } = useApp();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -42,26 +46,34 @@ export default function PointOfSale() {
   const [customCustomerName, setCustomCustomerName] = useState('');
   const [tableNumber, setTableNumber] = useState('');
   const [orderType, setOrderType] = useState<'dine-in' | 'take-away'>('dine-in');
+  const [orderNote, setOrderNote] = useState('');
+  const [isCheckoutDetailOpen, setIsCheckoutDetailOpen] = useState(false);
+
+  // Totals are computed by backend (quote endpoint). Frontend only displays.
+  const [quote, setQuote] = useState<{ subtotal: number; tax: number; grandTotal: number; taxRate?: number }>({
+    subtotal: 0,
+    tax: 0,
+    grandTotal: 0,
+    taxRate: settings?.taxRate || 0,
+  });
+  const [isQuoteLoading, setIsQuoteLoading] = useState(false);
 
   // Manual input
   const [isManualInputOpen, setIsManualInputOpen] = useState(false);
   const [manualItemName, setManualItemName] = useState('');
   const [manualItemPrice, setManualItemPrice] = useState('');
-  const [manualItemDescription, setManualItemDescription] = useState('');
+  const [manualItemCategory, setManualItemCategory] = useState('');
+  const [manualItemQuantity, setManualItemQuantity] = useState(1);
 
 
-    const { format: formatCurrency, formatInput: formatCurrencyInput, parse: parseCurrency } = useCurrencyFormatter();
+
 
   // ✅ USE CUSTOM HOOK untuk product catalog
   const {
     sortedProducts,
     topBestSellers,
     promoProductsCount,
-    bestSellerCount
   } = useProductCatalog(products, transactions, search, selectedCategory, bestSellerPeriod);
-
-  // Debounced search (opsional - bisa dihapus jika tidak perlu)
-  const searchTimeoutRef = useRef<number | null>(null);
 
   // Save best seller period preference
   useEffect(() => {
@@ -81,14 +93,6 @@ export default function PointOfSale() {
     return newQuantity > 0 && newQuantity <= product.stock;
   }, [products]);
 
-  const validateExactStock = useCallback((productId: string, exactQuantity: number): boolean => {
-    if (productId.startsWith('manual-')) return exactQuantity > 0;
-    
-    const product = products.find(p => p.id === productId);
-    if (!product) return false;
-    return exactQuantity > 0 && exactQuantity <= product.stock;
-  }, [products]);
-
   // ==================== CART FUNCTIONS ====================
   const addManualItemToCart = () => {
     if (!manualItemName || !manualItemPrice) return;
@@ -103,18 +107,16 @@ export default function PointOfSale() {
 
     const capitalizedName = manualItemName.trim().charAt(0).toUpperCase() + manualItemName.trim().slice(1);
     
-    let note = capitalizedName;
-    if (manualItemDescription && manualItemDescription.trim() !== '') {
-      note = `${capitalizedName} - ${manualItemDescription.trim()}`;
-    }
+    const note = capitalizedName;
+    const categoryModifier = manualItemCategory.trim();
 
     const newItem: CartItemWithInput = {
-      productId: `manual-${Date.now()}`,
-      quantity: 1,
+      productId: createManualItemId(),
+      quantity: manualItemQuantity > 0 ? manualItemQuantity : 1,
       price: price,
       cost: price * 0.7,
       note: note,
-      modifiers: []
+      modifiers: categoryModifier ? [categoryModifier] : []
     };
 
     setCart(prev => [...prev, newItem]);
@@ -124,8 +126,38 @@ export default function PointOfSale() {
   const handleCloseManualInput = () => {
     setIsManualInputOpen(false);
     setManualItemName('');
-    setManualItemDescription('');
     setManualItemPrice('');
+    setManualItemCategory('');
+    setManualItemQuantity(1);
+  };
+
+  const quickPayManualItem = () => {
+    if (!manualItemName || !manualItemPrice) return;
+
+    const cleanPrice = manualItemPrice.replace(/\./g, '');
+    const price = parseFloat(cleanPrice);
+    if (isNaN(price) || price <= 0) {
+      alert('Please enter a valid price');
+      return;
+    }
+
+    const capitalizedName = manualItemName.trim().charAt(0).toUpperCase() + manualItemName.trim().slice(1);
+    const note = capitalizedName;
+    const categoryModifier = manualItemCategory.trim();
+
+    const newItem: CartItemWithInput = {
+      productId: createManualItemId(),
+      quantity: manualItemQuantity > 0 ? manualItemQuantity : 1,
+      price: price,
+      cost: price * 0.7,
+      note,
+      modifiers: categoryModifier ? [categoryModifier] : []
+    };
+
+    setCart(prev => [...prev, newItem]);
+    handleCloseManualInput();
+    setIsCheckoutDetailOpen(false);
+    setPaymentModalOpen(true);
   };
 
   const addToCart = (productId: string) => {
@@ -199,79 +231,79 @@ export default function PointOfSale() {
     }
   };
 
-  // ==================== CALCULATE TOTALS ====================
-  const subtotal = useMemo(() => 
-    cart.reduce((sum, item) => sum + (item.price * item.quantity), 0), 
-    [cart]
-  );
-  
-  const totalCost = useMemo(() => 
-    cart.reduce((sum, item) => sum + (item.cost * item.quantity), 0), 
-    [cart]
-  );
-  
-  const taxRate = useMemo(() => 
-    (settings?.taxRate || 0) / 100, 
-    [settings?.taxRate]
-  );
-  
-  const tax = useMemo(() => 
-    subtotal * taxRate, 
-    [subtotal, taxRate]
-  );
-  
-  const grandTotal = useMemo(() => 
-    subtotal + tax, 
-    [subtotal, tax]
-  );
-  
-  const profit = useMemo(() => 
-    subtotal - totalCost, 
-    [subtotal, totalCost]
-  );
+  // ==================== BACKEND QUOTE (TOTALS PREVIEW) ====================
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (!cart.length) {
+        setQuote({ subtotal: 0, tax: 0, grandTotal: 0, taxRate: settings?.taxRate || 0 });
+        return;
+      }
+
+      setIsQuoteLoading(true);
+      try {
+        const res = await posApi.quote({
+          cart: cart.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            note: i.note,
+            modifiers: i.modifiers,
+          })),
+          customerId: selectedCustomer,
+          customerName: customCustomerName,
+          orderType,
+          tableNumber: orderType === 'dine-in' ? tableNumber : undefined,
+          orderNote,
+        });
+        if (!cancelled) {
+          setQuote({ subtotal: res.subtotal, tax: res.tax, grandTotal: res.grandTotal, taxRate: res.taxRate });
+        }
+      } catch (e) {
+        if (!cancelled) {
+          console.error('Quote failed:', e);
+          setQuote({ subtotal: 0, tax: 0, grandTotal: 0, taxRate: settings?.taxRate || 0 });
+        }
+      } finally {
+        if (!cancelled) setIsQuoteLoading(false);
+      }
+    };
+
+    // Small debounce to avoid flooding backend while typing/modifying cart.
+    const t = window.setTimeout(run, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [cart, selectedCustomer, customCustomerName, orderType, tableNumber, orderNote, settings?.taxRate]);
+
+  const { subtotal, tax, grandTotal, taxRate } = quote;
+  const totalSavings = 0; // Savings logic should also be backend-driven if needed.
 
   // ==================== HANDLE PAYMENT ====================
-  const handlePaymentSuccess = (method: 'cash' | 'card' | 'qris', cashReceived?: number, change?: number) => {
+  const handlePaymentSuccess = async (method: 'cash' | 'card' | 'qris', cashReceived?: number, change?: number) => {
     if (cart.length === 0) return;
-    
-    // Create transaction object
-    const transaction: Transaction = {
-      id: `T${Date.now()}`,
-      date: new Date(),
-      items: cart.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-        cost: item.cost,
-        note: item.note,
-        modifiers: item.modifiers,
-        isPromo: item.isPromo,
-        originalPrice: item.originalPrice,
-        promoPrice: item.promoPrice,
-        promoLabel: item.promoLabel
-      })),
-      total: grandTotal,
-      cost: totalCost,
-      profit: profit,
-      paymentMethod: method,
-      customerId: selectedCustomer,
-      customerName: customCustomerName || (customers.find(c => c.id === selectedCustomer)?.name),
-      tableNumber: orderType === 'dine-in' ? tableNumber : undefined,
-      orderType,
-      cashReceived,
-      change,
-      taxRate: settings?.taxRate || 0,
-    };
-    
+
     try {
-      // Pass transaction to AppContext
-      addTransaction(transaction);
+      const transaction = await checkout({
+        cart,
+        paymentMethod: method,
+        selectedCustomer,
+        customCustomerName,
+        orderType,
+        tableNumber,
+        cashReceived,
+        change,
+        orderNote,
+      });
       
       // Clear cart and reset states
       setCart([]);
       setSelectedCustomer(undefined);
       setCustomCustomerName('');
       setTableNumber('');
+      setOrderNote('');
+      setIsCheckoutDetailOpen(false);
       setPaymentModalOpen(false);
       setReceiptTransaction(transaction);
     } catch (error) {
@@ -280,17 +312,13 @@ export default function PointOfSale() {
     }
   };
 
-  // ==================== CALCULATE SAVINGS ====================
-  const totalSavings = useMemo(() => 
-    cart.reduce((sum, item) => {
-      if (item.isPromo && item.originalPrice) {
-        return sum + ((item.originalPrice - item.price) * item.quantity);
-      }
-      return sum;
-    }, 0), 
-    [cart]
-  );
+  const quickPayCart = () => {
+    if (cart.length === 0 || isServiceLoading || isQuoteLoading || grandTotal <= 0) return;
+    setIsCheckoutDetailOpen(false);
+    setPaymentModalOpen(true);
+  };
 
+  // ==================== CALCULATE SAVINGS ====================
   const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
   
   const editingItem = editingItemIndex !== null ? cart[editingItemIndex] : null;
@@ -465,8 +493,6 @@ export default function PointOfSale() {
           <ProductGrid 
             products={sortedProducts} // ✅ Dari custom hook
             onAddToCart={addToCart}
-            transactions={transactions}
-            bestSellerPeriod={bestSellerPeriod}
           />
         </div>
       </div>
@@ -483,7 +509,7 @@ export default function PointOfSale() {
           {!isCartExpanded && (
             <div className="flex justify-between w-full px-6">
               <span className={`font-bold ${isDark ? 'text-amber-400' : 'text-amber-500'}`}>{cart.length} Items</span>
-              <span className={`font-black ${isDark ? 'text-white' : 'text-gray-800'}`}>{formatCurrency(grandTotal)}</span>
+              <span className={`font-black ${isDark ? 'text-white' : 'text-gray-800'}`}>{grandTotal}</span>
             </div>
           )}
         </button>
@@ -491,33 +517,37 @@ export default function PointOfSale() {
         <div className={`flex flex-col h-full ${!isCartExpanded ? 'hidden lg:flex' : 'flex'}`}>
           <div className={`p-3 border-b ${isDark ? 'bg-gray-900/50 border-gray-700' : 'bg-white/50 border-gray-100'}`}>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">Checkout</h3>
-              <button 
-                onClick={() => setCustomerSelectorOpen(!isCustomerSelectorOpen)} 
-                className={`text-xs font-bold px-2 py-1.5 rounded-lg flex items-center gap-1 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                  isCustomerSelectorOpen 
-                    ? 'bg-amber-500 text-white' 
-                    : isDark 
-                      ? 'bg-gray-800 hover:bg-gray-700 text-amber-400 hover:text-amber-300' 
-                      : 'bg-gray-100 hover:bg-gray-200 text-amber-600 hover:text-amber-700'
-                }`}
-                aria-label={isCustomerSelectorOpen ? "Close customer selector" : "Select member"}
-                aria-expanded={isCustomerSelectorOpen}
-              >
-                {isCustomerSelectorOpen ? (
-                  '✕'
-                ) : (
-                  <div className="flex items-center gap-0.5 whitespace-nowrap">
-                    <User size={9} />
-                    <span className="text-[9px] text-muted-foreground leading-none">
-                      Select Member
-                    </span>
-                  </div>
-                )}
-              </button>
+              <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">
+                {isCheckoutDetailOpen ? 'Checkout Detail' : 'Cart'}
+              </h3>
+              {!isCheckoutDetailOpen && (
+                <button 
+                  onClick={() => setCustomerSelectorOpen(!isCustomerSelectorOpen)} 
+                  className={`text-xs font-bold px-2 py-1.5 rounded-lg flex items-center gap-1 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                    isCustomerSelectorOpen 
+                      ? 'bg-amber-500 text-white' 
+                      : isDark 
+                        ? 'bg-gray-800 hover:bg-gray-700 text-amber-400 hover:text-amber-300' 
+                        : 'bg-gray-100 hover:bg-gray-200 text-amber-600 hover:text-amber-700'
+                  }`}
+                  aria-label={isCustomerSelectorOpen ? "Close customer selector" : "Select member"}
+                  aria-expanded={isCustomerSelectorOpen}
+                >
+                  {isCustomerSelectorOpen ? (
+                    '✕'
+                  ) : (
+                    <div className="flex items-center gap-0.5 whitespace-nowrap">
+                      <User size={9} />
+                      <span className="text-[9px] text-muted-foreground leading-none">
+                        Select Member
+                      </span>
+                    </div>
+                  )}
+                </button>
+              )}
             </div>
             
-            {!isCustomerSelectorOpen ? (
+            {isCheckoutDetailOpen ? null : (!isCustomerSelectorOpen ? (
               <div className="space-y-2">
                 <div className="flex gap-1 p-1 rounded-lg bg-gray-100 dark:bg-gray-800" role="radiogroup" aria-label="Order type">
                   <button
@@ -643,7 +673,7 @@ export default function PointOfSale() {
                         <span className="font-bold text-amber-500">{selectedCustomerData.totalVisits || 0}</span> visits
                       </span>
                       <span className="text-gray-500 hidden sm:inline">
-                        <span className="font-bold text-green-500">{formatCurrency(selectedCustomerData.totalSpent || 0)}</span>
+                        <span className="font-bold text-green-500">{selectedCustomerData.totalSpent || 0}</span>
                       </span>
                     </div>
                   </div>
@@ -659,133 +689,173 @@ export default function PointOfSale() {
                   setCustomCustomerName('');
                 }} 
               />
-            )}
+            ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto horizontal-scrollbar-thin p-4 space-y-3">
-            {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center opacity-30 text-center">
-                <ShoppingCart size={48} className="mb-4 text-gray-400" />
-                <p className="font-black text-sm uppercase text-gray-500">Your cart is empty</p>
-              </div>
-            ) : (
-              cart.map((item, idx) => {
-                const product = products.find(p => p.id === item.productId);
-                const itemName = product ? product.name : (item.note || 'Custom Item');
-                const itemPrice = item.price * item.quantity;
-                const isPromoItem = item.isPromo && item.originalPrice;
-                
-                return (
-                  <div 
-                    key={`${item.productId}-${idx}-${item.quantity}`} 
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Edit ${itemName} in cart`}
-                    onClick={() => setEditingItemIndex(idx)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        setEditingItemIndex(idx);
-                        e.preventDefault();
-                      }
-                    }}
-                    className={`p-3 rounded-xl cursor-pointer transition-all relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                      isPromoItem
-                        ? isDark 
-                          ? 'bg-red-900/20 hover:bg-red-900/30 border border-red-500/20' 
-                          : 'bg-red-50/80 hover:bg-red-100/80 border border-red-200'
-                        : isDark 
-                          ? 'bg-gray-800/40 hover:bg-gray-800/60 border border-gray-700' 
-                          : 'bg-gray-50 hover:bg-white border border-gray-200'
+          {!isCheckoutDetailOpen ? (
+            <div className="flex-1 overflow-y-auto horizontal-scrollbar-thin p-4 space-y-3">
+              {cart.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-30 text-center">
+                  <ShoppingCart size={48} className="mb-4 text-gray-400" />
+                  <p className="font-black text-sm uppercase text-gray-500">Your cart is empty</p>
+                  <button
+                    onClick={() => setIsManualInputOpen(true)}
+                    className={`mt-4 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all focus:outline-none focus:ring-4 focus:ring-amber-500/40 ${
+                      isDark
+                        ? 'bg-gray-800 hover:bg-gray-700 text-amber-300'
+                        : 'bg-amber-100 hover:bg-amber-50 text-amber-700'
                     }`}
+                    aria-label="Add custom item"
                   >
-                    <div className="absolute top-[-3px] left-[-3px] rounded-lg flex flex-col gap-0.5 items-start z-10">
-                      {isPromoItem && (
-                        <div className="px-2 py-0.5 rounded-tr-md rounded-br-md text-[9px] font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-sm transform -rotate-3">
-                          {item.promoLabel || 'PROMO'}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-1 mb-1">
-                          <p className={`font-bold text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {itemName}
-                          </p>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          {isPromoItem ? (
-                            <>
-                              <p className={`text-xs font-black line-through ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                {formatCurrency(item.originalPrice || 0)}
-                              </p>
-                              <p className={`text-xs font-black ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                                {formatCurrency(item.price)}
-                              </p>
-                            </>
-                          ) : (
-                            <p className={`text-xs font-black ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                              {formatCurrency(item.price)}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {isPromoItem && item.originalPrice && (
-                            <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'}`}>
-                              Save {formatCurrency((item.originalPrice - item.price) * item.quantity)}
-                            </div>
-                          )}
-                        </div>
+                    <PlusCircle size={14} />
+                    Add custom item
+                  </button>
+                </div>
+              ) : (
+                cart.map((item, idx) => {
+                  const product = products.find(p => p.id === item.productId);
+                  const itemName = product ? product.name : (item.note || 'Custom Item');
+                  const itemPrice = item.price * item.quantity;
+                  const isPromoItem = item.isPromo && item.originalPrice;
+                  
+                  return (
+                    <div 
+                      key={`${item.productId}-${idx}-${item.quantity}`} 
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Edit ${itemName} in cart`}
+                      onClick={() => setEditingItemIndex(idx)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setEditingItemIndex(idx);
+                          e.preventDefault();
+                        }
+                      }}
+                      className={`p-3 rounded-xl cursor-pointer transition-all relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                        isPromoItem
+                          ? isDark 
+                            ? 'bg-red-900/20 hover:bg-red-900/30 border border-red-500/20' 
+                            : 'bg-red-50/80 hover:bg-red-100/80 border border-red-200'
+                          : isDark 
+                            ? 'bg-gray-800/40 hover:bg-gray-800/60 border border-gray-700' 
+                            : 'bg-gray-50 hover:bg-white border border-gray-200'
+                      }`}
+                    >
+                      <div className="absolute top-[-3px] left-[-3px] rounded-lg flex flex-col gap-0.5 items-start z-10">
+                        {isPromoItem && (
+                          <div className="px-2 py-0.5 rounded-tr-md rounded-br-md text-[9px] font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-sm transform -rotate-3">
+                            {item.promoLabel || 'PROMO'}
+                          </div>
+                        )}
                       </div>
-
-                      <div className="flex flex-col items-end gap-2" onClick={e => e.stopPropagation()}>
-                        <div className={`text-sm font-bold ${isPromoItem ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-amber-400' : 'text-amber-600')}`}>
-                          {formatCurrency(itemPrice)}
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <div className={`flex items-center gap-0.5 rounded-lg p-0.5 ${isDark ? 'bg-gray-900 border border-gray-700' : 'bg-white border border-gray-200 shadow-xs'}`}>
-                            <button 
-                              onClick={() => updateQuantity(idx, -1)} 
-                              className="w-5 h-5 flex items-center justify-center rounded-md text-xs hover:bg-amber-500 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
-                              disabled={item.quantity <= 1}
-                              aria-label={`Decrease quantity of ${itemName}`}
-                            >
-                              -
-                            </button>
-                            <span className={`text-xs font-bold w-6 text-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                              {item.quantity}
-                            </span>
-                            <button 
-                              onClick={() => updateQuantity(idx, 1)} 
-                              disabled={product && item.quantity >= product.stock}
-                              className="w-5 h-5 flex items-center justify-center rounded-md text-xs hover:bg-amber-500 hover:text-white transition-colors disabled:opacity-30 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                              aria-label={`Increase quantity of ${itemName}`}
-                            >
-                              +
-                            </button>
+                      
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-1 mb-1">
+                            <p className={`font-bold text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {itemName}
+                            </p>
                           </div>
                           
-                          <button 
-                            onClick={() => removeFromCart(idx)} 
-                            className="p-1 text-gray-400 hover:text-red-500 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
-                            aria-label={`Remove ${itemName} from cart`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {isPromoItem ? (
+                              <>
+                                <p className={`text-xs font-black line-through ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                  {item.originalPrice || 0}
+                                </p>
+                                <p className={`text-xs font-black ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                                  {item.price}
+                                </p>
+                              </>
+                            ) : (
+                              <p className={`text-xs font-black ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                                {item.price}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {isPromoItem && item.originalPrice && (
+                              <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'}`}>
+                                Save {(item.originalPrice - item.price) * item.quantity}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-2" onClick={e => e.stopPropagation()}>
+                          <div className={`text-sm font-bold ${isPromoItem ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-amber-400' : 'text-amber-600')}`}>
+                            {itemPrice}
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <div className={`flex items-center gap-0.5 rounded-lg p-0.5 ${isDark ? 'bg-gray-900 border border-gray-700' : 'bg-white border border-gray-200 shadow-xs'}`}>
+                              <button 
+                                onClick={() => updateQuantity(idx, -1)} 
+                                className="w-5 h-5 flex items-center justify-center rounded-md text-xs hover:bg-amber-500 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                disabled={item.quantity <= 1}
+                                aria-label={`Decrease quantity of ${itemName}`}
+                              >
+                                -
+                              </button>
+                              <span className={`text-xs font-bold w-6 text-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {item.quantity}
+                              </span>
+                              <button 
+                                onClick={() => updateQuantity(idx, 1)} 
+                                disabled={product && item.quantity >= product.stock}
+                                className="w-5 h-5 flex items-center justify-center rounded-md text-xs hover:bg-amber-500 hover:text-white transition-colors disabled:opacity-30 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                aria-label={`Increase quantity of ${itemName}`}
+                              >
+                                +
+                              </button>
+                            </div>
+                            
+                            <button 
+                              onClick={() => removeFromCart(idx)} 
+                              className="p-1 text-gray-400 hover:text-red-500 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
+                              aria-label={`Remove ${itemName} from cart`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto horizontal-scrollbar-thin p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-bold uppercase ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Order Summary</span>
+              </div>
+
+              {cart.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-30 text-center">
+                  <ShoppingCart size={48} className="mb-4 text-gray-400" />
+                  <p className="font-black text-sm uppercase text-gray-500">Your cart is empty</p>
+                </div>
+              ) : (
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {cart.map((item, idx) => (
+                    <div key={`${item.productId}-${idx}-${item.quantity}`} className="flex justify-between">
+                      <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                        {item.quantity} × {(products.find(p => p.id === item.productId)?.name || item.note || 'Item')}
+                      </span>
+                      <span className={isDark ? 'text-gray-100' : 'text-gray-900'}>
+                        {item.price * item.quantity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className={`p-4 space-y-3 rounded-t-3xl border-t bg-gradient-to-b ${isDark ? 'from-gray-900/80 via-gray-900/60 to-gray-800 border-gray-700' : 'from-gray-50/80 via-gray-50/60 to-gray-50/40 border-gray-100'}`}>
-            {totalSavings > 0 && (
+            {totalSavings > 0 && !isCheckoutDetailOpen && (
               <div className={`p-2 rounded-lg ${isDark ? 'bg-green-900/15 border border-gray-800/30' : 'bg-green-50/70 border border-green-200/50'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -793,40 +863,188 @@ export default function PointOfSale() {
                     <span className={`text-xs font-bold ${isDark ? 'text-green-300' : 'text-green-700'}`}>Total Savings</span>
                   </div>
                   <span className={`text-sm font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                    {formatCurrency(totalSavings)}
+                    {totalSavings}
                   </span>
                 </div>
               </div>
             )}
             
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
-                <span>Subtotal</span>
-                <span className="text-gray-800 dark:text-gray-200 font-black">{formatCurrency(subtotal)}</span>
+            {!isCheckoutDetailOpen && (
+              <>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <span>Subtotal</span>
+                    <span className="text-gray-800 dark:text-gray-200 font-black">{subtotal}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <span>Tax ({taxRate ?? settings?.taxRate ?? 0}%)</span>
+                    <span className="text-gray-800 dark:text-gray-200 font-black">{tax}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700">
+                  <span className={`font-bold text-base uppercase ${isDark ? 'text-white' : 'text-gray-800'}`}>Total</span>
+                  <span className="text-xl font-black text-amber-500">{grandTotal}</span>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={quickPayCart}
+                    disabled={cart.length === 0 || isServiceLoading || isQuoteLoading || grandTotal <= 0}
+                    className={`flex-1 py-3 text-white font-bold rounded-xl shadow-lg transition-all uppercase tracking-wider text-sm focus:outline-none focus:ring-4 focus:ring-amber-500/50 ${
+                      cart.length === 0 || isServiceLoading || isQuoteLoading || grandTotal <= 0
+                        ? 'from-gray-300 to-gray-400 cursor-not-allowed bg-gradient-to-r'
+                        : 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:opacity-90 active:scale-[0.99] shadow-md shadow-amber-500/20'
+                    }`}
+                    aria-label="Quick pay"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      <Zap size={16} />
+                      Quick Pay
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setCustomerSelectorOpen(false);
+                      handleOrderType('dine-in');
+                      setIsCheckoutDetailOpen(true);
+                    }}
+                    disabled={cart.length === 0}
+                    className={`flex-1 py-3 font-bold rounded-xl shadow transition-all uppercase tracking-wider text-sm focus:outline-none focus:ring-2 ${
+                      cart.length === 0
+                        ? isDark
+                          ? 'bg-gray-800 border border-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
+                        : isDark
+                          ? 'bg-gray-900/60 border border-gray-700 text-gray-200 hover:bg-gray-900/40'
+                          : 'bg-white/70 border border-gray-200 text-gray-700 hover:bg-white'
+                    }`}
+                    aria-label="Open checkout detail"
+                  >
+                    Checkout
+                  </button>
+                </div>
+              </>
+            )}
+
+            {isCheckoutDetailOpen && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center justify-end">
+                  <button
+                    className={`text-[11px] font-bold underline ${isDark ? 'text-gray-400' : 'text-gray-500'}`}
+                    onClick={() => setIsCheckoutDetailOpen(false)}
+                  >
+                    Back to Cart
+                  </button>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <div className={`text-xs font-bold uppercase ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Customer Info
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className={`text-[11px] font-bold uppercase block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Nama Customer
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Nama Customer"
+                        value={selectedCustomerData ? selectedCustomerData.name : customCustomerName}
+                        onChange={(e) => {
+                          // Kalau user mengetik, anggap custom customer.
+                          if (selectedCustomer) setSelectedCustomer(undefined);
+                          setCustomCustomerName(e.target.value);
+                        }}
+                        className={`w-full text-xs p-2 rounded-lg border outline-none transition-all ${
+                          isDark
+                            ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-500'
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                        }`}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className={`text-[11px] font-bold uppercase block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Nomor Meja
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Meja"
+                        value={tableNumber || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '' || /^\d+$/.test(value)) {
+                            setTableNumber(value);
+                          }
+                        }}
+                        onKeyDown={handleTableNumberKeyDown}
+                        onPaste={(e) => {
+                          const pastedText = e.clipboardData.getData('text');
+                          if (!/^\d*$/.test(pastedText)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        disabled={orderType !== 'dine-in'}
+                        className={`w-full text-xs p-2 rounded-lg border outline-none transition-all ${
+                          isDark
+                            ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-500'
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                        } ${orderType !== 'dine-in' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <span>Subtotal</span>
+                    <span className="text-gray-800 dark:text-gray-200 font-black">{subtotal}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <span>Tax ({taxRate ?? settings?.taxRate ?? 0}%)</span>
+                    <span className="text-gray-800 dark:text-gray-200 font-black">{tax}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <span>Total</span>
+                    <span className="text-amber-500 font-black text-sm">{grandTotal}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`text-[11px] font-bold uppercase block mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Catatan (opsional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    className={`w-full text-xs p-2 rounded-lg border outline-none transition-all ${
+                      isDark
+                        ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-500'
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                    }`}
+                    placeholder="e.g. No sugar, extra hot..."
+                    value={orderNote}
+                    onChange={(e) => setOrderNote(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  onClick={() => setPaymentModalOpen(true)}
+                  disabled={cart.length === 0 || isServiceLoading || isQuoteLoading || grandTotal <= 0}
+                  className={`w-full py-3 text-white font-bold rounded-xl shadow-lg transition-all uppercase tracking-wider text-sm bg-gradient-to-r focus:outline-none focus:ring-4 focus:ring-amber-500/50 ${
+                    cart.length === 0 || isServiceLoading || isQuoteLoading || grandTotal <= 0
+                      ? 'from-gray-300 to-gray-400 cursor-not-allowed' 
+                      : 'from-amber-500 via-orange-500 to-amber-600 hover:opacity-90 active:scale-95 shadow-md shadow-amber-500/20'
+                  }`}
+                  aria-label="Proceed to payment"
+                >
+                  {isServiceLoading ? 'Processing...' : isQuoteLoading ? 'Calculating...' : 'Proceed to Pay'}
+                </button>
               </div>
-              <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
-                <span>Tax ({settings?.taxRate || 0}%)</span>
-                <span className="text-gray-800 dark:text-gray-200 font-black">{formatCurrency(tax)}</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700">
-              <span className={`font-bold text-base uppercase ${isDark ? 'text-white' : 'text-gray-800'}`}>Total</span>
-              <span className="text-xl font-black text-amber-500">{formatCurrency(grandTotal)}</span>
-            </div>
-            
-            <button 
-              onClick={() => setPaymentModalOpen(true)} 
-              disabled={cart.length === 0} 
-              className={`w-full py-3 text-white font-bold rounded-xl shadow-lg transition-all uppercase tracking-wider text-sm bg-gradient-to-r focus:outline-none focus:ring-4 focus:ring-amber-500/50 ${
-                cart.length === 0 
-                  ? 'from-gray-300 to-gray-400 cursor-not-allowed' 
-                  : 'from-amber-500 via-orange-500 to-amber-600 hover:opacity-90 active:scale-95 shadow-md shadow-amber-500/20'
-              }`}
-              aria-label="Checkout order"
-            >
-              Checkout Order
-            </button>
+            )}
           </div>
         </div>
       </div>
@@ -841,8 +1059,8 @@ export default function PointOfSale() {
           <div className={`w-full max-w-sm rounded-2xl shadow-2xl bg-gradient-to-br ${isDark ? 'from-gray-800 via-gray-800 to-gray-900 border border-gray-700' : 'from-white via-white to-gray-50 border border-gray-200'} mx-4`}>
             <div className="flex justify-between items-center p-4 border-b border-gray-700">
               <div>
-                <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Manual Entry</h2>
-                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Add custom item to cart</p>
+                <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Custom Item</h2>
+                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Isi data item manual</p>
               </div>
               <button 
                 onClick={handleCloseManualInput}
@@ -855,7 +1073,7 @@ export default function PointOfSale() {
             <div className="p-4 space-y-3">
               <div>
                 <label className={`text-xs font-bold uppercase block mb-1 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                  Item Name
+                  Nama item
                 </label>
                 <input 
                   autoFocus
@@ -874,28 +1092,24 @@ export default function PointOfSale() {
               
               <div>
                 <label className={`text-xs font-bold uppercase block mb-1 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                  Description <span className="font-normal normal-case text-gray-500">(optional)</span>
+                  Kategori
                 </label>
-                <textarea 
-                  rows={2}
-                  placeholder="Add item description or notes..."
-                  className={`w-full p-2 rounded-lg border outline-none transition-all text-sm resize-none focus:ring-2 focus:ring-amber-500 ${
+                <input 
+                  type="text" 
+                  placeholder="e.g., Service, Custom, Other..." 
+                  className={`w-full p-2 rounded-lg border outline-none transition-all text-sm focus:ring-2 focus:ring-amber-500 ${
                     isDark 
                       ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-500' 
                       : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
-                  }`}
-                  value={manualItemDescription}
-                  onChange={(e) => setManualItemDescription(e.target.value)}
-                  maxLength={100}
+                  }`} 
+                  value={manualItemCategory} 
+                  onChange={(e) => setManualItemCategory(e.target.value)} 
                 />
-                <div className={`text-right text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  {(manualItemDescription || '').length}/100
-                </div>
               </div>
               
               <div>
                 <label className={`text-xs font-bold uppercase block mb-1 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                  Price (Rp)
+                  Harga Mentah
                 </label>
                 <div className="relative">
                   <input 
@@ -908,24 +1122,12 @@ export default function PointOfSale() {
                     }`} 
                     value={manualItemPrice} 
                     onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                      const parts = value.split('.');
-                      if (parts.length > 2) return;
-                      const formattedValue = formatCurrencyInput(value);
-                      setManualItemPrice(formattedValue);
-                    }}
-                    onBlur={() => {
-                      if (manualItemPrice) {
-                        const cleanValue = manualItemPrice.replace(/\./g, '');
-                        const numValue = parseFloat(cleanValue);
-                        if (!isNaN(numValue)) {
-                          setManualItemPrice(formatCurrency(numValue));
-                        }
-                      }
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      setManualItemPrice(value);
                     }}
                     aria-required="true"
                   />
-                  <div className={`absolute left-2 top-1/2 -translate-y-1/2 font-bold text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Rp</div>
+                  <div className={`absolute left-2 top-1/2 -translate-y-1/2 font-bold text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>#</div>
                 </div>
                 
                 <div className="grid grid-cols-4 gap-1 mt-2">
@@ -938,7 +1140,7 @@ export default function PointOfSale() {
                       <button
                         key={price}
                         type="button"
-                        onClick={() => setManualItemPrice(formatCurrency(price))}
+                        onClick={() => setManualItemPrice(price.toString())}
                         className={`p-1.5 rounded text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 ${
                           isSelected
                             ? 'bg-amber-500 text-white'
@@ -952,47 +1154,72 @@ export default function PointOfSale() {
                           ? `${(price/1000000).toFixed(0)}jt` 
                           : price >= 1000 
                             ? `${(price/1000).toFixed(0)}k` 
-                            : formatCurrency(price)}
+                            : price}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {manualItemName && manualItemPrice && (
-                <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50 border border-gray-200'}`}>
-                  <div className="text-xs text-gray-500 mb-1">Preview:</div>
-                  <div className="space-y-0.5">
-                    <div className="flex justify-between items-center">
-                      <span className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {manualItemName.trim().charAt(0).toUpperCase() + manualItemName.trim().slice(1)}
-                      </span>
-                      <span className="text-amber-500 font-medium text-sm">
-                        {formatCurrency(parseFloat(manualItemPrice.replace(/\./g, '')) || 0)}
-                      </span>
-                    </div>
-                    {manualItemDescription && (
-                      <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>
-                        {manualItemDescription}
-                      </div>
-                    )}
-                  </div>
+              <div>
+                <label className={`text-xs font-bold uppercase block mb-1 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                  Jumlah
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setManualItemQuantity(q => Math.max(1, q - 1))}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold ${
+                      isDark ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    -
+                  </button>
+                  <span className={`w-10 text-center text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    {manualItemQuantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setManualItemQuantity(q => q + 1)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold ${
+                      isDark ? 'bg-gray-900 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    +
+                  </button>
                 </div>
-              )}
+              </div>
 
-              <button 
-                onClick={addManualItemToCart} 
-                disabled={!manualItemName || !manualItemPrice} 
-                className={`w-full py-2.5 text-white font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 text-sm focus:outline-none focus:ring-4 focus:ring-amber-500/50 ${
-                  !manualItemName || !manualItemPrice
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-amber-500 hover:bg-amber-600 active:scale-[0.98]'
-                }`}
-                aria-label="Add to cart"
-              >
-                <PlusCircle size={15} />
-                Add to Cart
-              </button>
+              <div className="flex gap-2 pt-2">
+                <button 
+                  onClick={quickPayManualItem} 
+                  disabled={!manualItemName || !manualItemPrice}
+                  className={`flex-1 py-2.5 text-white font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 text-sm focus:outline-none focus:ring-4 focus:ring-amber-500/50 ${
+                    !manualItemName || !manualItemPrice
+                      ? 'bg-gray-500 cursor-not-allowed' 
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 active:scale-[0.98]'
+                  }`}
+                  aria-label="Quick pay custom item"
+                >
+                  Quick Pay
+                </button>
+                <button 
+                  onClick={addManualItemToCart} 
+                  disabled={!manualItemName || !manualItemPrice} 
+                  className={`flex-1 py-2.5 font-medium rounded-lg transition-all flex items-center justify-center text-sm focus:outline-none focus:ring-2 ${
+                    !manualItemName || !manualItemPrice
+                      ? isDark
+                        ? 'bg-gray-800/60 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : isDark
+                        ? 'bg-gray-800/40 hover:bg-gray-800 text-gray-200'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                  }`}
+                  aria-label="Cart"
+                >
+                  Cart
+                </button>
+              </div>
             </div>
           </div>
         </div>

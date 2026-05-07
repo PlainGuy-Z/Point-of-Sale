@@ -33,13 +33,15 @@ export default function Members() {
     ? [...customers].sort((a, b) => b.totalSpent - a.totalSpent)[0]
     : null;
 
+  const createId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `customer-${Date.now()}`);
+
   // --- FORM HANDLER ---
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
     const customerData: Customer = {
-      id: editingCustomer?.id || `C${Date.now()}`,
+      id: editingCustomer?.id || createId(),
       name: formData.get('name') as string,
       phone: formData.get('phone') as string,
       email: (formData.get('email') as string) || undefined,
@@ -111,7 +113,7 @@ export default function Members() {
         />
         <CustomerStats
           title="Avg Spent"
-          value={`Rp ${Math.round(avgSpent).toLocaleString()}`}
+          value={Math.round(avgSpent)}
           icon={<DollarSign className="w-6 h-6" />}
           description="Per customer average"
           trend="stable"
@@ -120,7 +122,7 @@ export default function Members() {
           title="Top Spender"
           value={topSpender?.name || "N/A"}
           icon={<TrendingUp className="w-6 h-6" />}
-          description={topSpender ? `Rp ${topSpender.totalSpent.toLocaleString()}` : 'No data'}
+          description={topSpender ? `${topSpender.totalSpent}` : 'No data'}
           trend="premium"
         />
       </div>
@@ -168,7 +170,7 @@ export default function Members() {
                     </td>
                     <td className="p-4">
                        <div className="flex flex-col">
-                          <span className="font-bold text-amber-500">Rp {customer.totalSpent.toLocaleString()}</span>
+                          <span className="font-bold text-amber-500">{customer.totalSpent}</span>
                           <span className="text-xs text-gray-500">{customer.totalVisits} visits</span>
                        </div>
                     </td>

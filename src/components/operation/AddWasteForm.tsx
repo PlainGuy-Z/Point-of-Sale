@@ -125,10 +125,10 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
               </div>
               <div className="text-right">
                 <p className={`text-xl font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                  Rp {(selectedProduct.cost * formData.quantity).toLocaleString()}
+                  {selectedProduct.cost * formData.quantity}
                 </p>
                 <p className={`text-xs ${isDark ? 'text-red-500/50' : 'text-red-500'}`}>
-                  {formData.quantity} × Rp {selectedProduct.cost.toLocaleString()}
+                  {formData.quantity} × {selectedProduct.cost}
                 </p>
               </div>
             </div>

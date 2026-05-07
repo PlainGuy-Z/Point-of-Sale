@@ -76,6 +76,7 @@ export interface Transaction {
   change?: number;
   taxRate?: number;
   orderType?: 'dine-in' | 'take-away';
+  orderNote?: string;
 }
 
 // ==================== WASTE LOG TYPES ====================

@@ -7,7 +7,6 @@ import {
   Package, 
   AlertCircle,
   BarChart3,
-  Clock,
   Zap,
   Shield
 } from 'lucide-react';
@@ -51,7 +50,7 @@ const HeaderBadge = ({ children, isDark, type = 'info' }: {
 
 export default function Dashboard() {
   const { theme } = useTheme();
-  const { metrics, last7DaysRevenue, topProductsToday, rawData } = useDashboardMetrics(); 
+  const { metrics, topProductsToday, rawData } = useDashboardMetrics(); 
   const isDark = theme === 'dark';
 
     const { format } = useCurrencyFormatter();
@@ -62,13 +61,6 @@ export default function Dashboard() {
     month: 'long', 
     day: 'numeric' 
   });
-
-  // Cek jika data masih kosong
-  const isLoading = !metrics || 
-                    !rawData || 
-                    rawData.transactions.length === 0 ||
-                    rawData.products.length === 0;
-
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

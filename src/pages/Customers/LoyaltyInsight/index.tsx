@@ -53,7 +53,7 @@ export default function LoyaltyInsight() {
         />
         <CustomerStats
           title="Avg. Visit Value"
-          value={`Rp ${analytics.avgSpending.toLocaleString()}`}
+          value={analytics.avgSpending}
           icon={<TrendingUp className="w-6 h-6" />}
           description="Revenue per customer"
           trend="stable"
@@ -113,7 +113,7 @@ export default function LoyaltyInsight() {
                     </div>
                   </div>
                   <div className="font-bold text-amber-500">
-                    Rp {stats.totalSpent.toLocaleString()}
+                    {stats.totalSpent}
                   </div>
                 </div>
               );
