@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  /* Global radius token (rounded-3xl) */
+  --radius-3xl: 24px;
+
+  /* App semantic colors (light defaults) */
+  --color-background: #f8fafc; /* slate-50 */
+  --color-surface: #ffffff; /* white */
+  --color-border: #e2e8f0; /* slate-200 */
+
+  /* Constant accent */
+  --color-primary: #f59e0b; /* amber-500 */
+  --color-primary-2: #ea580c; /* orange-600 (for gradients) */
+
+  /* Text */
+  --color-foreground: #0f172a; /* slate-900 */
+  --color-muted: #475569; /* slate-600 */
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+/* Dark theme tokens */
+.dark {
+  --color-background: #020617; /* slate-950 */
+  --color-surface: #0f172a; /* slate-900 */
+  --color-border: #1e293b; /* slate-800 */
+  --color-foreground: #e2e8f0; /* slate-200 */
+  --color-muted: #94a3b8; /* slate-400 */
+}
+
+/* Helpful semantic utilities via CSS vars */
+.app-bg {
+  background: var(--color-background);
+}
+.app-surface {
+  background: var(--color-surface);
+}
+.app-border {
+  border-color: var(--color-border);
+}
+
+
+
+/* Horizontal Scrollbar yang Kecil (untuk CategoryPills) */
+.horizontal-scrollbar-thin::-webkit-scrollbar {
+  height: 3px;
+}
+
+.horizontal-scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(243, 244, 246, 0.1);
+  border-radius: 2px;
+}
+
+.horizontal-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.horizontal-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+}
+
+/* Dark mode untuk horizontal scrollbar */
+.dark .horizontal-scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.1);
+}
+
+.dark .horizontal-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.4);
+}
+
+.dark .horizontal-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+}
+
+/* Firefox support */
+.horizontal-scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.horizontal-scrollbar-thin {
+  scrollbar-color: rgba(156, 163, 175, 0.4) rgba(243, 244, 246, 0.1);
+}
+
+.dark .horizontal-scrollbar-thin {
+  scrollbar-color: rgba(75, 85, 99, 0.4) rgba(31, 41, 55, 0.1);
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.3s ease, 
+              border-color 0.3s ease, 
+              color 0.3s ease;
+}
+
+/* Tambahkan di tailwind.config.js jika belum ada */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: slide-in-from-bottom 0.5s ease-out;
+}
