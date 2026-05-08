@@ -88,6 +88,8 @@ CREATE TABLE IF NOT EXISTS waste_logs (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+
+
 CREATE INDEX IF NOT EXISTS idx_waste_logs_product_id
   ON waste_logs(product_id);
 CREATE INDEX IF NOT EXISTS idx_waste_logs_created_at

@@ -12,6 +12,8 @@ export interface Product {
   minStock: number;
   unit: string;
   image?: string | null;
+  categoryId?: string; // UUID of category
+  discount: number;
   
   // PROMO PROPERTIES
   isPromo?: boolean;
@@ -164,6 +166,7 @@ export interface AppDataState {
   customers: Customer[];
   settings: BusinessSettings;
   categories: string[];
+  categoriesWithId: { id: string; name: string }[];
 }
 
 export interface CheckoutParams {

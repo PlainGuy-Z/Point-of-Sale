@@ -4,6 +4,7 @@ import { withTransaction } from '../db/with-transaction.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { CreateTransactionRequestSchema, QuoteRequestSchema } from './pos.schemas.js';
+import { buildAppState } from './app.js';
 import crypto from 'node:crypto';
 const TAX_RATE_BPS = 1100; // 11.00% in basis points
 function calcTax(subtotal) {
@@ -12,61 +13,44 @@ function calcTax(subtotal) {
 }
 export const posRouter = Router();
 // POST /pos/quote
-// Note: This endpoint fetches latest price for non-custom items from DB.
+// Note: This endpoint fetches latest price for real products from DB.
 posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next) => {
     try {
         const body = req.body;
-        const productIds = body.items
+        console.log('[DB] POST /pos/quote - Menghitung total harga...');
+        const realProductIds = body.cart
             .map((i) => i.productId)
-            .filter((v) => typeof v === 'string');
+            .filter((id) => !id.startsWith('manual-'));
         const priceById = new Map();
-        if (productIds.length > 0) {
+        if (realProductIds.length > 0) {
             const result = await pool.query(`SELECT id::text, price
          FROM coffeepos.products
-         WHERE id = ANY($1::uuid[])`, [productIds]);
+         WHERE id = ANY($1::uuid[])`, [realProductIds]);
             for (const row of result.rows)
                 priceById.set(row.id, Number(row.price));
         }
         let subtotal = 0;
-        const normalizedItems = body.items.map((item) => {
-            const isCustom = item.isCustom === true || !item.productId;
-            if (isCustom) {
-                if (!item.name || item.price === undefined) {
-                    throw new HttpError(400, 'VALIDATION_ERROR', 'Custom item requires name and price');
-                }
-                const lineTotal = item.price * item.quantity;
+        for (const line of body.cart) {
+            const isManual = line.productId.startsWith('manual-');
+            if (isManual) {
+                const price = line.price ?? 0;
+                if (price <= 0)
+                    throw new HttpError(400, 'VALIDATION_ERROR', 'Manual item requires price');
+                const lineTotal = price * line.quantity;
                 subtotal += lineTotal;
-                return {
-                    productId: null,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                    isCustom: true,
-                    lineTotal
-                };
+                continue;
             }
-            const price = priceById.get(item.productId);
+            const price = priceById.get(line.productId);
             if (price === undefined)
-                throw new HttpError(400, 'UNKNOWN_PRODUCT', `Unknown productId ${item.productId}`);
-            const lineTotal = price * item.quantity;
-            subtotal += lineTotal;
-            return {
-                productId: item.productId,
-                name: item.name ?? null,
-                price,
-                quantity: item.quantity,
-                isCustom: false,
-                lineTotal
-            };
-        });
+                throw new HttpError(400, 'UNKNOWN_PRODUCT', `Unknown productId ${line.productId}`);
+            subtotal += price * line.quantity;
+        }
         const tax = calcTax(subtotal);
         const grandTotal = subtotal + tax;
-        res.json({
-            totals: { subtotal, tax, grandTotal, taxRate: 0.11 },
-            items: normalizedItems
-        });
+        res.json({ subtotal, tax, grandTotal, taxRate: 0.11 });
     }
     catch (err) {
+        console.error('[POS] Quote failed:', err);
         next(err);
     }
 });
@@ -78,14 +62,15 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
 posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), async (req, res, next) => {
     try {
         const body = req.body;
+        console.log('[DB] POST /pos/transactions - Memulai SQL Transaction (BEGIN) untuk proses checkout dan pengecekan stok (FOR UPDATE)...');
         const result = await withTransaction(async (client) => {
-            const nonCustom = body.items.filter((i) => !i.isCustom);
-            const custom = body.items.filter((i) => i.isCustom);
-            const productIds = nonCustom.map((i) => i.productId);
+            const manualLines = body.cart.filter((l) => l.productId.startsWith('manual-'));
+            const realLines = body.cart.filter((l) => !l.productId.startsWith('manual-'));
+            const productIds = realLines.map((l) => l.productId);
             // Lock product rows and read latest price+stock
             const productById = new Map();
             if (productIds.length > 0) {
-                const products = await client.query(`SELECT id::text AS id, name, price, stock
+                const products = await client.query(`SELECT id::text AS id, name, price, cost, stock
            FROM coffeepos.products
            WHERE id = ANY($1::uuid[])
            FOR UPDATE`, [productIds]);
@@ -94,6 +79,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
                         id: row.id,
                         name: String(row.name),
                         price: Number(row.price),
+                        cost: Number(row.cost ?? 0),
                         stock: Number(row.stock)
                     });
                 }
@@ -105,8 +91,8 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
             }
             // Aggregate required quantities per product to validate stock and decrement atomically
             const qtyByProductId = new Map();
-            for (const item of nonCustom) {
-                qtyByProductId.set(item.productId, (qtyByProductId.get(item.productId) ?? 0) + item.quantity);
+            for (const line of realLines) {
+                qtyByProductId.set(line.productId, (qtyByProductId.get(line.productId) ?? 0) + line.quantity);
             }
             // Validate stock in-memory (we hold FOR UPDATE locks, so this is safe within txn)
             const insufficient = [];
@@ -133,36 +119,38 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
             }
             // Recalculate totals from authoritative prices
             let subtotal = 0;
+            let costTotal = 0;
             const normalizedItems = [];
-            for (const item of nonCustom) {
-                const p = productById.get(item.productId);
-                const price = p.price;
-                const lineTotal = price * item.quantity;
-                subtotal += lineTotal;
+            for (const line of realLines) {
+                const p = productById.get(line.productId);
+                subtotal += p.price * line.quantity;
+                costTotal += p.cost * line.quantity;
                 normalizedItems.push({
+                    kind: 'real',
                     productId: p.id,
                     name: p.name,
-                    price,
-                    quantity: item.quantity,
-                    isCustom: false,
-                    lineTotal
+                    price: p.price,
+                    cost: p.cost,
+                    quantity: line.quantity
                 });
             }
-            for (const item of custom) {
-                // price/name already validated by zod
-                const lineTotal = item.price * item.quantity;
-                subtotal += lineTotal;
+            for (const line of manualLines) {
+                const price = line.price ?? 0;
+                if (price <= 0)
+                    throw new HttpError(400, 'VALIDATION_ERROR', 'Manual item requires price');
+                const name = line.note?.trim() || 'Custom Item';
+                subtotal += price * line.quantity;
                 normalizedItems.push({
-                    productId: null,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                    isCustom: true,
-                    lineTotal
+                    kind: 'manual',
+                    manualId: line.productId,
+                    name,
+                    price,
+                    quantity: line.quantity
                 });
             }
             const tax = calcTax(subtotal);
             const grandTotal = subtotal + tax;
+            const profit = subtotal - costTotal;
             const tx = await client.query(`INSERT INTO coffeepos.transactions
            (id, subtotal, tax, grand_total, customer_name, table_number, payment_method, status)
          VALUES
@@ -185,23 +173,49 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
             for (const item of normalizedItems) {
                 const itemId = crypto.randomUUID();
                 rowsSql.push(`($${idx++}::uuid,$${idx++}::uuid,$${idx++}::uuid,$${idx++},$${idx++},$${idx++}::int,$${idx++}::boolean)`);
-                values.push(itemId, transaction.id, item.productId, // nullable
-                item.name, item.price, item.quantity, item.isCustom);
+                if (item.kind === 'real') {
+                    values.push(itemId, transaction.id, item.productId, item.name, item.price, item.quantity, false);
+                }
+                else {
+                    values.push(itemId, transaction.id, null, item.name, item.price, item.quantity, true);
+                }
             }
             const items = await client.query(`INSERT INTO coffeepos.transaction_items
            (id, transaction_id, product_id, name, price, quantity, is_custom)
          VALUES
            ${rowsSql.join(',')}
          RETURNING id::text, transaction_id::text, product_id::text, name, price, quantity, is_custom`, values);
+            // Shape response to match frontend Transaction contract
             return {
-                ...transaction,
-                items: items.rows,
-                totals: { subtotal, tax, grandTotal, taxRate: 0.11 }
+                id: transaction.id,
+                date: new Date(transaction.created_at).toISOString(),
+                items: items.rows.map((r) => ({
+                    productId: r.product_id ?? 'manual', // placeholder for manual items
+                    quantity: Number(r.quantity),
+                    price: Number(r.price),
+                    note: r.name
+                })),
+                total: grandTotal,
+                cost: costTotal,
+                profit,
+                paymentMethod: transaction.payment_method,
+                customerName: transaction.customer_name ?? undefined,
+                tableNumber: transaction.table_number ?? undefined,
+                taxRate: 11,
+                orderType: body.orderType,
+                orderNote: body.orderNote ?? undefined
             };
         });
-        res.status(201).json({ transaction: result });
+        // Return refreshed appState AND the transaction details
+        const appState = await buildAppState();
+        res.status(201).json({
+            transaction: result,
+            appState
+        });
     }
     catch (err) {
+        // Print detailed error to backend terminal
+        console.error('[POS] Transaction failed:', err);
         next(err);
     }
 });

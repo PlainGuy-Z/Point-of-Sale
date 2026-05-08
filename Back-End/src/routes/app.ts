@@ -14,12 +14,29 @@ const CreateWasteLogSchema = z.object({
   notes: z.string().trim().max(500).optional()
 });
 
-async function buildAppState() {
-  const [products, txs, wastes] = await Promise.all([
+const ProductSchema = z.object({
+  name: z.string().trim().min(1),
+  description: z.string().trim().nullish(),
+  price: z.coerce.number().int().nonnegative(),
+  category: z.string().trim().min(1),
+  stock: z.coerce.number().int().nonnegative(),
+  minStock: z.coerce.number().int().nonnegative().nullish(),
+  cost: z.coerce.number().int().nonnegative().nullish(),
+  discount: z.coerce.number().min(0).max(100).default(0),
+  image: z.string().trim().nullish()
+});
+
+const CategorySchema = z.object({
+  name: z.string().trim().min(1)
+});
+
+export async function buildAppState() {
+  const [products, txs, wastes, cats] = await Promise.all([
     pool.query(
-      `SELECT id::text, name, description, price, category, stock, cost
-       FROM coffeepos.products
-       ORDER BY name ASC`
+      `SELECT p.id::text, p.name, p.description, p.price, p.discount, c.name as category, p.stock, p.min_stock, p.cost, p.image
+       FROM coffeepos.products p
+       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+       ORDER BY p.name ASC`
     ),
     pool.query(
       `SELECT
@@ -73,20 +90,22 @@ async function buildAppState() {
        JOIN coffeepos.products p ON p.id = w.product_id
        ORDER BY w.created_at DESC
        LIMIT 500`
-    )
+    ),
+    pool.query(`SELECT id::text, name FROM coffeepos.categories ORDER BY name ASC`)
   ]);
 
-  const categories = Array.from(new Set(products.rows.map((p) => String(p.category)).filter(Boolean)));
+  const categories = cats.rows.map(r => r.name);
 
   return {
     products: products.rows.map((p) => ({
       ...p,
+      category: p.category || 'Uncategorized',
       stock: Number(p.stock),
+      minStock: Number(p.min_stock ?? 5),
       price: Number(p.price),
       cost: p.cost === null ? undefined : Number(p.cost),
-      minStock: 0,
       unit: 'pcs',
-      image: null
+      image: p.image || null
     })),
     transactions: txs.rows.map((t) => ({
       id: t.id,
@@ -123,14 +142,15 @@ async function buildAppState() {
       thousandsSeparator: 'comma',
       receiptFooter: 'Terima kasih telah berbelanja!'
     },
-    categories
+    categories,
+    categoriesWithId: cats.rows.map(r => ({ id: r.id, name: r.name }))
   };
 }
 
 // GET /app/state
-// Returns a snapshot for dashboard hydration (shape matches frontend AppDataState).
 appRouter.get('/state', async (_req, res, next) => {
   try {
+    console.log('[DB] GET /app/state - Mengambil snapshot data dengan tabel categories...');
     res.json(await buildAppState());
   } catch (err) {
     next(err);
@@ -138,54 +158,99 @@ appRouter.get('/state', async (_req, res, next) => {
 });
 
 // POST /app/waste-logs
-// Insert waste log + decrement product stock atomically.
 appRouter.post('/waste-logs', validateBody(CreateWasteLogSchema), async (req, res, next) => {
   try {
     const body = req.body as z.infer<typeof CreateWasteLogSchema>;
-
     await withTransaction(async (client) => {
       const product = await client.query(
-        `SELECT id::text, name, stock, cost
-         FROM coffeepos.products
-         WHERE id = $1::uuid
-         FOR UPDATE`,
+        `SELECT id::text, name, stock, cost FROM coffeepos.products WHERE id = $1::uuid FOR UPDATE`,
         [body.productId]
       );
       if (product.rowCount === 0) throw new HttpError(400, 'UNKNOWN_PRODUCT', 'productId not found');
-
       const p = product.rows[0];
       const stock = Number(p.stock);
       const cost = Number(p.cost ?? 0);
-
-      if (stock < body.quantity) {
-        throw new HttpError(409, 'INSUFFICIENT_STOCK', 'Insufficient stock for waste logging', {
-          productId: body.productId,
-          available: stock,
-          requested: body.quantity
-        });
-      }
-
-      await client.query(
-        `UPDATE coffeepos.products
-         SET stock = stock - $2::int,
-             updated_at = now()
-         WHERE id = $1::uuid`,
-        [body.productId, body.quantity]
-      );
-
-      const lossAmount = cost * body.quantity;
-      // Notes are not stored in schema.sql; keep reason clean.
-      await client.query(
-        `INSERT INTO coffeepos.waste_logs (product_id, quantity, reason, loss_amount)
-         VALUES ($1::uuid, $2::int, $3::text, $4::int)`,
-        [body.productId, body.quantity, body.reason, lossAmount]
-      );
+      if (stock < body.quantity) throw new HttpError(409, 'INSUFFICIENT_STOCK', 'Insufficient stock');
+      await client.query(`UPDATE coffeepos.products SET stock = stock - $2::int, updated_at = now() WHERE id = $1::uuid`, [body.productId, body.quantity]);
+      await client.query(`INSERT INTO coffeepos.waste_logs (product_id, quantity, reason, loss_amount) VALUES ($1::uuid, $2::int, $3::text, $4::int)`, [body.productId, body.quantity, body.reason, cost * body.quantity]);
     });
-
-    // Return refreshed state so frontend stays in sync
     res.status(201).json(await buildAppState());
   } catch (err) {
     next(err);
   }
 });
+// POST /app/products
+appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) => {
+  try {
+    const body = req.body as any;
+    await pool.query(
+      `INSERT INTO coffeepos.products (name, description, price, discount, category, category_id, stock, min_stock, cost, image)
+       VALUES ($1, $2, $3, $4, $5, (SELECT id FROM coffeepos.categories WHERE name = $5 LIMIT 1), $6, $7, $8, $9)`,
+      [body.name, body.description || '', body.price, body.discount || 0, body.category, body.stock, body.minStock || 5, body.cost || 0, body.image || null]
+    );
+    res.status(201).json(await buildAppState());
+  } catch (err: any) {
+    console.error('[DB] Error inserting product:', err);
+    if (err.code === '23502') { // NOT NULL violation
+      return next(new HttpError(400, 'INVALID_CATEGORY', 'Kategori tidak ditemukan di database'));
+    }
+    next(err);
+  }
+});
 
+// PUT /app/products/:id
+appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const body = req.body as any;
+    const result = await pool.query(
+      `UPDATE coffeepos.products
+       SET name = $1, description = $2, price = $3, discount = $4, category = $5, 
+           category_id = (SELECT id FROM coffeepos.categories WHERE name = $5 LIMIT 1), 
+           stock = $6, min_stock = $7, cost = $8, image = $9, updated_at = now()
+       WHERE id = $10::uuid`,
+      [body.name, body.description || '', body.price, body.discount || 0, body.category, body.stock, body.minStock || 5, body.cost || 0, body.image || null, id]
+    );
+    if (result.rowCount === 0) throw new HttpError(404, 'NOT_FOUND', 'Product not found');
+    res.json(await buildAppState());
+  } catch (err: any) {
+    console.error('[DB] Error updating product:', err);
+    if (err.code === '23502') { // NOT NULL violation
+      return next(new HttpError(400, 'INVALID_CATEGORY', 'Kategori tidak ditemukan di database'));
+    }
+    next(err);
+  }
+});
+
+// DELETE /app/products/:id
+appRouter.delete('/products/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(`DELETE FROM coffeepos.products WHERE id = $1::uuid`, [id]);
+    if (result.rowCount === 0) throw new HttpError(404, 'NOT_FOUND', 'Product not found');
+    res.json(await buildAppState());
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /app/categories
+appRouter.post('/categories', validateBody(CategorySchema), async (req, res, next) => {
+  try {
+    await pool.query(`INSERT INTO coffeepos.categories (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`, [req.body.name]);
+    res.json(await buildAppState());
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /app/categories/:name
+appRouter.delete('/categories/:name', async (req, res, next) => {
+  try {
+    // Note: User should handle product reassignment before deleting category in UI
+    await pool.query(`DELETE FROM coffeepos.categories WHERE name = $1`, [req.params.name]);
+    res.json(await buildAppState());
+  } catch (err) {
+    next(err);
+  }
+});

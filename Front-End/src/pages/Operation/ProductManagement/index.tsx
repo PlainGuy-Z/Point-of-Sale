@@ -21,7 +21,7 @@ const CATEGORY_GRADIENTS = [
 export default function ProductManagement() {
   const createProductId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `product-${Date.now()}`);
 
-  const { products, addProduct, updateProduct, deleteProduct, categories, addCategory, deleteCategory, transactions } = useApp();
+  const { products, addProduct, updateProduct, deleteProduct, categories, categoriesWithId, addCategory, deleteCategory, transactions } = useApp();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -388,46 +388,26 @@ const handleSaveCategoryEdit = (originalName: string) => {
       alert(`Product "${formattedProductName}" already exists in category "${formattedCategory}"!`);
       return;
     }
+
+    // Dapatkan sales data dari bestSellers (untuk UI, jika masih diperlukan di tempat lain)
+    // Namun kita akan mengirim objek sederhana ke API sesuai permintaan.
     
     // Dapatkan sales data dari bestSellers
     const salesData = bestSellers.find(bs => bs.product.id === editingProduct?.id);
     
-    const productData: Product = {
-      id: editingProduct?.id || createProductId(),
+    const productData = {
       name: formattedProductName,
-      category: formattedCategory,
+      description: '', // Opsional di backend
       price: Number(formData.get('price')),
-      cost: Number(formData.get('cost')),
+      category: formattedCategory,
       stock: Number(formData.get('stock')),
-      minStock: Number(formData.get('minStock')),
-      unit: 'pcs',
-      image: previewImage || null,
-      
-      // Promo data
-      isPromo: isPromo,
-      promoPrice: isPromo && promoPrice ? Number(promoPrice) : undefined,
-      promoLabel: isPromo && promoLabel ? promoLabel : undefined,
-      promoStart: isPromo && promoStart ? promoStart : undefined,
-      promoEnd: isPromo && promoEnd ? promoEnd : undefined,
-      
-      // Best seller data - DARI ANALYTICS (TIDAK DARI CHECKBOX)
-      isBestSeller: !!salesData,
-      salesCount: editingProduct?.salesCount || 0,
-      recentSalesCount: salesData?.quantity || editingProduct?.recentSalesCount || 0,
-      bestSellerPeriod: salesPeriod,
-      bestSellerRank: salesData?.rank || editingProduct?.bestSellerRank,
-      bestSellerUpdatedAt: new Date().toISOString(),
-      
-      // Analytics fields
-      totalRevenue: editingProduct?.totalRevenue || 0,
-      totalProfit: editingProduct?.totalProfit || 0,
-      lastSold: editingProduct?.lastSold,
-      wasteCount: editingProduct?.wasteCount || 0,
-      wasteLoss: editingProduct?.wasteLoss || 0,
-      profitMargin: editingProduct?.profitMargin || 0,
+      minStock: Number(formData.get('minStock')) || 5,
+      cost: Number(formData.get('cost')) || 0,
+      discount: Number(formData.get('discount')) || 0,
+      image: previewImage || undefined,
     };
     
-    editingProduct ? updateProduct(productData) : addProduct(productData);
+    editingProduct ? updateProduct({ ...productData, id: editingProduct.id } as any) : addProduct(productData as any);
     handleCloseModal();
   };
 
@@ -655,6 +635,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                 <th className="p-4">Product</th>
                 <th className="p-4">Category</th>
                 <th className="p-4 text-right">Price</th>
+                <th className="p-4 text-center">Disc</th>
                 <th className="p-4 text-right">Stock</th>
                 <th className="p-4 text-right">Sales ({getPeriodLabel(salesPeriod)})</th>
                 <th className="p-4 text-right">Status</th>
@@ -732,14 +713,30 @@ const handleSaveCategoryEdit = (originalName: string) => {
                             </p>
                           </>
                         ) : (
-                          <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {format(product.price)}
-                          </p>
+                          <>
+                            <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {format(product.price * (1 - (product.discount || 0) / 100))}
+                            </p>
+                            {product.discount > 0 && (
+                              <p className={`text-[10px] line-through ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                {format(product.price)}
+                              </p>
+                            )}
+                          </>
                         )}
                         <p className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                           Cost: {format(product.cost || 0)}
                         </p>
                       </div>
+                    </td>
+                    <td className="p-4 text-center">
+                      {(product.discount || 0) > 0 ? (
+                        <span className="px-2 py-1 rounded-lg text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                          {product.discount}%
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
+                      )}
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex flex-col items-end">
@@ -1365,15 +1362,28 @@ const handleSaveCategoryEdit = (originalName: string) => {
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Min Alert</label>
+                        <label className="text-[9px] font-black uppercase text-amber-500 ml-1">Discount (%)</label>
                         <input 
-                          name="minStock" 
+                          name="discount" 
                           type="number" 
-                          defaultValue={editingProduct?.minStock} 
+                          defaultValue={editingProduct?.discount || 0} 
+                          min="0"
+                          max="100"
                           className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
                           required 
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Min Alert</label>
+                      <input 
+                        name="minStock" 
+                        type="number" 
+                        defaultValue={editingProduct?.minStock} 
+                        className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
+                        required 
+                      />
                     </div>
                   </div>
 

@@ -5,6 +5,7 @@ import { withTransaction } from '../db/with-transaction.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { CreateTransactionRequestSchema, QuoteRequestSchema } from './pos.schemas.js';
+import { buildAppState } from './app.js';
 import crypto from 'node:crypto';
 
 const TAX_RATE_BPS = 1100; // 11.00% in basis points
@@ -21,6 +22,7 @@ export const posRouter = Router();
 posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next) => {
   try {
     const body = req.body as z.infer<typeof QuoteRequestSchema>;
+    console.log('[DB] POST /pos/quote - Menghitung total harga...');
 
     const realProductIds = body.cart
       .map((i) => i.productId)
@@ -58,6 +60,7 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
 
     res.json({ subtotal, tax, grandTotal, taxRate: 0.11 });
   } catch (err) {
+    console.error('[POS] Quote failed:', err);
     next(err);
   }
 });
@@ -70,6 +73,7 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
 posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), async (req, res, next) => {
   try {
     const body = req.body as z.infer<typeof CreateTransactionRequestSchema>;
+    console.log('[DB] POST /pos/transactions - Memulai SQL Transaction (BEGIN) untuk proses checkout dan pengecekan stok (FOR UPDATE)...');
 
     const result = await withTransaction(async (client) => {
       const manualLines = body.cart.filter((l) => l.productId.startsWith('manual-'));
@@ -246,8 +250,15 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
       };
     });
 
-    res.status(201).json(result);
+    // Return refreshed appState AND the transaction details
+    const appState = await buildAppState();
+    res.status(201).json({
+      transaction: result,
+      appState
+    });
   } catch (err) {
+    // Print detailed error to backend terminal
+    console.error('[POS] Transaction failed:', err);
     next(err);
   }
 });

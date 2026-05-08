@@ -35,6 +35,11 @@ type TransactionResponse = Omit<Transaction, 'date' | 'items'> & {
   items: TransactionItem[];
 };
 
+export interface CheckoutResponse {
+  transaction: TransactionResponse;
+  appState: any; // Shape of AppDataState
+}
+
 function getApiBaseUrl(): string {
   const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
   if (!base) {
@@ -83,12 +88,16 @@ export const posApi = {
       body: JSON.stringify(req),
     }),
 
-  createTransaction: async (req: CreateTransactionRequest): Promise<Transaction> => {
-    const data = await http<TransactionResponse>(`/pos/transactions`, {
+  createTransaction: async (req: CreateTransactionRequest): Promise<{ transaction: Transaction; appState: any }> => {
+    const res = await http<CheckoutResponse>(`/pos/transactions`, {
       method: 'POST',
       body: JSON.stringify(req),
     });
-    return { ...data, date: new Date(data.date) };
+    
+    return {
+      transaction: { ...res.transaction, date: new Date(res.transaction.date) },
+      appState: res.appState
+    };
   },
 };
 

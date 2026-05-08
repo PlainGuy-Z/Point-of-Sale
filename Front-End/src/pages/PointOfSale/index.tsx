@@ -11,6 +11,7 @@ import ProductDetailModal from '../../components/pos/ProductDetailModal';
 import ReceiptModal from '../../components/pos/ReceiptModal';
 import type { Transaction, TransactionItem, CartItemWithInput, Product } from '../../types';
 import { ApiError } from '../../services/appApi';
+import { posApi } from '../../services/posApi';
 
 
 export default function PointOfSale() {

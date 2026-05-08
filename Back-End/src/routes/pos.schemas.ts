@@ -20,28 +20,26 @@ export const CartLineSchema = z
     if (isManual && line.price === undefined) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Manual item requires price', path: ['price'] });
     }
-    if (!isManual && line.price !== undefined) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Real product must not include price', path: ['price'] });
+    if (!isManual) {
+      if (line.price !== undefined) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Real product must not include price', path: ['price'] });
+      }
+      // Validate UUID format for real products
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(line.productId)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid productId format (must be UUID)', path: ['productId'] });
+      }
     }
   });
 
 export const QuoteRequestSchema = z
   .object({
     cart: z.array(CartLineSchema).min(1),
-    customerId: z.string().trim().min(1).optional(),
-    customerName: z.string().trim().min(1).optional(),
+    customerId: z.string().trim().optional(),
+    customerName: z.string().trim().optional(),
     orderType: z.enum(['dine-in', 'take-away']),
-    tableNumber: z.string().trim().min(1).optional(),
-    orderNote: z.string().trim().min(1).optional()
-  })
-  .superRefine((body, ctx) => {
-    if (body.orderType === 'dine-in' && !body.tableNumber) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'tableNumber is required for dine-in',
-        path: ['tableNumber']
-      });
-    }
+    tableNumber: z.string().trim().optional(),
+    orderNote: z.string().trim().optional()
   });
 
 export const CreateTransactionRequestSchema = QuoteRequestSchema.extend({

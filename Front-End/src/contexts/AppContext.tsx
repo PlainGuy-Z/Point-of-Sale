@@ -10,6 +10,7 @@ interface AppState {
   customers: Customer[];
   settings: BusinessSettings;
   categories: string[];
+  categoriesWithId: { id: string; name: string }[];
 }
 
 interface AppContextType extends AppState {
@@ -54,6 +55,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     customers: [],
     settings: defaultSettings,
     categories: [],
+    categoriesWithId: [],
   });
   const [isServiceLoading, setIsServiceLoading] = useState(false);
 
@@ -123,7 +125,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const checkout = useCallback(async (params: CheckoutParams) => {
     setIsServiceLoading(true);
     try {
-      const transaction = await posApi.createTransaction({
+      const { transaction, appState } = await posApi.createTransaction({
         cart: params.cart.map((i: CartItemWithInput) => ({
           productId: i.productId,
           quantity: i.quantity,
@@ -138,9 +140,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cashReceived: params.cashReceived,
         orderNote: params.orderNote,
       });
-
-      // Refresh app state after a successful checkout (stock/transactions/etc updated by backend).
-      await refreshState();
+      
+      // Update local state with the state returned by backend
+      setState(appState);
       return transaction;
     } finally {
       setIsServiceLoading(false);
