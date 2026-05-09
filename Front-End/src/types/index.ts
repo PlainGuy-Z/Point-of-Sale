@@ -47,6 +47,7 @@ export interface Product {
 
 // ==================== TRANSACTION TYPES ====================
 export interface TransactionItem {
+  name: any;
   productId: string;
   quantity: number;
   price: number;
@@ -198,3 +199,25 @@ export type TrendType = 'up' | 'down' | 'stable';
 
 // Tambah tipe untuk Lucide Icon jika perlu
 export type IconType = LucideIcon;
+
+// ==================== AUTH TYPES ====================
+export interface Shop {
+  id: string;
+  name: string;
+  slug: string;
+  address?: string;
+  phone?: string;
+  logo_url?: string;
+  plan: 'free' | 'pro';
+}
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'cashier';
+  shop_id: string;
+  shop: Shop;
+}
+
+export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';

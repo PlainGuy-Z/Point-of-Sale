@@ -53,6 +53,7 @@ async function http<T>(path: string, init: RequestInit): Promise<T> {
   const url = `${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
   const res = await fetch(url, {
     ...init,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(init.headers || {}),
@@ -60,6 +61,10 @@ async function http<T>(path: string, init: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      window.location.href = '/login';
+      throw new ApiError(401, 'Session expired', 'UNAUTHORIZED');
+    }
     let message = `HTTP ${res.status}`;
     let code: string | undefined;
     let details: unknown;

@@ -66,7 +66,32 @@ const CategorySchema = z.object({
   name: z.string().trim().min(1)
 });
 
-export async function buildAppState() {
+/* ─── Helper: ensure category exists, filtered by shop ──────── */
+
+async function ensureCategory(
+  categoryName: string,
+  shopId: string,
+  client?: import('pg').PoolClient
+): Promise<string> {
+  const queryRunner = client ?? pool;
+  const existing = await queryRunner.query(
+    `SELECT id::text FROM coffeepos.categories WHERE name = $1 AND shop_id = $2::uuid LIMIT 1`,
+    [categoryName, shopId]
+  );
+  if (existing.rowCount! > 0) return existing.rows[0].id;
+
+  const inserted = await queryRunner.query(
+    `INSERT INTO coffeepos.categories (name, shop_id) VALUES ($1, $2::uuid)
+     ON CONFLICT (name, shop_id) DO UPDATE SET name = EXCLUDED.name
+     RETURNING id::text`,
+    [categoryName, shopId]
+  );
+  return inserted.rows[0].id;
+}
+
+/* ─── buildAppState ─────────────────────────────────────────── */
+
+export async function buildAppState(shopId: string) {
   const [products, txs, wastes, cats] = await Promise.all([
     pool.query(
       `SELECT p.id::text, p.name, p.description, p.price,
@@ -75,7 +100,9 @@ export async function buildAppState() {
               p.promo_label, p.promo_start, p.promo_end, p.is_available
        FROM coffeepos.products p
        LEFT JOIN coffeepos.categories c ON p.category_id = c.id
-       ORDER BY p.name ASC`
+       WHERE p.shop_id = $1::uuid
+       ORDER BY p.name ASC`,
+      [shopId]
     ),
     pool.query(
       `SELECT
@@ -93,6 +120,7 @@ export async function buildAppState() {
          t.payment_method,
          t.customer_name,
          t.table_number,
+         t.cashier_name,
          11 AS tax_rate,
          'dine-in'::text AS order_type,
          NULL::text AS order_note,
@@ -113,8 +141,10 @@ export async function buildAppState() {
            WHERE i.transaction_id = t.id
          ) AS items
        FROM coffeepos.transactions t
+       WHERE t.shop_id = $1::uuid
        ORDER BY t.created_at DESC
-       LIMIT 200`
+       LIMIT 200`,
+      [shopId]
     ),
     pool.query(
       `SELECT
@@ -127,10 +157,15 @@ export async function buildAppState() {
          w.created_at AS date
        FROM coffeepos.waste_logs w
        JOIN coffeepos.products p ON p.id = w.product_id
+       WHERE w.shop_id = $1::uuid
        ORDER BY w.created_at DESC
-       LIMIT 500`
+       LIMIT 500`,
+      [shopId]
     ),
-    pool.query(`SELECT id::text, name FROM coffeepos.categories ORDER BY name ASC`)
+    pool.query(
+      `SELECT id::text, name FROM coffeepos.categories WHERE shop_id = $1::uuid ORDER BY name ASC`,
+      [shopId]
+    )
   ]);
 
   const categories = cats.rows.map(r => r.name);
@@ -163,6 +198,7 @@ export async function buildAppState() {
       paymentMethod: t.payment_method,
       customerName: t.customer_name ?? undefined,
       tableNumber: t.table_number ?? undefined,
+      cashierName: t.cashier_name ?? undefined,
       taxRate: Number(t.tax_rate),
       orderType: t.order_type,
       orderNote: t.order_note ?? undefined
@@ -194,10 +230,10 @@ export async function buildAppState() {
 }
 
 // GET /app/state
-appRouter.get('/state', async (_req, res, next) => {
+appRouter.get('/state', async (req, res, next) => {
   try {
     console.log('[DB] GET /app/state - Mengambil snapshot data dengan tabel categories...');
-    res.json(await buildAppState());
+    res.json(await buildAppState(req.user!.shop_id));
   } catch (err) {
     next(err);
   }
@@ -207,41 +243,45 @@ appRouter.get('/state', async (_req, res, next) => {
 appRouter.post('/waste-logs', validateBody(CreateWasteLogSchema), async (req, res, next) => {
   try {
     const body = req.body as z.infer<typeof CreateWasteLogSchema>;
+    const shopId = req.user!.shop_id;
     await withTransaction(async (client) => {
       const product = await client.query(
-        `SELECT id::text, name, stock, cost FROM coffeepos.products WHERE id = $1::uuid FOR UPDATE`,
-        [body.productId]
+        `SELECT id::text, name, stock, cost FROM coffeepos.products WHERE id = $1::uuid AND shop_id = $2::uuid FOR UPDATE`,
+        [body.productId, shopId]
       );
       if (product.rowCount === 0) throw new HttpError(400, 'UNKNOWN_PRODUCT', 'productId not found');
       const p = product.rows[0];
       const stock = Number(p.stock);
       const cost = Number(p.cost ?? 0);
       if (stock < body.quantity) throw new HttpError(409, 'INSUFFICIENT_STOCK', 'Insufficient stock');
-      await client.query(`UPDATE coffeepos.products SET stock = stock - $2::int, updated_at = now() WHERE id = $1::uuid`, [body.productId, body.quantity]);
-      await client.query(`INSERT INTO coffeepos.waste_logs (product_id, quantity, reason, loss_amount) VALUES ($1::uuid, $2::int, $3::text, $4::int)`, [body.productId, body.quantity, body.reason, cost * body.quantity]);
+      await client.query(`UPDATE coffeepos.products SET stock = stock - $2::int, updated_at = now() WHERE id = $1::uuid AND shop_id = $3::uuid`, [body.productId, body.quantity, shopId]);
+      await client.query(`INSERT INTO coffeepos.waste_logs (product_id, quantity, reason, loss_amount, shop_id) VALUES ($1::uuid, $2::int, $3::text, $4::int, $5::uuid)`, [body.productId, body.quantity, body.reason, cost * body.quantity, shopId]);
     });
-    res.status(201).json(await buildAppState());
+    res.status(201).json(await buildAppState(shopId));
   } catch (err) {
     next(err);
   }
 });
+
 // POST /app/products
 appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) => {
   try {
     const body = req.body as any;
+    const shopId = req.user!.shop_id;
+    const categoryId = await ensureCategory(body.category, shopId);
     await pool.query(
       `INSERT INTO coffeepos.products
         (name, description, price, category, category_id, stock, min_stock, cost, image,
-         discount, is_promo, promo_price, promo_label, promo_start, promo_end, is_available)
-       VALUES ($1, $2, $3, $4, (SELECT id FROM coffeepos.categories WHERE name = $4 LIMIT 1),
-               $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-      [body.name, body.description || '', body.price, body.category,
+         discount, is_promo, promo_price, promo_label, promo_start, promo_end, is_available, shop_id)
+       VALUES ($1, $2, $3, $4, $5::uuid,
+               $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::uuid)`,
+      [body.name, body.description || '', body.price, body.category, categoryId,
        body.stock, body.minStock || 5, body.cost || 0, body.image || null,
        body.discount || 0, body.isPromo || false, body.promoPrice || null,
        body.promoLabel || null, body.promoStart || null, body.promoEnd || null,
-       body.isAvailable !== false]
+       body.isAvailable !== false, shopId]
     );
-    res.status(201).json(await buildAppState());
+    res.status(201).json(await buildAppState(shopId));
   } catch (err: any) {
     console.error('[DB] Error inserting product:', err);
     if (err.code === '23502') { // NOT NULL violation
@@ -256,24 +296,26 @@ appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, nex
   try {
     const { id } = req.params;
     const body = req.body as any;
+    const shopId = req.user!.shop_id;
+    const categoryId = await ensureCategory(body.category, shopId);
     const result = await pool.query(
       `UPDATE coffeepos.products
        SET name = $1, description = $2, price = $3, category = $4,
-           category_id = (SELECT id FROM coffeepos.categories WHERE name = $4 LIMIT 1),
-           stock = $5, min_stock = $6, cost = $7, image = $8,
-           discount = $9, is_promo = $10, promo_price = $11,
-           promo_label = $12, promo_start = $13, promo_end = $14,
-           is_available = $15,
+           category_id = $5::uuid,
+           stock = $6, min_stock = $7, cost = $8, image = $9,
+           discount = $10, is_promo = $11, promo_price = $12,
+           promo_label = $13, promo_start = $14, promo_end = $15,
+           is_available = $16,
            updated_at = now()
-       WHERE id = $16::uuid`,
-      [body.name, body.description || '', body.price, body.category,
+       WHERE id = $17::uuid AND shop_id = $18::uuid`,
+      [body.name, body.description || '', body.price, body.category, categoryId,
        body.stock, body.minStock || 5, body.cost || 0, body.image || null,
        body.discount || 0, body.isPromo || false, body.promoPrice || null,
        body.promoLabel || null, body.promoStart || null, body.promoEnd || null,
-       body.isAvailable !== false, id]
+       body.isAvailable !== false, id, shopId]
     );
     if (result.rowCount === 0) throw new HttpError(404, 'NOT_FOUND', 'Product not found');
-    res.json(await buildAppState());
+    res.json(await buildAppState(shopId));
   } catch (err: any) {
     console.error('[DB] Error updating product:', err);
     if (err.code === '23502') { // NOT NULL violation
@@ -287,9 +329,10 @@ appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, nex
 appRouter.delete('/products/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await pool.query(`DELETE FROM coffeepos.products WHERE id = $1::uuid`, [id]);
+    const shopId = req.user!.shop_id;
+    const result = await pool.query(`DELETE FROM coffeepos.products WHERE id = $1::uuid AND shop_id = $2::uuid`, [id, shopId]);
     if (result.rowCount === 0) throw new HttpError(404, 'NOT_FOUND', 'Product not found');
-    res.json(await buildAppState());
+    res.json(await buildAppState(shopId));
   } catch (err) {
     next(err);
   }
@@ -298,8 +341,12 @@ appRouter.delete('/products/:id', async (req, res, next) => {
 // POST /app/categories
 appRouter.post('/categories', validateBody(CategorySchema), async (req, res, next) => {
   try {
-    await pool.query(`INSERT INTO coffeepos.categories (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`, [req.body.name]);
-    res.json(await buildAppState());
+    const shopId = req.user!.shop_id;
+    await pool.query(
+      `INSERT INTO coffeepos.categories (name, shop_id) VALUES ($1, $2::uuid) ON CONFLICT (name, shop_id) DO NOTHING`,
+      [req.body.name, shopId]
+    );
+    res.json(await buildAppState(shopId));
   } catch (err) {
     next(err);
   }
@@ -308,9 +355,10 @@ appRouter.post('/categories', validateBody(CategorySchema), async (req, res, nex
 // DELETE /app/categories/:name
 appRouter.delete('/categories/:name', async (req, res, next) => {
   try {
+    const shopId = req.user!.shop_id;
     // Note: User should handle product reassignment before deleting category in UI
-    await pool.query(`DELETE FROM coffeepos.categories WHERE name = $1`, [req.params.name]);
-    res.json(await buildAppState());
+    await pool.query(`DELETE FROM coffeepos.categories WHERE name = $1 AND shop_id = $2::uuid`, [req.params.name, shopId]);
+    res.json(await buildAppState(shopId));
   } catch (err) {
     next(err);
   }

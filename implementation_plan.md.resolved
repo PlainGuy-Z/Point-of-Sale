@@ -1,0 +1,88 @@
+# Sprint 3: Shift Management Implementation
+
+This plan outlines the implementation of Shift Management for the CoffeePOS system. This connects the cashier workflow with transaction tracking to ensure accurate daily financial reconciliation.
+
+## Open Questions
+
+> [!NOTE]
+> Database Migration: I will create a `Back-End/migration-sprint3.sql` file. Please confirm if you will run this manually in your Supabase dashboard or if you have an automated migration tool.
+> Note about `pos.ts` API: When inserting a transaction, we need to associate it with the `shift_id`. The backend will use `req.user.id` to look up the active shift, so the frontend doesn't need to manually send `shift_id`. Please confirm this approach.
+
+## Proposed Changes
+
+---
+
+### Backend: Database & API
+
+#### [NEW] `Back-End/migration-sprint3.sql`
+- Creates `coffeepos.shifts` table.
+- Alters `coffeepos.transactions` to add `shift_id` and `cashier_id`.
+- Creates necessary indexes for performance.
+
+#### [NEW] `Back-End/src/routes/shifts.ts`
+- **POST `/shifts/open`**: Validates no active shift exists, then creates a new shift.
+- **POST `/shifts/close`**: Calculates expected cash from transactions, compares with actual cash, updates shift status, and calculates totals.
+- **GET `/shifts/active`**: Fetches the current active shift for the logged-in cashier.
+- **GET `/shifts`**: (Owner only) Paginated list of all shifts with filters.
+- **GET `/shifts/:id`**: (Owner only) Details of a specific shift including its transactions.
+
+#### [MODIFY] `Back-End/src/app.ts`
+- Register the new `/shifts` router with `authenticateToken` middleware.
+
+#### [MODIFY] `Back-End/src/routes/pos.ts`
+- Update the `/pos/checkout` endpoint to automatically attach the `shift_id` to new transactions if the user is a cashier and has an active shift.
+
+---
+
+### Frontend: Context & UI Components
+
+#### [NEW] `Front-End/src/contexts/ShiftContext.tsx`
+- Creates `ShiftContext` to manage `activeShift`, `isLoading`, `openShift`, `closeShift`, and `refreshShift`.
+- Automatically fetches active shift on mount if the user is a cashier.
+
+#### [MODIFY] `Front-End/src/main.tsx`
+- Wraps the `<App />` component with `<ShiftProvider>` inside the `<AuthContext>` so it has access to the user token.
+
+#### [NEW] `Front-End/src/components/shift/ShiftOpenModal.tsx`
+- Modal that forces the cashier to enter the opening cash amount before starting their shift.
+
+#### [NEW] `Front-End/src/components/shift/ShiftCloseModal.tsx`
+- Modal to close the shift, displaying total sales, expected cash, and allowing the cashier to input actual cash. Displays the variance (selisih) in real-time.
+
+---
+
+### Frontend: Integration & Gates
+
+#### [MODIFY] `Front-End/src/components/Layout/Sidebar.tsx`
+- Adds a "Tutup Shift" button and a "Shift Aktif" / "Belum Buka Shift" status badge for cashiers.
+
+#### [MODIFY] `Front-End/src/pages/Dashboard/CashierDashboard.tsx`
+- Implements the shift gate. Triggers `ShiftOpenModal` if there is no active shift.
+
+#### [MODIFY] `Front-End/src/pages/PointOfSale/index.tsx` & `Front-End/src/pages/Operation/WasteLog/index.tsx`
+- Adds a check to prevent cashiers from accessing POS or Waste Log if they don't have an active shift.
+
+#### [MODIFY] `Front-End/src/components/operation/WasteLogTable.tsx`
+- Restricts editing and deleting waste logs for cashiers (hides the buttons).
+
+---
+
+### Frontend: Owner Reporting
+
+#### [NEW] `Front-End/src/pages/Shifts/index.tsx`
+- Owner dashboard for shift reports. Displays summary metrics and a paginated data table.
+
+#### [NEW] `Front-End/src/pages/Shifts/detail.tsx`
+- Detailed view of a specific shift, including a breakdown of all transactions that occurred during that shift.
+
+#### [MODIFY] `Front-End/src/data/navigation.ts` & `Front-End/src/App.tsx`
+- Adds the new Shift Laporan routes for owners.
+
+## Verification Plan
+
+### Automated/Manual Verification
+- Run the SQL migration in the database.
+- Start backend and frontend servers.
+- **Cashier Flow**: Login as cashier -> Verify `ShiftOpenModal` appears -> Open shift -> Verify POS is accessible -> Close shift -> Verify logout.
+- **Owner Flow**: Login as owner -> Go to Shift Report -> Verify shift details are recorded correctly.
+- **Waste Log Flow**: Login as cashier -> Verify Edit/Delete buttons are hidden.

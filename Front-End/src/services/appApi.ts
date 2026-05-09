@@ -40,6 +40,7 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
   const res = await fetch(url, {
     ...init,
+    credentials: 'include',
     headers: {
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers || {}),
@@ -47,6 +48,10 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      window.location.href = '/login';
+      throw new ApiError(401, 'Session expired', 'UNAUTHORIZED');
+    }
     let message = `HTTP ${res.status}`;
     let code: string | undefined;
     let details: unknown;
@@ -79,6 +84,11 @@ function normalizeState(wire: AppStateWire): AppDataState {
 }
 
 export const appApi = {
+  get: async <T = any>(path: string): Promise<T> => http<T>(path),
+  post: async <T = any>(path: string, body?: any): Promise<T> => http<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  put: async <T = any>(path: string, body?: any): Promise<T> => http<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+  delete: async <T = any>(path: string): Promise<T> => http<T>(path, { method: 'DELETE' }),
+
   getAppState: async (): Promise<AppDataState> => normalizeState(await http<AppStateWire>(`/app/state`)),
   // Backwards compatibility (existing call sites)
   getState: async (): Promise<AppDataState> => appApi.getAppState(),

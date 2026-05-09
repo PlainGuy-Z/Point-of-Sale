@@ -7,6 +7,7 @@ export interface SubMenuItem {
   path: string;
   iconName: string;
   type: 'link';
+  allowedRoles?: Array<'owner' | 'cashier'>;
 }
 
 export interface MenuItem {
@@ -16,6 +17,7 @@ export interface MenuItem {
   type: MenuItemType;
   path?: string;
   subItems?: SubMenuItem[];
+  allowedRoles?: Array<'owner' | 'cashier'>;
 }
 
 export interface NavigationConfig {

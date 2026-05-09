@@ -1,15 +1,37 @@
 import { useState } from 'react';
 import { Trash2, AlertTriangle, Calendar, DollarSign } from 'lucide-react';
 import { useApp } from '../../../contexts/AppContext';
-import { useTheme } from '../../../contexts/ThemeContext'; // Import context tema
+import { useTheme } from '../../../contexts/ThemeContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useShift } from '../../../contexts/ShiftContext';
 import WasteLogTable from '../../../components/operation/WasteLogTable';
 import AddWasteForm from '../../../components/operation/AddWasteForm';
 import type { WasteLog } from '../../../types';
 
 export default function WasteLog() {
   const { products, wasteLogs, addWasteLog } = useApp();
-  const { theme } = useTheme(); // Ambil status tema
+  const { theme } = useTheme();
+  const { user } = useAuth();
+  const { activeShift } = useShift();
   const [showForm, setShowForm] = useState(false);
+
+  if (user?.role === 'cashier' && !activeShift) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className={`text-center p-8 rounded-2xl border max-w-sm ${theme === 'dark' ? 'bg-stone-900 border-stone-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+          <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center bg-red-500/10 mb-4">
+            <Trash2 className="w-8 h-8 text-red-500" />
+          </div>
+          <p className="text-xl font-bold mb-2">
+            Belum Ada Shift Aktif
+          </p>
+          <p className={`text-sm ${theme === 'dark' ? 'text-stone-400' : 'text-gray-500'}`}>
+            Silakan buka shift terlebih dahulu di Dashboard untuk mulai mencatat waste.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const isDark = theme === 'dark';
 

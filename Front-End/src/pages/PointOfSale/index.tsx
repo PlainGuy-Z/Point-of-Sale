@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useShift } from '../../contexts/ShiftContext';
 import { useProductCatalog } from '../../hooks/useProductCatalog';
 import ProductGrid from '../../components/pos/ProductGrid';
 import CustomerSelector from '../../components/pos/CustomerSelector';
@@ -30,9 +32,29 @@ export default function PointOfSale() {
       : `manual-${Date.now()}`;
 
   const { products, customers, checkout, settings, transactions, isServiceLoading } = useApp();
+  const { user } = useAuth();
+  const { activeShift } = useShift();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
+
+  if (user?.role === 'cashier' && !activeShift) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className={`text-center p-8 rounded-2xl border max-w-sm ${isDark ? 'bg-stone-900 border-stone-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+          <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center bg-amber-500/10 mb-4">
+            <ShoppingCart className="w-8 h-8 text-amber-500" />
+          </div>
+          <p className="text-xl font-bold mb-2">
+            Belum Ada Shift Aktif
+          </p>
+          <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-gray-500'}`}>
+            Silakan buka shift terlebih dahulu di Dashboard untuk mulai melayani transaksi.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // ── Catalog ─────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
@@ -124,6 +146,7 @@ export default function PointOfSale() {
     const name = manualItemName.trim().charAt(0).toUpperCase() + manualItemName.trim().slice(1);
     return {
       productId: createManualItemId(),
+      name,
       quantity: manualItemQuantity > 0 ? manualItemQuantity : 1,
       price,
       note: name,
@@ -166,7 +189,13 @@ export default function PointOfSale() {
         return newCart;
       }
       if (product.stock !== -1 && product.stock < 1) return prev;
-      const newItem: CartItemWithInput = { productId, quantity: 1, price: priceToUse, modifiers: [] };
+      const newItem: CartItemWithInput = {
+        productId,
+        name: product.name,
+        quantity: 1,
+        price: priceToUse,
+        modifiers: []
+      };
       if (isPromoActive) {
         newItem.isPromo = true;
         newItem.originalPrice = product.price;
@@ -318,8 +347,8 @@ export default function PointOfSale() {
                 type="text"
                 placeholder="Cari menu..."
                 className={`w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 outline-none text-sm transition-all ${isDark
-                    ? 'bg-stone-900 border-stone-800 text-white focus:border-amber-500'
-                    : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-amber-500'
+                  ? 'bg-stone-900 border-stone-800 text-white focus:border-amber-500'
+                  : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-amber-500'
                   }`}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -426,7 +455,7 @@ export default function PointOfSale() {
                   </div>
                 </div>
                 {!cartIsEmpty && (
-                  <button 
+                  <button
                     onClick={() => setCart([])}
                     className={`p-2 rounded-xl transition-all ${isDark ? 'text-stone-700 hover:text-red-400 hover:bg-red-400/10' : 'text-stone-300 hover:text-red-500 hover:bg-red-50'}`}
                     title="Kosongkan keranjang"
@@ -442,7 +471,7 @@ export default function PointOfSale() {
                   <div className="h-full flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
                     {/* Background decoration */}
                     <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full blur-[80px] opacity-20 ${isDark ? 'bg-amber-500' : 'bg-amber-300'}`} />
-                    
+
                     <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-500">
                       <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-amber-500/5'}`}>
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
@@ -455,15 +484,14 @@ export default function PointOfSale() {
                       <p className={`text-sm mt-2 max-w-[200px] leading-relaxed ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
                         Add some delicious coffee to start your transaction
                       </p>
-                      
+
                       <div className="flex flex-col w-full gap-2 mt-8">
                         <button
                           onClick={() => setPanel('manual')}
-                          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                            isDark 
-                              ? 'bg-amber-500 text-black hover:bg-amber-400 active:scale-95 shadow-lg shadow-amber-500/20' 
+                          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${isDark
+                              ? 'bg-amber-500 text-black hover:bg-amber-400 active:scale-95 shadow-lg shadow-amber-500/20'
                               : 'bg-black text-white hover:bg-[#1a1614] active:scale-95 shadow-lg shadow-black/10'
-                          }`}
+                            }`}
                         >
                           <Plus size={14} />
                           Custom Item
@@ -477,8 +505,8 @@ export default function PointOfSale() {
                     <button
                       onClick={() => setPanel('manual')}
                       className={`w-full flex items-center justify-center gap-2 py-2 rounded-2xl text-xs font-bold border border-dashed transition-all ${isDark
-                          ? 'border-stone-800 text-stone-500 hover:border-amber-500/50 hover:text-amber-400'
-                          : 'border-gray-200 text-stone-400 hover:border-amber-300 hover:text-amber-600'
+                        ? 'border-stone-800 text-stone-500 hover:border-amber-500/50 hover:text-amber-400'
+                        : 'border-gray-200 text-stone-400 hover:border-amber-300 hover:text-amber-600'
                         }`}
                     >
                       <PlusCircle size={13} /> Tambah Item Manual
@@ -495,10 +523,10 @@ export default function PointOfSale() {
                         <div
                           key={`${item.productId}-${idx}`}
                           className={`rounded-2xl border transition-all ${isPromoItem
-                              ? isDark ? 'bg-red-900/15 border-red-800/30' : 'bg-red-50 border-red-200'
-                              : isManual
-                                ? isDark ? 'bg-amber-900/10 border-amber-800/20' : 'bg-amber-50 border-amber-100'
-                                : isDark ? 'bg-stone-900/60 border-stone-800' : 'bg-gray-50 border-gray-200'
+                            ? isDark ? 'bg-red-900/15 border-red-800/30' : 'bg-red-50 border-red-200'
+                            : isManual
+                              ? isDark ? 'bg-amber-900/10 border-amber-800/20' : 'bg-amber-50 border-amber-100'
+                              : isDark ? 'bg-stone-900/60 border-stone-800' : 'bg-gray-50 border-gray-200'
                             }`}
                         >
                           <div className="flex items-center gap-3 p-3">
@@ -527,8 +555,8 @@ export default function PointOfSale() {
                                   </span>
                                 )}
                                 <span className={`text-xs font-black ${isPromoItem
-                                    ? isDark ? 'text-red-400' : 'text-red-600'
-                                    : isDark ? 'text-amber-400' : 'text-amber-600'
+                                  ? isDark ? 'text-red-400' : 'text-red-600'
+                                  : isDark ? 'text-amber-400' : 'text-amber-600'
                                   }`}>
                                   {format(item.price)}
                                 </span>
@@ -557,8 +585,8 @@ export default function PointOfSale() {
                             {/* Line total */}
                             <div className="text-right min-w-[60px]">
                               <p className={`text-sm font-black ${isPromoItem
-                                  ? isDark ? 'text-red-400' : 'text-red-600'
-                                  : isDark ? 'text-amber-400' : 'text-amber-600'
+                                ? isDark ? 'text-red-400' : 'text-red-600'
+                                : isDark ? 'text-amber-400' : 'text-amber-600'
                                 }`}>
                                 {format(lineTotal)}
                               </p>
@@ -592,7 +620,7 @@ export default function PointOfSale() {
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
-                        Pajak ({(effectiveTaxRate * 100).toFixed(0)}%)
+                          Pajak ({(effectiveTaxRate * 100).toFixed(0)}%)
                         </span>
                         <button
                           onClick={() => setTaxEnabled(t => !t)}
@@ -621,8 +649,8 @@ export default function PointOfSale() {
                     onClick={quickPayCart}
                     disabled={!canPay}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm uppercase tracking-wide transition-all ${canPay
-                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:opacity-90 active:scale-[0.98]'
-                        : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:opacity-90 active:scale-[0.98]'
+                      : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
                       }`}
                   >
                     <Zap size={15} />
@@ -634,10 +662,10 @@ export default function PointOfSale() {
                     onClick={() => { if (!cartIsEmpty) setPanel('checkout'); }}
                     disabled={cartIsEmpty}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm uppercase tracking-wide border transition-all ${cartIsEmpty
-                        ? isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
-                        : isDark
-                          ? 'border-stone-800 text-stone-200 hover:border-amber-500/40 hover:text-amber-400'
-                          : 'border-gray-200 text-gray-700 hover:border-amber-400 hover:text-amber-700'
+                      ? isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
+                      : isDark
+                        ? 'border-stone-800 text-stone-200 hover:border-amber-500/40 hover:text-amber-400'
+                        : 'border-gray-200 text-gray-700 hover:border-amber-400 hover:text-amber-700'
                       }`}
                   >
                     <ReceiptText size={15} />
@@ -677,8 +705,8 @@ export default function PointOfSale() {
                         key={type}
                         onClick={() => handleOrderType(type)}
                         className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${orderType === type
-                            ? isDark ? 'bg-stone-800 text-amber-400' : 'bg-white text-amber-600 shadow-sm'
-                            : isDark ? 'text-stone-400' : 'text-stone-500'
+                          ? isDark ? 'bg-stone-800 text-amber-400' : 'bg-white text-amber-600 shadow-sm'
+                          : isDark ? 'text-stone-400' : 'text-stone-500'
                           }`}
                       >
                         {type === 'dine-in' ? 'Dine In' : 'Take Away'}
@@ -795,8 +823,8 @@ export default function PointOfSale() {
                   onClick={() => setPaymentModalOpen(true)}
                   disabled={!canPay}
                   className={`flex-2 flex-[2] flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm text-white uppercase tracking-wide transition-all ${canPay
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20 hover:opacity-90 active:scale-[0.98]'
-                      : 'bg-gray-400 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20 hover:opacity-90 active:scale-[0.98]'
+                    : 'bg-gray-400 cursor-not-allowed'
                     }`}
                 >
                   {isServiceLoading ? 'Memproses...' : isQuoteLoading ? 'Menghitung...' : (
@@ -884,10 +912,10 @@ export default function PointOfSale() {
                           key={p}
                           onClick={() => setManualItemPrice(p.toString())}
                           className={`py-2 rounded-2xl text-[10px] font-black transition-all ${isSelected
-                              ? 'bg-amber-500 text-white'
-                              : isDark
-                                ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
-                                : 'bg-gray-100 border border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700'
+                            ? 'bg-amber-500 text-white'
+                            : isDark
+                              ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
+                              : 'bg-gray-100 border border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700'
                             }`}
                         >
                           {p >= 1000000 ? `${p / 1000000}jt` : `${p / 1000}k`}
@@ -938,8 +966,8 @@ export default function PointOfSale() {
                   onClick={quickPayManualItem}
                   disabled={!manualItemName.trim() || !manualItemPrice}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm transition-all ${manualItemName.trim() && manualItemPrice
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 hover:opacity-90 active:scale-[0.98]'
-                      : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 hover:opacity-90 active:scale-[0.98]'
+                    : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
                     }`}
                 >
                   <Zap size={14} /> Quick Pay
@@ -948,10 +976,10 @@ export default function PointOfSale() {
                   onClick={addManualItemToCart}
                   disabled={!manualItemName.trim() || !manualItemPrice}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm border transition-all ${manualItemName.trim() && manualItemPrice
-                      ? isDark
-                        ? 'border-stone-700 text-stone-200 hover:border-amber-500/50 hover:text-amber-400'
-                        : 'border-gray-300 text-gray-700 hover:border-amber-400 hover:text-amber-700'
-                      : isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
+                    ? isDark
+                      ? 'border-stone-700 text-stone-200 hover:border-amber-500/50 hover:text-amber-400'
+                      : 'border-gray-300 text-gray-700 hover:border-amber-400 hover:text-amber-700'
+                    : isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
                     }`}
                 >
                   <Package size={14} /> Ke Cart

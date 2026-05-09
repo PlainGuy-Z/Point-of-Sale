@@ -37,7 +37,8 @@ export const QuoteRequestSchema = z
     customerName: z.string().trim().optional(),
     orderType: z.enum(['dine-in', 'take-away']),
     tableNumber: z.string().trim().optional(),
-    orderNote: z.string().trim().optional()
+    orderNote: z.string().trim().optional(),
+    applyTax: z.boolean().optional()
 });
 export const CreateTransactionRequestSchema = QuoteRequestSchema.extend({
     paymentMethod: z.enum(['cash', 'card', 'qris']),

@@ -34,6 +34,8 @@ interface AppContextType extends AppState {
   resetAllData: () => Promise<boolean>;
 }
 
+import { useAuth } from './AuthContext';
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const defaultSettings: BusinessSettings = {
@@ -48,6 +50,7 @@ const defaultSettings: BusinessSettings = {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { status } = useAuth();
   const [state, setState] = useState<AppState>({
     products: [],
     transactions: [],
@@ -65,6 +68,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   useEffect(() => {
+    if (status !== 'authenticated') return;
+
     let mounted = true;
     (async () => {
       try {
@@ -75,7 +80,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('Failed to load state from backend:', e);
         const err = e as unknown;
         if (err instanceof ApiError) {
-          alert(`Gagal terhubung ke server (${err.status}): ${err.message}`);
+          // If 401, the appApi helper already handles redirect to /login
+          if (err.status !== 401) {
+            alert(`Gagal terhubung ke server (${err.status}): ${err.message}`);
+          }
         } else if (err instanceof Error) {
           alert(`Gagal terhubung ke server: ${err.message}`);
         } else {
@@ -88,7 +96,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [status]);
 
   const addProduct = useCallback(async (product: Product) => {
     setIsServiceLoading(true);

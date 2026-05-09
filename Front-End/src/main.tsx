@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { ThemeProvider } from './contexts/ThemeContext'
-import { AppProvider } from './contexts/AppContext'
 import ErrorBoundary from './components/common/ErrorBoundary'
 
 // ============================================================================
@@ -165,9 +164,7 @@ root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <ThemeProvider>
-        <AppProvider>
-          <App />
-        </AppProvider>
+        <App />
       </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>
