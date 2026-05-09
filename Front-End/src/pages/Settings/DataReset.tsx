@@ -103,9 +103,9 @@ export default function DataResetPage() {
         </h1>
         
         <div className={`p-6 rounded-2xl mb-6 ${
-          isDark ? 'bg-gray-800' : 'bg-green-50'
+          isDark ? 'bg-stone-900' : 'bg-green-50'
         }`}>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">
+          <p className="text-gray-600 dark:text-stone-300 mb-4">
             All data has been reset to factory settings. Your business settings have been preserved.
           </p>
           
@@ -117,7 +117,7 @@ export default function DataResetPage() {
         
         <Link 
           to="/"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg transition-all"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-all"
         >
           Go to Dashboard Now
         </Link>
@@ -131,7 +131,7 @@ export default function DataResetPage() {
       <div className="mb-8">
         <Link 
           to="/settings"
-          className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white group"
+          className="inline-flex items-center gap-2 text-gray-600 dark:text-stone-400 hover:text-gray-900 dark:hover:text-white group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           Back to Settings
@@ -146,17 +146,17 @@ export default function DataResetPage() {
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
           Factory Data Reset
         </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+        <p className="text-lg text-gray-600 dark:text-stone-400 max-w-2xl mx-auto">
           Reset all application data to original factory state. Only your business settings will be preserved.
         </p>
       </div>
 
       {/* Current Data Summary */}
       <div className={`p-6 rounded-2xl mb-10 ${
-        isDark ? 'bg-gray-800' : 'bg-gray-50'
+        isDark ? 'bg-stone-900' : 'bg-gray-50'
       }`}>
         <h2 className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white mb-6">
-          <HardDrive className="w-6 h-6 text-blue-500" />
+          <HardDrive className="w-6 h-6 text-amber-500" />
           Current Data Overview
         </h2>
         
@@ -164,19 +164,19 @@ export default function DataResetPage() {
           {stats.map((stat, index) => (
             <div 
               key={index}
-              className={`p-4 rounded-xl border ${
+              className={`p-4 rounded-2xl border ${
                 isDark 
                   ? `bg-gradient-to-br from-${stat.color}-900/20 to-${stat.color}-800/20 border-${stat.color}-800`
                   : `bg-gradient-to-br from-${stat.color}-50 to-${stat.color}-100 border-${stat.color}-200`
               }`}
             >
               <div className="flex items-center gap-3 mb-2">
-                <div className={`p-2 rounded-lg ${
+                <div className={`p-2 rounded-xl ${
                   isDark ? `bg-${stat.color}-900/30` : `bg-${stat.color}-100`
                 }`}>
                   <stat.icon className={`w-5 h-5 text-${stat.color}-600 dark:text-${stat.color}-400`} />
                 </div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-gray-700 dark:text-stone-300">
                   {stat.label}
                 </span>
               </div>
@@ -187,7 +187,7 @@ export default function DataResetPage() {
           ))}
         </div>
         
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-stone-500 dark:text-stone-400">
           This is the data that will be deleted during reset.
         </p>
       </div>
@@ -245,7 +245,7 @@ export default function DataResetPage() {
         <button
           onClick={handleResetAll}
           disabled={isResetting}
-          className={`w-full py-5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold text-xl rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4 shadow-lg hover:shadow-xl active:scale-[0.98] ${
+          className={`w-full py-5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold text-xl rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4 shadow-lg hover:shadow-xl active:scale-[0.98] ${
             isResetting ? 'cursor-wait' : ''
           }`}
         >
@@ -264,9 +264,9 @@ export default function DataResetPage() {
         
         <Link 
           to="/settings"
-          className={`block w-full py-4 text-center font-medium rounded-xl border transition-all ${
+          className={`block w-full py-4 text-center font-medium rounded-2xl border transition-all ${
             isDark 
-              ? 'bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300 hover:text-white' 
+              ? 'bg-stone-900 border-stone-800 hover:bg-stone-800 text-stone-300 hover:text-white' 
               : 'bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700 hover:text-gray-900'
           }`}
         >
@@ -277,16 +277,16 @@ export default function DataResetPage() {
       {/* Backup Reminder */}
       <div className={`mt-10 p-6 rounded-2xl border ${
         isDark 
-          ? 'bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border-blue-800' 
-          : 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200'
+          ? 'bg-gradient-to-r from-amber-900/20 to-cyan-900/20 border-amber-800' 
+          : 'bg-gradient-to-r from-amber-50 to-cyan-50 border-amber-200'
       }`}>
         <div className="flex items-center gap-3">
-          <Database className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <Database className="w-6 h-6 text-amber-600 dark:text-amber-400" />
           <div>
-            <h4 className="font-bold text-blue-700 dark:text-blue-300 mb-1">
+            <h4 className="font-bold text-amber-700 dark:text-amber-300 mb-1">
               Create Backup First
             </h4>
-            <p className="text-sm text-blue-600 dark:text-blue-400/90">
+            <p className="text-sm text-amber-600 dark:text-amber-400/90">
               Before resetting, consider creating a backup of your current data from the{' '}
               <Link 
                 to="/settings" 

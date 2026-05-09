@@ -72,7 +72,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       className={`
         rounded-2xl border p-6 transition-all duration-300
         ${isDark
-          ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
+          ? 'bg-gradient-to-br from-stone-900 to-stone-900 border-stone-800'
           : 'bg-white border-gray-100 shadow-sm'}
       `}
     >
@@ -81,22 +81,22 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
           <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Tren Pendapatan Harian
           </h3>
-          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
             {monthLabel} (format kalender)
           </p>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className={`flex items-center gap-2 p-2 rounded-xl ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
-            <label className={`text-xs font-bold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <div className={`flex items-center gap-2 p-2 rounded-2xl ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-gray-50 border border-gray-200'}`}>
+            <label className={`text-xs font-bold ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>
               Bulan
             </label>
             <input
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className={`text-xs font-bold rounded-lg px-2 py-1 outline-none ${
-                isDark ? 'bg-gray-900 text-gray-200 border border-gray-700' : 'bg-white text-gray-800 border border-gray-200'
+              className={`text-xs font-bold rounded-xl px-2 py-1 outline-none ${
+                isDark ? 'bg-stone-950 text-stone-200 border border-stone-800' : 'bg-white text-gray-800 border border-gray-200'
               }`}
               aria-label="Pilih bulan"
             />
@@ -105,38 +105,38 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-amber-50 border-amber-100'}`}>
-          <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-amber-700'}`}>
+        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-amber-50 border-amber-100'}`}>
+          <p className={`text-xs font-medium mb-1 ${isDark ? 'text-stone-400' : 'text-amber-700'}`}>
             Total Pendapatan (bulan ini)
           </p>
           <p className={`text-xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             {format(totalRevenue)}
           </p>
-          <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+          <p className={`text-xs ${isDark ? 'text-stone-500' : 'text-gray-600'}`}>
             Rata-rata per hari: {format(avgRevenue)}
           </p>
         </div>
 
-        <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-blue-50 border-blue-100'}`}>
-          <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-blue-700'}`}>
+        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-amber-50 border-amber-100'}`}>
+          <p className={`text-xs font-medium mb-1 ${isDark ? 'text-stone-400' : 'text-amber-700'}`}>
             Hari tertinggi (bulan ini)
           </p>
           <p className={`text-xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             {format(Math.max(...data.map((d) => d.revenue), 0))}
           </p>
-          <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+          <p className={`text-xs ${isDark ? 'text-stone-500' : 'text-gray-600'}`}>
             Puncak pendapatan harian
           </p>
         </div>
 
-        <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-green-50 border-green-100'}`}>
-          <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-green-700'}`}>
+        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-green-50 border-green-100'}`}>
+          <p className={`text-xs font-medium mb-1 ${isDark ? 'text-stone-400' : 'text-green-700'}`}>
             Hari transaksi (bulan ini)
           </p>
           <p className={`text-xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             {data.filter((d) => d.revenue > 0).length}
           </p>
-          <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+          <p className={`text-xs ${isDark ? 'text-stone-500' : 'text-gray-600'}`}>
             Hari yang ada penjualan
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       <div className="relative">
         {data.length === 0 ? (
           <div className="h-48 flex items-center justify-center">
-            <p className={`text-gray-500 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className={`text-stone-500 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
               Tidak ada data untuk periode ini
             </p>
           </div>
@@ -195,7 +195,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
         )}
       </div>
 
-      <div className={`mt-4 text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+      <div className={`mt-4 text-xs text-center ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
         Tips: hover titik untuk melihat pendapatan per tanggal.
       </div>
     </div>

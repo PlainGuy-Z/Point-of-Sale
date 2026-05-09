@@ -4,6 +4,8 @@ import {
   updateProductsWithBestSellerStatus, 
   getTopBestSellersForBanner 
 } from '../utils/analytics';
+import { getEffectivePrice } from '../utils/priceUtils';
+import { isLowStock, isOutOfStock } from '../utils/stockUtils';
 
 export interface UseProductCatalogResult {
   sortedProducts: Product[];
@@ -44,8 +46,8 @@ export function useProductCatalog(
     const topBestSellers = getTopBestSellersForBanner(transactions, products, bestSellerPeriod);
     
     // 5. Count promo and best seller products
-    const promoProductsCount = sortedProducts.filter(p => 
-      p.isPromo && p.promoPrice && p.promoPrice > 0
+    const promoProductsCount = sortedProducts.filter(p =>
+      getEffectivePrice(p).isPromoActive
     ).length;
     
     const bestSellerCount = sortedProducts.filter(p => p.isBestSeller).length;
@@ -90,15 +92,15 @@ function sortProductsByPriority(products: Product[]): Product[] {
     }
     
     // Priority 3: Low stock warning
-    const aLowStock = a.stock <= a.minStock;
-    const bLowStock = b.stock <= b.minStock;
+    const aLowStock = isLowStock(a);
+    const bLowStock = isLowStock(b);
     
     if (aLowStock && !bLowStock) return -1;
     if (!aLowStock && bLowStock) return 1;
     
     // Priority 4: Out of stock (hide at bottom)
-    const aOutOfStock = a.stock === 0;
-    const bOutOfStock = b.stock === 0;
+    const aOutOfStock = isOutOfStock(a);
+    const bOutOfStock = isOutOfStock(b);
     
     if (aOutOfStock && !bOutOfStock) return 1;
     if (!aOutOfStock && bOutOfStock) return -1;

@@ -22,6 +22,9 @@ export interface Product {
   promoEnd?: string;
   promoLabel?: string;
 
+  // AVAILABILITY
+  isAvailable?: boolean; // undefined or true = available, false = unavailable
+
   // BEST SELLER PROPERTIES
   isBestSeller?: boolean;
   salesCount?: number;
@@ -179,6 +182,7 @@ export interface CheckoutParams {
   cashReceived?: number;
   change?: number;
   orderNote?: string;
+  applyTax?: boolean;
 }
 
 // ==================== CART ITEM EXTENSION ====================

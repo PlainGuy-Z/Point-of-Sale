@@ -50,7 +50,7 @@ export default function CostSummary() {
       {/* Health Score Card */}
       <div className={`${
         summary.health.healthStatus === 'excellent' ? 'bg-gradient-to-r from-emerald-500 to-teal-600' :
-        summary.health.healthStatus === 'good' ? 'bg-gradient-to-r from-blue-500 to-indigo-600' :
+        summary.health.healthStatus === 'good' ? 'bg-gradient-to-r from-amber-500 to-indigo-600' :
         summary.health.healthStatus === 'fair' ? 'bg-gradient-to-r from-yellow-500 to-amber-600' :
         'bg-gradient-to-r from-red-500 to-rose-600'
       } rounded-2xl p-6 text-white shadow-lg`}>
@@ -61,7 +61,7 @@ export default function CostSummary() {
               <span className="font-medium">Business Health Score</span>
             </div>
             <div className="text-4xl font-bold">{summary.health.healthScore}/100</div>
-            <div className="mt-2 text-sm opacity-90 capitalize px-2 py-1 bg-white/20 rounded-lg inline-block">
+            <div className="mt-2 text-sm opacity-90 capitalize px-2 py-1 bg-white/20 rounded-xl inline-block">
               Status: {summary.health.healthStatus}
             </div>
           </div>
@@ -75,22 +75,22 @@ export default function CostSummary() {
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Revenue */}
-        <div className={`p-5 rounded-xl border shadow-sm ${
+        <div className={`p-5 rounded-2xl border shadow-sm ${
           isDark 
-            ? 'bg-gray-800 border-gray-700' 
+            ? 'bg-stone-900 border-stone-800' 
             : 'bg-white border-gray-100'
         }`}>
           <div className="flex justify-between items-start mb-4">
-            <div className={`p-2 rounded-lg ${
-              isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'
+            <div className={`p-2 rounded-xl ${
+              isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-600'
             }`}>
               <DollarSign className="w-6 h-6" />
             </div>
             <span className={`text-xs font-medium px-2 py-1 rounded ${
-              isDark ? 'text-gray-400 bg-gray-700' : 'text-gray-400 bg-gray-50'
+              isDark ? 'text-stone-400 bg-stone-800' : 'text-stone-400 bg-gray-50'
             }`}>All Time</span>
           </div>
-          <div className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <div className={`text-sm font-medium ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
             Total Revenue
           </div>
           <div className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -99,13 +99,13 @@ export default function CostSummary() {
         </div>
 
         {/* Real Profit */}
-        <div className={`p-5 rounded-xl border shadow-sm ${
+        <div className={`p-5 rounded-2xl border shadow-sm ${
           isDark 
-            ? 'bg-gray-800 border-gray-700' 
+            ? 'bg-stone-900 border-stone-800' 
             : 'bg-white border-gray-100'
         }`}>
           <div className="flex justify-between items-start mb-4">
-            <div className={`p-2 rounded-lg ${
+            <div className={`p-2 rounded-xl ${
               summary.netOperationalProfit >= 0 
                 ? isDark 
                   ? 'bg-green-900/30 text-green-400' 
@@ -117,7 +117,7 @@ export default function CostSummary() {
               <TrendingUp className="w-6 h-6" />
             </div>
           </div>
-          <div className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <div className={`text-sm font-medium ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
             Real Profit (After Waste)
           </div>
           <div className={`text-2xl font-bold mt-1 ${
@@ -132,9 +132,9 @@ export default function CostSummary() {
 
       {/* Cost Breakdown Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={`lg:col-span-2 rounded-xl shadow-sm border p-6 ${
+        <div className={`lg:col-span-2 rounded-2xl shadow-sm border p-6 ${
           isDark 
-            ? 'bg-gray-800 border-gray-700' 
+            ? 'bg-stone-900 border-stone-800' 
             : 'bg-white border-gray-100'
         }`}>
           <h3 className={`font-bold mb-6 flex items-center gap-2 ${
@@ -148,7 +148,7 @@ export default function CostSummary() {
             {/* COGS Bar */}
             <div>
               <div className="flex justify-between text-sm mb-2">
-                <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>
+                <span className={isDark ? 'text-stone-300' : 'text-gray-600'}>
                   Cost of Goods Sold (Bahan Baku)
                 </span>
                 <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -156,7 +156,7 @@ export default function CostSummary() {
                 </span>
               </div>
               <div className={`w-full rounded-full h-3 overflow-hidden ${
-                isDark ? 'bg-gray-700' : 'bg-gray-100'
+                isDark ? 'bg-stone-800' : 'bg-gray-100'
               }`}>
                 <div 
                   className="bg-indigo-500 h-full rounded-full transition-all duration-1000"
@@ -164,7 +164,7 @@ export default function CostSummary() {
                 />
               </div>
               <div className={`text-right text-xs mt-1 ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
+                isDark ? 'text-stone-500' : 'text-stone-400'
               }`}>
                 {summary.revenue > 0 ? ((summary.cogs / summary.revenue) * 100).toFixed(1) : 0}% dari Revenue
               </div>
@@ -174,7 +174,7 @@ export default function CostSummary() {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className={`flex items-center gap-1 ${
-                  isDark ? 'text-gray-300' : 'text-gray-600'
+                  isDark ? 'text-stone-300' : 'text-gray-600'
                 }`}>
                    Waste Loss (Terbuang)
                    <AlertTriangle className="w-3 h-3 text-red-500" />
@@ -184,7 +184,7 @@ export default function CostSummary() {
                 </span>
               </div>
               <div className={`w-full rounded-full h-3 overflow-hidden ${
-                isDark ? 'bg-gray-700' : 'bg-gray-100'
+                isDark ? 'bg-stone-800' : 'bg-gray-100'
               }`}>
                 <div 
                   className="bg-red-500 h-full rounded-full transition-all duration-1000"
@@ -192,16 +192,16 @@ export default function CostSummary() {
                 />
               </div>
               <div className={`text-right text-xs mt-1 ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
+                isDark ? 'text-stone-500' : 'text-stone-400'
               }`}>
                 {summary.revenue > 0 ? ((summary.wasteLoss / summary.revenue) * 100).toFixed(1) : 0}% dari Revenue
               </div>
             </div>
             
             <div className={`pt-4 border-t ${
-              isDark ? 'border-gray-700' : 'border-gray-100'
+              isDark ? 'border-stone-800' : 'border-gray-100'
             }`}>
-               <div className={`flex justify-between items-center p-3 rounded-lg border ${
+               <div className={`flex justify-between items-center p-3 rounded-xl border ${
                  isDark 
                    ? 'bg-green-900/20 border-green-800' 
                    : 'bg-green-50 border-green-100'
@@ -218,16 +218,16 @@ export default function CostSummary() {
         </div>
 
         {/* Insight Card */}
-        <div className={`rounded-xl p-6 border ${
+        <div className={`rounded-2xl p-6 border ${
           isDark 
-            ? 'bg-gray-800 border-gray-700' 
+            ? 'bg-stone-900 border-stone-800' 
             : 'bg-gray-50 border-gray-100'
         }`}>
           <h4 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Financial Insight
           </h4>
           <p className={`text-sm leading-relaxed mb-4 ${
-            isDark ? 'text-gray-400' : 'text-gray-600'
+            isDark ? 'text-stone-400' : 'text-gray-600'
           }`}>
             {summary.netMargin < 20 
               ? "Margin profit Anda tipis. Periksa 'Inventory Usage' untuk melihat apakah ada pemborosan bahan baku atau 'Waste Log' untuk mengurangi barang terbuang."
@@ -235,7 +235,7 @@ export default function CostSummary() {
           </p>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>Gross Profit</span>
+              <span className={isDark ? 'text-stone-400' : 'text-stone-500'}>Gross Profit</span>
               <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {summary.grossProfit}
               </span>
@@ -245,7 +245,7 @@ export default function CostSummary() {
               <span className="font-medium">{summary.wasteLoss}</span>
             </div>
             <div className={`border-t my-2 pt-2 flex justify-between font-bold ${
-              isDark ? 'border-gray-700 text-white' : 'border-gray-200 text-gray-900'
+              isDark ? 'border-stone-800 text-white' : 'border-gray-200 text-gray-900'
             }`}>
               <span>Net Profit</span>
               <span>{summary.netOperationalProfit}</span>

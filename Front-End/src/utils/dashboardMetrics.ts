@@ -1,5 +1,6 @@
 import type { Transaction, Product, Customer, WasteLog } from '../types';
-import { safeParseDate } from './analytics/helpers'; // ✅ Import dari helpers baru
+import { safeParseDate, localDateKey } from './analytics/helpers'; // ✅ Import dari helpers baru
+import { isLowStock, isOutOfStock, isStockTracked } from './stockUtils';
 
 export interface DashboardMetrics {
   todayRevenue: number;
@@ -32,14 +33,7 @@ export interface DailyData {
 /**
  * Format date dengan safe parsing
  */
-const formatDateKey = (date: Date | string): string => {
-  try {
-    const d = safeParseDate(date);
-    return d.toISOString().split('T')[0];
-  } catch {
-    return 'invalid-date';
-  }
-};
+export const formatDateKey = localDateKey; // alias for backward compat
 
 /**
  * Hitung semua metrics dashboard dengan validasi date
@@ -111,11 +105,10 @@ export const calculateDashboardMetrics = (
   });
 
   // Estimated loss from waste logs (today only) - keep raw integer
-  const todayStr = today.toDateString();
   estimatedLossToday = wasteLogs
     .filter((w) => {
       try {
-        return safeParseDate(w.date).toDateString() === todayStr;
+        return formatDateKey(w.date) === todayKey;
       } catch {
         return false;
       }
@@ -142,11 +135,11 @@ export const calculateDashboardMetrics = (
   }).length;
   
   // Product metrics
-  const lowStockProducts = products.filter(p => p.stock <= p.minStock);
-  const outOfStockProducts = products.filter(p => p.stock === 0);
+  const lowStockProducts = products.filter(p => isLowStock(p));
+  const outOfStockProducts = products.filter(p => isOutOfStock(p));
   const totalProducts = products.length;
   const uniqueCategories = new Set(products.map(p => p.category)).size;
-  const stockValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
+  const stockValue = products.filter(p => isStockTracked(p)).reduce((sum, p) => sum + (p.price * p.stock), 0);
   const profitMargin = todayRevenue > 0 ? (todayProfit / todayRevenue) * 100 : 0;
   const avgTicket = todayTransactionCount > 0 ? todayRevenue / todayTransactionCount : 0;
   

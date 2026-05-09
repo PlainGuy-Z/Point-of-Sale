@@ -31,12 +31,27 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
     const priceById = new Map<string, number>();
     if (realProductIds.length > 0) {
       const result = await pool.query(
-        `SELECT id::text, price
+        `SELECT id::text, price, is_promo, promo_price
          FROM coffeepos.products
          WHERE id = ANY($1::uuid[])`,
         [realProductIds]
       );
-      for (const row of result.rows) priceById.set(row.id, Number(row.price));
+      for (const row of result.rows) {
+        const basePrice = Number(row.price);
+        const isPromo = Boolean(row.is_promo);
+        const promoPrice = Number(row.promo_price ?? 0);
+
+        const effectivePrice = (() => {
+          // Priority 1: fixed promoPrice when isPromo = true
+          if (isPromo && promoPrice > 0 && promoPrice < basePrice) {
+            return promoPrice;
+          }
+          // No discount active
+          return basePrice;
+        })();
+
+        priceById.set(row.id, effectivePrice);
+      }
     }
 
     let subtotal = 0;
@@ -55,7 +70,7 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
       subtotal += price * line.quantity;
     }
 
-    const tax = calcTax(subtotal);
+    const tax = body.applyTax === false ? 0 : calcTax(subtotal);
     const grandTotal = subtotal + tax;
 
     res.json({ subtotal, tax, grandTotal, taxRate: 0.11 });
@@ -85,7 +100,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
       const productById = new Map<string, { id: string; name: string; price: number; cost: number; stock: number }>();
       if (productIds.length > 0) {
         const products = await client.query(
-          `SELECT id::text AS id, name, price, cost, stock
+          `SELECT id::text AS id, name, price, cost, stock, is_promo, promo_price, is_available
            FROM coffeepos.products
            WHERE id = ANY($1::uuid[])
            FOR UPDATE`,
@@ -93,10 +108,23 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
         );
 
         for (const row of products.rows) {
+          const basePrice = Number(row.price);
+          const isPromo = Boolean(row.is_promo);
+          const promoPrice = Number(row.promo_price ?? 0);
+
+          const effectivePrice = (() => {
+            // Priority 1: fixed promoPrice when isPromo = true
+            if (isPromo && promoPrice > 0 && promoPrice < basePrice) {
+              return promoPrice;
+            }
+            // No discount active
+            return basePrice;
+          })();
+
           productById.set(row.id, {
             id: row.id,
             name: String(row.name),
-            price: Number(row.price),
+            price: effectivePrice,
             cost: Number(row.cost ?? 0),
             stock: Number(row.stock)
           });
@@ -107,6 +135,14 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
         if (missing.length > 0) {
           throw new HttpError(400, 'UNKNOWN_PRODUCT', 'One or more productId not found', { missing });
         }
+
+        // Validate availability
+        for (const row of products.rows) {
+          if (row.is_available === false) {
+            throw new HttpError(400, 'PRODUCT_UNAVAILABLE',
+              `Product ${row.name} is currently unavailable`);
+          }
+        }
       }
 
       // Aggregate required quantities per product to validate stock and decrement atomically
@@ -115,17 +151,17 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
         qtyByProductId.set(line.productId, (qtyByProductId.get(line.productId) ?? 0) + line.quantity);
       }
 
-      // Validate stock in-memory (we hold FOR UPDATE locks, so this is safe within txn)
+      // Validate stock in-memory (skip unlimited products where stock === -1)
       const insufficient: Array<{ productId: string; available: number; requested: number }> = [];
       for (const [productId, requested] of qtyByProductId.entries()) {
         const p = productById.get(productId)!;
-        if (p.stock < requested) insufficient.push({ productId, available: p.stock, requested });
+        if (p.stock !== -1 && p.stock < requested) insufficient.push({ productId, available: p.stock, requested });
       }
       if (insufficient.length > 0) {
         throw new HttpError(409, 'INSUFFICIENT_STOCK', 'Insufficient stock for one or more products', { insufficient });
       }
 
-      // Decrement stock (single statement)
+      // Decrement stock (single statement, skip unlimited products)
       if (qtyByProductId.size > 0) {
         const ids = Array.from(qtyByProductId.keys());
         const qtys = Array.from(qtyByProductId.values());
@@ -134,7 +170,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
              SELECT unnest($1::uuid[]) AS id, unnest($2::int[]) AS qty
            )
            UPDATE coffeepos.products p
-           SET stock = p.stock - req.qty,
+           SET stock = CASE WHEN p.stock = -1 THEN -1 ELSE p.stock - req.qty END,
                updated_at = now()
            FROM req
            WHERE p.id = req.id`,
@@ -179,7 +215,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
         });
       }
 
-      const tax = calcTax(subtotal);
+      const tax = body.applyTax === false ? 0 : calcTax(subtotal);
       const grandTotal = subtotal + tax;
       const profit = subtotal - costTotal;
 
@@ -244,7 +280,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
         paymentMethod: transaction.payment_method,
         customerName: transaction.customer_name ?? undefined,
         tableNumber: transaction.table_number ?? undefined,
-        taxRate: 11,
+        taxRate: 0.11,
         orderType: body.orderType,
         orderNote: body.orderNote ?? undefined
       };

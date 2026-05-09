@@ -1,3 +1,33 @@
+/*
+ * SQL Migration (run once):
+ *
+ * -- Allow stock = -1 for unlimited/untracked products
+ * ALTER TABLE coffeepos.products DROP CONSTRAINT IF EXISTS products_stock_check;
+ * ALTER TABLE coffeepos.products ADD CONSTRAINT products_stock_check CHECK (stock >= -1);
+ *
+ * ALTER TABLE coffeepos.products
+ *   ADD COLUMN IF NOT EXISTS discount INTEGER NOT NULL DEFAULT 0
+ *   CHECK (discount >= 0 AND discount <= 100);
+ *
+ * ALTER TABLE coffeepos.products
+ *   ADD COLUMN IF NOT EXISTS is_promo BOOLEAN NOT NULL DEFAULT false;
+ *
+ * ALTER TABLE coffeepos.products
+ *   ADD COLUMN IF NOT EXISTS promo_price INTEGER;
+ *
+ * ALTER TABLE coffeepos.products
+ *   ADD COLUMN IF NOT EXISTS promo_label TEXT;
+ *
+ * ALTER TABLE coffeepos.products
+ *   ADD COLUMN IF NOT EXISTS promo_start DATE;
+ *
+ * ALTER TABLE coffeepos.products
+ *   ADD COLUMN IF NOT EXISTS promo_end DATE;
+ *
+ * ALTER TABLE coffeepos.products
+ *   ADD COLUMN IF NOT EXISTS is_available BOOLEAN NOT NULL DEFAULT true;
+ */
+
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { withTransaction } from '../db/with-transaction.js';
@@ -19,11 +49,17 @@ const ProductSchema = z.object({
   description: z.string().trim().nullish(),
   price: z.coerce.number().int().nonnegative(),
   category: z.string().trim().min(1),
-  stock: z.coerce.number().int().nonnegative(),
+  stock: z.coerce.number().int().min(-1),
   minStock: z.coerce.number().int().nonnegative().nullish(),
   cost: z.coerce.number().int().nonnegative().nullish(),
-  discount: z.coerce.number().min(0).max(100).default(0),
-  image: z.string().trim().nullish()
+  image: z.string().trim().nullish(),
+  discount: z.coerce.number().int().min(0).max(100).default(0),
+  isPromo: z.boolean().default(false),
+  promoPrice: z.coerce.number().int().nonnegative().nullish(),
+  promoLabel: z.string().trim().nullish(),
+  promoStart: z.string().trim().nullish(),
+  promoEnd: z.string().trim().nullish(),
+  isAvailable: z.boolean().default(true),
 });
 
 const CategorySchema = z.object({
@@ -33,7 +69,10 @@ const CategorySchema = z.object({
 export async function buildAppState() {
   const [products, txs, wastes, cats] = await Promise.all([
     pool.query(
-      `SELECT p.id::text, p.name, p.description, p.price, p.discount, c.name as category, p.stock, p.min_stock, p.cost, p.image
+      `SELECT p.id::text, p.name, p.description, p.price,
+              c.name as category, p.stock, p.min_stock, p.cost,
+              p.image, p.discount, p.is_promo, p.promo_price,
+              p.promo_label, p.promo_start, p.promo_end, p.is_available
        FROM coffeepos.products p
        LEFT JOIN coffeepos.categories c ON p.category_id = c.id
        ORDER BY p.name ASC`
@@ -104,6 +143,13 @@ export async function buildAppState() {
       minStock: Number(p.min_stock ?? 5),
       price: Number(p.price),
       cost: p.cost === null ? undefined : Number(p.cost),
+      discount: Number(p.discount ?? 0),
+      isPromo: Boolean(p.is_promo),
+      promoPrice: p.promo_price ? Number(p.promo_price) : undefined,
+      promoLabel: p.promo_label ?? undefined,
+      promoStart: p.promo_start ?? undefined,
+      promoEnd: p.promo_end ?? undefined,
+      isAvailable: p.is_available !== false,
       unit: 'pcs',
       image: p.image || null
     })),
@@ -184,9 +230,16 @@ appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) 
   try {
     const body = req.body as any;
     await pool.query(
-      `INSERT INTO coffeepos.products (name, description, price, discount, category, category_id, stock, min_stock, cost, image)
-       VALUES ($1, $2, $3, $4, $5, (SELECT id FROM coffeepos.categories WHERE name = $5 LIMIT 1), $6, $7, $8, $9)`,
-      [body.name, body.description || '', body.price, body.discount || 0, body.category, body.stock, body.minStock || 5, body.cost || 0, body.image || null]
+      `INSERT INTO coffeepos.products
+        (name, description, price, category, category_id, stock, min_stock, cost, image,
+         discount, is_promo, promo_price, promo_label, promo_start, promo_end, is_available)
+       VALUES ($1, $2, $3, $4, (SELECT id FROM coffeepos.categories WHERE name = $4 LIMIT 1),
+               $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+      [body.name, body.description || '', body.price, body.category,
+       body.stock, body.minStock || 5, body.cost || 0, body.image || null,
+       body.discount || 0, body.isPromo || false, body.promoPrice || null,
+       body.promoLabel || null, body.promoStart || null, body.promoEnd || null,
+       body.isAvailable !== false]
     );
     res.status(201).json(await buildAppState());
   } catch (err: any) {
@@ -205,11 +258,19 @@ appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, nex
     const body = req.body as any;
     const result = await pool.query(
       `UPDATE coffeepos.products
-       SET name = $1, description = $2, price = $3, discount = $4, category = $5, 
-           category_id = (SELECT id FROM coffeepos.categories WHERE name = $5 LIMIT 1), 
-           stock = $6, min_stock = $7, cost = $8, image = $9, updated_at = now()
-       WHERE id = $10::uuid`,
-      [body.name, body.description || '', body.price, body.discount || 0, body.category, body.stock, body.minStock || 5, body.cost || 0, body.image || null, id]
+       SET name = $1, description = $2, price = $3, category = $4,
+           category_id = (SELECT id FROM coffeepos.categories WHERE name = $4 LIMIT 1),
+           stock = $5, min_stock = $6, cost = $7, image = $8,
+           discount = $9, is_promo = $10, promo_price = $11,
+           promo_label = $12, promo_start = $13, promo_end = $14,
+           is_available = $15,
+           updated_at = now()
+       WHERE id = $16::uuid`,
+      [body.name, body.description || '', body.price, body.category,
+       body.stock, body.minStock || 5, body.cost || 0, body.image || null,
+       body.discount || 0, body.isPromo || false, body.promoPrice || null,
+       body.promoLabel || null, body.promoStart || null, body.promoEnd || null,
+       body.isAvailable !== false, id]
     );
     if (result.rowCount === 0) throw new HttpError(404, 'NOT_FOUND', 'Product not found');
     res.json(await buildAppState());

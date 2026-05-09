@@ -30,13 +30,13 @@ const HeaderBadge = ({ children, isDark, type = 'info' }: {
   
   const typeClasses = {
     info: isDark 
-      ? 'bg-gray-700 text-amber-400' 
+      ? 'bg-stone-800 text-amber-400' 
       : 'bg-amber-100 text-amber-700',
     success: isDark
-      ? 'bg-gray-700 text-green-400'
+      ? 'bg-stone-800 text-green-400'
       : 'bg-green-100 text-green-700',
     warning: isDark
-      ? 'bg-gray-700 text-orange-400'
+      ? 'bg-stone-800 text-orange-400'
       : 'bg-orange-100 text-orange-700'
   };
   
@@ -66,7 +66,7 @@ export default function Dashboard() {
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Bagian Header */}
       <div className={`rounded-2xl p-6 ${isDark 
-        ? 'bg-gradient-to-r from-gray-800 to-gray-900 border border-gray-700' 
+        ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800' 
         : 'bg-gradient-to-r from-white to-gray-50 border border-gray-100'
       } shadow-sm`}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -74,7 +74,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
               Dashboard <span className="text-gray-900 dark:text-white">Bisnis</span>
             </h1>
-            <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
               {formattedDate}
             </p>
           </div>
@@ -104,7 +104,7 @@ export default function Dashboard() {
           value={metrics.todayTransactionCount}
           icon={ShoppingCart}
           trend={metrics.transactionChange >= 0 ? "up" : "down"}
-          gradient="from-blue-500 to-cyan-500"
+          gradient="from-amber-500 to-cyan-500"
           delay="200"
         />
         
@@ -161,7 +161,7 @@ export default function Dashboard() {
               value={`${metrics.profitMargin}%`}
               icon={BarChart3}
               subtitle="margin keuntungan"
-              gradient="from-blue-500 to-indigo-500"
+              gradient="from-amber-500 to-indigo-500"
               trend={metrics.profitMargin > 50 ? "up" : metrics.profitMargin > 30 ? "stable" : "down"}
               trendValue={metrics.profitMargin > 50 ? "Tinggi" : "Normal"}
             />
@@ -215,8 +215,8 @@ export default function Dashboard() {
 
       {/* Wawasan Kinerja - GUNAKAN Grid sederhana */}
       <div className={`p-6 rounded-2xl ${isDark 
-        ? 'bg-gradient-to-r from-gray-800 to-gray-900 border border-gray-700' 
-        : 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100'
+        ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800' 
+        : 'bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-100'
       }`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -238,8 +238,8 @@ export default function Dashboard() {
 // Helper untuk render metric sederhana
 function renderPerformanceMetric(label: string, value: string, isDark: boolean) {
   return (
-    <div className={`p-4 rounded-xl ${isDark ? 'bg-gray-700/50' : 'bg-white shadow-sm'}`}>
-      <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{label}</p>
+    <div className={`p-4 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-white shadow-sm'}`}>
+      <p className={`text-sm ${isDark ? 'text-stone-300' : 'text-gray-600'}`}>{label}</p>
       <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
         {value}
       </p>

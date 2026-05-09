@@ -217,7 +217,7 @@ export default function Settings() {
     <div className="max-w-7xl mx-auto">
       {/* Notification Message */}
       {restoreMessage && (
-        <div className={`mb-6 p-4 rounded-xl border ${
+        <div className={`mb-6 p-4 rounded-2xl border ${
           restoreMessage.type === 'success'
             ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
             : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
@@ -246,7 +246,7 @@ export default function Settings() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           Application Settings
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-600 dark:text-stone-400">
           Manage your business identity, tax rules, appearance preferences, and data
         </p>
       </div>
@@ -257,14 +257,14 @@ export default function Settings() {
         <div className="lg:col-span-2 space-y-8">
           {/* Business Profile Card */}
           <form onSubmit={handleSaveSettings} className={`rounded-2xl border shadow-lg ${
-            isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'
           }`}>
-            <div className="p-6 border-b border-gray-700/50 dark:border-gray-700">
+            <div className="p-6 border-b border-stone-800/50 dark:border-stone-800">
               <h2 className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
                 <Store className="w-5 h-5 text-amber-500" />
                 Business Profile
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
                 Your shop identity and tax configuration
               </p>
             </div>
@@ -272,15 +272,15 @@ export default function Settings() {
             <div className="p-6 space-y-6">
               {/* Shop Name */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
                   Shop Name
                 </label>
                 <input 
                   name="storeName" 
                   defaultValue={settings.storeName} 
-                  className={`w-full px-4 py-3 rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                  className={`w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
                     isDark 
-                      ? 'bg-gray-900 border-gray-700 text-white' 
+                      ? 'bg-stone-950 border-stone-800 text-white' 
                       : 'bg-white border-gray-300 text-gray-900'
                   }`} 
                   required
@@ -290,18 +290,18 @@ export default function Settings() {
 
               {/* Address */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
                   Business Address
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3.5 text-gray-500 w-5 h-5" />
+                  <MapPin className="absolute left-3 top-3.5 text-stone-500 w-5 h-5" />
                   <textarea 
                     name="address" 
                     defaultValue={settings.address} 
                     rows={3}
-                    className={`w-full px-4 py-3 pl-10 rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                    className={`w-full px-4 py-3 pl-10 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
                       isDark 
-                        ? 'bg-gray-900 border-gray-700 text-white' 
+                        ? 'bg-stone-950 border-stone-800 text-white' 
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
                     placeholder="Full address for receipts and documentation"
@@ -312,7 +312,7 @@ export default function Settings() {
               {/* Tax Rate & Currency */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
                     Tax Rate (PPN)
                   </label>
                   <div className="relative">
@@ -323,27 +323,27 @@ export default function Settings() {
                       max="100"
                       step="0.1"
                       defaultValue={settings.taxRate} 
-                      className={`w-full px-4 py-3 pr-12 rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                      className={`w-full px-4 py-3 pr-12 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
                         isDark 
-                          ? 'bg-gray-900 border-gray-700 text-white' 
+                          ? 'bg-stone-950 border-stone-800 text-white' 
                           : 'bg-white border-gray-300 text-gray-900'
                       }`} 
                       required
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-gray-500">%</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-stone-500">%</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
                     Currency
                   </label>
                   <select 
                     name="currency"
                     defaultValue={settings.currency || 'IDR'}
-                    className={`w-full px-4 py-3 rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                    className={`w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
                       isDark 
-                        ? 'bg-gray-900 border-gray-700 text-white' 
+                        ? 'bg-stone-950 border-stone-800 text-white' 
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
                   >
@@ -366,8 +366,8 @@ export default function Settings() {
               </div>
 
               {/* Currency Format Settings */}
-              <div className={`p-4 rounded-xl border ${
-                isDark ? 'bg-gray-900/50 border-gray-700' : 'bg-gray-50/50 border-gray-200'
+              <div className={`p-4 rounded-2xl border ${
+                isDark ? 'bg-stone-950/50 border-stone-800' : 'bg-gray-50/50 border-gray-200'
               }`}>
                 <h3 className="flex items-center gap-2 font-bold text-sm mb-4 text-gray-900 dark:text-white">
                   <DollarSign className="w-4 h-4 text-amber-500" />
@@ -377,16 +377,16 @@ export default function Settings() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Symbol Position */}
                   <div className="space-y-2">
-                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-stone-300">
                       <Type className="w-3 h-3" />
                       Symbol Position
                     </label>
                     <select 
                       name="currencyPosition"
                       defaultValue={settings.currencyPosition || 'before'}
-                      className={`w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                      className={`w-full px-3 py-2 text-sm rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
                         isDark 
-                          ? 'bg-gray-800 border-gray-700 text-white' 
+                          ? 'bg-stone-900 border-stone-800 text-white' 
                           : 'bg-white border-gray-300 text-gray-900'
                       }`}
                     >
@@ -399,16 +399,16 @@ export default function Settings() {
                   
                   {/* Decimal Places */}
                   <div className="space-y-2">
-                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-stone-300">
                       <Hash className="w-3 h-3" />
                       Decimal Places
                     </label>
                     <select 
                       name="decimalPlaces"
                       defaultValue={settings.decimalPlaces ?? 0}
-                      className={`w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                      className={`w-full px-3 py-2 text-sm rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
                         isDark 
-                          ? 'bg-gray-800 border-gray-700 text-white' 
+                          ? 'bg-stone-900 border-stone-800 text-white' 
                           : 'bg-white border-gray-300 text-gray-900'
                       }`}
                     >
@@ -419,16 +419,16 @@ export default function Settings() {
                   
                   {/* Thousands Separator */}
                   <div className="space-y-2">
-                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-stone-300">
                       <Percent className="w-3 h-3" />
                       Thousands Separator
                     </label>
                     <select 
                       name="thousandsSeparator"
                       defaultValue={settings.thousandsSeparator || 'comma'}
-                      className={`w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                      className={`w-full px-3 py-2 text-sm rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
                         isDark 
-                          ? 'bg-gray-800 border-gray-700 text-white' 
+                          ? 'bg-stone-900 border-stone-800 text-white' 
                           : 'bg-white border-gray-300 text-gray-900'
                       }`}
                     >
@@ -441,13 +441,13 @@ export default function Settings() {
                 </div>
                 
                 {/* Preview Section */}
-                <div className="mt-4 pt-4 border-t border-gray-700/30 dark:border-gray-700">
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Preview:</p>
-                  <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                <div className="mt-4 pt-4 border-t border-stone-800/30 dark:border-stone-800">
+                  <p className="text-xs font-medium text-gray-600 dark:text-stone-400 mb-2">Preview:</p>
+                  <div className={`p-3 rounded-xl ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
                     <code className={`text-sm font-mono ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
                       {getCurrencyPreview()}
                     </code>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
                       Sample: 1,234,567.89
                     </p>
                   </div>
@@ -456,16 +456,16 @@ export default function Settings() {
 
               {/* Receipt Footer */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
                   Receipt Footer Message
                 </label>
                 <textarea 
                   name="receiptFooter" 
                   defaultValue={settings.receiptFooter || 'Thank you for your purchase!'} 
                   rows={2}
-                  className={`w-full px-4 py-3 rounded-lg border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+                  className={`w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
                     isDark 
-                      ? 'bg-gray-900 border-gray-700 text-white' 
+                      ? 'bg-stone-950 border-stone-800 text-white' 
                       : 'bg-white border-gray-300 text-gray-900'
                   }`}
                   placeholder="Thank you for visiting! See you again soon."
@@ -473,10 +473,10 @@ export default function Settings() {
               </div>
             </div>
             
-            <div className="p-6 border-t border-gray-700/50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 rounded-b-2xl">
+            <div className="p-6 border-t border-stone-800/50 dark:border-stone-800 bg-gray-50/50 dark:bg-stone-950/50 rounded-b-2xl">
               <button 
                 type="submit" 
-                className="w-full md:w-auto flex items-center justify-center gap-3 px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg shadow-lg shadow-amber-500/20 hover:shadow-xl transition-all active:scale-95"
+                className="w-full md:w-auto flex items-center justify-center gap-3 px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-xl transition-all active:scale-95"
               >
                 <Save className="w-5 h-5" />
                 Save Business Profile
@@ -486,26 +486,26 @@ export default function Settings() {
 
           {/* Data Management Card */}
           <div className={`rounded-2xl border shadow-lg ${
-            isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'
           }`}>
-            <div className="p-6 border-b border-gray-700/50 dark:border-gray-700">
+            <div className="p-6 border-b border-stone-800/50 dark:border-stone-800">
               <h2 className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
-                <Database className="w-5 h-5 text-blue-500" />
+                <Database className="w-5 h-5 text-amber-500" />
                 Data Management
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
                 Backup, restore, and manage your application data
               </p>
             </div>
             
             <div className="p-6 space-y-6">
               {/* Storage Info */}
-              <div className={`p-4 rounded-xl border ${
-                isDark ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'
+              <div className={`p-4 rounded-2xl border ${
+                isDark ? 'bg-stone-950 border-stone-800' : 'bg-gray-50 border-gray-200'
               }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <HardDrive className="w-5 h-5 text-gray-500" />
+                    <HardDrive className="w-5 h-5 text-stone-500" />
                     <span className="font-medium">Local Storage</span>
                   </div>
                   <span className="font-bold">
@@ -513,7 +513,7 @@ export default function Settings() {
                   </span>
                 </div>
                 
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div className="w-full bg-gray-200 dark:bg-stone-800 rounded-full h-2.5">
                   <div 
                     className={`h-2.5 rounded-full ${
                       storageInfo.percent > 80 
@@ -526,7 +526,7 @@ export default function Settings() {
                   ></div>
                 </div>
                 
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-sm text-stone-500 dark:text-stone-400 mt-2">
                   {storageInfo.percent}% of storage used
                 </p>
               </div>
@@ -534,18 +534,18 @@ export default function Settings() {
               {/* Backup & Restore Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Backup Card */}
-                <div className={`p-5 rounded-xl border transition-all hover:shadow-lg ${
+                <div className={`p-5 rounded-2xl border transition-all hover:shadow-lg ${
                   isDark 
-                    ? 'bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border-blue-700 hover:border-blue-500' 
-                    : 'bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200 hover:border-blue-400'
+                    ? 'bg-gradient-to-br from-amber-900/20 to-cyan-900/20 border-amber-700 hover:border-amber-500' 
+                    : 'bg-gradient-to-br from-amber-50 to-cyan-50 border-amber-200 hover:border-amber-400'
                 }`}>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                      <Download className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+                      <Download className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
                       <h3 className="font-bold text-lg">Create Backup</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 dark:text-stone-400">
                         Export all data to JSON file
                       </p>
                     </div>
@@ -553,28 +553,28 @@ export default function Settings() {
                   
                   <button
                     onClick={handleBackup}
-                    className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2"
                   >
                     <Download className="w-5 h-5" />
                     Download Backup
                   </button>
                   
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                  <p className="text-xs text-stone-500 dark:text-stone-400 mt-3">
                     Backup includes: Products, Customers, Transactions, Settings
                   </p>
                 </div>
 
                 {/* Restore Card */}
-                <div className={`p-5 rounded-xl border ${
-                  isDark ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'
+                <div className={`p-5 rounded-2xl border ${
+                  isDark ? 'bg-stone-950 border-stone-800' : 'bg-gray-50 border-gray-200'
                 }`}>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/30">
                       <Upload className="w-6 h-6 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
                       <h3 className="font-bold text-lg">Restore Backup</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 dark:text-stone-400">
                         Import data from backup file
                       </p>
                     </div>
@@ -585,18 +585,18 @@ export default function Settings() {
                       type="file"
                       accept=".json"
                       onChange={(e) => setBackupFile(e.target.files?.[0] || null)}
-                      className={`w-full px-4 py-2 rounded-lg border ${
-                        isDark ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'
+                      className={`w-full px-4 py-2 rounded-xl border ${
+                        isDark ? 'bg-stone-900 border-stone-700' : 'bg-white border-gray-300'
                       }`}
                     />
                     
                     <button
                       onClick={handleRestore}
                       disabled={!backupFile || isRestoring}
-                      className={`w-full py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
                         backupFile && !isRestoring
                           ? 'bg-green-500 hover:bg-green-600 text-white'
-                          : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-300 dark:bg-stone-800 text-stone-500 cursor-not-allowed'
                       }`}
                     >
                       {isRestoring ? (
@@ -618,7 +618,7 @@ export default function Settings() {
               {/* Factory Reset Warning */}
               <Link 
                 to="/settings/data-reset"
-                className={`block p-5 rounded-xl border transition-all hover:shadow-lg ${
+                className={`block p-5 rounded-2xl border transition-all hover:shadow-lg ${
                   isDark 
                     ? 'bg-gradient-to-br from-red-900/20 to-orange-900/20 border-red-800 hover:border-red-600' 
                     : 'bg-gradient-to-br from-red-50 to-orange-50 border-red-200 hover:border-red-400'
@@ -626,14 +626,14 @@ export default function Settings() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-red-100 dark:bg-red-900/30">
+                    <div className="p-3 rounded-2xl bg-red-100 dark:bg-red-900/30">
                       <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
                     </div>
                     <div>
                       <h3 className="font-bold text-lg text-red-700 dark:text-red-300">
                         Factory Reset
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 dark:text-stone-400">
                         Reset all data to factory settings
                       </p>
                     </div>
@@ -641,7 +641,7 @@ export default function Settings() {
                   <Shield className="w-5 h-5 text-red-500" />
                 </div>
                 
-                <div className="mt-4 p-3 rounded-lg bg-red-50/50 dark:bg-red-900/20">
+                <div className="mt-4 p-3 rounded-xl bg-red-50/50 dark:bg-red-900/20">
                   <p className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
                     Warning: This action will delete all transactions, custom products, and customer data. Cannot be undone.
@@ -656,25 +656,25 @@ export default function Settings() {
         <div className="space-y-8">
           {/* Theme Settings Card */}
           <div className={`rounded-2xl border shadow-lg ${
-            isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'
           }`}>
-            <div className="p-6 border-b border-gray-700/50 dark:border-gray-700">
+            <div className="p-6 border-b border-stone-800/50 dark:border-stone-800">
               <h2 className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
                 <Palette className="w-5 h-5 text-purple-500" />
                 Appearance
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
                 Customize your interface appearance
               </p>
             </div>
             
             <div className="p-6 space-y-6">
               {/* Theme Toggle */}
-              <div className={`flex items-center justify-between p-4 rounded-xl ${
-                isDark ? 'bg-gray-900' : 'bg-gray-100'
+              <div className={`flex items-center justify-between p-4 rounded-2xl ${
+                isDark ? 'bg-stone-950' : 'bg-gray-100'
               }`}>
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white shadow-sm'}`}>
+                  <div className={`p-2 rounded-xl ${isDark ? 'bg-stone-900' : 'bg-white shadow-sm'}`}>
                     {isDark ? (
                       <Moon className="w-5 h-5 text-purple-400" />
                     ) : (
@@ -683,7 +683,7 @@ export default function Settings() {
                   </div>
                   <div>
                     <span className="font-medium">Dark Mode</span>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-stone-500">
                       {isDark ? 'Enabled' : 'Disabled'}
                     </p>
                   </div>
@@ -708,10 +708,10 @@ export default function Settings() {
                 <div className="grid grid-cols-2 gap-3">
                   <div 
                     onClick={() => theme === 'dark' && toggleTheme()}
-                    className={`cursor-pointer p-4 rounded-xl border-2 transition-all ${
+                    className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${
                       !isDark 
                         ? 'border-amber-500 bg-amber-50' 
-                        : 'border-gray-600 bg-gray-900'
+                        : 'border-stone-700 bg-stone-950'
                     }`}
                   >
                     <div className="flex gap-1.5 mb-3">
@@ -720,12 +720,12 @@ export default function Settings() {
                       <div className="w-3 h-3 rounded-full bg-green-400" />
                     </div>
                     <div className="space-y-1.5">
-                      <div className="h-2 w-full bg-gray-300 dark:bg-gray-700 rounded" />
-                      <div className="h-2 w-3/4 bg-gray-300 dark:bg-gray-700 rounded" />
-                      <div className="h-2 w-1/2 bg-gray-300 dark:bg-gray-700 rounded" />
+                      <div className="h-2 w-full bg-gray-300 dark:bg-stone-800 rounded" />
+                      <div className="h-2 w-3/4 bg-gray-300 dark:bg-stone-800 rounded" />
+                      <div className="h-2 w-1/2 bg-gray-300 dark:bg-stone-800 rounded" />
                     </div>
                     <p className={`text-xs font-bold text-center mt-3 ${
-                      !isDark ? 'text-amber-700' : 'text-gray-400'
+                      !isDark ? 'text-amber-700' : 'text-stone-400'
                     }`}>
                       LIGHT MODE
                     </p>
@@ -733,9 +733,9 @@ export default function Settings() {
 
                   <div 
                     onClick={() => theme === 'light' && toggleTheme()}
-                    className={`cursor-pointer p-4 rounded-xl border-2 transition-all ${
+                    className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${
                       isDark 
-                        ? 'border-purple-500 bg-gray-800' 
+                        ? 'border-purple-500 bg-stone-900' 
                         : 'border-gray-300 bg-gray-100'
                     }`}
                   >
@@ -745,12 +745,12 @@ export default function Settings() {
                       <div className="w-3 h-3 rounded-full bg-green-400" />
                     </div>
                     <div className="space-y-1.5">
-                      <div className="h-2 w-full bg-gray-600 dark:bg-gray-500 rounded" />
-                      <div className="h-2 w-3/4 bg-gray-600 dark:bg-gray-500 rounded" />
-                      <div className="h-2 w-1/2 bg-gray-600 dark:bg-gray-500 rounded" />
+                      <div className="h-2 w-full bg-gray-600 dark:bg-stone-500 rounded" />
+                      <div className="h-2 w-3/4 bg-gray-600 dark:bg-stone-500 rounded" />
+                      <div className="h-2 w-1/2 bg-gray-600 dark:bg-stone-500 rounded" />
                     </div>
                     <p className={`text-xs font-bold text-center mt-3 ${
-                      isDark ? 'text-purple-400' : 'text-gray-500'
+                      isDark ? 'text-purple-400' : 'text-stone-500'
                     }`}>
                       DARK MODE
                     </p>
@@ -762,9 +762,9 @@ export default function Settings() {
 
           {/* System Info Card */}
           <div className={`rounded-2xl border shadow-lg ${
-            isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'
           }`}>
-            <div className="p-6 border-b border-gray-700/50 dark:border-gray-700">
+            <div className="p-6 border-b border-stone-800/50 dark:border-stone-800">
               <h2 className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
                 <Shield className="w-5 h-5 text-green-500" />
                 System Information
@@ -773,14 +773,14 @@ export default function Settings() {
             
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Application Version</span>
+                <span className="text-gray-600 dark:text-stone-400">Application Version</span>
                 <span className="font-mono font-bold text-gray-900 dark:text-white">
                   v1.0.4
                 </span>
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Database</span>
+                <span className="text-gray-600 dark:text-stone-400">Database</span>
                 <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium">
                   <CheckCircle2 className="w-4 h-4" />
                   LocalStorage
@@ -788,7 +788,7 @@ export default function Settings() {
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Build Date</span>
+                <span className="text-gray-600 dark:text-stone-400">Build Date</span>
                 <span className="font-medium">
                   {new Date().toLocaleDateString('en-US', {
                     year: 'numeric',
@@ -799,37 +799,37 @@ export default function Settings() {
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Environment</span>
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium rounded">
+                <span className="text-gray-600 dark:text-stone-400">Environment</span>
+                <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-medium rounded">
                   Production
                 </span>
               </div>
 
               {/* Currency Settings Summary */}
-              <div className="pt-4 border-t border-gray-700/30 dark:border-gray-700">
+              <div className="pt-4 border-t border-stone-800/30 dark:border-stone-800">
                 <div className="flex items-center gap-2 mb-2">
                   <SettingsIcon className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-gray-700 dark:text-stone-300">
                     Currency Settings
                   </span>
                 </div>
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Currency:</span>
+                    <span className="text-stone-500">Currency:</span>
                     <span className="font-medium">{settings.currency || 'IDR'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Format:</span>
+                    <span className="text-stone-500">Format:</span>
                     <span className="font-medium">
                       {formatCurrencyPositionSummary()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Decimals:</span>
+                    <span className="text-stone-500">Decimals:</span>
                     <span className="font-medium">{settings.decimalPlaces ?? 0}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Separator:</span>
+                    <span className="text-stone-500">Separator:</span>
                     <span className="font-medium">
                       {formatThousandsSeparatorSummary()}
                     </span>

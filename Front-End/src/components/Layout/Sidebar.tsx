@@ -1,12 +1,17 @@
 import { useState } from 'react';
-import { Coffee, Moon, Sun } from 'lucide-react';
+import { Coffee, Moon, Sun, ChevronLeft, ChevronRight } from 'lucide-react';
 import { navigationConfig } from '../../data/navigation'; 
 import { getIconComponent } from '../../utils/iconUtils';
 import SidebarItem from './SidebarItem';
 import SidebarCollapse from './SidebarCollapse';
 import { useTheme } from '../../contexts/ThemeContext';
 
-export default function Sidebar() {
+interface SidebarProps {
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+export default function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps) {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     operation: false,
     customers: false,
@@ -23,29 +28,47 @@ export default function Sidebar() {
 
   const sidebarClass =
     theme === 'dark'
-      ? 'w-64 bg-slate-900 text-slate-100 border-slate-800'
-      : 'w-64 bg-white text-slate-900 border-slate-200';
+      ? 'bg-stone-950 text-stone-100 border-stone-800'
+      : 'bg-white text-stone-900 border-stone-200';
 
   return (
-    <div className={`${sidebarClass} h-screen fixed left-0 top-0 flex flex-col border-r`}>
+    <div className={`${sidebarClass} ${isCollapsed ? 'w-16 overflow-visible' : 'w-64 overflow-hidden'} h-screen fixed left-0 top-0 z-40 flex flex-col border-r transition-all duration-300`}>
       
       {/* Header */}
-      <div className={`p-6 border-b ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-            <Coffee className="h-6 w-6 text-amber-500" />
+      <div className={`${isCollapsed ? 'p-3' : 'p-6'} border-b ${theme === 'dark' ? 'border-stone-800' : 'border-stone-200'} transition-all duration-300`}>
+        <div className={`flex items-center ${isCollapsed ? 'flex-col' : 'gap-3'}`}>
+          <div className={`${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'} rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0 transition-all duration-300`}>
+            <Coffee className={`${isCollapsed ? 'h-5 w-5' : 'h-6 w-6'} text-amber-500`} />
           </div>
-          <div>
-            <h1 className="text-xl font-bold">Coffee Shop</h1>
-            <p className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-              POS System
-            </p>
-          </div>
+          {!isCollapsed && (
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-bold truncate">Coffee Shop</h1>
+              <p className={`text-sm truncate ${theme === 'dark' ? 'text-stone-400' : 'text-stone-500'}`}>
+                POS System
+              </p>
+            </div>
+          )}
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className={`${isCollapsed ? 'mt-3' : 'ml-auto'} p-1.5 rounded-xl border transition-all duration-150 ${
+                theme === 'dark'
+                  ? 'border-stone-800 hover:bg-[#1a1614] text-stone-400 hover:text-stone-200'
+                  : 'border-stone-200 hover:bg-stone-100 text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              {isCollapsed
+                ? <ChevronRight className="w-4 h-4" />
+                : <ChevronLeft className="w-4 h-4" />
+              }
+            </button>
+          )}
         </div>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 p-4 overflow-y-auto horizontal-scrollbar-thin">
+      <div className={`flex-1 ${isCollapsed ? 'overflow-visible px-2' : 'overflow-y-auto p-4'} horizontal-scrollbar-thin transition-all duration-300`}>
         <div className="space-y-1">
           {navigationConfig.mainMenu.map((item) => {
             const Icon = getIconComponent(item.iconName);
@@ -57,9 +80,9 @@ export default function Sidebar() {
                   item={item as any}
                   icon={Icon || undefined}
                   isOpen={openMenus[item.id] || false}
-                  onToggle={() => toggleMenu(item.id)}
+                  onToggle={() => !isCollapsed && toggleMenu(item.id)}
                   getIcon={getIconComponent}
-                  // TIDAK PERLU PASS theme prop!
+                  isCollapsed={isCollapsed}
                 />
               );
             }
@@ -69,13 +92,13 @@ export default function Sidebar() {
                 key={item.id}
                 item={item as any}
                 icon={Icon || undefined}
-                // TIDAK PERLU PASS theme prop!
+                isCollapsed={isCollapsed}
               />
             );
           })}
         </div>
 
-        <div className={`h-px my-4 ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
+        {!isCollapsed && <div className={`h-px my-4 ${theme === 'dark' ? 'bg-[#1a1614]' : 'bg-stone-200'}`}></div>}
 
         <div className="space-y-1">
           {navigationConfig.bottomMenu.map((item) => {
@@ -85,6 +108,7 @@ export default function Sidebar() {
                 key={item.id}
                 item={item as any}
                 icon={Icon || undefined}
+                isCollapsed={isCollapsed}
               />
             );
           })}
@@ -92,35 +116,41 @@ export default function Sidebar() {
       </div>
 
       {/* Footer (profile + theme toggle) */}
-      <div className={`p-4 border-t ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
-        <div className={`flex items-center gap-3 p-3 rounded-3xl border ${
+      <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t ${theme === 'dark' ? 'border-stone-800' : 'border-stone-200'} transition-all duration-300`}>
+        <div className={`flex ${isCollapsed ? 'flex-col items-center gap-2 p-2' : 'items-center gap-3 p-3'} rounded-3xl border ${
           theme === 'dark'
-            ? 'bg-slate-950/40 border-slate-800'
-            : 'bg-slate-50 border-slate-200'
+            ? 'bg-stone-950/40 border-stone-800'
+            : 'bg-stone-50 border-stone-200'
         }`}>
-          <div className={`w-10 h-10 rounded-3xl flex items-center justify-center border ${
-            theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          <div className={`w-10 h-10 rounded-3xl flex items-center justify-center border flex-shrink-0 ${
+            theme === 'dark' ? 'bg-stone-950 border-stone-800' : 'bg-white border-stone-200'
           }`}>
-            <span className={`font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-900'}`}>U</span>
+            {!isCollapsed ? (
+              <span className={`font-black ${theme === 'dark' ? 'text-stone-200' : 'text-stone-900'}`}>U</span>
+            ) : (
+              <Coffee className="w-5 h-5 text-amber-500" />
+            )}
           </div>
-          <div className="min-w-0">
-            <p className="font-semibold truncate">Single User</p>
-            <p className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-              Store Operator
-            </p>
-          </div>
+          {!isCollapsed && (
+            <div className="min-w-0">
+              <p className="font-semibold truncate">Single User</p>
+              <p className={`text-sm truncate ${theme === 'dark' ? 'text-stone-400' : 'text-stone-500'}`}>
+                Store Operator
+              </p>
+            </div>
+          )}
           <button
             onClick={toggleTheme}
-            className={`ml-auto inline-flex items-center gap-2 px-3 py-2 rounded-3xl border text-xs font-black transition-all ${
+            className={`${isCollapsed ? '' : 'ml-auto'} inline-flex items-center gap-2 ${isCollapsed ? 'p-2' : 'px-3 py-2'} rounded-3xl border text-xs font-black transition-all ${
               theme === 'dark'
-                ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800'
-                : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
+                ? 'bg-stone-950 border-stone-800 text-stone-200 hover:bg-[#1a1614]'
+                : 'bg-white border-stone-200 text-stone-800 hover:bg-stone-50'
             }`}
             aria-label="Toggle theme"
             title="Toggle theme"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-amber-500" />}
-            <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            {!isCollapsed && <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>}
           </button>
         </div>
       </div>

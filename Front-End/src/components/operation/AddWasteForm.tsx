@@ -38,13 +38,13 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
   };
 
   // Helper class untuk input agar konsisten
-  const inputClass = `w-full rounded-lg px-4 py-2 border outline-none transition-all ${
+  const inputClass = `w-full rounded-xl px-4 py-2 border outline-none transition-all ${
     isDark 
-      ? 'bg-gray-900 border-gray-700 text-white focus:border-amber-500/50' 
+      ? 'bg-stone-950 border-stone-800 text-white focus:border-amber-500/50' 
       : 'bg-white border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20'
   }`;
 
-  const labelClass = `block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`;
+  const labelClass = `block text-sm font-medium mb-2 ${isDark ? 'text-stone-300' : 'text-gray-700'}`;
 
   return (
     <form onSubmit={handleSubmit}>
@@ -58,9 +58,9 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
             onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
             required
           >
-            <option value="" className={isDark ? 'bg-gray-800' : ''}>Select a product</option>
+            <option value="" className={isDark ? 'bg-stone-900' : ''}>Select a product</option>
             {products.map(product => (
-              <option key={product.id} value={product.id} className={isDark ? 'bg-gray-800' : ''}>
+              <option key={product.id} value={product.id} className={isDark ? 'bg-stone-900' : ''}>
                 {product.name} (Stock: {product.stock})
               </option>
             ))}
@@ -80,7 +80,7 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
             required
           />
           {selectedProduct && (
-            <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+            <p className={`text-xs mt-1 ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
               Available stock: {selectedProduct.stock}
             </p>
           )}
@@ -94,10 +94,10 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
             value={formData.reason}
             onChange={(e) => setFormData({ ...formData, reason: e.target.value as any })}
           >
-            <option value="expired" className={isDark ? 'bg-gray-800' : ''}>Expired</option>
-            <option value="damaged" className={isDark ? 'bg-gray-800' : ''}>Damaged</option>
-            <option value="spilled" className={isDark ? 'bg-gray-800' : ''}>Spilled</option>
-            <option value="other" className={isDark ? 'bg-gray-800' : ''}>Other</option>
+            <option value="expired" className={isDark ? 'bg-stone-900' : ''}>Expired</option>
+            <option value="damaged" className={isDark ? 'bg-stone-900' : ''}>Damaged</option>
+            <option value="spilled" className={isDark ? 'bg-stone-900' : ''}>Spilled</option>
+            <option value="other" className={isDark ? 'bg-stone-900' : ''}>Other</option>
           </select>
         </div>
 
@@ -115,7 +115,7 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
 
         {/* Cost Preview */}
         {selectedProduct && (
-          <div className={`p-4 rounded-lg border transition-colors ${
+          <div className={`p-4 rounded-xl border transition-colors ${
             isDark ? 'bg-red-900/20 border-red-900/50' : 'bg-red-50 border-red-200'
           }`}>
             <div className="flex justify-between items-center">
@@ -140,9 +140,9 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
           <button
             type="button"
             onClick={onCancel}
-            className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex-1 py-3 rounded-xl font-medium transition-colors ${
               isDark 
-                ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' 
+                ? 'bg-stone-800 text-stone-200 hover:bg-stone-700' 
                 : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
             }`}
           >
@@ -150,7 +150,7 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
           </button>
           <button
             type="submit"
-            className="flex-1 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-red-500/20"
+            className="flex-1 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-red-500/20"
             disabled={!formData.productId}
           >
             Record Waste

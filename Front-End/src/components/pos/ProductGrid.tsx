@@ -1,5 +1,7 @@
-import { Plus, Package, Trophy } from 'lucide-react';
+import { Plus, Package, Trophy, Lock } from 'lucide-react';
 import type { Product } from '../../types';
+import { getEffectivePrice } from '../../utils/priceUtils';
+import { isOutOfStock as checkOutOfStock, getStockDisplay } from '../../utils/stockUtils';
 import { useTheme } from '../../contexts/ThemeContext';
 
 
@@ -18,9 +20,10 @@ export default function ProductGrid({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
       {products.map((product, index) => {
-        const isOutOfStock = product.stock <= 0;
-        const isPromoActive = product.isPromo && product.promoPrice && product.promoPrice > 0;
-        const priceToShow = isPromoActive ? product.promoPrice! : product.price;
+        const isUnavailable = product.isAvailable === false;
+        const isOutOfStock = checkOutOfStock(product);
+        const isDisabled = isUnavailable || isOutOfStock;
+        const { price: priceToShow, isPromoActive, discountPercent } = getEffectivePrice(product);
         
         const totalSold = product.recentSalesCount || 0;
         
@@ -35,14 +38,14 @@ export default function ProductGrid({
           <button
             key={product.id}
             onClick={() => onAddToCart(product.id)}
-            disabled={isOutOfStock}
+            disabled={isDisabled}
             className={`
               rounded-3xl border p-4 text-left transition-all group relative flex flex-col overflow-hidden
               ${isDark
-                ? 'bg-slate-900 border-slate-800 hover:border-amber-500/40'
-                : 'bg-white border-slate-200 hover:border-amber-500/50'
+                ? 'bg-stone-950 border-stone-800 hover:border-amber-500/40'
+                : 'bg-white border-stone-200 hover:border-amber-500/50'
               }
-              ${isOutOfStock ? 'opacity-60 cursor-not-allowed grayscale-[0.5]' : ''}
+              ${isDisabled ? 'opacity-60 cursor-not-allowed grayscale-[0.5]' : ''}
               animate-in
             `}
             style={{
@@ -53,7 +56,7 @@ export default function ProductGrid({
             {/* Promo Badge (KIRI ATAS) */}
             {isPromoActive && (
               <div className="absolute top-2 left-2 z-10">
-                <div className="px-2 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
+                <div className="px-2 py-1 rounded-xl text-[10px] font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
                   {product.promoLabel || 'PROMO'}
                 </div>
               </div>
@@ -62,7 +65,7 @@ export default function ProductGrid({
             {/* Best Seller Badge - HANYA untuk TOP 3 (KANAN ATAS) */}
             {showBestSellerBadge && bestSellerRank && (
               <div className="absolute top-2 right-2 z-10">
-                <div className={`px-2 py-1 rounded-lg text-[10px] font-bold text-white shadow-lg flex items-center gap-1 ${
+                <div className={`px-2 py-1 rounded-xl text-[10px] font-bold text-white shadow-lg flex items-center gap-1 ${
                   bestSellerRank === 1 
                     ? 'bg-gradient-to-r from-yellow-500 to-amber-600' 
                     : bestSellerRank === 2
@@ -78,7 +81,7 @@ export default function ProductGrid({
             {/* Out of Stock Badge */}
             {isOutOfStock && (
               <div className="absolute top-10 left-2 z-10">
-                <div className="px-2 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-gray-600 to-gray-800 text-white">
+                <div className="px-2 py-1 rounded-xl text-[10px] font-bold bg-gradient-to-r from-gray-600 to-gray-800 text-white">
                   SOLD OUT
                 </div>
               </div>
@@ -88,7 +91,7 @@ export default function ProductGrid({
             <div className={`
               w-full aspect-square rounded-3xl mb-4 flex items-center justify-center
               overflow-hidden relative
-              ${isDark ? 'bg-slate-950' : 'bg-slate-50'}
+              ${isDark ? 'bg-stone-950' : 'bg-stone-50'}
               ${isOutOfStock ? 'animate-pulse-subtle' : ''}
             `}>
               {product.image ? (
@@ -108,7 +111,7 @@ export default function ProductGrid({
                         ? 'bg-gradient-to-br from-amber-500 to-orange-500'
                         : 'bg-gradient-to-br from-amber-700 to-amber-800'
                     ) :
-                    'bg-gradient-to-br from-blue-500 to-cyan-500'}
+                    'bg-gradient-to-br from-amber-500 to-cyan-500'}
                 `}>
                   <span className="text-white font-bold text-base md:text-lg">
                     {product.category.charAt(0)}
@@ -138,7 +141,7 @@ export default function ProductGrid({
               
               <p className={`
                 text-[10px] font-bold uppercase tracking-wider mb-2
-                ${isDark ? 'text-gray-500' : 'text-gray-400'}
+                ${isDark ? 'text-stone-500' : 'text-stone-400'}
               `}>
                 {product.category}
               </p>
@@ -155,12 +158,12 @@ export default function ProductGrid({
                   </span>
                 </div>
                 
-                {/* Harga asli jika promo */}
+                {/* Harga asli jika promo/discount */}
                 {isPromoActive && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <span className={`
                       text-[10px] line-through
-                      ${isDark ? 'text-gray-500' : 'text-gray-400'}
+                      ${isDark ? 'text-stone-500' : 'text-stone-400'}
                     `}>
                        {product.price}
                     </span>
@@ -168,7 +171,7 @@ export default function ProductGrid({
                       text-[10px] px-1 py-0.5 rounded font-bold
                       ${isDark ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-700'}
                     `}>
-                      Promo
+                      -{discountPercent}%
                     </span>
                   </div>
                 )}
@@ -179,7 +182,7 @@ export default function ProductGrid({
                     <div className={`
                       flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold
                       ${isDark 
-                        ? 'bg-gray-800/50 text-gray-300' 
+                        ? 'bg-stone-900/50 text-stone-300' 
                         : 'bg-gray-100 text-gray-700'
                       }
                     `}>
@@ -192,14 +195,14 @@ export default function ProductGrid({
                 
                 {/* Info Stok */}
                 <div className="flex justify-between items-center w-full mt-1">
-                  <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                  <span className={`text-[10px] ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
                     Stok:
                   </span>
                   <span className={`
                     text-[10px] px-1.5 py-0.5 rounded font-black uppercase bg-gradient-to-br
                     ${isOutOfStock ? 'animate-pulse-subtle' : ''}
                     ${
-                      product.stock > 10 
+                      product.stock === -1 || product.stock > 10 
                         ? isDark 
                           ? 'from-green-900/30 to-green-800/20 text-green-400'
                           : 'from-green-50 to-green-100 text-green-600'
@@ -212,7 +215,7 @@ export default function ProductGrid({
                             : 'from-red-50 to-red-100 text-red-600'
                     }
                   `}>
-                    {product.stock}
+                    {product.stock === -1 ? '∞' : product.stock}
                   </span>
                 </div>
               </div>
@@ -238,6 +241,16 @@ export default function ProductGrid({
                 <Plus className="w-6 h-6 text-white" />
               </div>
             </div>
+
+            {/* Unavailable Overlay */}
+            {isUnavailable && (
+              <div className="absolute inset-0 rounded-3xl z-20 bg-stone-950/80 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2">
+                <Lock className="w-8 h-8 text-stone-400" />
+                <span className="text-xs font-bold text-stone-300 uppercase tracking-wider">
+                  Tidak Tersedia
+                </span>
+              </div>
+            )}
           </button>
         );
       })}
@@ -247,11 +260,11 @@ export default function ProductGrid({
         <div className="col-span-full text-center py-12 animate-in">
           <Package className={`
             w-12 h-12 mx-auto mb-2 animate-pulse-subtle
-            ${isDark ? 'text-slate-700' : 'text-slate-300'}
+            ${isDark ? 'text-stone-700' : 'text-stone-300'}
           `} />
           <p className={`
             animate-in
-            ${isDark ? 'text-slate-500' : 'text-slate-400 font-medium'}
+            ${isDark ? 'text-stone-500' : 'text-stone-400 font-medium'}
           `} style={{ animationDelay: '0.2s' }}>
             No products found
           </p>

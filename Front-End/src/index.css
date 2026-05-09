@@ -31,11 +31,11 @@ body {
 
 /* Dark theme tokens */
 .dark {
-  --color-background: #020617; /* slate-950 */
-  --color-surface: #0f172a; /* slate-900 */
-  --color-border: #1e293b; /* slate-800 */
-  --color-foreground: #e2e8f0; /* slate-200 */
-  --color-muted: #94a3b8; /* slate-400 */
+  --color-background: #0c0a09; /* stone-950 */
+  --color-surface: #1a1614; /* Dark Espresso */
+  --color-border: #292524; /* stone-800 */
+  --color-foreground: #f5f5f4; /* stone-100 */
+  --color-muted: #a8a29e; /* stone-400 */
 }
 
 /* Helpful semantic utilities via CSS vars */
@@ -51,9 +51,10 @@ body {
 
 
 
-/* Horizontal Scrollbar yang Kecil (untuk CategoryPills) */
+/* Scrollbar yang Kecil (untuk CategoryPills & Product Grid) */
 .horizontal-scrollbar-thin::-webkit-scrollbar {
-  height: 3px;
+  height: 4px;
+  width: 4px;
 }
 
 .horizontal-scrollbar-thin::-webkit-scrollbar-track {

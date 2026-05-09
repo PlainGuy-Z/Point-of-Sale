@@ -45,7 +45,7 @@ export default function VisitHistory() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Visit History</h1>
-          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
             Rekam jejak transaksi dan kunjungan pelanggan
           </p>
         </div>
@@ -53,35 +53,35 @@ export default function VisitHistory() {
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 w-4 h-4" />
             <input 
               type="text" 
               placeholder="Cari ID / Nama..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`pl-10 pr-4 py-2 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 w-full sm:w-64 ${
-                isDark ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200'
+              className={`pl-10 pr-4 py-2 rounded-2xl border outline-none focus:ring-2 focus:ring-amber-500 w-full sm:w-64 ${
+                isDark ? 'bg-stone-900 border-stone-800 text-white' : 'bg-white border-gray-200'
               }`}
             />
           </div>
 
           {/* Filter */}
-          <div className={`flex items-center p-1 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className={`flex items-center p-1 rounded-2xl border ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
             <button 
               onClick={() => setFilterType('all')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${filterType === 'all' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${filterType === 'all' ? 'bg-amber-500 text-white' : 'text-stone-500 hover:bg-gray-100 dark:hover:bg-stone-800'}`}
             >
               All
             </button>
             <button 
               onClick={() => setFilterType('member')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${filterType === 'member' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${filterType === 'member' ? 'bg-amber-500 text-white' : 'text-stone-500 hover:bg-gray-100 dark:hover:bg-stone-800'}`}
             >
               Members
             </button>
             <button 
               onClick={() => setFilterType('guest')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${filterType === 'guest' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${filterType === 'guest' ? 'bg-amber-500 text-white' : 'text-stone-500 hover:bg-gray-100 dark:hover:bg-stone-800'}`}
             >
               Guest
             </button>
@@ -90,11 +90,11 @@ export default function VisitHistory() {
       </div>
 
       {/* Transaction List */}
-      <div className={`rounded-2xl border shadow-sm overflow-hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <div className={`rounded-2xl border shadow-sm overflow-hidden ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className={isDark ? 'bg-gray-900/50' : 'bg-gray-50'}>
-              <tr className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            <thead className={isDark ? 'bg-stone-950/50' : 'bg-gray-50'}>
+              <tr className="text-xs font-bold text-stone-500 uppercase tracking-wider">
                 <th className="p-4">Transaction Info</th>
                 <th className="p-4">Customer</th>
                 <th className="p-4">Items Summary</th>
@@ -102,13 +102,13 @@ export default function VisitHistory() {
                 <th className="p-4 text-right">Total</th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-100'}`}>
+            <tbody className={`divide-y ${isDark ? 'divide-stone-800' : 'divide-gray-100'}`}>
               {filteredData.map((t) => (
-                <tr key={t.id} className={`group transition-colors ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}`}>
+                <tr key={t.id} className={`group transition-colors ${isDark ? 'hover:bg-stone-800/30' : 'hover:bg-gray-50'}`}>
                   <td className="p-4">
                     <div className="flex flex-col">
-                      <span className={`font-bold font-mono text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>#{t.id}</span>
-                      <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-500">
+                      <span className={`font-bold font-mono text-xs ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>#{t.id}</span>
+                      <div className="flex items-center gap-1.5 mt-1 text-xs text-stone-500">
                         <Calendar size={12} />
                         {new Date(t.date).toLocaleString('id-ID', { 
                           day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
@@ -121,29 +121,29 @@ export default function VisitHistory() {
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         t.isMember 
                           ? 'bg-amber-500/10 text-amber-600' 
-                          : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                          : 'bg-gray-200 text-stone-500 dark:bg-stone-800 dark:text-stone-400'
                       }`}>
                         <User size={14} />
                       </div>
                       <div>
-                        <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t.customerName}</div>
+                        <div className={`font-medium text-sm ${isDark ? 'text-stone-200' : 'text-gray-900'}`}>{t.customerName}</div>
                         {t.isMember && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold">MEMBER</span>}
                       </div>
                     </div>
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-1">
-                      <div className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <div className={`text-sm font-medium ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>
                         {t.items.length} Items
                       </div>
-                      <div className="text-xs text-gray-500 truncate max-w-[200px]">
+                      <div className="text-xs text-stone-500 truncate max-w-[200px]">
                         {t.items.map(i => i.quantity + 'x ' + (i.note || 'Product')).join(', ')}
                       </div>
                     </div>
                   </td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                      isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                      isDark ? 'bg-stone-800 text-stone-300' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {t.paymentMethod}
                     </span>
@@ -158,7 +158,7 @@ export default function VisitHistory() {
               
               {filteredData.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-12 text-center text-gray-500">
+                  <td colSpan={5} className="p-12 text-center text-stone-500">
                     <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-20" />
                     No transactions found matching your filter.
                   </td>

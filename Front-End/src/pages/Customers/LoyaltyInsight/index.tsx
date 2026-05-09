@@ -37,7 +37,7 @@ export default function LoyaltyInsight() {
     <div className="space-y-6 pb-20">
       <div>
         <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Loyalty Insights</h1>
-        <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+        <p className={isDark ? 'text-stone-400' : 'text-gray-600'}>
           Analisis mendalam tentang perilaku dan retensi pelanggan Anda
         </p>
       </div>
@@ -76,14 +76,14 @@ export default function LoyaltyInsight() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Spenders (Gold Customers) */}
-        <div className={`p-6 rounded-2xl border shadow-sm ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div className={`p-6 rounded-2xl border shadow-sm ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
+            <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl">
               <Crown size={24} />
             </div>
             <div>
               <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>Top Spenders</h3>
-              <p className="text-xs text-gray-500">Pelanggan dengan nilai belanja tertinggi</p>
+              <p className="text-xs text-stone-500">Pelanggan dengan nilai belanja tertinggi</p>
             </div>
           </div>
           
@@ -94,22 +94,22 @@ export default function LoyaltyInsight() {
               const displayName = profile ? profile.name : `Unknown (ID: ${stats.customerId.slice(0, 4)})`;
 
               return (
-                <div key={stats.customerId} className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-transparent to-transparent hover:from-amber-500/5 transition-all">
+                <div key={stats.customerId} className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-transparent to-transparent hover:from-amber-500/5 transition-all">
                   <div className="flex items-center gap-4">
                     <div className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-xs ${
                       index === 0 ? 'bg-yellow-400 text-yellow-900' : 
                       index === 1 ? 'bg-gray-300 text-gray-800' :
                       index === 2 ? 'bg-orange-300 text-orange-900' :
-                      isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                      isDark ? 'bg-stone-800 text-stone-300' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {index + 1}
                     </div>
                     <div>
                       {/* 3. Tampilkan Nama di sini */}
-                      <div className={`font-bold text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                      <div className={`font-bold text-sm ${isDark ? 'text-stone-200' : 'text-gray-800'}`}>
                         {displayName}
                       </div> 
-                      <div className="text-xs text-gray-500">{stats.visitCount} visits</div>
+                      <div className="text-xs text-stone-500">{stats.visitCount} visits</div>
                     </div>
                   </div>
                   <div className="font-bold text-amber-500">
@@ -120,20 +120,20 @@ export default function LoyaltyInsight() {
             })}
             
             {analytics.topSpenders.length === 0 && (
-              <p className="text-center text-gray-500 py-4">Belum ada data transaksi cukup.</p>
+              <p className="text-center text-stone-500 py-4">Belum ada data transaksi cukup.</p>
             )}
           </div>
         </div>
 
         {/* Churn Risk / Inactive */}
-        <div className={`p-6 rounded-2xl border shadow-sm ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div className={`p-6 rounded-2xl border shadow-sm ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-red-100 text-red-600 rounded-xl">
+            <div className="p-3 bg-red-100 text-red-600 rounded-2xl">
               <UserMinus size={24} />
             </div>
             <div>
               <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>Risk of Churn</h3>
-              <p className="text-xs text-gray-500">Member yang tidak berkunjung &gt; 45 hari</p>
+              <p className="text-xs text-stone-500">Member yang tidak berkunjung &gt; 45 hari</p>
             </div>
           </div>
 
@@ -145,16 +145,16 @@ export default function LoyaltyInsight() {
                  const displayName = profile ? profile.name : stats.customerId.substring(0, 8);
 
                  return (
-                   <div key={stats.customerId} className={`p-3 rounded-xl border flex justify-between items-center ${isDark ? 'bg-red-900/10 border-red-900/30' : 'bg-red-50 border-red-100'}`}>
+                   <div key={stats.customerId} className={`p-3 rounded-2xl border flex justify-between items-center ${isDark ? 'bg-red-900/10 border-red-900/30' : 'bg-red-50 border-red-100'}`}>
                      <div>
-                       <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                       <div className={`font-medium text-sm ${isDark ? 'text-stone-200' : 'text-gray-800'}`}>
                          {displayName}
                        </div>
                        <div className="text-xs text-red-500">
                          Last visit: {new Date(stats.lastVisit).toLocaleDateString()}
                        </div>
                      </div>
-                     <button className="text-xs bg-white text-red-600 px-3 py-1.5 rounded-lg border border-red-200 font-bold shadow-sm hover:bg-red-50">
+                     <button className="text-xs bg-white text-red-600 px-3 py-1.5 rounded-xl border border-red-200 font-bold shadow-sm hover:bg-red-50">
                        Contact
                      </button>
                    </div>
@@ -166,7 +166,7 @@ export default function LoyaltyInsight() {
                    <Award size={24} />
                  </div>
                  <p className="font-medium text-green-600">Great Job!</p>
-                 <p className="text-xs text-gray-500 mt-1">Tidak ada pelanggan berisiko churn saat ini.</p>
+                 <p className="text-xs text-stone-500 mt-1">Tidak ada pelanggan berisiko churn saat ini.</p>
                </div>
              )}
           </div>

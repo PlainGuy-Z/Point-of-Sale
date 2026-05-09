@@ -131,6 +131,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           quantity: i.quantity,
           note: i.note,
           modifiers: i.modifiers,
+          ...(i.productId.startsWith('manual-') ? { price: i.price } : {}),
         })),
         paymentMethod: params.paymentMethod,
         customerId: params.selectedCustomer,
@@ -139,8 +140,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         tableNumber: params.tableNumber,
         cashReceived: params.cashReceived,
         orderNote: params.orderNote,
+        applyTax: params.applyTax,
       });
-      
+
       // Update local state with the state returned by backend
       setState(appState);
       return transaction;

@@ -24,6 +24,7 @@ export interface CreateTransactionRequest {
   tableNumber?: string;
   cashReceived?: number;
   orderNote?: string;
+  applyTax?: boolean;
 }
 
 /**

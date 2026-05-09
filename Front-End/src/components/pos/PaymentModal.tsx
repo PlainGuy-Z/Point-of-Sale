@@ -170,33 +170,33 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-3">
       <div 
         ref={modalRef}
-        className={`w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border ${
+        className={`w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border ${
           isDark
-            ? 'bg-slate-900/80 border-slate-800'
-            : 'bg-white/80 border-slate-200'
+            ? 'bg-stone-950/80 border-stone-800'
+            : 'bg-white/80 border-stone-200'
         }`}
         onKeyDown={handleKeyDown}
         tabIndex={0}
         autoFocus
       >
         {/* Header */}
-        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-          <h2 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>Payment</h2>
+        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
+          <h2 className={`text-lg font-black ${isDark ? 'text-white' : 'text-stone-900'}`}>Payment</h2>
           <button 
             onClick={onClose} 
-            className={`p-2 rounded-3xl transition-colors ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
+            className={`p-2 rounded-3xl transition-colors ${isDark ? 'hover:bg-[#1a1614]' : 'hover:bg-stone-100'}`}
             aria-label="Close payment modal"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-stone-400" />
           </button>
         </div>
 
         <div className="p-4">
           {/* Total Amount */}
           <div className={`mb-4 p-4 rounded-3xl flex justify-between items-center border ${
-            isDark ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50 border-slate-200'
+            isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-stone-50 border-stone-200'
           }`}>
-            <span className={`text-sm font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Total</span>
+            <span className={`text-sm font-bold ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>Total</span>
             <div className="text-xl font-black text-amber-500">
               {total}
             </div>
@@ -206,7 +206,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
           <div className="grid grid-cols-3 gap-2 mb-4">
             {[
               { id: 'cash', label: 'Cash', icon: Banknote, color: 'from-green-500 to-green-600' },
-              { id: 'card', label: 'Card', icon: CreditCard, color: 'from-blue-500 to-blue-600' },
+              { id: 'card', label: 'Card', icon: CreditCard, color: 'from-amber-500 to-amber-600' },
               { id: 'qris', label: 'QRIS', icon: QrCode, color: 'from-purple-500 to-purple-600' },
             ].map((m) => (
               <button
@@ -216,12 +216,12 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                   method === m.id 
                     ? `border-amber-500 bg-amber-500/10 text-amber-500` 
                     : isDark 
-                      ? 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800' 
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      ? 'bg-stone-950 border-stone-800 text-stone-300 hover:bg-[#1a1614]' 
+                      : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
                 }`}
               >
-                <m.icon className={`w-4 h-4 ${method === m.id ? 'text-amber-500' : isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-                <span className={`text-xs font-bold ${method === m.id ? 'text-white' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <m.icon className={`w-4 h-4 ${method === m.id ? 'text-amber-500' : isDark ? 'text-stone-400' : 'text-stone-500'}`} />
+                <span className={`text-xs font-bold ${method === m.id ? 'text-white' : isDark ? 'text-stone-300' : 'text-gray-700'}`}>
                   {m.label}
                 </span>
               </button>
@@ -232,9 +232,9 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left Column: Cash Input Info */}
               <div className="space-y-3">
-                <div className={`p-4 rounded-3xl border ${isDark ? 'bg-slate-950/30 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-4 rounded-3xl border ${isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-white border-stone-200'}`}>
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs text-gray-400 font-semibold uppercase">Received</span>
+                    <span className="text-xs text-stone-400 font-semibold uppercase">Received</span>
                     <button
                       onClick={handleClear}
                       className="text-xs text-red-500 hover:text-red-600 font-medium"
@@ -243,14 +243,14 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                     </button>
                   </div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{rawCashValue || '0'}</div>
+                    <div className={`text-lg font-black ${isDark ? 'text-white' : 'text-stone-900'}`}>{rawCashValue || '0'}</div>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {quickAmounts().map((amount) => (
                       <button 
                         key={amount} 
                         onClick={() => handleQuickCash(amount)} 
-                        className={`py-2 px-2 rounded-3xl text-[10px] font-black border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}
+                        className={`py-2 px-2 rounded-3xl text-[10px] font-black border ${isDark ? 'bg-stone-950 border-stone-800 text-stone-200 hover:bg-[#1a1614]' : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'}`}
                       >
                         {amount}
                       </button>
@@ -259,7 +259,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                 </div>
 
                 <div className={`p-4 rounded-3xl border ${change >= 0 ? (isDark ? 'bg-green-900/10 border-green-800' : 'bg-green-50 border-green-200') : (isDark ? 'bg-red-900/10 border-red-800' : 'bg-red-50 border-red-200')}`}>
-                  <span className="text-xs text-gray-400 font-semibold uppercase">Change</span>
+                  <span className="text-xs text-stone-400 font-semibold uppercase">Change</span>
                   <div className={`text-lg font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                     {Math.abs(change)}
                   </div>
@@ -272,7 +272,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                   <button 
                     key={btn} 
                     onClick={() => handleKeypadInput(btn)} 
-                    className={`py-3 rounded-3xl text-sm font-black border ${isDark ? 'bg-slate-900 border-slate-800 text-white active:bg-slate-800' : 'bg-white border-slate-200 text-slate-800 active:bg-slate-50'} active:scale-[0.99]`}
+                    className={`py-3 rounded-3xl text-sm font-black border ${isDark ? 'bg-stone-950 border-stone-800 text-white active:bg-[#1a1614]' : 'bg-white border-stone-200 text-stone-800 active:bg-stone-50'} active:scale-[0.99]`}
                   >
                     {btn}
                   </button>
@@ -286,14 +286,14 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
               </div>
             </div>
           ) : (
-            <div className={`py-10 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center ${isDark ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+            <div className={`py-10 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center ${isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-stone-50 border-stone-200'}`}>
               {method === 'qris' ? (
                 <QrCode className="w-20 h-20 text-purple-500 mb-3" />
               ) : (
-                <CreditCard className="w-20 h-20 text-blue-500 mb-3" />
+                <CreditCard className="w-20 h-20 text-amber-500 mb-3" />
               )}
               <p className="font-bold text-sm uppercase tracking-wide">Waiting for Payment</p>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-stone-500 mt-2">
                 {method === 'qris' ? 'Scan QR Code with your mobile banking app' : 'Insert or tap your card on the reader'}
               </p>
             </div>
@@ -316,7 +316,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
           {/* Keyboard Shortcuts Hint */}
           {method === 'cash' && (
             <div className="mt-3 text-center">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-stone-500">
                 <span className="font-semibold">Keyboard Shortcuts:</span> [0-9] Input • [.] Decimal • [Backspace] Delete • [C] Clear • [Enter] Submit
               </p>
             </div>

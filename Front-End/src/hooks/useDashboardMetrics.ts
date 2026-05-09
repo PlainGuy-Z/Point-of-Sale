@@ -4,24 +4,10 @@ import { useApp } from '../contexts/AppContext';
 import { 
   calculateDashboardMetrics, 
   getLast7DaysRevenue,
-  getTopProductsToday 
+  getTopProductsToday,
+  formatDateKey
 } from '../utils/dashboardMetrics';
 import { safeParseDate } from '../utils/analytics/helpers';
-
-// Helper untuk mendapatkan tanggal mulai hari ini (00:00:00 local time)
-const getStartOfToday = (): Date => {
-  const now = new Date();
-  const startOfDay = new Date(now);
-  startOfDay.setHours(0, 0, 0, 0);
-  return startOfDay;
-};
-
-// Helper untuk membandingkan tanggal (hanya date, tanpa time)
-const isSameDate = (date1: Date, date2: Date): boolean => {
-  return date1.getFullYear() === date2.getFullYear() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getDate() === date2.getDate();
-};
 
 export const useDashboardMetrics = () => {
   const { products, transactions, customers, wasteLogs } = useApp();
@@ -37,13 +23,22 @@ export const useDashboardMetrics = () => {
   );
   
   const topProductsToday = useMemo(() => {
-    const startOfToday = getStartOfToday();
+    const todayStr = (() => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    })();
     
     // Filter transactions untuk hari ini
     const todayTransactions = transactions.filter(t => {
       try {
-        const transactionDate = safeParseDate(t.date);
-        return isSameDate(transactionDate, startOfToday);
+        const d = safeParseDate(t.date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}` === todayStr;
       } catch {
         return false;
       }
@@ -52,7 +47,7 @@ export const useDashboardMetrics = () => {
     console.log('Dashboard Today Transactions:', {
       totalTransactions: transactions.length,
       todayTransactions: todayTransactions.length,
-      startOfToday: startOfToday.toLocaleString(),
+      todayStr,
       sampleTransaction: todayTransactions.length > 0 ? {
         date: todayTransactions[0].date,
         parsed: safeParseDate(todayTransactions[0].date).toLocaleString(),

@@ -24,7 +24,7 @@ export default function TopProducts({
   if (topProducts.length === 0) {
     return (
       <div className={`rounded-2xl p-5 ${isDark 
-        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' 
+        ? 'bg-gradient-to-br from-stone-900 to-stone-900 border border-stone-800' 
         : 'bg-gradient-to-br from-white to-gray-50 border border-gray-100'
       }`}>
         <div className="flex items-center justify-between mb-4">
@@ -33,7 +33,7 @@ export default function TopProducts({
           </h3>
           <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
         </div>
-        <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+        <div className={`text-center py-8 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
           <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p>Tidak ada data penjualan hari ini</p>
         </div>
@@ -43,7 +43,7 @@ export default function TopProducts({
   
   return (
     <div className={`rounded-2xl p-5 ${isDark 
-      ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' 
+      ? 'bg-gradient-to-br from-stone-900 to-stone-900 border border-stone-800' 
       : 'bg-gradient-to-br from-white to-gray-50 border border-gray-100'
     }`}>
       <div className="flex items-center justify-between mb-4">
@@ -62,17 +62,17 @@ export default function TopProducts({
           return (
             <div 
               key={product.id} 
-              className={`flex items-center justify-between p-3 rounded-xl transition-all ${isDark 
-                ? 'bg-gray-700/50 hover:bg-gray-700/70' 
+              className={`flex items-center justify-between p-3 rounded-2xl transition-all ${isDark 
+                ? 'bg-stone-800/50 hover:bg-stone-800/70' 
                 : 'bg-gray-50 hover:bg-gray-100'
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
                   rank === 1 ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white' :
                   rank === 2 ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-white' :
                   rank === 3 ? 'bg-gradient-to-r from-amber-700 to-amber-800 text-white' :
-                  isDark ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'
+                  isDark ? 'bg-stone-700 text-stone-300' : 'bg-gray-200 text-gray-700'
                 }`}>
                   {rank}
                 </div>
@@ -81,7 +81,7 @@ export default function TopProducts({
                     {product.name}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <span className={`text-xs ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
                       {quantity} terjual
                     </span>
                   </div>
@@ -92,7 +92,7 @@ export default function TopProducts({
                 <p className={`font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
                   {format(revenue)}
                 </p>
-                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
                   {format(product.price)}/pc
                 </p>
               </div>
@@ -102,9 +102,9 @@ export default function TopProducts({
       </div>
       
       {topProducts.length > 0 && (
-        <div className={`mt-4 pt-3 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className={`mt-4 pt-3 border-t ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
           <div className="flex justify-between text-sm">
-            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+            <span className={isDark ? 'text-stone-400' : 'text-gray-600'}>
               Total {topProducts.length} produk
             </span>
             <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>

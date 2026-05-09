@@ -21,7 +21,7 @@ export default function StatCard({
   trend, 
   trendValue, 
   subtitle,
-  gradient = 'from-blue-500 to-cyan-500',
+  gradient = 'from-amber-500 to-cyan-500',
   delay = '0'
 }: StatCardProps) {
   const { theme } = useTheme();
@@ -42,9 +42,9 @@ export default function StatCard({
     },
     stable: { 
       icon: <Minus className="w-3 h-3" />, 
-      color: isDark ? 'text-gray-400' : 'text-gray-600',
-      bg: isDark ? 'bg-gray-700' : 'bg-gray-100',
-      border: isDark ? 'border-gray-600' : 'border-gray-200'
+      color: isDark ? 'text-stone-400' : 'text-gray-600',
+      bg: isDark ? 'bg-stone-800' : 'bg-gray-100',
+      border: isDark ? 'border-stone-700' : 'border-gray-200'
     }
   };
 
@@ -57,7 +57,7 @@ export default function StatCard({
         hover:scale-[1.02] hover:shadow-lg group cursor-pointer
         animate-in fade-in slide-in-from-bottom-4
         ${isDark 
-          ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' 
+          ? 'bg-gradient-to-br from-stone-900 to-stone-900 border-stone-800' 
           : 'bg-white border-gray-100 shadow-sm'
         }
       `}
@@ -65,9 +65,9 @@ export default function StatCard({
     >
       {/* Icon dengan gradient */}
       <div className="flex items-center justify-between mb-4">
-        <div className={`p-2 rounded-xl ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-          <div className={`p-2 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white shadow-sm'}`}>
-            <Icon className={`w-6 h-6 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} /> {/* PERBAIKAN: Gunakan Icon sebagai component */}
+        <div className={`p-2 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-gray-50'}`}>
+          <div className={`p-2 rounded-xl ${isDark ? 'bg-stone-900' : 'bg-white shadow-sm'}`}>
+            <Icon className={`w-6 h-6 ${isDark ? 'text-stone-300' : 'text-gray-600'}`} /> {/* PERBAIKAN: Gunakan Icon sebagai component */}
           </div>
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function StatCard({
       {/* Title dan subtitle */}
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
-          <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p className={`text-sm font-medium ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
             {title}
           </p>
           {trendValue && (
@@ -93,14 +93,14 @@ export default function StatCard({
           )}
         </div>
         {subtitle && (
-          <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+          <p className={`text-xs ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
             {subtitle}
           </p>
         )}
       </div>
 
       {/* Bottom gradient bar */}
-      <div className={`mt-4 h-1 rounded-full overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+      <div className={`mt-4 h-1 rounded-full overflow-hidden ${isDark ? 'bg-stone-800' : 'bg-gray-100'}`}>
         <div 
           className={`h-full rounded-full bg-gradient-to-r ${gradient} transition-all duration-1000 group-hover:w-full`}
           style={{ 

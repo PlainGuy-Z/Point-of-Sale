@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Plus, Edit2, Trash2, Camera, Eye, X, Package, Tag, AlertTriangle,Check , Search, ChevronRight, TrendingUp, Filter, DollarSign, Trophy, Percent } from 'lucide-react';
+import { Plus, Edit2, Trash2, Camera, Eye, X, Package, Tag, AlertTriangle,Check , Search, ChevronRight, TrendingUp, Filter, DollarSign, Trophy, Percent, Lock } from 'lucide-react';
 import type { Product } from '../../../types';
 import { getBestSellersByPeriod } from '../../../utils/analytics';
 import { useCurrencyFormatter } from '../../../hooks/useCurrencyFormatter';
+import { getEffectivePrice } from '../../../utils/priceUtils';
+import { isLowStock, isStockTracked, getStockStatus, getStockDisplay } from '../../../utils/stockUtils';
 
 // Array of gradient colors for categories
 const CATEGORY_GRADIENTS = [
   'bg-gradient-to-r from-amber-500 to-orange-500',
   'bg-gradient-to-r from-emerald-500 to-teal-500',
   'bg-gradient-to-r from-rose-500 to-pink-500',
-  'bg-gradient-to-r from-blue-500 to-cyan-500',
+  'bg-gradient-to-r from-amber-500 to-cyan-500',
   'bg-gradient-to-r from-purple-500 to-violet-500',
   'bg-gradient-to-r from-lime-500 to-green-500',
   'bg-gradient-to-r from-red-500 to-rose-500',
@@ -44,6 +46,12 @@ export default function ProductManagement() {
   const [promoLabel, setPromoLabel] = useState('');
   const [promoStart, setPromoStart] = useState('');
   const [promoEnd, setPromoEnd] = useState('');
+
+  // State untuk stock tracking
+  const [trackStock, setTrackStock] = useState(false);
+
+  // State untuk availability
+  const [isAvailable, setIsAvailable] = useState(true);
   
   // State untuk best seller (akan dihitung dari analytics)
   const [bestSellers, setBestSellers] = useState<Array<{
@@ -93,6 +101,8 @@ export default function ProductManagement() {
       setPromoLabel(editingProduct.promoLabel || '');
       setPromoStart(editingProduct.promoStart || '');
       setPromoEnd(editingProduct.promoEnd || '');
+      setTrackStock(editingProduct.stock !== -1);
+      setIsAvailable(editingProduct.isAvailable !== false);
     } else if (!isModalOpen) {
       resetForm();
     }
@@ -354,13 +364,14 @@ const handleSaveCategoryEdit = (originalName: string) => {
     reader.readAsDataURL(file);
   };
 
-  // ==================== FORM FUNCTIONS ====================
   const resetForm = () => {
     setIsPromo(false);
     setPromoPrice('');
     setPromoLabel('');
     setPromoStart('');
     setPromoEnd('');
+    setTrackStock(false);
+    setIsAvailable(true);
   };
 
   const handleOpenEditModal = (product: Product) => {
@@ -389,22 +400,42 @@ const handleSaveCategoryEdit = (originalName: string) => {
       return;
     }
 
-    // Dapatkan sales data dari bestSellers (untuk UI, jika masih diperlukan di tempat lain)
-    // Namun kita akan mengirim objek sederhana ke API sesuai permintaan.
-    
     // Dapatkan sales data dari bestSellers
     const salesData = bestSellers.find(bs => bs.product.id === editingProduct?.id);
+
+    const currentPrice = Number(formData.get('price'));
+    const promoPriceNum = isPromo && promoPrice ? Number(promoPrice) : 0;
+
+    // Validation: promo price must be less than normal price
+    if (isPromo && promoPriceNum > 0 && promoPriceNum >= currentPrice) {
+      alert('Harga promo harus lebih kecil dari harga normal!');
+      return;
+    }
     
     const productData = {
       name: formattedProductName,
       description: '', // Opsional di backend
-      price: Number(formData.get('price')),
+      price: currentPrice,
       category: formattedCategory,
-      stock: Number(formData.get('stock')),
-      minStock: Number(formData.get('minStock')) || 5,
+      stock: trackStock ? Number(formData.get('stock')) : -1,
+      minStock: trackStock ? Number(formData.get('minStock')) || 0 : 0,
       cost: Number(formData.get('cost')) || 0,
-      discount: Number(formData.get('discount')) || 0,
       image: previewImage || undefined,
+
+      // Availability
+      isAvailable: isAvailable,
+
+      // Promo fields
+      isPromo: isPromo,
+      promoPrice: isPromo && promoPriceNum > 0 ? promoPriceNum : undefined,
+      promoLabel: isPromo && promoLabel ? promoLabel : undefined,
+      promoStart: isPromo && promoStart ? promoStart : undefined,
+      promoEnd: isPromo && promoEnd ? promoEnd : undefined,
+
+      // discount: auto-derive percentage from promoPrice for backend storage
+      discount: isPromo && promoPriceNum > 0 && promoPriceNum < currentPrice
+        ? Math.round(((currentPrice - promoPriceNum) / currentPrice) * 100)
+        : 0,
     };
     
     editingProduct ? updateProduct({ ...productData, id: editingProduct.id } as any) : addProduct(productData as any);
@@ -425,9 +456,10 @@ const handleSaveCategoryEdit = (originalName: string) => {
     return categories.map(cat => {
       const catProducts = products.filter(p => p.category === cat);
       const totalItems = catProducts.length;
-      const totalStock = catProducts.reduce((sum, p) => sum + p.stock, 0);
-      const totalValue = catProducts.reduce((sum, p) => sum + (p.price * p.stock), 0);
-      const lowStockItems = catProducts.filter(p => p.stock <= p.minStock).length;
+      const trackedProducts = catProducts.filter(p => isStockTracked(p));
+      const totalStock = trackedProducts.reduce((sum, p) => sum + p.stock, 0);
+      const totalValue = trackedProducts.reduce((sum, p) => sum + (p.price * p.stock), 0);
+      const lowStockItems = trackedProducts.filter(p => isLowStock(p)).length;
       
       // Hitung sales per category dari best sellers
       let categorySales = 0;
@@ -457,12 +489,13 @@ const handleSaveCategoryEdit = (originalName: string) => {
   const allCategoryStat = useMemo(() => {
     const totalSales = bestSellers.reduce((sum, bs) => sum + bs.quantity, 0);
     
+    const trackedAll = products.filter(p => isStockTracked(p));
     return {
       name: 'all',
       totalItems: products.length,
-      totalStock: products.reduce((sum, p) => sum + p.stock, 0),
-      totalValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0),
-      lowStockItems: products.filter(p => p.stock <= p.minStock).length,
+      totalStock: trackedAll.reduce((sum, p) => sum + p.stock, 0),
+      totalValue: trackedAll.reduce((sum, p) => sum + (p.price * p.stock), 0),
+      lowStockItems: trackedAll.filter(p => isLowStock(p)).length,
       totalSales,
       gradient: 'bg-gradient-to-r from-gray-600 to-gray-800',
       canDelete: false
@@ -523,15 +556,15 @@ const handleSaveCategoryEdit = (originalName: string) => {
 
   // Calculate inventory summary
   const totalInventoryValue = useMemo(() => 
-    products.reduce((sum, p) => sum + (p.price * p.stock), 0), 
+    products.filter(p => isStockTracked(p)).reduce((sum, p) => sum + (p.price * p.stock), 0), 
     [products]
   );
   
   const totalProducts = products.length;
-  const lowStockCount = products.filter(p => p.stock <= p.minStock).length;
+  const lowStockCount = products.filter(p => isLowStock(p)).length;
 
   // Hitung promo aktif
-  const activePromoProducts = products.filter(p => p.isPromo && p.promoPrice && p.promoPrice > 0);
+  const activePromoProducts = products.filter(p => getEffectivePrice(p).isPromoActive);
   const promoCount = activePromoProducts.length;
 
   // Hitung best seller count
@@ -539,9 +572,9 @@ const handleSaveCategoryEdit = (originalName: string) => {
 
   // ==================== RENDER FUNCTIONS ====================
   const renderProductsTab = () => (
-    <div className={`rounded-3xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-100 shadow-sm'}`}>
+    <div className={`rounded-3xl border ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
       {/* Product List Header */}
-      <div className={`p-5 border-b ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
+      <div className={`p-5 border-b ${isDark ? 'border-stone-800' : 'border-gray-100'}`}>
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           {/* Left: Search and Filter */}
           <div className="flex-1 max-w-lg">
@@ -549,22 +582,22 @@ const handleSaveCategoryEdit = (originalName: string) => {
               {/* New Product Button */}
               <button 
                 onClick={() => setModalOpen(true)} 
-                className="group flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-amber-500/25 active:scale-95 flex-shrink-0"
+                className="group flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-amber-500/25 active:scale-95 flex-shrink-0"
               >
                 <Plus size={16} className="group-hover:rotate-90 transition-transform" />
                 <span className="text-sm">New Product</span>
               </button>
               
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 w-4 h-4" />
                 <input 
                   type="text"
                   placeholder="Search products by name or category..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border-2 text-sm outline-none transition-all ${
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 text-sm outline-none transition-all ${
                     isDark 
-                      ? 'bg-gray-900 border-gray-700 text-white focus:border-amber-500' 
+                      ? 'bg-stone-950 border-stone-800 text-white focus:border-amber-500' 
                       : 'bg-gray-50 border-gray-200 focus:border-amber-500'
                   }`}
                 />
@@ -573,27 +606,27 @@ const handleSaveCategoryEdit = (originalName: string) => {
             
             {/* Active Filters */}
             <div className="flex flex-wrap gap-2 mt-3">
-              <div className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-gray-700 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
+              <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-stone-800 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
                 <Filter size={10} />
                 {activeCategory === 'all' ? 'All Categories' : activeCategory}
               </div>
               {searchTerm && (
-                <div className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-gray-700 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>
+                <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-stone-800 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
                   <Search size={10} />
                   Search: "{searchTerm}"
                 </div>
               )}
-              <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-700'}`}>
+              <div className={`px-3 py-1.5 rounded-xl text-xs font-bold ${isDark ? 'bg-stone-800 text-stone-400' : 'bg-gray-100 text-gray-700'}`}>
                 {sortedProducts.length} Products
               </div>
               {promoCount > 0 && (
-                <div className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-red-700 text-red-200' : 'bg-red-100 text-red-700'}`}>
+                <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-red-700 text-red-200' : 'bg-red-100 text-red-700'}`}>
                   <Percent size={10} />
                   {promoCount} Promo Active
                 </div>
               )}
               {bestSellerCount > 0 && (
-                <div className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-amber-700 text-amber-200' : 'bg-amber-100 text-amber-700'}`}>
+                <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-amber-700 text-amber-200' : 'bg-amber-100 text-amber-700'}`}>
                   <Trophy size={10} />
                   {bestSellerCount} Best Sellers
                 </div>
@@ -603,18 +636,18 @@ const handleSaveCategoryEdit = (originalName: string) => {
 
           {/* Right: Sales Period Filter - SAMA DENGAN POS */}
           <div className="flex items-center gap-3">
-            <div className={`text-xs font-bold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            <div className={`text-xs font-bold ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
               Sales Period:
             </div>
-            <div className={`flex items-center gap-1 p-1 rounded-xl ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+            <div className={`flex items-center gap-1 p-1 rounded-2xl ${isDark ? 'bg-stone-800' : 'bg-gray-100'}`}>
               {[1, 3, 7, 30].map((days) => (
                 <button
                   key={days}
                   onClick={() => setSalesPeriod(days)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     salesPeriod === days
                       ? isDark ? 'bg-amber-500 text-white' : 'bg-amber-500 text-white'
-                      : isDark ? 'text-gray-400 hover:text-white hover:bg-gray-600' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                      : isDark ? 'text-stone-400 hover:text-white hover:bg-stone-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
                   }`}
                   title={`Sales data for ${days} day${days > 1 ? 's' : ''}`}
                 >
@@ -630,8 +663,8 @@ const handleSaveCategoryEdit = (originalName: string) => {
       <div className="p-5">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className={`${isDark ? 'bg-gray-900/50' : 'bg-gray-50'}`}>
-              <tr className={`text-xs uppercase font-bold tracking-tight ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <thead className={`${isDark ? 'bg-stone-950/50' : 'bg-gray-50'}`}>
+              <tr className={`text-xs uppercase font-bold tracking-tight ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                 <th className="p-4">Product</th>
                 <th className="p-4">Category</th>
                 <th className="p-4 text-right">Price</th>
@@ -642,16 +675,12 @@ const handleSaveCategoryEdit = (originalName: string) => {
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-100'}`}>
+            <tbody className={`divide-y ${isDark ? 'divide-stone-800' : 'divide-gray-100'}`}>
               {sortedProducts.map((product) => {
+                const { price: effectivePrice, isPromoActive, discountPercent } = getEffectivePrice(product);
                 const margin = product.price - (product.cost || 0);
                 const marginPercent = ((margin / product.price) * 100).toFixed(1);
-                const isLowStock = product.stock <= product.minStock;
-                const isOutOfStock = product.stock === 0;
-                const isPromoActive = product.isPromo && product.promoPrice && product.promoPrice > 0;
-                const discountPercent = isPromoActive 
-                  ? Math.round(((product.price - product.promoPrice!) / product.price) * 100)
-                  : 0;
+                const status = getStockStatus(product);
                 
                 // Get sales data dari bestSellers
                 const bestSellerData = bestSellers.find(bs => bs.product.id === product.id);
@@ -659,15 +688,15 @@ const handleSaveCategoryEdit = (originalName: string) => {
                 const productRank = bestSellerData?.rank;
                 
                 return (
-                  <tr key={product.id} className={`group transition-colors ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'}`}>
+                  <tr key={product.id} className={`group transition-colors ${isDark ? 'hover:bg-stone-800/30' : 'hover:bg-gray-50/50'} ${product.isAvailable === false ? 'opacity-60' : ''}`}>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 ${isDark ? 'bg-gray-900' : 'bg-gray-100'}`}>
+                        <div className={`w-10 h-10 rounded-2xl overflow-hidden flex-shrink-0 ${isDark ? 'bg-stone-950' : 'bg-gray-100'}`}>
                           {product.image ? (
                             <img src={product.image} className="w-full h-full object-cover" alt={product.name} />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Package className={`w-5 h-5 ${isDark ? 'text-gray-700' : 'text-gray-400'}`} />
+                              <Package className={`w-5 h-5 ${isDark ? 'text-stone-800' : 'text-stone-400'}`} />
                             </div>
                           )}
                         </div>
@@ -689,7 +718,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                                 #{productRank} Best Seller
                               </span>
                             )}
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'bg-stone-800 text-stone-400' : 'bg-gray-100 text-gray-600'}`}>
                               Margin: {marginPercent}%
                             </span>
                           </div>
@@ -697,7 +726,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-bold ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                      <span className={`px-2 py-1 rounded-xl text-xs font-bold ${isDark ? 'bg-stone-800 text-stone-300' : 'bg-gray-100 text-gray-700'}`}>
                         {product.category}
                       </span>
                     </td>
@@ -705,49 +734,42 @@ const handleSaveCategoryEdit = (originalName: string) => {
                       <div className="flex flex-col items-end">
                         {isPromoActive ? (
                           <>
-                            <p className={`font-bold line-through text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                              {format(product.price)}
-                            </p>
                             <p className={`font-bold text-red-500 dark:text-red-400`}>
-                              {format(product.promoPrice!)}
+                              {format(effectivePrice)}
+                            </p>
+                            <p className={`text-[10px] line-through ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                              {format(product.price)}
                             </p>
                           </>
                         ) : (
-                          <>
-                            <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                              {format(product.price * (1 - (product.discount || 0) / 100))}
-                            </p>
-                            {product.discount > 0 && (
-                              <p className={`text-[10px] line-through ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                {format(product.price)}
-                              </p>
-                            )}
-                          </>
+                          <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {format(product.price)}
+                          </p>
                         )}
-                        <p className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        <p className={`text-[10px] mt-0.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
                           Cost: {format(product.cost || 0)}
                         </p>
                       </div>
                     </td>
                     <td className="p-4 text-center">
-                      {(product.discount || 0) > 0 ? (
-                        <span className="px-2 py-1 rounded-lg text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                          {product.discount}%
+                      {discountPercent > 0 ? (
+                        <span className="px-2 py-1 rounded-xl text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                          {discountPercent}%
                         </span>
                       ) : (
-                        <span className="text-gray-400 text-xs">-</span>
+                        <span className="text-stone-400 text-xs">-</span>
                       )}
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex flex-col items-end">
-                        <span className={`font-bold text-lg ${isLowStock ? 'text-red-600 dark:text-red-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
-                          {product.stock}
+                        <span className={`font-bold text-lg ${status === 'unlimited' ? (isDark ? 'text-green-400' : 'text-green-600') : status === 'low_stock' ? 'text-red-600 dark:text-red-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {getStockDisplay(product)}
                         </span>
-                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                          {product.unit}
+                        <span className={`text-xs ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                          {status === 'unlimited' ? 'unlimited' : product.unit}
                         </span>
-                        {product.minStock > 0 && (
-                          <span className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
+                        {status !== 'unlimited' && product.minStock > 0 && (
+                          <span className={`text-[10px] ${isDark ? 'text-stone-700' : 'text-stone-500'}`}>
                             Min: {product.minStock}
                           </span>
                         )}
@@ -756,26 +778,34 @@ const handleSaveCategoryEdit = (originalName: string) => {
                     <td className="p-4 text-right">
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-1">
-                          <span className={`font-bold ${productSales > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+                          <span className={`font-bold ${productSales > 0 ? 'text-green-600 dark:text-green-400' : 'text-stone-500'}`}>
                             {productSales}
                           </span>
                         </div>
-                        <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        <span className={`text-[10px] ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
                           last {salesPeriod} day{salesPeriod > 1 ? 's' : ''}
                         </span>
                       </div>
                     </td>
                     <td className="p-4 text-right">
-                      {isOutOfStock ? (
-                        <span className="px-2 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      {status === 'unavailable' ? (
+                        <span className={`px-2 py-1 rounded-xl text-xs font-bold ${isDark ? 'bg-stone-800 text-stone-400' : 'bg-gray-200 text-gray-600'}`}>
+                          Unavailable
+                        </span>
+                      ) : status === 'unlimited' ? (
+                        <span className={`px-2 py-1 rounded-xl text-xs font-bold ${isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'}`}>
+                          Available
+                        </span>
+                      ) : status === 'out_of_stock' ? (
+                        <span className={`px-2 py-1 rounded-xl text-xs font-bold ${isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700'}`}>
                           Out of Stock
                         </span>
-                      ) : isLowStock ? (
-                        <span className="px-2 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      ) : status === 'low_stock' ? (
+                        <span className={`px-2 py-1 rounded-xl text-xs font-bold ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
                           Low Stock
                         </span>
                       ) : (
-                        <span className="px-2 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        <span className={`px-2 py-1 rounded-xl text-xs font-bold ${isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'}`}>
                           In Stock
                         </span>
                       )}
@@ -784,14 +814,14 @@ const handleSaveCategoryEdit = (originalName: string) => {
                       <div className="flex justify-end gap-2">
                         <button 
                           onClick={() => handleOpenEditModal(product)}
-                          className={`p-2 rounded-lg transition-all ${isDark ? 'bg-gray-700 text-blue-400 hover:bg-blue-500/20' : 'bg-gray-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}
+                          className={`p-2 rounded-xl transition-all ${isDark ? 'bg-stone-800 text-amber-400 hover:bg-amber-500/20' : 'bg-gray-100 text-amber-600 hover:bg-amber-600 hover:text-white'}`}
                           title="Edit"
                         >
                           <Edit2 size={14} />
                         </button>
                         <button 
                           onClick={() => { if(confirm(`Delete ${product.name}?`)) deleteProduct(product.id); }}
-                          className={`p-2 rounded-lg transition-all ${isDark ? 'bg-gray-700 text-red-400 hover:bg-red-500/20' : 'bg-gray-100 text-red-600 hover:bg-red-600 hover:text-white'}`}
+                          className={`p-2 rounded-xl transition-all ${isDark ? 'bg-stone-800 text-red-400 hover:bg-red-500/20' : 'bg-gray-100 text-red-600 hover:bg-red-600 hover:text-white'}`}
                           title="Delete"
                         >
                           <Trash2 size={14} />
@@ -807,17 +837,17 @@ const handleSaveCategoryEdit = (originalName: string) => {
           {/* Empty State */}
           {sortedProducts.length === 0 && (
             <div className="text-center py-12">
-              <Package className={`w-16 h-16 mx-auto mb-3 ${isDark ? 'text-gray-700' : 'text-gray-300'}`} />
-              <h3 className={`font-bold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>No products found</h3>
-              <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+              <Package className={`w-16 h-16 mx-auto mb-3 ${isDark ? 'text-stone-800' : 'text-stone-300'}`} />
+              <h3 className={`font-bold ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>No products found</h3>
+              <p className={`text-sm mt-1 ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
                 {searchTerm ? `No products match "${searchTerm}"` : 'No products available'}
               </p>
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className={`mt-3 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  className={`mt-3 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
                     isDark 
-                      ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                      ? 'bg-stone-800 hover:bg-stone-700 text-white' 
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                   }`}
                 >
@@ -832,26 +862,26 @@ const handleSaveCategoryEdit = (originalName: string) => {
   );
 
   const renderCategoriesTab = () => (
-    <div className={`p-6 rounded-3xl ${isDark ? 'bg-gray-900' : 'bg-white'} shadow-lg border ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+    <div className={`p-6 rounded-3xl ${isDark ? 'bg-stone-950' : 'bg-white'} shadow-lg border ${isDark ? 'border-stone-900' : 'border-gray-200'}`}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
         <div className="flex items-center gap-3 mb-4 md:mb-0">
-          <div className={`p-3 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-amber-50'}`}>
+          <div className={`p-3 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-amber-50'}`}>
             <Tag className={isDark ? 'text-amber-400' : 'text-amber-600'} size={24} />
           </div>
           <div>
             <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Category Management</h2>
-            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Organize and monitor your inventory categories</p>
+            <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>Organize and monitor your inventory categories</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className={`px-4 py-2 rounded-full ${isDark ? 'bg-gray-800 text-amber-400' : 'bg-amber-100 text-amber-700'} text-sm font-semibold flex items-center gap-2`}>
+          <div className={`px-4 py-2 rounded-full ${isDark ? 'bg-stone-900 text-amber-400' : 'bg-amber-100 text-amber-700'} text-sm font-semibold flex items-center gap-2`}>
             <Filter size={14} />
             <span>{categories.length} Categories</span>
           </div>
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${activeCategory === 'all' ? (isDark ? 'bg-amber-600 text-white' : 'bg-amber-500 text-white') : (isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700')}`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium ${activeCategory === 'all' ? (isDark ? 'bg-amber-600 text-white' : 'bg-amber-500 text-white') : (isDark ? 'bg-stone-900 text-stone-300' : 'bg-gray-100 text-gray-700')}`}
           >
             View All
           </button>
@@ -877,19 +907,19 @@ const handleSaveCategoryEdit = (originalName: string) => {
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="text-center p-3 rounded-xl bg-white/10 backdrop-blur-sm">
+          <div className="text-center p-3 rounded-2xl bg-white/10 backdrop-blur-sm">
             <div className="text-2xl font-black text-white mb-1">{allCategoryStat.totalItems}</div>
             <div className="text-xs text-white/80">Total Items</div>
           </div>
-          <div className="text-center p-3 rounded-xl bg-white/10 backdrop-blur-sm">
+          <div className="text-center p-3 rounded-2xl bg-white/10 backdrop-blur-sm">
             <div className="text-2xl font-black text-white mb-1">{allCategoryStat.totalStock}</div>
             <div className="text-xs text-white/80">In Stock</div>
           </div>
-          <div className="text-center p-3 rounded-xl bg-white/10 backdrop-blur-sm">
+          <div className="text-center p-3 rounded-2xl bg-white/10 backdrop-blur-sm">
             <div className="text-2xl font-black text-white mb-1">{allCategoryStat.lowStockItems}</div>
             <div className="text-xs text-white/80">Low Stock</div>
           </div>
-          <div className="text-center p-3 rounded-xl bg-white/10 backdrop-blur-sm">
+          <div className="text-center p-3 rounded-2xl bg-white/10 backdrop-blur-sm">
             <div className="text-2xl font-black text-white mb-1">{allCategoryStat.totalSales}</div>
             <div className="text-xs text-white/80">Recent Sales</div>
           </div>
@@ -897,9 +927,9 @@ const handleSaveCategoryEdit = (originalName: string) => {
       </div>
 
       {/* Categories Table */}
-      <div className={`rounded-2xl overflow-hidden border ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+      <div className={`rounded-2xl overflow-hidden border ${isDark ? 'border-stone-900' : 'border-gray-200'}`}>
         {/* Table Header */}
-        <div className={`grid grid-cols-12 gap-4 p-4 ${isDark ? 'bg-gray-800' : 'bg-gray-50'} border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className={`grid grid-cols-12 gap-4 p-4 ${isDark ? 'bg-stone-900' : 'bg-gray-50'} border-b ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
           <div className="col-span-4 font-semibold text-sm">CATEGORY</div>
           <div className="col-span-2 font-semibold text-sm text-center">ITEMS</div>
           <div className="col-span-2 font-semibold text-sm text-center">STOCK VALUE</div>
@@ -912,7 +942,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
           {categoryStats.map((stat) => (
             <div
               key={stat.name}
-              className={`grid grid-cols-12 gap-4 p-4 items-center border-b ${isDark ? 'border-gray-800 hover:bg-gray-800/50' : 'border-gray-100 hover:bg-gray-50'} transition-colors ${activeCategory === stat.name ? (isDark ? 'bg-gray-800' : 'bg-amber-50/50') : ''}`}
+              className={`grid grid-cols-12 gap-4 p-4 items-center border-b ${isDark ? 'border-stone-900 hover:bg-stone-900/50' : 'border-gray-100 hover:bg-gray-50'} transition-colors ${activeCategory === stat.name ? (isDark ? 'bg-stone-900' : 'bg-amber-50/50') : ''}`}
             >
               {/* Category Name - Editable */}
               <div className="col-span-4">
@@ -931,21 +961,21 @@ const handleSaveCategoryEdit = (originalName: string) => {
                         }
                       }}
                       autoFocus
-                      className={`flex-1 p-2 rounded-lg text-sm font-medium ${isDark 
-                        ? 'bg-gray-700 border-gray-600 text-white' 
+                      className={`flex-1 p-2 rounded-xl text-sm font-medium ${isDark 
+                        ? 'bg-stone-800 border-stone-700 text-white' 
                         : 'bg-white border-gray-300 text-gray-900'}`}
                     />
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleSaveCategoryEdit(stat.name)}
-                        className="p-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white"
+                        className="p-1.5 rounded-xl bg-green-500 hover:bg-green-600 text-white"
                         title="Save changes"
                       >
                         <Check size={14} />
                       </button>
                       <button
                         onClick={handleCancelCategoryEdit}
-                        className="p-1.5 rounded-lg bg-gray-500 hover:bg-gray-600 text-white"
+                        className="p-1.5 rounded-xl bg-gray-500 hover:bg-gray-600 text-white"
                         title="Cancel"
                       >
                         <X size={14} />
@@ -960,7 +990,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                       setActiveTab('products');
                     }}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.gradient}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.gradient}`}>
                       <Tag size={16} className="text-white" />
                     </div>
                     <div>
@@ -972,7 +1002,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                           </span>
                         )}
                       </div>
-                      <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <div className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                         {stat.totalItems} product{stat.totalItems !== 1 ? 's' : ''}
                       </div>
                     </div>
@@ -984,7 +1014,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
               <div className="col-span-2">
                 <div className="text-center">
                   <div className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stat.totalItems}</div>
-                  <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <div className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                     {stat.totalStock} in stock
                   </div>
                 </div>
@@ -994,7 +1024,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
               <div className="col-span-2">
                 <div className="text-center">
                   <div className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{format(stat.totalValue)}</div>
-                  <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <div className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                     {Math.round((stat.totalStock / stat.totalItems) * 100) || 0}% stocked
                   </div>
                 </div>
@@ -1007,7 +1037,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                     {stat.categorySales}
                     <TrendingUp size={14} className="text-green-500" />
                   </div>
-                  <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <div className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                     {getPeriodLabel(salesPeriod)}
                   </div>
                 </div>
@@ -1024,17 +1054,17 @@ const handleSaveCategoryEdit = (originalName: string) => {
                           setActiveCategory(stat.name);
                           setActiveTab('products');
                         }}
-                        className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                        className={`p-2 rounded-xl ${isDark ? 'hover:bg-stone-800' : 'hover:bg-gray-100'} transition-colors`}
                         title="View products"
                       >
-                        <Eye size={16} className={isDark ? 'text-gray-400' : 'text-gray-600'} />
+                        <Eye size={16} className={isDark ? 'text-stone-400' : 'text-gray-600'} />
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEditCategory(stat.name);
                         }}
-                        className={`p-2 rounded-lg ${isDark ? 'hover:bg-blue-500/20 text-blue-400' : 'hover:bg-blue-100 text-blue-600'} transition-colors`}
+                        className={`p-2 rounded-xl ${isDark ? 'hover:bg-amber-500/20 text-amber-400' : 'hover:bg-amber-100 text-amber-600'} transition-colors`}
                         title={`Edit "${stat.name}" category`}
                       >
                         <Edit2 size={16} />
@@ -1045,9 +1075,9 @@ const handleSaveCategoryEdit = (originalName: string) => {
                           handleDeleteCategory(stat.name);
                         }}
                         disabled={!stat.canDelete}
-                        className={`p-2 rounded-lg transition-colors ${stat.canDelete 
+                        className={`p-2 rounded-xl transition-colors ${stat.canDelete 
                           ? (isDark ? 'hover:bg-red-500/20 text-red-400' : 'hover:bg-red-100 text-red-600') 
-                          : (isDark ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 cursor-not-allowed')}`}
+                          : (isDark ? 'text-stone-700 cursor-not-allowed' : 'text-stone-400 cursor-not-allowed')}`}
                         title={stat.canDelete ? `Delete "${stat.name}" category` : "Category has products"}
                       >
                         <Trash2 size={16} />
@@ -1055,7 +1085,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                     </>
                   )}
                   {stat.isEditing && (
-                    <div className="text-xs text-gray-500 italic">
+                    <div className="text-xs text-stone-500 italic">
                       Editing...
                     </div>
                   )}
@@ -1066,10 +1096,10 @@ const handleSaveCategoryEdit = (originalName: string) => {
         </div>
 
         {/* Add New Category Row */}
-        <div className={`p-4 ${isDark ? 'bg-gray-900/50' : 'bg-gray-50/50'}`}>
+        <div className={`p-4 ${isDark ? 'bg-stone-950/50' : 'bg-gray-50/50'}`}>
           <div className="flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
-              <Plus size={20} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-stone-900' : 'bg-gray-200'}`}>
+              <Plus size={20} className={isDark ? 'text-stone-400' : 'text-stone-500'} />
             </div>
             <div className="flex-1">
               <input 
@@ -1081,8 +1111,8 @@ const handleSaveCategoryEdit = (originalName: string) => {
                     setNewCatName(formatCategoryName(e.target.value));
                   }
                 }}
-                className={`w-full p-3 rounded-xl text-sm ${isDark 
-                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' 
+                className={`w-full p-3 rounded-2xl text-sm ${isDark 
+                  ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' 
                   : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'}`}
                 placeholder="Enter new category name..."
               />
@@ -1090,21 +1120,21 @@ const handleSaveCategoryEdit = (originalName: string) => {
             <button 
               onClick={handleAddCategory}
               disabled={!newCatName.trim()}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${newCatName.trim() 
+              className={`px-6 py-3 rounded-2xl font-medium transition-all ${newCatName.trim() 
                 ? (isDark ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white') 
-                : (isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-400 cursor-not-allowed')}`}
+                : (isDark ? 'bg-stone-900 text-stone-500 cursor-not-allowed' : 'bg-gray-200 text-stone-400 cursor-not-allowed')}`}
             >
               Add Category
             </button>
           </div>
           <div className="mt-2 flex items-center gap-2 text-xs">
-            <div className={`px-2 py-1 rounded ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+            <div className={`px-2 py-1 rounded ${isDark ? 'bg-stone-900 text-stone-400' : 'bg-gray-100 text-stone-500'}`}>
               First letter auto-capitalized
             </div>
-            <div className={`px-2 py-1 rounded ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+            <div className={`px-2 py-1 rounded ${isDark ? 'bg-stone-900 text-stone-400' : 'bg-gray-100 text-stone-500'}`}>
               Press Enter to save
             </div>
-            <div className={`px-2 py-1 rounded ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+            <div className={`px-2 py-1 rounded ${isDark ? 'bg-stone-900 text-stone-400' : 'bg-gray-100 text-stone-500'}`}>
               Click edit icon to rename
             </div>
           </div>
@@ -1112,22 +1142,22 @@ const handleSaveCategoryEdit = (originalName: string) => {
       </div>
 
       {/* Quick Stats Footer */}
-      <div className={`mt-6 p-4 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-gray-50'}`}>
+      <div className={`mt-6 p-4 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-gray-50'}`}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Total Categories</div>
+            <div className={`text-sm font-semibold ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>Total Categories</div>
             <div className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{categories.length}</div>
           </div>
           <div className="text-center">
-            <div className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Total Products</div>
+            <div className={`text-sm font-semibold ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>Total Products</div>
             <div className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{allCategoryStat.totalItems}</div>
           </div>
           <div className="text-center">
-            <div className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Low Stock Alerts</div>
+            <div className={`text-sm font-semibold ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>Low Stock Alerts</div>
             <div className={`text-xl font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>{allCategoryStat.lowStockItems}</div>
           </div>
           <div className="text-center">
-            <div className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Active Category</div>
+            <div className={`text-sm font-semibold ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>Active Category</div>
             <div className={`text-xl font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
               {activeCategory === 'all' ? 'All Products' : activeCategory}
             </div>
@@ -1148,25 +1178,25 @@ const handleSaveCategoryEdit = (originalName: string) => {
   return (
     <div className={`space-y-6 animate-in fade-in duration-500`}>
       {/* Header Section with Tabs */}
-      <div className={`rounded-3xl border ${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-100 shadow-sm'}`}>
+      <div className={`rounded-3xl border ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
         <div className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 Inventory <span className="text-amber-500">Hub</span>
               </h1>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                 Manage your digital menu and stock availability
               </p>
             </div>
             
             {/* Inventory Stats */}
             <div className="flex flex-wrap gap-3">
-              <div className={`px-4 py-3 rounded-xl ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+              <div className={`px-4 py-3 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-gray-50'}`}>
                 <div className="flex items-center gap-2">
                   <DollarSign className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Value</p>
+                    <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Total Value</p>
                     <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                       {format(totalInventoryValue)}
                     </p>
@@ -1174,21 +1204,21 @@ const handleSaveCategoryEdit = (originalName: string) => {
                 </div>
               </div>
               
-              <div className={`px-4 py-3 rounded-xl ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+              <div className={`px-4 py-3 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-gray-50'}`}>
                 <div className="flex items-center gap-2">
-                  <Package className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                  <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Total Items</p>
+                    <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Total Items</p>
                     <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{totalProducts}</p>
                   </div>
                 </div>
               </div>
               
-              <div className={`px-4 py-3 rounded-xl ${lowStockCount > 0 ? (isDark ? 'bg-red-900/30' : 'bg-red-50') : (isDark ? 'bg-gray-700/50' : 'bg-gray-50')}`}>
+              <div className={`px-4 py-3 rounded-2xl ${lowStockCount > 0 ? (isDark ? 'bg-red-900/30' : 'bg-red-50') : (isDark ? 'bg-stone-800/50' : 'bg-gray-50')}`}>
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className={`w-5 h-5 ${lowStockCount > 0 ? 'text-red-500' : isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                  <AlertTriangle className={`w-5 h-5 ${lowStockCount > 0 ? 'text-red-500' : isDark ? 'text-stone-400' : 'text-stone-500'}`} />
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Low Stock</p>
+                    <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Low Stock</p>
                     <p className={`font-bold ${lowStockCount > 0 ? 'text-red-600 dark:text-red-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
                       {lowStockCount}
                     </p>
@@ -1196,11 +1226,11 @@ const handleSaveCategoryEdit = (originalName: string) => {
                 </div>
               </div>
               
-              <div className={`px-4 py-3 rounded-xl ${bestSellerCount > 0 ? (isDark ? 'bg-amber-900/30' : 'bg-amber-50') : (isDark ? 'bg-gray-700/50' : 'bg-gray-50')}`}>
+              <div className={`px-4 py-3 rounded-2xl ${bestSellerCount > 0 ? (isDark ? 'bg-amber-900/30' : 'bg-amber-50') : (isDark ? 'bg-stone-800/50' : 'bg-gray-50')}`}>
                 <div className="flex items-center gap-2">
-                  <Trophy className={`w-5 h-5 ${bestSellerCount > 0 ? 'text-amber-500' : isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                  <Trophy className={`w-5 h-5 ${bestSellerCount > 0 ? 'text-amber-500' : isDark ? 'text-stone-400' : 'text-stone-500'}`} />
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Best Sellers</p>
+                    <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Best Sellers</p>
                     <p className={`font-bold ${bestSellerCount > 0 ? 'text-amber-600 dark:text-amber-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
                       {bestSellerCount}
                     </p>
@@ -1212,13 +1242,13 @@ const handleSaveCategoryEdit = (originalName: string) => {
           
           {/* Tab Navigation */}
           <div className="mt-6">
-            <div className={`flex border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`flex border-b ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
               <button
                 onClick={() => setActiveTab('products')}
                 className={`px-6 py-3 text-sm font-bold transition-all relative flex items-center gap-2 ${
                   activeTab === 'products'
                     ? isDark ? 'text-amber-400' : 'text-amber-600'
-                    : isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'
+                    : isDark ? 'text-stone-400 hover:text-stone-300' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Package size={16} />
@@ -1232,7 +1262,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                 className={`px-6 py-3 text-sm font-bold transition-all relative flex items-center gap-2 ${
                   activeTab === 'categories'
                     ? isDark ? 'text-amber-400' : 'text-amber-600'
-                    : isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'
+                    : isDark ? 'text-stone-400 hover:text-stone-300' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Tag size={16} />
@@ -1251,16 +1281,16 @@ const handleSaveCategoryEdit = (originalName: string) => {
 
       {/* Modern Modal Form */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div 
-            className={`w-full max-w-md rounded-[1.5rem] shadow-2xl overflow-hidden ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'}`}
+            className={`w-full max-w-md rounded-2xl shadow-2xl overflow-hidden ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100'}`}
           >
             <form 
               onSubmit={handleSubmit} 
               className="flex flex-col h-full"
             >
               {/* Header Modal */}
-              <div className={`p-5 border-b ${isDark ? 'border-gray-700' : 'border-gray-100'} flex-shrink-0`}>
+              <div className={`p-5 border-b ${isDark ? 'border-stone-800' : 'border-gray-100'} flex-shrink-0`}>
                 <div className="flex justify-between items-center">
                   <h2 className={`text-base font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     {editingProduct ? 'Edit Item' : 'New Product'}
@@ -1283,18 +1313,51 @@ const handleSaveCategoryEdit = (originalName: string) => {
                     <div 
                       onClick={() => fileInputRef.current?.click()}
                       className={`relative w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition-all ${
-                        isDark ? 'bg-gray-900 border-gray-700 hover:border-amber-500' : 'bg-gray-50 border-gray-200 hover:border-amber-500'
+                        isDark ? 'bg-stone-950 border-stone-800 hover:border-amber-500' : 'bg-gray-50 border-gray-200 hover:border-amber-500'
                       }`}
                     >
                       {previewImage ? (
                         <img src={previewImage} className="w-full h-full object-cover" alt="Product preview" />
                       ) : (
-                        <div className="text-center text-gray-400">
+                        <div className="text-center text-stone-400">
                           <Camera size={20} className="mx-auto" />
                         </div>
                       )}
                     </div>
                     <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+                  </div>
+
+                  {/* Availability Toggle */}
+                  <div className={`p-4 rounded-2xl transition-all duration-300 ${isAvailable ? (isDark ? 'bg-green-900/20 border border-green-800/50' : 'bg-green-50 border border-green-200') : (isDark ? 'bg-stone-800/50 border border-stone-700' : 'bg-gray-100 border border-gray-300')}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-gray-400'}`} />
+                        <label className="text-sm font-bold">Product Available</label>
+                      </div>
+                      <div className="relative">
+                        <label className="inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={isAvailable}
+                            onChange={(e) => setIsAvailable(e.target.checked)}
+                            className="sr-only peer" 
+                          />
+                          <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-stone-700 peer-checked:bg-green-500' : 'bg-gray-300 peer-checked:bg-green-500'} peer-focus:ring-2 peer-focus:ring-green-300 transition-colors`}>
+                            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isAvailable ? 'translate-x-4' : ''}`}></div>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                    {!isAvailable && (
+                      <p className={`text-xs mt-2 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                        ⚠️ Produk tidak akan muncul sebagai tersedia di kasir
+                      </p>
+                    )}
+                    {isAvailable && (
+                      <p className={`text-xs mt-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                        Nonaktifkan jika produk tidak tersedia sementara
+                      </p>
+                    )}
                   </div>
 
                   {/* Basic Information Section */}
@@ -1304,7 +1367,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                       <input 
                         name="name" 
                         defaultValue={editingProduct?.name} 
-                        className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm transition-all mt-1 ${isDark ? 'border-gray-700 focus:border-amber-500 text-white' : 'border-gray-100 focus:border-amber-500 text-gray-900'}`} 
+                        className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm transition-all mt-1 ${isDark ? 'border-stone-800 focus:border-amber-500 text-white' : 'border-gray-100 focus:border-amber-500 text-gray-900'}`} 
                         required 
                         placeholder="Product Name" 
                         onBlur={(e) => {
@@ -1320,75 +1383,89 @@ const handleSaveCategoryEdit = (originalName: string) => {
                       <select 
                         name="category" 
                         defaultValue={editingProduct?.category} 
-                        className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100 text-gray-900'}`}
+                        className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-800 text-white' : 'border-gray-100 text-gray-900'}`}
                       >
-                        {categories.map(cat => <option key={cat} value={cat} className={isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>{cat}</option>)}
+                        {categories.map(cat => <option key={cat} value={cat} className={isDark ? "bg-stone-900 text-white" : "bg-white text-gray-900"}>{cat}</option>)}
                       </select>
                     </div>
 
                     {/* Price & Stock Grid */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Cost</label>
+                        <label className="text-[9px] font-black uppercase text-stone-500 ml-1">Cost</label>
                         <input 
                           name="cost" 
                           type="number" 
                           defaultValue={editingProduct?.cost} 
-                          className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
+                          className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-800 text-white' : 'border-gray-100'}`} 
                           required 
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Price</label>
+                        <label className="text-[9px] font-black uppercase text-stone-500 ml-1">Price</label>
                         <input 
                           name="price" 
                           type="number" 
                           defaultValue={editingProduct?.price} 
-                          className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
+                          className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-800 text-white' : 'border-gray-100'}`} 
                           required 
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Stock</label>
-                        <input 
-                          name="stock" 
-                          type="number" 
-                          defaultValue={editingProduct?.stock} 
-                          className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
-                          required 
-                        />
+                    {/* Track Stock Toggle */}
+                    <div className={`p-4 rounded-2xl transition-all duration-300 ${isDark ? 'bg-stone-800/50 border border-stone-700' : 'bg-amber-50 border border-amber-200'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                          <label className="text-sm font-bold">Track Stock</label>
+                        </div>
+                        <div className="relative">
+                          <label className="inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={trackStock}
+                              onChange={(e) => setTrackStock(e.target.checked)}
+                              className="sr-only peer" 
+                            />
+                            <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-stone-700 peer-checked:bg-amber-500' : 'bg-gray-300 peer-checked:bg-amber-500'} peer-focus:ring-2 peer-focus:ring-amber-300 transition-colors`}>
+                              <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${trackStock ? 'translate-x-4' : ''}`}></div>
+                            </div>
+                          </label>
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-[9px] font-black uppercase text-amber-500 ml-1">Discount (%)</label>
-                        <input 
-                          name="discount" 
-                          type="number" 
-                          defaultValue={editingProduct?.discount || 0} 
-                          min="0"
-                          max="100"
-                          className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
-                          required 
-                        />
-                      </div>
+
+                      {trackStock && (
+                        <div className="grid grid-cols-2 gap-3 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div>
+                            <label className="text-[9px] font-black uppercase text-stone-500 ml-1">Stock</label>
+                            <input 
+                              name="stock" 
+                              type="number" 
+                              defaultValue={editingProduct?.stock !== -1 ? editingProduct?.stock : ''} 
+                              className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-amber-500 text-white' : 'border-amber-200 focus:border-amber-500 text-gray-900'}`} 
+                              required 
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-black uppercase text-stone-500 ml-1">Min Alert</label>
+                            <input 
+                              name="minStock" 
+                              type="number" 
+                              defaultValue={editingProduct?.minStock} 
+                              className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-amber-500 text-white' : 'border-amber-200 focus:border-amber-500 text-gray-900'}`} 
+                              required 
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Min Alert</label>
-                      <input 
-                        name="minStock" 
-                        type="number" 
-                        defaultValue={editingProduct?.minStock} 
-                        className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-700 text-white' : 'border-gray-100'}`} 
-                        required 
-                      />
-                    </div>
+
                   </div>
 
                   {/* PROMO SECTION */}
-                  <div className={`p-4 rounded-xl transition-all duration-300 ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-amber-50 border border-amber-200'}`}>
+                  <div className={`p-4 rounded-2xl transition-all duration-300 ${isDark ? 'bg-stone-800/50 border border-stone-700' : 'bg-amber-50 border border-amber-200'}`}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Percent className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
@@ -1402,7 +1479,7 @@ const handleSaveCategoryEdit = (originalName: string) => {
                             onChange={(e) => setIsPromo(e.target.checked)}
                             className="sr-only peer" 
                           />
-                          <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-gray-600 peer-checked:bg-amber-500' : 'bg-gray-300 peer-checked:bg-amber-500'} peer-focus:ring-2 peer-focus:ring-amber-300 transition-colors`}>
+                          <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-stone-700 peer-checked:bg-amber-500' : 'bg-gray-300 peer-checked:bg-amber-500'} peer-focus:ring-2 peer-focus:ring-amber-300 transition-colors`}>
                             <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isPromo ? 'translate-x-4' : ''}`}></div>
                           </div>
                         </label>
@@ -1411,82 +1488,73 @@ const handleSaveCategoryEdit = (originalName: string) => {
 
                     {isPromo && (
                       <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Promo Price</label>
-                            <input 
-                              type="number" 
-                              value={promoPrice}
-                              onChange={(e) => setPromoPrice(e.target.value)}
-                              className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-600 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
-                              placeholder="Discount price"
-                              min="0"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Promo Label</label>
-                            <input 
-                              type="text" 
-                              value={promoLabel}
-                              onChange={(e) => setPromoLabel(e.target.value)}
-                              className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-600 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
-                              placeholder="e.g., Flash Sale"
-                              maxLength={20}
-                            />
-                          </div>
+                        <div>
+                          <label className="text-[9px] font-black uppercase text-stone-500 ml-1">Harga Promo</label>
+                          <input 
+                            type="number" 
+                            value={promoPrice}
+                            onChange={(e) => setPromoPrice(e.target.value)}
+                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                            placeholder="Masukkan harga promo"
+                            min="0"
+                          />
+                          {/* Auto-calculated info line */}
+                          {(() => {
+                            const currentPrice = editingProduct?.price || Number((document.querySelector('input[name="price"]') as HTMLInputElement)?.value || 0);
+                            const pp = Number(promoPrice);
+                            if (!promoPrice || pp <= 0) return null;
+                            if (pp >= currentPrice && currentPrice > 0) {
+                              return (
+                                <p className={`text-xs mt-1.5 ml-1 ${isDark ? 'text-red-400' : 'text-red-500'}`}>
+                                  ⚠️ Harga promo harus lebih kecil dari harga normal
+                                </p>
+                              );
+                            }
+                            if (currentPrice > 0) {
+                              const savings = currentPrice - pp;
+                              const percent = Math.round((savings / currentPrice) * 100);
+                              return (
+                                <p className={`text-xs mt-1.5 ml-1 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                                  💡 Hemat {format(savings)} dari {format(currentPrice)} ({percent}% off)
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+
+                        <div>
+                          <label className="text-[9px] font-black uppercase text-stone-500 ml-1">Promo Label</label>
+                          <input 
+                            type="text" 
+                            value={promoLabel}
+                            onChange={(e) => setPromoLabel(e.target.value)}
+                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                            placeholder="e.g., Flash Sale"
+                            maxLength={20}
+                          />
                         </div>
                         
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Start Date</label>
+                            <label className="text-[9px] font-black uppercase text-stone-500 ml-1">Start Date</label>
                             <input 
                               type="date" 
                               value={promoStart}
                               onChange={(e) => setPromoStart(e.target.value)}
-                              className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-600 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                              className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
                             />
                           </div>
                           <div>
-                            <label className="text-[9px] font-black uppercase text-gray-500 ml-1">End Date</label>
+                            <label className="text-[9px] font-black uppercase text-stone-500 ml-1">End Date</label>
                             <input 
                               type="date" 
                               value={promoEnd}
                               onChange={(e) => setPromoEnd(e.target.value)}
-                              className={`w-full p-3 rounded-xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-gray-600 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                              className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
                             />
                           </div>
                         </div>
-
-                        {/* Preview Promo */}
-                        {promoPrice && editingProduct?.price && (
-                          <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800/70' : 'bg-amber-100/70'}`}>
-                            <div className="flex flex-col gap-2 text-sm">
-                              <div className="flex items-center justify-between">
-                                <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Original:</span>
-                                <span className={`line-through ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                  {format(editingProduct.price)}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Promo:</span>
-                                <span className="font-bold text-red-500">
-                                  {format(Number(promoPrice))}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between pt-1 border-t border-gray-200 dark:border-gray-700">
-                                <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Savings:</span>
-                                <div className="flex items-center gap-2">
-                                  <span className={`px-2 py-1 rounded text-xs font-bold bg-gradient-to-r from-red-500 to-pink-500 text-white`}>
-                                    -{Math.round(((editingProduct.price - Number(promoPrice)) / editingProduct.price) * 100)}%
-                                  </span>
-                                  <span className="text-xs text-green-600 dark:text-green-400 font-semibold">
-                                    {format(editingProduct.price - Number(promoPrice))}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
@@ -1494,18 +1562,18 @@ const handleSaveCategoryEdit = (originalName: string) => {
               </div>
 
               {/* Footer Modal */}
-              <div className={`p-5 border-t ${isDark ? 'border-gray-700' : 'border-gray-100'} flex-shrink-0`}>
+              <div className={`p-5 border-t ${isDark ? 'border-stone-800' : 'border-gray-100'} flex-shrink-0`}>
                 <div className="flex gap-3">
                   <button 
                     type="button" 
                     onClick={handleCloseModal} 
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    className={`flex-1 py-3 rounded-2xl text-sm font-bold transition-all ${isDark ? 'bg-stone-800 text-stone-300 hover:bg-stone-700' : 'bg-gray-100 text-stone-500 hover:bg-gray-200'}`}
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit" 
-                    className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white text-sm font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase"
+                    className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white text-sm font-black rounded-2xl shadow-lg transition-all active:scale-95 uppercase"
                   >
                     {editingProduct ? 'Update' : 'Confirm'}
                   </button>

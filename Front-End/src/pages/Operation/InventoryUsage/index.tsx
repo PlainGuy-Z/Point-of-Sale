@@ -72,19 +72,19 @@ export default function InventoryUsage() {
           <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Inventory Usage
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
             Lacak penggunaan bahan & validasi stok fisik
           </p>
         </div>
         <button
           onClick={() => setOpnameMode(!opnameMode)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
             opnameMode 
               ? isDark
                 ? 'bg-amber-900/30 text-amber-300 border border-amber-700'
                 : 'bg-amber-100 text-amber-700 border border-amber-200'
               : isDark
-                ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700'
+                ? 'bg-stone-900 text-stone-300 border border-stone-800 hover:bg-stone-800'
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
           }`}
         >
@@ -96,45 +96,45 @@ export default function InventoryUsage() {
       {/* Search */}
       <div className="relative">
         <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${
-          isDark ? 'text-gray-500' : 'text-gray-400'
+          isDark ? 'text-stone-500' : 'text-stone-400'
         }`} />
         <input
           type="text"
           placeholder="Cari produk..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className={`w-full pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none ${
+          className={`w-full pl-10 pr-4 py-3 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none ${
             isDark
-              ? 'bg-gray-800 border border-gray-700 text-white placeholder-gray-500'
+              ? 'bg-stone-900 border border-stone-800 text-white placeholder-stone-500'
               : 'bg-white border border-gray-200 text-gray-900'
           }`}
         />
       </div>
 
       {/* Main Table */}
-      <div className={`rounded-xl shadow-sm border overflow-hidden ${
+      <div className={`rounded-2xl shadow-sm border overflow-hidden ${
         isDark 
-          ? 'bg-gray-800 border-gray-700' 
+          ? 'bg-stone-900 border-stone-800' 
           : 'bg-white border-gray-100'
       }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className={isDark ? 'bg-gray-900/50 border-b border-gray-700' : 'bg-gray-50 border-b border-gray-100'}>
+            <thead className={isDark ? 'bg-stone-950/50 border-b border-stone-800' : 'bg-gray-50 border-b border-gray-100'}>
               <tr>
                 <th className={`px-6 py-4 text-xs font-semibold uppercase ${
-                  isDark ? 'text-gray-400' : 'text-gray-500'
+                  isDark ? 'text-stone-400' : 'text-stone-500'
                 }`}>Produk</th>
                 <th className={`px-6 py-4 text-xs font-semibold uppercase text-right ${
-                  isDark ? 'text-gray-400' : 'text-gray-500'
+                  isDark ? 'text-stone-400' : 'text-stone-500'
                 }`}>Cost (Unit)</th>
                 <th className={`px-6 py-4 text-xs font-semibold uppercase text-center ${
-                  isDark ? 'text-gray-400' : 'text-gray-500'
+                  isDark ? 'text-stone-400' : 'text-stone-500'
                 }`}>Terjual</th>
                 <th className={`px-6 py-4 text-xs font-semibold uppercase text-center ${
                   isDark ? 'text-red-400' : 'text-red-500'
                 }`}>Waste</th>
                 <th className={`px-6 py-4 text-xs font-semibold uppercase text-center ${
-                  isDark ? 'bg-gray-900/50 text-gray-400' : 'bg-gray-100 text-gray-500'
+                  isDark ? 'bg-stone-950/50 text-stone-400' : 'bg-gray-100 text-stone-500'
                 }`}>App Stock</th>
                 {opnameMode && (
                   <>
@@ -144,38 +144,38 @@ export default function InventoryUsage() {
                         : 'bg-amber-50 text-amber-600'
                     }`}>Fisik (Real)</th>
                     <th className={`px-6 py-4 text-xs font-semibold uppercase text-center ${
-                      isDark ? 'text-gray-400' : 'text-gray-500'
+                      isDark ? 'text-stone-400' : 'text-stone-500'
                     }`}>Selisih</th>
                     <th className={`px-6 py-4 text-xs font-semibold uppercase text-center ${
-                      isDark ? 'text-gray-400' : 'text-gray-500'
+                      isDark ? 'text-stone-400' : 'text-stone-500'
                     }`}>Aksi</th>
                   </>
                 )}
               </tr>
             </thead>
-            <tbody className={isDark ? 'divide-y divide-gray-700' : 'divide-y divide-gray-100'}>
+            <tbody className={isDark ? 'divide-y divide-stone-800' : 'divide-y divide-gray-100'}>
               {inventoryStats.map((item) => (
                 <tr key={item.id} className={
-                  isDark ? 'hover:bg-gray-700/50 transition-colors' : 'hover:bg-gray-50 transition-colors'
+                  isDark ? 'hover:bg-stone-800/50 transition-colors' : 'hover:bg-gray-50 transition-colors'
                 }>
                   <td className="px-6 py-4">
                     <div className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
                       {item.name}
                     </div>
-                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                    <div className={`text-xs ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
                       Total Usage Value: {item.usageValue}
                     </div>
                   </td>
                   <td className={`px-6 py-4 text-right text-sm ${
-                    isDark ? 'text-gray-300' : 'text-gray-600'
+                    isDark ? 'text-stone-300' : 'text-gray-600'
                   }`}>
                     {item.cost}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       isDark 
-                        ? 'bg-blue-900/30 text-blue-300' 
-                        : 'bg-blue-100 text-blue-800'
+                        ? 'bg-amber-900/30 text-amber-300' 
+                        : 'bg-amber-100 text-amber-800'
                     }`}>
                       {item.soldQty}
                     </span>
@@ -191,11 +191,11 @@ export default function InventoryUsage() {
                         {item.wastedQty}
                       </span>
                     ) : (
-                      <span className={isDark ? 'text-gray-600' : 'text-gray-400'}>-</span>
+                      <span className={isDark ? 'text-stone-700' : 'text-stone-400'}>-</span>
                     )}
                   </td>
                   <td className={`px-6 py-4 text-center font-mono font-medium ${
-                    isDark ? 'bg-gray-900/50 text-gray-300' : 'bg-gray-50 text-gray-900'
+                    isDark ? 'bg-stone-950/50 text-stone-300' : 'bg-gray-50 text-gray-900'
                   }`}>
                     {item.stock}
                   </td>
@@ -231,14 +231,14 @@ export default function InventoryUsage() {
                               {item.discrepancy > 0 ? '+' : ''}{item.discrepancy}
                             </span>
                             <span className={`text-[10px] ${
-                              isDark ? 'text-gray-400' : 'text-gray-500'
+                              isDark ? 'text-stone-400' : 'text-stone-500'
                             }`}>
                               {item.discrepancyValue}
                             </span>
                           </div>
                         ) : (
                           <CheckCircle2 className={`w-5 h-5 mx-auto ${
-                            isDark ? 'text-gray-700' : 'text-gray-300'
+                            isDark ? 'text-stone-800' : 'text-stone-300'
                           }`} />
                         )}
                       </td>
@@ -246,10 +246,10 @@ export default function InventoryUsage() {
                         <button
                           onClick={() => handleSaveOpname(item)}
                           disabled={item.discrepancy === 0}
-                          className={`p-2 rounded-lg ${
+                          className={`p-2 rounded-xl ${
                             isDark
-                              ? 'text-gray-500 hover:text-indigo-400 hover:bg-indigo-900/30 disabled:opacity-30'
-                              : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-30'
+                              ? 'text-stone-500 hover:text-indigo-400 hover:bg-indigo-900/30 disabled:opacity-30'
+                              : 'text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-30'
                           }`}
                           title="Simpan perubahan stok"
                         >
