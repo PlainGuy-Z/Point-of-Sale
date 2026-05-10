@@ -1,26 +1,29 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Search, ShoppingCart, Trash2, User, X, Plus, PlusCircle,
+  Search, ShoppingCart, Trash2, User, Plus, PlusCircle,
   Flame, Trophy, TrendingUp, Zap, ChevronRight,
   Package, CreditCard, ReceiptText, Pencil, Hash,
-  MessageSquare, ArrowLeft, ToggleLeft, ToggleRight
+  MessageSquare, ArrowLeft
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useProductCatalog } from '../../hooks/useProductCatalog';
 import ProductGrid from '../../components/pos/ProductGrid';
-import CustomerSelector from '../../components/pos/CustomerSelector';
 import CategoryPills from '../../components/pos/CategoryPills';
 import PaymentModal from '../../components/pos/PaymentModal';
-import ProductDetailModal from '../../components/pos/ProductDetailModal';
+import CartItemEditModal from '../../components/pos/CartItemEditModal';
+import CheckoutDetailsForm from '../../components/pos/CheckoutDetailsForm';
 import ReceiptModal from '../../components/pos/ReceiptModal';
 import type { Transaction, TransactionItem, CartItemWithInput, Product } from '../../types';
 import { ApiError } from '../../services/appApi';
 import { posApi } from '../../services/posApi';
 import { getEffectivePrice } from '../../utils/priceUtils';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import ShiftOpenModal from '../../components/shift/ShiftOpenModal';
 
 // ─── Panel view type ──────────────────────────────────────────────────────────
 type CartPanel = 'cart' | 'checkout' | 'manual';
@@ -31,30 +34,14 @@ export default function PointOfSale() {
       ? `manual-${crypto.randomUUID()}`
       : `manual-${Date.now()}`;
 
-  const { products, customers, checkout, settings, transactions, isServiceLoading } = useApp();
+  const { products, customers, checkout, transactions, isServiceLoading } = useApp();
   const { user } = useAuth();
-  const { activeShift } = useShift();
+  const { settings } = useSettings();
+  const { activeShift, isLoading: shiftLoading, refreshShift } = useShift();
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
-
-  if (user?.role === 'cashier' && !activeShift) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className={`text-center p-8 rounded-2xl border max-w-sm ${isDark ? 'bg-stone-900 border-stone-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
-          <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center bg-amber-500/10 mb-4">
-            <ShoppingCart className="w-8 h-8 text-amber-500" />
-          </div>
-          <p className="text-xl font-bold mb-2">
-            Belum Ada Shift Aktif
-          </p>
-          <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-gray-500'}`}>
-            Silakan buka shift terlebih dahulu di Dashboard untuk mulai melayani transaksi.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // ── Catalog ─────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
@@ -67,11 +54,12 @@ export default function PointOfSale() {
   // ── Cart ─────────────────────────────────────────────────────────────────────
   const [cart, setCart] = useState<CartItemWithInput[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>();
-  const [isCustomerSelectorOpen, setCustomerSelectorOpen] = useState(false);
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [isCheckoutDetailsFormOpen, setCheckoutDetailsFormOpen] = useState(false);
   const [isCartExpanded, setCartExpanded] = useState(false);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [receiptTransaction, setReceiptTransaction] = useState<Transaction | null>(null);
+  const [shiftGateOpen, setShiftGateOpen] = useState(false);
 
   // ── Panel ────────────────────────────────────────────────────────────────────
   const [panel, setPanel] = useState<CartPanel>('cart');
@@ -85,16 +73,29 @@ export default function PointOfSale() {
   // ── Tax toggle ───────────────────────────────────────────────────────────────
   const [taxEnabled, setTaxEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('pos_tax_enabled');
-    return saved !== null ? saved === 'true' : false;
+    if (saved !== null) return saved === 'true';
+    return settings?.tax_enabled ?? true;
   });
 
   useEffect(() => {
     localStorage.setItem('pos_tax_enabled', String(taxEnabled));
   }, [taxEnabled]);
 
-  // ── Quote (from backend) ─────────────────────────────────────────────────────
-  const [quote, setQuote] = useState<{ subtotal: number; tax: number; grandTotal: number; taxRate?: number }>({
-    subtotal: 0, tax: 0, grandTotal: 0, taxRate: settings?.taxRate || 0,
+  const [quote, setQuote] = useState<{ 
+    subtotal: number; 
+    tax: number; 
+    serviceCharge: number;
+    grandTotal: number; 
+    taxRate?: number;
+    taxLabel?: string;
+    serviceChargeRate?: number;
+    serviceChargeLabel?: string;
+  }>({
+    subtotal: 0, 
+    tax: 0, 
+    serviceCharge: 0,
+    grandTotal: 0, 
+    taxRate: settings?.tax_rate || 0,
   });
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
 
@@ -163,11 +164,13 @@ export default function PointOfSale() {
   };
 
   const quickPayManualItem = () => {
+    if (isPaymentModalOpen) return;
     const item = buildManualItem();
     if (!item) { alert('Masukkan nama dan harga yang valid'); return; }
     setCart(prev => [...prev, item]);
     resetManualForm();
     setPanel('cart');
+    if (blockCheckoutForShift()) return;
     setPaymentModalOpen(true);
   };
 
@@ -231,7 +234,13 @@ export default function PointOfSale() {
     let cancelled = false;
     const run = async () => {
       if (!cart.length) {
-        setQuote({ subtotal: 0, tax: 0, grandTotal: 0, taxRate: settings?.taxRate || 0 });
+        setQuote({ 
+          subtotal: 0, 
+          tax: 0, 
+          serviceCharge: 0,
+          grandTotal: 0, 
+          taxRate: settings?.tax_rate || 0 
+        });
         return;
       }
       setIsQuoteLoading(true);
@@ -245,33 +254,50 @@ export default function PointOfSale() {
           orderType, tableNumber: orderType === 'dine-in' ? tableNumber : undefined, orderNote,
           applyTax: taxEnabled,
         });
-        if (!cancelled) setQuote({ subtotal: res.subtotal, tax: res.tax, grandTotal: res.grandTotal, taxRate: res.taxRate });
-      } catch {
-        if (!cancelled) setQuote({ subtotal: 0, tax: 0, grandTotal: 0, taxRate: settings?.taxRate || 0 });
+        if (!cancelled) setQuote(res);
+      } catch (e) {
+        console.error('Quote failed:', e);
+        if (!cancelled) setQuote({ subtotal: 0, tax: 0, serviceCharge: 0, grandTotal: 0, taxRate: settings?.tax_rate || 0 });
       } finally { if (!cancelled) setIsQuoteLoading(false); }
     };
     const t = window.setTimeout(run, 250);
     return () => { cancelled = true; window.clearTimeout(t); };
-  }, [cart, selectedCustomer, customCustomerName, orderType, tableNumber, orderNote, settings?.taxRate, taxEnabled]);
-
-  // ── Computed totals (Immediate UI feedback derived from backend subtotal) ──
-  const { subtotal, taxRate } = quote;
-  // Handle both 0.11 and 11 formats robustly
-  const getRate = (r: number | undefined) => {
-    if (r === undefined) return 0.11;
-    return r > 1 ? r / 100 : r;
-  };
-  const effectiveTaxRate = getRate(taxRate ?? settings?.taxRate);
-  const displayTax = taxEnabled ? Math.round(subtotal * effectiveTaxRate) : 0;
-  const displayTotal = subtotal + displayTax;
+  }, [cart, selectedCustomer, customCustomerName, orderType, tableNumber, orderNote, settings, taxEnabled]);
 
   const cartIsEmpty = cart.length === 0;
-  const canPay = !cartIsEmpty && !isServiceLoading && !isQuoteLoading && displayTotal > 0;
+  const canPay = !cartIsEmpty && !isServiceLoading && !isQuoteLoading && quote.grandTotal > 0;
+
+  const cashierNeedsShift =
+    user?.role === 'cashier' && !shiftLoading && !activeShift;
+
+  const blockCheckoutForShift = () => {
+    if (cashierNeedsShift) {
+      setShiftGateOpen(true);
+      return true;
+    }
+    return false;
+  };
 
   // ── Payment ──────────────────────────────────────────────────────────────────
   const handleCheckout = useCallback(
     async (method: 'cash' | 'card' | 'qris', cashReceived?: number, change?: number) =>
-      await checkout({ cart, paymentMethod: method, selectedCustomer, customCustomerName, orderType, tableNumber, cashReceived, change, orderNote, applyTax: taxEnabled }),
+      await checkout({
+        cart: cart.map(item => ({
+          ...item,
+          // Include description field for backend
+          description: item.description
+        })),
+        paymentMethod: method,
+        selectedCustomer,
+        customCustomerName,
+        orderType,
+        tableNumber,
+        cashReceived,
+        change,
+        orderNote,
+        notes: orderNote, // ✅ Pass order notes (order_description)
+        applyTax: taxEnabled
+      }),
     [checkout, cart, selectedCustomer, customCustomerName, orderType, tableNumber, orderNote, taxEnabled],
   );
 
@@ -279,20 +305,43 @@ export default function PointOfSale() {
     if (cartIsEmpty) return;
     try {
       const transaction = await handleCheckout(method, cashReceived, change);
-      setCart([]); setSelectedCustomer(undefined); setCustomCustomerName('');
-      setTableNumber(''); setOrderNote(''); setPanel('cart');
-      setPaymentModalOpen(false); setReceiptTransaction(transaction);
+      setCart([]);
+      setSelectedCustomer(undefined);
+      setCustomCustomerName('');
+      setTableNumber('');
+      setOrderNote('');
+      setPanel('cart');
+      setPaymentModalOpen(false);
+      setCheckoutDetailsFormOpen(false);
+      setReceiptTransaction(transaction);
+      await refreshShift();
     } catch (error) {
       const err = error as unknown;
       if (err instanceof ApiError) {
-        if (err.status === 409 || err.code === 'INSUFFICIENT_STOCK') { alert('Stok tidak cukup. Cek stok lalu coba lagi.'); return; }
-        alert(`Checkout gagal: ${err.message}`); return;
+        if (err.status === 409 || err.code === 'INSUFFICIENT_STOCK') {
+          alert('Stok tidak cukup. Cek stok lalu coba lagi.');
+          return;
+        }
+        alert(`Checkout gagal: ${err.message}`);
+        return;
       }
       alert(`Checkout failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
-  const quickPayCart = () => { if (!canPay) return; setPanel('cart'); setPaymentModalOpen(true); };
+  // ✅ Handler untuk checkout details form
+  const handleCheckoutDetailsSubmit = () => {
+    if (blockCheckoutForShift()) return;
+    setCheckoutDetailsFormOpen(false);
+    setPaymentModalOpen(true);
+  };
+
+  const quickPayCart = () => {
+    if (!canPay) return;
+    if (blockCheckoutForShift()) return;
+    setPanel('cart');
+    setPaymentModalOpen(true);
+  };
 
   // ── Misc ─────────────────────────────────────────────────────────────────────
   const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
@@ -337,6 +386,27 @@ export default function PointOfSale() {
       <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* Header */}
         <div className="flex-shrink-0 space-y-3 mb-4">
+          {cashierNeedsShift && (
+            <div
+              className={`rounded-2xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 ${
+                isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'
+              }`}
+            >
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-bold ${isDark ? 'text-amber-200' : 'text-amber-900'}`}>Shift belum dibuka</p>
+                <p className={`text-xs mt-0.5 ${isDark ? 'text-stone-400' : 'text-amber-900/80'}`}>
+                  Jelajahi menu seperti biasa. Saat Anda mengeklik pembayaran, sistem akan meminta membuka shift terlebih dahulu.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/cashier/shift')}
+                className="shrink-0 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500"
+              >
+                Buka halaman shift
+              </button>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <h1 className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-800'}`}>
               Menu <span className="text-amber-500">Explorer</span>
@@ -426,7 +496,7 @@ export default function PointOfSale() {
                 {cart.length} Item{cart.length !== 1 ? 's' : ''}
               </span>
               <span className={`font-black text-sm ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                {format(displayTotal)}
+                {format(quote.grandTotal)}
               </span>
             </div>
           )}
@@ -546,7 +616,7 @@ export default function PointOfSale() {
                                 )}
                               </div>
                               <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                {itemName}
+                                {itemName} {item.description && <span className="font-normal italic opacity-75">- {item.description}</span>}
                               </p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 {isPromoItem && (
@@ -613,14 +683,14 @@ export default function PointOfSale() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>Subtotal</span>
-                      <span className={`font-bold ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>{format(subtotal)}</span>
+                      <span className={`font-bold ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>{format(quote.subtotal)}</span>
                     </div>
 
                     {/* Tax toggle row */}
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
-                          Pajak ({(effectiveTaxRate * 100).toFixed(0)}%)
+                          Pajak ({quote.taxRate || 0}%)
                         </span>
                         <button
                           onClick={() => setTaxEnabled(t => !t)}
@@ -631,13 +701,13 @@ export default function PointOfSale() {
                         </button>
                       </div>
                       <span className={`font-bold ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-gray-700') : (isDark ? 'text-stone-700 line-through' : 'text-stone-300 line-through')}`}>
-                        {format(displayTax)}
+                        {format(quote.tax)}
                       </span>
                     </div>
 
                     <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
                       <span className={`font-black text-sm uppercase ${isDark ? 'text-white' : 'text-gray-800'}`}>Total</span>
-                      <span className="font-black text-lg text-amber-500">{format(displayTotal)}</span>
+                      <span className="font-black text-lg text-amber-500">{format(quote.grandTotal)}</span>
                     </div>
                   </div>
                 )}
@@ -648,7 +718,7 @@ export default function PointOfSale() {
                   <button
                     onClick={quickPayCart}
                     disabled={!canPay}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm uppercase tracking-wide transition-all ${canPay
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm uppercase tracking-wide transition-opacity transform duration-200 ${canPay
                       ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:opacity-90 active:scale-[0.98]'
                       : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
                       }`}
@@ -659,7 +729,11 @@ export default function PointOfSale() {
 
                   {/* Checkout detail */}
                   <button
-                    onClick={() => { if (!cartIsEmpty) setPanel('checkout'); }}
+                    onClick={() => {
+                      if (!cartIsEmpty) {
+                        setCheckoutDetailsFormOpen(true);
+                      }
+                    }}
                     disabled={cartIsEmpty}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm uppercase tracking-wide border transition-all ${cartIsEmpty
                       ? isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
@@ -786,11 +860,14 @@ export default function PointOfSale() {
                   <div className={`pt-1.5 mt-1.5 border-t space-y-1 ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
                     <div className="flex justify-between text-xs">
                       <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>Subtotal</span>
-                      <span className={isDark ? 'text-stone-300' : 'text-gray-600'}>{format(subtotal)}</span>
+                      <span className={isDark ? 'text-stone-300' : 'text-gray-600'}>{format(quote.subtotal)}</span>
                     </div>
+                    
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5">
-                        <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>Pajak ({(effectiveTaxRate * 100).toFixed(0)}%)</span>
+                        <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                          {quote.taxLabel || 'Pajak'} ({quote.taxRate || 0}%)
+                        </span>
                         <button
                           onClick={() => setTaxEnabled(t => !t)}
                           className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${taxEnabled ? 'bg-amber-500' : isDark ? 'bg-stone-800' : 'bg-gray-300'}`}
@@ -799,12 +876,22 @@ export default function PointOfSale() {
                         </button>
                       </div>
                       <span className={taxEnabled ? (isDark ? 'text-stone-300' : 'text-gray-600') : (isDark ? 'text-stone-800 line-through' : 'text-stone-300 line-through')}>
-                        {format(displayTax)}
+                        {format(quote.tax)}
                       </span>
                     </div>
-                    <div className="flex justify-between font-black text-sm pt-1">
+
+                    {quote.serviceCharge > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                          {quote.serviceChargeLabel || 'Service'} ({quote.serviceChargeRate || 0}%)
+                        </span>
+                        <span className={isDark ? 'text-stone-300' : 'text-gray-600'}>{format(quote.serviceCharge)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between font-black text-sm pt-1 border-t border-dashed mt-1 dark:border-stone-800">
                       <span className={isDark ? 'text-white' : 'text-gray-800'}>Total</span>
-                      <span className="text-amber-500">{format(displayTotal)}</span>
+                      <span className="text-amber-500">{format(quote.grandTotal)}</span>
                     </div>
                   </div>
                 </div>
@@ -820,9 +907,12 @@ export default function PointOfSale() {
                   Batal
                 </button>
                 <button
-                  onClick={() => setPaymentModalOpen(true)}
+                  onClick={() => {
+                    if (blockCheckoutForShift()) return;
+                    setPaymentModalOpen(true);
+                  }}
                   disabled={!canPay}
-                  className={`flex-2 flex-[2] flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm text-white uppercase tracking-wide transition-all ${canPay
+                  className={`flex-2 flex-[2] flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm text-white uppercase tracking-wide transition-opacity transform duration-200 ${canPay
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20 hover:opacity-90 active:scale-[0.98]'
                     : 'bg-gray-400 cursor-not-allowed'
                     }`}
@@ -964,8 +1054,8 @@ export default function PointOfSale() {
               <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
                 <button
                   onClick={quickPayManualItem}
-                  disabled={!manualItemName.trim() || !manualItemPrice}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm transition-all ${manualItemName.trim() && manualItemPrice
+                  disabled={!manualItemName.trim() || !manualItemPrice || isPaymentModalOpen}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm transition-opacity duration-200 transform ${manualItemName.trim() && manualItemPrice
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 hover:opacity-90 active:scale-[0.98]'
                     : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
                     }`}
@@ -975,7 +1065,7 @@ export default function PointOfSale() {
                 <button
                   onClick={addManualItemToCart}
                   disabled={!manualItemName.trim() || !manualItemPrice}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm border transition-all ${manualItemName.trim() && manualItemPrice
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm border transition-colors duration-200 ${manualItemName.trim() && manualItemPrice
                     ? isDark
                       ? 'border-stone-700 text-stone-200 hover:border-amber-500/50 hover:text-amber-400'
                       : 'border-gray-300 text-gray-700 hover:border-amber-400 hover:text-amber-700'
@@ -991,18 +1081,58 @@ export default function PointOfSale() {
       </div>
 
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
-      {editingItemIndex !== null && editingProduct && (
-        <ProductDetailModal
-          product={editingProduct}
+      {/* Cart Item Edit Modal */}
+      {editingItemIndex !== null && cart[editingItemIndex] && (
+        <CartItemEditModal
           item={cart[editingItemIndex]}
+          itemIndex={editingItemIndex}
+          onSave={(updatedItem) => {
+            setCart(prev => {
+              const newCart = [...prev];
+              newCart[editingItemIndex] = updatedItem;
+              return newCart;
+            });
+            setEditingItemIndex(null);
+          }}
+          onRemove={() => {
+            setCart(prev => prev.filter((_, i) => i !== editingItemIndex));
+            setEditingItemIndex(null);
+          }}
           onClose={() => setEditingItemIndex(null)}
-          onSave={handleUpdateCartItem}
+        />
+      )}
+
+      {/* Checkout Details Form */}
+      {isCheckoutDetailsFormOpen && (
+        <CheckoutDetailsForm
+          customerName={customCustomerName}
+          tableNumber={tableNumber}
+          orderDescription={orderNote}
+          orderType={orderType}
+          onCustomerNameChange={setCustomCustomerName}
+          onTableNumberChange={setTableNumber}
+          onOrderDescriptionChange={setOrderNote}
+          onClose={() => setCheckoutDetailsFormOpen(false)}
+          onSubmit={handleCheckoutDetailsSubmit}
+        />
+      )}
+
+
+
+      {shiftGateOpen && (
+        <ShiftOpenModal
+          onSuccess={() => {
+            setShiftGateOpen(false);
+            void refreshShift();
+            setCheckoutDetailsFormOpen(true);
+          }}
+          onCancel={() => setShiftGateOpen(false)}
         />
       )}
 
       {isPaymentModalOpen && (
         <PaymentModal
-          total={displayTotal}
+          total={quote.grandTotal}
           onClose={() => setPaymentModalOpen(false)}
           onConfirm={handlePaymentSuccess}
         />

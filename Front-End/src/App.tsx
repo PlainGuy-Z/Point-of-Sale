@@ -1,5 +1,5 @@
 // src/App.tsx — FIXED
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -7,6 +7,7 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppProvider } from './contexts/AppContext';
 import { ShiftProvider } from './contexts/ShiftContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Auth Pages
@@ -30,17 +31,26 @@ const CashierSettings = lazy(() => import('./pages/Settings/CashierSettings'));
 const ProductManagement = lazy(() => import('./pages/Operation/ProductManagement'));
 const ShiftReport = lazy(() => import('./pages/Shifts/index'));
 const ShiftDetail = lazy(() => import('./pages/Shifts/detail'));
+const CashierShiftHub = lazy(() => import('./pages/Shifts/CashierShiftHub'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const CashierHistory = lazy(() => import('./pages/TransactionHistory/CashierHistory'));
+const OwnerHistory = lazy(() => import('./pages/TransactionHistory/OwnerHistory'));
 
 interface RoleRouteProps {
   allowedRoles: ('owner' | 'cashier')[];
-  children: React.ReactNode;
+  children: ReactNode;
+  /** Where to send users whose role is not allowed (e.g. cashier → /pos, owner → /dashboard). */
   redirectTo?: string;
 }
 
-function RoleRoute({ allowedRoles, children, redirectTo = '/pos' }: RoleRouteProps) {
+function RoleRoute({ allowedRoles, children, redirectTo }: RoleRouteProps) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" />;
-  if (!allowedRoles.includes(user.role)) return <Navigate to={redirectTo} />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!allowedRoles.includes(user.role)) {
+    const fallback =
+      redirectTo ?? (user.role === 'owner' ? '/dashboard' : '/pos');
+    return <Navigate to={fallback} replace />;
+  }
   return <>{children}</>;
 }
 
@@ -57,6 +67,13 @@ function RoleBasedSettings() {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Marketing / SaaS landing (guests). Logged-in users are redirected inside LandingPage. */}
+      <Route path="/" element={
+        <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
+          <LandingPage />
+        </Suspense>
+      } />
+
       {/* Public routes */}
       <Route path="/login" element={
         <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
@@ -69,17 +86,17 @@ function AppRoutes() {
         </Suspense>
       } />
 
-      <Route path="/welcome" element={
-        <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
-          <LandingPage />
-        </Suspense>
-      } />
+      <Route path="/welcome" element={<Navigate to="/" replace />} />
 
       {/* Protected routes */}
       <Route element={
         <ProtectedRoute>
           <AppProvider>
-            <Layout />
+            <SettingsProvider>
+              <ShiftProvider>
+                <Layout />
+              </ShiftProvider>
+            </SettingsProvider>
           </AppProvider>
         </ProtectedRoute>
       }>
@@ -95,8 +112,16 @@ function AppRoutes() {
           </Suspense>
         } />
 
+        <Route path="history" element={
+          <RoleRoute allowedRoles={['cashier']} redirectTo="/dashboard">
+            <Suspense fallback={<LoadingSpinner />}>
+              <CashierHistory />
+            </Suspense>
+          </RoleRoute>
+        } />
+
         {/* Dashboard (Role Based) */}
-        <Route path="/" element={
+        <Route path="dashboard" element={
           <RoleRoute allowedRoles={['owner', 'cashier']}>
             <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
               <RoleBasedDashboard />
@@ -104,35 +129,42 @@ function AppRoutes() {
           </RoleRoute>
         } />
         <Route path="cashier-dashboard" element={
-          <RoleRoute allowedRoles={['cashier']}>
+          <RoleRoute allowedRoles={['cashier']} redirectTo="/dashboard">
             <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
               <CashierDashboard />
             </Suspense>
           </RoleRoute>
         } />
+        <Route path="cashier/shift" element={
+          <RoleRoute allowedRoles={['cashier']} redirectTo="/dashboard">
+            <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
+              <CashierShiftHub />
+            </Suspense>
+          </RoleRoute>
+        } />
         <Route path="insights" element={
-          <RoleRoute allowedRoles={['owner']}>
+          <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
             <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
               <BusinessInsights />
             </Suspense>
           </RoleRoute>
         } />
         <Route path="operation/products" element={
-          <RoleRoute allowedRoles={['owner']}>
+          <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
             <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
               <ProductManagement />
             </Suspense>
           </RoleRoute>
         } />
         <Route path="operation/inventory-usage" element={
-          <RoleRoute allowedRoles={['owner']}>
+          <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
             <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
               <InventoryUsage />
             </Suspense>
           </RoleRoute>
         } />
         <Route path="operation/cost-summary" element={
-          <RoleRoute allowedRoles={['owner']}>
+          <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
             <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
               <CostSummary />
             </Suspense>
@@ -140,21 +172,21 @@ function AppRoutes() {
         } />
         <Route path="customers">
           <Route path="members" element={
-            <RoleRoute allowedRoles={['owner']}>
+            <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
               <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
                 <Members />
               </Suspense>
             </RoleRoute>
           } />
           <Route path="visit-history" element={
-            <RoleRoute allowedRoles={['owner']}>
+            <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
               <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
                 <VisitHistory />
               </Suspense>
             </RoleRoute>
           } />
           <Route path="loyalty-insight" element={
-            <RoleRoute allowedRoles={['owner']}>
+            <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
               <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
                 <LoyaltyInsight />
               </Suspense>
@@ -172,20 +204,34 @@ function AppRoutes() {
         {/* Shifts (Owner) */}
         <Route path="shifts">
           <Route index element={
-            <RoleRoute allowedRoles={['owner']}>
+            <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
               <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
                 <ShiftReport />
               </Suspense>
             </RoleRoute>
           } />
           <Route path=":id" element={
-            <RoleRoute allowedRoles={['owner']}>
+            <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
               <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
                 <ShiftDetail />
               </Suspense>
             </RoleRoute>
           } />
         </Route>
+        <Route path="users" element={
+          <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
+            <Suspense fallback={<LoadingSpinner />}>
+              <UserManagement />
+            </Suspense>
+          </RoleRoute>
+        } />
+        <Route path="transactions" element={
+          <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
+            <Suspense fallback={<LoadingSpinner />}>
+              <OwnerHistory />
+            </Suspense>
+          </RoleRoute>
+        } />
       </Route>
 
       {/* Fallback */}
@@ -197,14 +243,10 @@ function AppRoutes() {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>        {/* ✅ AuthProvider di dalam ErrorBoundary tapi di luar Router */}
-        <AppProvider>
-          <ShiftProvider>
-            <Router>
-              <AppRoutes />     {/* ✅ Routes dipisah ke komponen sendiri */}
-            </Router>
-          </ShiftProvider>
-        </AppProvider>
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
       </AuthProvider>
     </ErrorBoundary>
   );

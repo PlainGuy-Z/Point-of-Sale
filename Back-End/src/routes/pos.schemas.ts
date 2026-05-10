@@ -6,6 +6,7 @@ import { z } from 'zod';
  * - Manual/custom item: `productId` starts with "manual-"
  *   - `price` is required (integer)
  *   - `note` will be used as item name (fallback to "Custom Item")
+ *   - `description` optional per-item custom notes (e.g., "Pedas sekali", "Tanpa bawang")
  */
 export const CartLineSchema = z
   .object({
@@ -13,6 +14,7 @@ export const CartLineSchema = z
     quantity: z.coerce.number().int().positive(),
     note: z.string().trim().min(1).optional(),
     modifiers: z.array(z.string().trim().min(1)).optional(),
+    description: z.string().trim().max(200).optional(), // ✅ Per-item description
     price: z.coerce.number().int().nonnegative().optional()
   })
   .superRefine((line, ctx) => {
@@ -40,6 +42,7 @@ export const QuoteRequestSchema = z
     orderType: z.enum(['dine-in', 'take-away']),
     tableNumber: z.string().trim().optional(),
     orderNote: z.string().trim().optional(),
+    notes: z.string().trim().optional(), // ✅ General order notes
     applyTax: z.boolean().optional()
   });
 

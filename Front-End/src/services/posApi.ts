@@ -11,6 +11,7 @@ export interface PosCartLineInput {
   quantity: number;
   note?: string;
   modifiers?: string[];
+  description?: string; // ✅ Per-item custom description
   // Manual/custom items (productId starts with "manual-")
   price?: number;
 }
@@ -22,6 +23,7 @@ export interface CreateTransactionRequest {
   customerName?: string;
   orderType: 'dine-in' | 'take-away';
   tableNumber?: string;
+  notes?: string; // ✅ General order notes (order_description)
   cashReceived?: number;
   orderNote?: string;
   applyTax?: boolean;
@@ -89,7 +91,16 @@ export const posApi = {
    * you can remove this and keep the UI "total" as pending until checkout.
    */
   quote: async (req: Omit<CreateTransactionRequest, 'paymentMethod'>) =>
-    http<{ subtotal: number; tax: number; grandTotal: number; taxRate?: number }>(`/pos/quote`, {
+    http<{ 
+      subtotal: number; 
+      tax: number; 
+      serviceCharge: number;
+      grandTotal: number; 
+      taxRate?: number;
+      taxLabel?: string;
+      serviceChargeRate?: number;
+      serviceChargeLabel?: string;
+    }>(`/pos/quote`, {
       method: 'POST',
       body: JSON.stringify(req),
     }),

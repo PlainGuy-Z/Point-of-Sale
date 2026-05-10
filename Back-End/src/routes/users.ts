@@ -5,169 +5,264 @@ import { pool } from '../db/pool.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { env } from '../env.js';
-import { requireOwner } from '../middleware/requireRole.js';
+import { requireOwner, requireRole } from '../middleware/requireRole.js';
 
 export const usersRouter = Router();
+
+const ADJECTIVES = [
+  'Kopi',
+  'Susu',
+  'Manis',
+  'Dingin',
+  'Panas',
+  'Segar',
+  'Nikmat',
+  'Harmoni',
+  'Hangat',
+  'Premium',
+  'Arabika',
+  'Robusta'
+];
+
+function generateTemporaryPassword(): string {
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]!;
+  const cap = adj.charAt(0).toUpperCase() + adj.slice(1);
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return `${cap}${num}`;
+}
 
 // ── Schemas ──────────────────────────────────────────────────
 
 const CreateUserSchema = z.object({
-  name: z.string().trim().min(2),
+  name: z.string().trim().min(3),
   email: z.string().trim().email(),
   password: z.string().min(8),
   role: z.enum(['cashier'])
 });
 
 const UpdateUserSchema = z.object({
-  name: z.string().trim().min(2).optional(),
+  name: z.string().trim().min(3).optional(),
   email: z.string().trim().email().optional(),
   is_active: z.boolean().optional()
 });
 
-// ── GET /users ──────────────────────────────────────────────
+const SetPinSchema = z.object({
+  pin: z.string().regex(/^\d{4,6}$/, 'PIN harus 4–6 digit angka')
+});
+
+// ── Cashier self-service PIN (register before /:id routes) ───
+
+usersRouter.put(
+  '/me/pin',
+  requireRole('cashier'),
+  validateBody(SetPinSchema),
+  async (req, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof SetPinSchema>;
+      const pinHash = await bcrypt.hash(body.pin, env.BCRYPT_ROUNDS);
+      await pool.query(
+        `UPDATE coffeepos.users SET pin = $1, updated_at = now() WHERE id = $2::uuid`,
+        [pinHash, req.user!.id]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+usersRouter.delete('/me/pin', requireRole('cashier'), async (req, res, next) => {
+  try {
+    await pool.query(
+      `UPDATE coffeepos.users SET pin = NULL, updated_at = now() WHERE id = $1::uuid`,
+      [req.user!.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /users/:id/reset-password ─────────────────────────────
+
+usersRouter.post('/:id/reset-password', requireOwner, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const check = await pool.query(
+      `SELECT id::text FROM coffeepos.users
+       WHERE id = $1::uuid AND shop_id = $2::uuid AND role = 'cashier'`,
+      [id, req.user!.shop_id]
+    );
+    if (check.rowCount === 0) {
+      throw new HttpError(404, 'NOT_FOUND', 'Kasir tidak ditemukan di toko Anda');
+    }
+
+    const temporaryPassword = generateTemporaryPassword();
+    const hash = await bcrypt.hash(temporaryPassword, env.BCRYPT_ROUNDS);
+
+    await pool.query(
+      `UPDATE coffeepos.users SET password_hash = $1, updated_at = now() WHERE id = $2::uuid`,
+      [hash, id]
+    );
+
+    res.json({ temporary_password: temporaryPassword });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── GET /users ────────────────────────────────────────────────
 
 usersRouter.get('/', requireOwner, async (req, res, next) => {
   try {
     const result = await pool.query(
-      `SELECT id::text, name, email, role, is_active, created_at
+      `SELECT
+         id::text,
+         name,
+         email,
+         role,
+         (pin IS NOT NULL AND btrim(pin) <> '') AS pin,
+         is_active,
+         created_at
        FROM coffeepos.users
        WHERE shop_id = $1::uuid AND role = 'cashier'
        ORDER BY created_at DESC`,
       [req.user!.shop_id]
     );
 
-    res.json({ users: result.rows });
+    res.json(result.rows);
   } catch (err) {
     next(err);
   }
 });
 
-// ── POST /users ─────────────────────────────────────────────
+// ── POST /users ───────────────────────────────────────────────
 
 usersRouter.post('/', requireOwner, validateBody(CreateUserSchema), async (req, res, next) => {
   try {
     const body = req.body as z.infer<typeof CreateUserSchema>;
 
-    // Check email uniqueness
-    const emailCheck = await pool.query(
-      `SELECT id FROM coffeepos.users WHERE email = $1`,
-      [body.email]
-    );
+    const emailCheck = await pool.query(`SELECT id FROM coffeepos.users WHERE email = $1`, [
+      body.email
+    ]);
     if (emailCheck.rowCount! > 0) {
-      throw new HttpError(409, 'EMAIL_TAKEN', 'Email is already registered');
+      throw new HttpError(409, 'EMAIL_TAKEN', 'Email sudah terdaftar');
     }
 
     const passwordHash = await bcrypt.hash(body.password, env.BCRYPT_ROUNDS);
 
     const result = await pool.query(
-      `INSERT INTO coffeepos.users (shop_id, email, password_hash, name, role)
-       VALUES ($1::uuid, $2, $3, $4, $5)
-       RETURNING id::text, name, email, role, is_active, created_at`,
+      `INSERT INTO coffeepos.users (shop_id, email, password_hash, name, role, is_active)
+       VALUES ($1::uuid, $2, $3, $4, $5, true)
+       RETURNING id::text, name, email, role,
+         (pin IS NOT NULL AND btrim(pin) <> '') AS pin,
+         is_active, created_at`,
       [req.user!.shop_id, body.email, passwordHash, body.name, body.role]
     );
 
-    res.status(201).json({ user: result.rows[0] });
+    res.status(201).json(result.rows[0]);
   } catch (err) {
     next(err);
   }
 });
 
-// ── PUT /users/:id ──────────────────────────────────────────
+// ── PUT /users/:id ────────────────────────────────────────────
 
 usersRouter.put('/:id', requireOwner, validateBody(UpdateUserSchema), async (req, res, next) => {
   try {
     const { id } = req.params;
     const body = req.body as z.infer<typeof UpdateUserSchema>;
 
-    // Verify user belongs to same shop
     const check = await pool.query(
-      `SELECT id FROM coffeepos.users WHERE id = $1::uuid AND shop_id = $2::uuid`,
+      `SELECT id FROM coffeepos.users
+       WHERE id = $1::uuid AND shop_id = $2::uuid AND role = 'cashier'`,
       [id, req.user!.shop_id]
     );
     if (check.rowCount === 0) {
-      throw new HttpError(404, 'NOT_FOUND', 'User not found in your shop');
+      throw new HttpError(404, 'NOT_FOUND', 'Kasir tidak ditemukan di toko Anda');
     }
 
-    // Build dynamic update
     const sets: string[] = [];
-    const params: unknown[] = [];
-    let idx = 1;
+    const values: unknown[] = [];
+    let p = 1;
 
     if (body.name !== undefined) {
-      sets.push(`name = $${idx++}`);
-      params.push(body.name);
+      sets.push(`name = $${p++}`);
+      values.push(body.name);
     }
     if (body.email !== undefined) {
-      // Check email uniqueness if changing
       const emailCheck = await pool.query(
         `SELECT id FROM coffeepos.users WHERE email = $1 AND id != $2::uuid`,
         [body.email, id]
       );
       if (emailCheck.rowCount! > 0) {
-        throw new HttpError(409, 'EMAIL_TAKEN', 'Email is already registered');
+        throw new HttpError(409, 'EMAIL_TAKEN', 'Email sudah terdaftar');
       }
-      sets.push(`email = $${idx++}`);
-      params.push(body.email);
+      sets.push(`email = $${p++}`);
+      values.push(body.email);
     }
     if (body.is_active !== undefined) {
-      sets.push(`is_active = $${idx++}`);
-      params.push(body.is_active);
+      sets.push(`is_active = $${p++}`);
+      values.push(body.is_active);
     }
 
     if (sets.length === 0) {
-      throw new HttpError(400, 'VALIDATION_ERROR', 'No fields to update');
+      throw new HttpError(400, 'VALIDATION_ERROR', 'Tidak ada field yang diubah');
     }
 
     sets.push(`updated_at = now()`);
-    params.push(id);
-    params.push(req.user!.shop_id);
+    values.push(id);
+    values.push(req.user!.shop_id);
+    const idIdx = p;
+    const shopIdx = p + 1;
 
     const result = await pool.query(
       `UPDATE coffeepos.users
        SET ${sets.join(', ')}
-       WHERE id = $${idx++}::uuid AND shop_id = $${idx++}::uuid
-       RETURNING id::text, name, email, role, is_active, created_at`,
-      params
+       WHERE id = $${idIdx}::uuid AND shop_id = $${shopIdx}::uuid AND role = 'cashier'
+       RETURNING id::text, name, email, role,
+         (pin IS NOT NULL AND btrim(pin) <> '') AS pin,
+         is_active, created_at`,
+      values
     );
 
     if (result.rowCount === 0) {
-      throw new HttpError(404, 'NOT_FOUND', 'User not found');
+      throw new HttpError(404, 'NOT_FOUND', 'Kasir tidak ditemukan');
     }
 
-    res.json({ user: result.rows[0] });
+    res.json(result.rows[0]);
   } catch (err) {
     next(err);
   }
 });
 
-// ── DELETE /users/:id (soft delete) ─────────────────────────
+// ── DELETE /users/:id (soft delete) ───────────────────────────
 
 usersRouter.delete('/:id', requireOwner, async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Cannot delete yourself
     if (id === req.user!.id) {
-      throw new HttpError(400, 'VALIDATION_ERROR', 'Cannot deactivate your own account');
+      throw new HttpError(400, 'VALIDATION_ERROR', 'Tidak dapat menonaktifkan akun sendiri');
     }
 
-    // Verify user belongs to same shop
     const check = await pool.query(
-      `SELECT id FROM coffeepos.users WHERE id = $1::uuid AND shop_id = $2::uuid`,
+      `SELECT id FROM coffeepos.users
+       WHERE id = $1::uuid AND shop_id = $2::uuid AND role = 'cashier'`,
       [id, req.user!.shop_id]
     );
     if (check.rowCount === 0) {
-      throw new HttpError(404, 'NOT_FOUND', 'User not found in your shop');
+      throw new HttpError(404, 'NOT_FOUND', 'Kasir tidak ditemukan di toko Anda');
     }
 
-    // Soft delete — preserve transaction history
     await pool.query(
       `UPDATE coffeepos.users SET is_active = false, updated_at = now()
        WHERE id = $1::uuid AND shop_id = $2::uuid`,
       [id, req.user!.shop_id]
     );
 
-    res.json({ message: 'User deactivated successfully' });
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }

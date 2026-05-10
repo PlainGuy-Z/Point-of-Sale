@@ -8,11 +8,24 @@ import { CreateTransactionRequestSchema, QuoteRequestSchema } from './pos.schema
 import { buildAppState } from './app.js';
 import crypto from 'node:crypto';
 
-const TAX_RATE_BPS = 1100; // 11.00% in basis points
-
-function calcTax(subtotal: number): number {
-  // integer math: round half up
-  return Math.round((subtotal * TAX_RATE_BPS) / 10_000);
+async function getShopSettings(shopId: string) {
+  const { rows } = await pool.query(
+    `SELECT tax_enabled, tax_rate, tax_inclusive,
+            service_charge_enabled, service_charge_rate,
+            tax_label, service_charge_label
+     FROM coffeepos.shop_settings
+     WHERE shop_id = $1`,
+    [shopId]
+  );
+  return rows[0] ?? {
+    tax_enabled: true,
+    tax_rate: 11,
+    tax_inclusive: false,
+    service_charge_enabled: false,
+    service_charge_rate: 0,
+    tax_label: 'PPN',
+    service_charge_label: 'Service'
+  };
 }
 
 export const posRouter = Router();
@@ -67,10 +80,24 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
       subtotal += price * line.quantity;
     }
 
-    const tax = body.applyTax === false ? 0 : calcTax(subtotal);
-    const grandTotal = subtotal + tax;
+    const shopSettings = await getShopSettings(shopId);
+    const taxRateConfig = shopSettings.tax_enabled ? Number(shopSettings.tax_rate) / 100 : 0;
+    const serviceRateConfig = shopSettings.service_charge_enabled ? Number(shopSettings.service_charge_rate) / 100 : 0;
 
-    res.json({ subtotal, tax, grandTotal, taxRate: 0.11 });
+    const tax = body.applyTax === false ? 0 : Math.round(subtotal * taxRateConfig);
+    const serviceCharge = Math.round(subtotal * serviceRateConfig);
+    const grandTotal = subtotal + tax + serviceCharge;
+
+    res.json({ 
+      subtotal, 
+      tax, 
+      serviceCharge, 
+      grandTotal, 
+      taxRate: Number(shopSettings.tax_rate),
+      taxLabel: shopSettings.tax_label ?? 'PPN',
+      serviceChargeRate: Number(shopSettings.service_charge_rate),
+      serviceChargeLabel: shopSettings.service_charge_label ?? 'Service'
+    });
   } catch (err) {
     console.error('[POS] Quote failed:', err);
     next(err);
@@ -183,8 +210,8 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
       let costTotal = 0;
 
       const normalizedItems: Array<
-        | { kind: 'real'; productId: string; name: string; price: number; cost: number; quantity: number }
-        | { kind: 'manual'; manualId: string; name: string; price: number; quantity: number }
+        | { kind: 'real'; productId: string; name: string; price: number; cost: number; quantity: number; description?: string }
+        | { kind: 'manual'; manualId: string; name: string; price: number; quantity: number; description?: string }
       > = [];
 
       for (const line of realLines) {
@@ -197,7 +224,8 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
           name: p.name,
           price: p.price,
           cost: p.cost,
-          quantity: line.quantity
+          quantity: line.quantity,
+          description: line.description // ✅ Include description
         });
       }
 
@@ -211,29 +239,55 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
           manualId: line.productId,
           name,
           price,
-          quantity: line.quantity
+          quantity: line.quantity,
+          description: line.description // ✅ Include description
         });
       }
 
-      const tax = body.applyTax === false ? 0 : calcTax(subtotal);
-      const grandTotal = subtotal + tax;
+      const shopSettings = await getShopSettings(shopId);
+      const taxRateConfig = shopSettings.tax_enabled ? Number(shopSettings.tax_rate) / 100 : 0;
+      const serviceRateConfig = shopSettings.service_charge_enabled ? Number(shopSettings.service_charge_rate) / 100 : 0;
+
+      const tax = body.applyTax === false ? 0 : Math.round(subtotal * taxRateConfig);
+      const serviceCharge = Math.round(subtotal * serviceRateConfig);
+      const grandTotal = subtotal + tax + serviceCharge;
       const profit = subtotal - costTotal;
 
+      const cashReceived =
+        body.paymentMethod === 'cash' && body.cashReceived != null ? Math.round(body.cashReceived) : null;
+      const changeAmount =
+        cashReceived != null ? Math.max(0, cashReceived - grandTotal) : null;
+
+      const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const customerId =
+        typeof body.customerId === 'string' && uuidRe.test(body.customerId.trim()) ? body.customerId.trim() : null;
+
+      const txId = crypto.randomUUID();
       const tx = await client.query(
         `INSERT INTO coffeepos.transactions
-           (id, subtotal, tax, grand_total, customer_name, table_number, payment_method, status, shop_id, cashier_id, cashier_name, shift_id)
+           (id, subtotal, tax, service_charge, grand_total, discount_amount, customer_name, customer_id,
+            table_number, notes, payment_method, cash_received, change_amount, order_type,
+            status, shop_id, cashier_id, cashier_name, shift_id)
          VALUES
-           ($1::uuid, $2, $3, $4, $5, $6, $7, 'paid', $8::uuid, $9::uuid, $10, $11::uuid)
+           ($1::uuid, $2, $3, $4::int, $5, $6::int, $7, $8::uuid, $9, $10, $11, $12, $13, $14::text,
+            'completed', $15::uuid, $16::uuid, $17, $18::uuid)
          RETURNING
-           id::text, subtotal, tax, grand_total, customer_name, table_number, payment_method, status, created_at`,
+           id::text, subtotal, tax, service_charge, grand_total, customer_name, table_number, notes, payment_method, status, created_at`,
         [
-          crypto.randomUUID(),
+          txId,
           subtotal,
           tax,
+          serviceCharge,
           grandTotal,
+          0, // discount_amount
           body.customerName ?? null,
+          customerId,
           body.tableNumber ?? null,
+          body.notes ?? null, // ✅ Include notes (order_description)
           body.paymentMethod,
+          cashReceived,
+          changeAmount,
+          body.orderType,
           shopId,
           cashierId,
           cashierName,
@@ -249,21 +303,21 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
       for (const item of normalizedItems) {
         const itemId = crypto.randomUUID();
         rowsSql.push(
-          `($${idx++}::uuid,$${idx++}::uuid,$${idx++}::uuid,$${idx++},$${idx++},$${idx++}::int,$${idx++}::boolean)`
+          `($${idx++}::uuid,$${idx++}::uuid,$${idx++}::uuid,$${idx++},$${idx++},$${idx++}::int,$${idx++}::text,$${idx++}::boolean)`
         );
         if (item.kind === 'real') {
-          values.push(itemId, transaction.id, item.productId, item.name, item.price, item.quantity, false);
+          values.push(itemId, transaction.id, item.productId, item.name, item.price, item.quantity, item.description ?? null, false);
         } else {
-          values.push(itemId, transaction.id, null, item.name, item.price, item.quantity, true);
+          values.push(itemId, transaction.id, null, item.name, item.price, item.quantity, item.description ?? null, true);
         }
       }
 
       const items = await client.query(
         `INSERT INTO coffeepos.transaction_items
-           (id, transaction_id, product_id, name, price, quantity, is_custom)
+           (id, transaction_id, product_id, name, price, quantity, description, is_custom)
          VALUES
            ${rowsSql.join(',')}
-         RETURNING id::text, transaction_id::text, product_id::text, name, price, quantity, is_custom`,
+         RETURNING id::text, transaction_id::text, product_id::text, name, price, quantity, description, is_custom`,
         values
       );
 
@@ -274,7 +328,8 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
           productId: r.product_id ?? 'manual',
           quantity: Number(r.quantity),
           price: Number(r.price),
-          note: r.name
+          note: r.name,
+          description: r.description ?? undefined // ✅ Include description
         })),
         total: grandTotal,
         cost: costTotal,
@@ -282,6 +337,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
         paymentMethod: transaction.payment_method,
         customerName: transaction.customer_name ?? undefined,
         tableNumber: transaction.table_number ?? undefined,
+        notes: transaction.notes ?? undefined, // ✅ Include notes
         taxRate: 0.11,
         orderType: body.orderType,
         orderNote: body.orderNote ?? undefined

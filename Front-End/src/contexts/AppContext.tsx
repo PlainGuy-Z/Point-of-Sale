@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import type { Product, Transaction, WasteLog, Customer, BusinessSettings, CheckoutParams, CartItemWithInput } from '../types';
-import { ApiError, appApi } from '../services/appApi';
+import { ApiError, appApi, normalizeAppStateWire, type AppStateWire } from '../services/appApi';
 import { posApi } from '../services/posApi';
 
 interface AppState {
@@ -41,7 +41,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const defaultSettings: BusinessSettings = {
   storeName: 'Coffee Shop',
   address: 'Jl. Utama No. 123',
-  taxRate: 11,
   currency: 'IDR',
   currencyPosition: 'before',
   decimalPlaces: 0,
@@ -139,6 +138,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           quantity: i.quantity,
           note: i.note,
           modifiers: i.modifiers,
+          description: i.description, // ✅ Include description
           ...(i.productId.startsWith('manual-') ? { price: i.price } : {}),
         })),
         paymentMethod: params.paymentMethod,
@@ -148,11 +148,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         tableNumber: params.tableNumber,
         cashReceived: params.cashReceived,
         orderNote: params.orderNote,
+        notes: params.notes, // ✅ Include notes (order_description)
         applyTax: params.applyTax,
       });
 
-      // Update local state with the state returned by backend
-      setState(appState);
+      // Same normalization as GET /app/state (JSON dates → Date) so dashboard metrics stay correct
+      setState(normalizeAppStateWire(appState as AppStateWire));
       return transaction;
     } finally {
       setIsServiceLoading(false);

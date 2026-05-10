@@ -1,845 +1,456 @@
-import { useState } from 'react';
-import { useApp } from '../../contexts/AppContext';
+import React, { useState, useEffect } from 'react';
+import { useSettings, type ShopSettings } from '../../contexts/SettingsContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { 
-  Sun, 
-  Moon, 
-  Save, 
-  Store, 
-  MapPin, 
-  Palette,
-  CheckCircle2,
-  Trash2,
-  Database,
-  Upload,
-  Download,
-  Shield,
-  AlertTriangle,
-  HardDrive,
-  DollarSign,
-  Hash,
+import { useToast } from '../../hooks/useToast';
+import { authApi } from '../../services/authApi';
+import { ApiError } from '../../services/appApi';
+import {
+  Store,
   Percent,
-  Type,
-  Settings as SettingsIcon
+  Receipt,
+  Lock,
+  Save,
+  Loader2,
+  Clock,
+  Phone,
+  MapPin,
+  Image as ImageIcon,
+  CheckCircle2,
+  AlertCircle,
+  Smartphone,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Pencil,
+  Mail,
+  User as UserIcon,
+  Printer,
+  FileText
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import type { BusinessSettings } from '../../types';
+
+type TabType = 'store' | 'tax' | 'receipt' | 'security';
 
 export default function Settings() {
-  const { settings, updateSettings, createBackup, restoreBackup, getStorageInfo } = useApp();
-  const { theme, toggleTheme } = useTheme();
+  const { settings, isLoading, updateSettings } = useSettings();
+  const { user } = useAuth();
+  const { theme } = useTheme();
+  const { showToast, ToastComponent } = useToast();
   const isDark = theme === 'dark';
-  const [backupFile, setBackupFile] = useState<File | null>(null);
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [restoreMessage, setRestoreMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
-  // Helper functions untuk type safety
-  const parseCurrencyPosition = (value: string | null): 'before' | 'after' | 'before-space' | 'after-space' => {
-    const validPositions = ['before', 'after', 'before-space', 'after-space'];
-    return (validPositions.includes(value || '') ? value as any : 'before');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const hash = window.location.hash.replace('#', '');
+    return (['store', 'tax', 'receipt', 'security'] as TabType[]).includes(hash as TabType) 
+      ? (hash as TabType) 
+      : 'store';
+  });
+
+  const [formData, setFormData] = useState<Partial<ShopSettings>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Security states
+  const [profileName, setProfileName] = useState(user?.name || '');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPw, setShowPw] = useState({ current: false, new: false, confirm: false });
+  const [pwSaving, setPwSaving] = useState(false);
+
+  useEffect(() => {
+    if (settings) {
+      setFormData(settings);
+    }
+  }, [settings]);
+
+  useEffect(() => {
+    window.location.hash = activeTab;
+  }, [activeTab]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    setFormData(prev => ({ ...prev, [name]: val }));
   };
 
-  const parseThousandsSeparator = (value: string | null): 'comma' | 'dot' | 'space' | 'none' => {
-    const validSeparators = ['comma', 'dot', 'space', 'none'];
-    return (validSeparators.includes(value || '') ? value as any : 'comma');
-  };
-
-  const parseDecimalPlaces = (value: string | null): 0 | 2 => {
-    const num = Number(value);
-    return num === 2 ? 2 : 0;
-  };
-
-  // Handle save business profile dengan format mata uang
-  const handleSaveSettings = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
-    const newSettings: BusinessSettings = {
-      ...settings,
-      storeName: (formData.get('storeName') as string) || settings.storeName,
-      address: (formData.get('address') as string) || settings.address,
-      taxRate: Number(formData.get('taxRate')) || settings.taxRate,
-      currency: (formData.get('currency') as string) || settings.currency || 'IDR',
-      currencyPosition: parseCurrencyPosition(formData.get('currencyPosition') as string),
-      decimalPlaces: parseDecimalPlaces(formData.get('decimalPlaces') as string),
-      thousandsSeparator: parseThousandsSeparator(formData.get('thousandsSeparator') as string),
-      receiptFooter: (formData.get('receiptFooter') as string) || settings.receiptFooter
-    };
-    
-    updateSettings(newSettings);
-    
-    // Show success message
-    setRestoreMessage({
-      type: 'success',
-      text: 'Business profile updated successfully!'
-    });
-    
-    setTimeout(() => setRestoreMessage(null), 3000);
-  };
-
-  // Handle backup creation
-  const handleBackup = () => {
-    const success = createBackup();
-    if (success) {
-      setRestoreMessage({
-        type: 'success',
-        text: 'Backup created successfully! File is downloading...'
-      });
-    } else {
-      setRestoreMessage({
-        type: 'error',
-        text: 'Failed to create backup. Please try again.'
-      });
-    }
-    setTimeout(() => setRestoreMessage(null), 3000);
-  };
-
-  // Handle restore from backup
-  const handleRestore = async () => {
-    if (!backupFile) {
-      setRestoreMessage({
-        type: 'error',
-        text: 'Please select a backup file first'
-      });
-      setTimeout(() => setRestoreMessage(null), 3000);
-      return;
-    }
-
-    if (!window.confirm(
-      '⚠️ RESTORE BACKUP\n\n' +
-      'This will replace ALL current data with backup data.\n\n' +
-      'Current data will be lost forever.\n\n' +
-      'Are you sure you want to continue?'
-    )) {
-      return;
-    }
-
-    setIsRestoring(true);
-    setRestoreMessage(null);
-    
+    setIsSaving(true);
     try {
-      const result = await restoreBackup(backupFile);
-      if (result.success) {
-        setRestoreMessage({
-          type: 'success',
-          text: `Backup restored successfully!\n\nStats:\n• Products: ${result.stats?.products || 0}\n• Customers: ${result.stats?.customers || 0}\n• Transactions: ${result.stats?.transactions || 0}`
-        });
-        
-        // Auto refresh after 3 seconds
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-      } else {
-        setRestoreMessage({
-          type: 'error',
-          text: `Restore failed: ${result.message}`
-        });
-      }
-    } catch (error) {
-      setRestoreMessage({
-        type: 'error',
-        text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
+      await updateSettings(formData);
+      showToast('Pengaturan berhasil disimpan!', 'success');
+    } catch (err) {
+      showToast('Gagal menyimpan pengaturan', 'error');
     } finally {
-      setIsRestoring(false);
-      setBackupFile(null);
-      setTimeout(() => setRestoreMessage(null), 5000);
+      setIsSaving(false);
     }
   };
 
-  // Get storage info
-  const storageInfo = getStorageInfo();
-
-  // Helper untuk preview format mata uang
-  const getCurrencyPreview = () => {
-    const sampleAmount = 1234567.89;
-    const symbols: Record<string, string> = {
-      'IDR': 'IDR', 'USD': 'USD', 'EUR': 'EUR', 'SGD': 'SGD',
-      'GBP': '£', 'JPY': '¥', 'AUD': 'A$', 'CAD': 'C$',
-      'CHF': 'CHF', 'CNY': '¥', 'KRW': '₩', 'MYR': 'RM',
-      'THB': '฿', 'VND': '₫'
-    };
-    
-    const safeCurrency = settings.currency || 'IDR';
-    const safeDecimalPlaces = settings.decimalPlaces ?? 0;
-    const safeThousandsSeparator = settings.thousandsSeparator || 'comma';
-    const safeCurrencyPosition = settings.currencyPosition || 'before';
-    
-    let formatted = sampleAmount.toFixed(safeDecimalPlaces);
-    
-    // Apply thousands separator
-    if (safeThousandsSeparator !== 'none') {
-      const parts = formatted.split('.');
-      const integerPart = parts[0];
-      const decimalPart = parts[1] || '';
-      
-      let separator = ',';
-      if (safeThousandsSeparator === 'dot') separator = '.';
-      if (safeThousandsSeparator === 'space') separator = ' ';
-      
-      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
-      formatted = decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
-    }
-    
-    const symbol = symbols[safeCurrency] || safeCurrency;
-    
-    switch (safeCurrencyPosition) {
-      case 'before': return `${symbol}${formatted}`;
-      case 'after': return `${formatted}${symbol}`;
-      case 'before-space': return `${symbol} ${formatted}`;
-      case 'after-space': return `${formatted} ${symbol}`;
-      default: return `${symbol}${formatted}`;
+  const handleProfileSave = async () => {
+    if (!profileName.trim()) return;
+    setProfileSaving(true);
+    try {
+      await authApi.updateProfile({ name: profileName });
+      showToast('Profil berhasil diperbarui!', 'success');
+    } catch (err) {
+      showToast('Gagal memperbarui profil', 'error');
+    } finally {
+      setProfileSaving(false);
     }
   };
 
-  // Helper untuk format summary
-  const formatCurrencyPositionSummary = (): string => {
-    switch(settings.currencyPosition || 'before') {
-      case 'before': return 'Before';
-      case 'after': return 'After';
-      case 'before-space': return 'Before (space)';
-      case 'after-space': return 'After (space)';
-      default: return 'Before';
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      showToast('Konfirmasi password tidak cocok', 'error');
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await authApi.changePassword({ currentPassword, newPassword });
+      showToast('Password berhasil diubah!', 'success');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Gagal mengubah password';
+      showToast(msg, 'error');
+    } finally {
+      setPwSaving(false);
     }
   };
 
-  const formatThousandsSeparatorSummary = (): string => {
-    switch(settings.thousandsSeparator || 'comma') {
-      case 'comma': return 'Comma';
-      case 'dot': return 'Dot';
-      case 'space': return 'Space';
-      case 'none': return 'None';
-      default: return 'Comma';
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+
+  const inputClass = `w-full rounded-2xl border px-4 py-3 outline-none transition focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 ${
+    isDark ? 'bg-stone-900 border-stone-800 text-white placeholder:text-stone-600' : 'bg-white border-gray-200 text-gray-900'
+  }`;
+
+  const labelClass = `block text-sm font-semibold mb-2 ${isDark ? 'text-stone-400' : 'text-stone-500'}`;
+
+  const Card = ({ children, title, subtitle, icon: Icon }: { children: React.ReactNode, title: string, subtitle?: string, icon: any }) => (
+    <div className={`rounded-3xl border shadow-sm overflow-hidden ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
+      <div className={`px-6 py-5 border-b flex items-center gap-4 ${isDark ? 'border-stone-800 bg-stone-900/50' : 'border-gray-100 bg-gray-50/50'}`}>
+        <div className={`p-2.5 rounded-2xl ${isDark ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
+          {subtitle && <p className="text-xs text-stone-500 mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      <div className="p-6">{children}</div>
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Notification Message */}
-      {restoreMessage && (
-        <div className={`mb-6 p-4 rounded-2xl border ${
-          restoreMessage.type === 'success'
-            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-            : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-        }`}>
-          <div className="flex items-start gap-3">
-            {restoreMessage.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
-            ) : (
-              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
-            )}
-            <div className="flex-1">
-              <p className={`font-medium ${
-                restoreMessage.type === 'success'
-                  ? 'text-green-800 dark:text-green-300'
-                  : 'text-red-800 dark:text-red-300'
-              }`}>
-                {restoreMessage.text}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Application Settings
-        </h1>
-        <p className="text-gray-600 dark:text-stone-400">
-          Manage your business identity, tax rules, appearance preferences, and data
-        </p>
+    <div className="max-w-6xl mx-auto pb-20">
+      {ToastComponent}
+      
+      <div className="mb-10">
+        <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">Settings</h1>
+        <p className="text-stone-500 dark:text-stone-400 mt-2 font-medium">Manage your shop configuration and security preferences.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* LEFT COLUMN: Business Identity Form */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Business Profile Card */}
-          <form onSubmit={handleSaveSettings} className={`rounded-2xl border shadow-lg ${
-            isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'
-          }`}>
-            <div className="p-6 border-b border-stone-800/50 dark:border-stone-800">
-              <h2 className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
-                <Store className="w-5 h-5 text-amber-500" />
-                Business Profile
-              </h2>
-              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-                Your shop identity and tax configuration
-              </p>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Shop Name */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
-                  Shop Name
-                </label>
-                <input 
-                  name="storeName" 
-                  defaultValue={settings.storeName} 
-                  className={`w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
-                    isDark 
-                      ? 'bg-stone-950 border-stone-800 text-white' 
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`} 
-                  required
-                  placeholder="Your Coffee Shop Name"
-                />
-              </div>
+      {/* Tabs Navigation */}
+      <div className="flex gap-2 mb-8 overflow-x-auto pb-2 no-scrollbar">
+        {[
+          { id: 'store', label: 'Toko', icon: Store },
+          { id: 'tax', label: 'Pajak & Biaya', icon: Percent },
+          { id: 'receipt', label: 'Struk & Printer', icon: Receipt },
+          { id: 'security', label: 'Keamanan', icon: Lock }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as TabType)}
+            className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl font-bold transition-all whitespace-nowrap ${
+              activeTab === tab.id
+                ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25 scale-[1.02]'
+                : `text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 ${isDark ? 'hover:text-stone-300' : ''}`
+            }`}
+          >
+            <tab.icon className="h-4.5 w-4.5" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-              {/* Address */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
-                  Business Address
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3.5 text-stone-500 w-5 h-5" />
-                  <textarea 
-                    name="address" 
-                    defaultValue={settings.address} 
-                    rows={3}
-                    className={`w-full px-4 py-3 pl-10 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
-                      isDark 
-                        ? 'bg-stone-950 border-stone-800 text-white' 
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Full address for receipts and documentation"
-                  />
-                </div>
-              </div>
-
-              {/* Tax Rate & Currency */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
-                    Tax Rate (PPN)
-                  </label>
-                  <div className="relative">
-                    <input 
-                      name="taxRate" 
-                      type="number" 
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      defaultValue={settings.taxRate} 
-                      className={`w-full px-4 py-3 pr-12 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
-                        isDark 
-                          ? 'bg-stone-950 border-stone-800 text-white' 
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`} 
-                      required
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-stone-500">%</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
-                    Currency
-                  </label>
-                  <select 
-                    name="currency"
-                    defaultValue={settings.currency || 'IDR'}
-                    className={`w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
-                      isDark 
-                        ? 'bg-stone-950 border-stone-800 text-white' 
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  >
-                    <option value="IDR">IDR - Indonesian Rupiah</option>
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="EUR">EUR - Euro</option>
-                    <option value="SGD">SGD - Singapore Dollar</option>
-                    <option value="GBP">GBP - British Pound</option>
-                    <option value="JPY">JPY - Japanese Yen</option>
-                    <option value="AUD">AUD - Australian Dollar</option>
-                    <option value="CAD">CAD - Canadian Dollar</option>
-                    <option value="CHF">CHF - Swiss Franc</option>
-                    <option value="CNY">CNY - Chinese Yuan</option>
-                    <option value="KRW">KRW - South Korean Won</option>
-                    <option value="MYR">MYR - Malaysian Ringgit</option>
-                    <option value="THB">THB - Thai Baht</option>
-                    <option value="VND">VND - Vietnamese Dong</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Currency Format Settings */}
-              <div className={`p-4 rounded-2xl border ${
-                isDark ? 'bg-stone-950/50 border-stone-800' : 'bg-gray-50/50 border-gray-200'
-              }`}>
-                <h3 className="flex items-center gap-2 font-bold text-sm mb-4 text-gray-900 dark:text-white">
-                  <DollarSign className="w-4 h-4 text-amber-500" />
-                  Currency Format
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Symbol Position */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-stone-300">
-                      <Type className="w-3 h-3" />
-                      Symbol Position
-                    </label>
-                    <select 
-                      name="currencyPosition"
-                      defaultValue={settings.currencyPosition || 'before'}
-                      className={`w-full px-3 py-2 text-sm rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
-                        isDark 
-                          ? 'bg-stone-900 border-stone-800 text-white' 
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="before">Before (IDR100000)</option>
-                      <option value="after">After (100000IDR)</option>
-                      <option value="before-space">Before with space (IDR 100000)</option>
-                      <option value="after-space">After with space (100000 IDR)</option>
-                    </select>
-                  </div>
-                  
-                  {/* Decimal Places */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-stone-300">
-                      <Hash className="w-3 h-3" />
-                      Decimal Places
-                    </label>
-                    <select 
-                      name="decimalPlaces"
-                      defaultValue={settings.decimalPlaces ?? 0}
-                      className={`w-full px-3 py-2 text-sm rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
-                        isDark 
-                          ? 'bg-stone-900 border-stone-800 text-white' 
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="0">0 decimals (100,000)</option>
-                      <option value="2">2 decimals (100,000.00)</option>
-                    </select>
-                  </div>
-                  
-                  {/* Thousands Separator */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-stone-300">
-                      <Percent className="w-3 h-3" />
-                      Thousands Separator
-                    </label>
-                    <select 
-                      name="thousandsSeparator"
-                      defaultValue={settings.thousandsSeparator || 'comma'}
-                      className={`w-full px-3 py-2 text-sm rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
-                        isDark 
-                          ? 'bg-stone-900 border-stone-800 text-white' 
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="comma">Comma (1,000,000)</option>
-                      <option value="dot">Dot (1.000.000)</option>
-                      <option value="space">Space (1 000 000)</option>
-                      <option value="none">None (1000000)</option>
-                    </select>
-                  </div>
-                </div>
-                
-                {/* Preview Section */}
-                <div className="mt-4 pt-4 border-t border-stone-800/30 dark:border-stone-800">
-                  <p className="text-xs font-medium text-gray-600 dark:text-stone-400 mb-2">Preview:</p>
-                  <div className={`p-3 rounded-xl ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
-                    <code className={`text-sm font-mono ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
-                      {getCurrencyPreview()}
-                    </code>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                      Sample: 1,234,567.89
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Receipt Footer */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-stone-300">
-                  Receipt Footer Message
-                </label>
-                <textarea 
-                  name="receiptFooter" 
-                  defaultValue={settings.receiptFooter || 'Thank you for your purchase!'} 
-                  rows={2}
-                  className={`w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
-                    isDark 
-                      ? 'bg-stone-950 border-stone-800 text-white' 
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  placeholder="Thank you for visiting! See you again soon."
-                />
-              </div>
-            </div>
-            
-            <div className="p-6 border-t border-stone-800/50 dark:border-stone-800 bg-gray-50/50 dark:bg-stone-950/50 rounded-b-2xl">
-              <button 
-                type="submit" 
-                className="w-full md:w-auto flex items-center justify-center gap-3 px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-xl transition-all active:scale-95"
-              >
-                <Save className="w-5 h-5" />
-                Save Business Profile
-              </button>
-            </div>
-          </form>
-
-          {/* Data Management Card */}
-          <div className={`rounded-2xl border shadow-lg ${
-            isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'
-          }`}>
-            <div className="p-6 border-b border-stone-800/50 dark:border-stone-800">
-              <h2 className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
-                <Database className="w-5 h-5 text-amber-500" />
-                Data Management
-              </h2>
-              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-                Backup, restore, and manage your application data
-              </p>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Storage Info */}
-              <div className={`p-4 rounded-2xl border ${
-                isDark ? 'bg-stone-950 border-stone-800' : 'bg-gray-50 border-gray-200'
-              }`}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <HardDrive className="w-5 h-5 text-stone-500" />
-                    <span className="font-medium">Local Storage</span>
-                  </div>
-                  <span className="font-bold">
-                    {storageInfo.used}KB / {storageInfo.total}KB
-                  </span>
-                </div>
-                
-                <div className="w-full bg-gray-200 dark:bg-stone-800 rounded-full h-2.5">
-                  <div 
-                    className={`h-2.5 rounded-full ${
-                      storageInfo.percent > 80 
-                        ? 'bg-red-500' 
-                        : storageInfo.percent > 60 
-                        ? 'bg-yellow-500' 
-                        : 'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(storageInfo.percent, 100)}%` }}
-                  ></div>
-                </div>
-                
-                <p className="text-sm text-stone-500 dark:text-stone-400 mt-2">
-                  {storageInfo.percent}% of storage used
-                </p>
-              </div>
-
-              {/* Backup & Restore Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Backup Card */}
-                <div className={`p-5 rounded-2xl border transition-all hover:shadow-lg ${
-                  isDark 
-                    ? 'bg-gradient-to-br from-amber-900/20 to-cyan-900/20 border-amber-700 hover:border-amber-500' 
-                    : 'bg-gradient-to-br from-amber-50 to-cyan-50 border-amber-200 hover:border-amber-400'
-                }`}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
-                      <Download className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg">Create Backup</h3>
-                      <p className="text-sm text-gray-600 dark:text-stone-400">
-                        Export all data to JSON file
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={handleBackup}
-                    className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-5 h-5" />
-                    Download Backup
-                  </button>
-                  
-                  <p className="text-xs text-stone-500 dark:text-stone-400 mt-3">
-                    Backup includes: Products, Customers, Transactions, Settings
-                  </p>
-                </div>
-
-                {/* Restore Card */}
-                <div className={`p-5 rounded-2xl border ${
-                  isDark ? 'bg-stone-950 border-stone-800' : 'bg-gray-50 border-gray-200'
-                }`}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/30">
-                      <Upload className="w-6 h-6 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg">Restore Backup</h3>
-                      <p className="text-sm text-gray-600 dark:text-stone-400">
-                        Import data from backup file
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={(e) => setBackupFile(e.target.files?.[0] || null)}
-                      className={`w-full px-4 py-2 rounded-xl border ${
-                        isDark ? 'bg-stone-900 border-stone-700' : 'bg-white border-gray-300'
-                      }`}
-                    />
-                    
-                    <button
-                      onClick={handleRestore}
-                      disabled={!backupFile || isRestoring}
-                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
-                        backupFile && !isRestoring
-                          ? 'bg-green-500 hover:bg-green-600 text-white'
-                          : 'bg-gray-300 dark:bg-stone-800 text-stone-500 cursor-not-allowed'
-                      }`}
-                    >
-                      {isRestoring ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Restoring...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-5 h-5" />
-                          Restore Data
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Factory Reset Warning */}
-              <Link 
-                to="/settings/data-reset"
-                className={`block p-5 rounded-2xl border transition-all hover:shadow-lg ${
-                  isDark 
-                    ? 'bg-gradient-to-br from-red-900/20 to-orange-900/20 border-red-800 hover:border-red-600' 
-                    : 'bg-gradient-to-br from-red-50 to-orange-50 border-red-200 hover:border-red-400'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-2xl bg-red-100 dark:bg-red-900/30">
-                      <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-red-700 dark:text-red-300">
-                        Factory Reset
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-stone-400">
-                        Reset all data to factory settings
-                      </p>
-                    </div>
-                  </div>
-                  <Shield className="w-5 h-5 text-red-500" />
-                </div>
-                
-                <div className="mt-4 p-3 rounded-xl bg-red-50/50 dark:bg-red-900/20">
-                  <p className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />
-                    Warning: This action will delete all transactions, custom products, and customer data. Cannot be undone.
-                  </p>
-                </div>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Appearance & System */}
-        <div className="space-y-8">
-          {/* Theme Settings Card */}
-          <div className={`rounded-2xl border shadow-lg ${
-            isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'
-          }`}>
-            <div className="p-6 border-b border-stone-800/50 dark:border-stone-800">
-              <h2 className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
-                <Palette className="w-5 h-5 text-purple-500" />
-                Appearance
-              </h2>
-              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-                Customize your interface appearance
-              </p>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Theme Toggle */}
-              <div className={`flex items-center justify-between p-4 rounded-2xl ${
-                isDark ? 'bg-stone-950' : 'bg-gray-100'
-              }`}>
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl ${isDark ? 'bg-stone-900' : 'bg-white shadow-sm'}`}>
-                    {isDark ? (
-                      <Moon className="w-5 h-5 text-purple-400" />
-                    ) : (
-                      <Sun className="w-5 h-5 text-amber-600" />
-                    )}
+      <form onSubmit={handleSave}>
+        {activeTab === 'store' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card title="Identitas Toko" icon={Store} subtitle="Informasi dasar yang muncul di struk dan aplikasi.">
+                <div className="space-y-5">
+                  <div>
+                    <label className={labelClass}>Nama Toko</label>
+                    <input name="shop_name" value={formData.shop_name || ''} onChange={handleChange} className={inputClass} placeholder="Contoh: Kopi Senja" />
                   </div>
                   <div>
-                    <span className="font-medium">Dark Mode</span>
-                    <p className="text-sm text-stone-500">
-                      {isDark ? 'Enabled' : 'Disabled'}
-                    </p>
+                    <label className={labelClass}>Nomor Telepon</label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                      <input name="phone" value={formData.phone || ''} onChange={handleChange} className={`${inputClass} pl-11`} placeholder="0812..." />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Alamat Lengkap</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-4 h-4 w-4 text-stone-400" />
+                      <textarea name="address" value={formData.address || ''} onChange={handleChange} rows={3} className={`${inputClass} pl-11 pt-3.5`} placeholder="Jl. Raya..." />
+                    </div>
                   </div>
                 </div>
-                
-                <button
-                  onClick={toggleTheme}
-                  className={`relative w-14 h-7 rounded-full transition-colors ${
-                    isDark ? 'bg-purple-500' : 'bg-gray-400'
-                  }`}
-                  aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-                >
-                  <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                    isDark ? 'translate-x-8' : 'translate-x-1'
-                  }`}></div>
-                </button>
-              </div>
+              </Card>
 
-              {/* Theme Previews */}
-              <div>
-                <h3 className="font-medium mb-3">Theme Preview</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div 
-                    onClick={() => theme === 'dark' && toggleTheme()}
-                    className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${
-                      !isDark 
-                        ? 'border-amber-500 bg-amber-50' 
-                        : 'border-stone-700 bg-stone-950'
-                    }`}
-                  >
-                    <div className="flex gap-1.5 mb-3">
-                      <div className="w-3 h-3 rounded-full bg-red-400" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                      <div className="w-3 h-3 rounded-full bg-green-400" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="h-2 w-full bg-gray-300 dark:bg-stone-800 rounded" />
-                      <div className="h-2 w-3/4 bg-gray-300 dark:bg-stone-800 rounded" />
-                      <div className="h-2 w-1/2 bg-gray-300 dark:bg-stone-800 rounded" />
-                    </div>
-                    <p className={`text-xs font-bold text-center mt-3 ${
-                      !isDark ? 'text-amber-700' : 'text-stone-400'
-                    }`}>
-                      LIGHT MODE
-                    </p>
+              <Card title="Jam Operasional" icon={Clock} subtitle="Jadwal buka dan tutup toko Anda.">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Jam Buka</label>
+                    <input type="time" name="open_time" value={formData.open_time || '08:00'} onChange={handleChange} className={inputClass} />
                   </div>
-
-                  <div 
-                    onClick={() => theme === 'light' && toggleTheme()}
-                    className={`cursor-pointer p-4 rounded-2xl border-2 transition-all ${
-                      isDark 
-                        ? 'border-purple-500 bg-stone-900' 
-                        : 'border-gray-300 bg-gray-100'
-                    }`}
-                  >
-                    <div className="flex gap-1.5 mb-3">
-                      <div className="w-3 h-3 rounded-full bg-red-400" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                      <div className="w-3 h-3 rounded-full bg-green-400" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="h-2 w-full bg-gray-600 dark:bg-stone-500 rounded" />
-                      <div className="h-2 w-3/4 bg-gray-600 dark:bg-stone-500 rounded" />
-                      <div className="h-2 w-1/2 bg-gray-600 dark:bg-stone-500 rounded" />
-                    </div>
-                    <p className={`text-xs font-bold text-center mt-3 ${
-                      isDark ? 'text-purple-400' : 'text-stone-500'
-                    }`}>
-                      DARK MODE
-                    </p>
+                  <div>
+                    <label className={labelClass}>Jam Tutup</label>
+                    <input type="time" name="close_time" value={formData.close_time || '22:00'} onChange={handleChange} className={inputClass} />
                   </div>
                 </div>
-              </div>
+                <div className={`mt-6 p-4 rounded-2xl border flex items-start gap-3 ${isDark ? 'bg-amber-500/5 border-amber-500/20' : 'bg-amber-50 border-amber-100'}`}>
+                  <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-medium leading-relaxed">
+                    Jam operasional digunakan untuk laporan harian dan sinkronisasi shift kasir.
+                  </p>
+                </div>
+              </Card>
             </div>
           </div>
+        )}
 
-          {/* System Info Card */}
-          <div className={`rounded-2xl border shadow-lg ${
-            isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'
-          }`}>
-            <div className="p-6 border-b border-stone-800/50 dark:border-stone-800">
-              <h2 className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
-                <Shield className="w-5 h-5 text-green-500" />
-                System Information
-              </h2>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-stone-400">Application Version</span>
-                <span className="font-mono font-bold text-gray-900 dark:text-white">
-                  v1.0.4
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-stone-400">Database</span>
-                <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium">
-                  <CheckCircle2 className="w-4 h-4" />
-                  LocalStorage
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-stone-400">Build Date</span>
-                <span className="font-medium">
-                  {new Date().toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-stone-400">Environment</span>
-                <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-medium rounded">
-                  Production
-                </span>
-              </div>
+        {activeTab === 'tax' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card title="Pajak (PPN)" icon={Percent} subtitle="Pengaturan pajak pertambahan nilai untuk setiap transaksi.">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 rounded-2xl border dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50">
+                    <div>
+                      <p className="font-bold">Aktifkan Pajak</p>
+                      <p className="text-xs text-stone-500">Otomatis tambahkan pajak ke struk.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" name="tax_enabled" checked={!!formData.tax_enabled} onChange={handleChange} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-stone-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
 
-              {/* Currency Settings Summary */}
-              <div className="pt-4 border-t border-stone-800/30 dark:border-stone-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <SettingsIcon className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-stone-300">
-                    Currency Settings
-                  </span>
-                </div>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Currency:</span>
-                    <span className="font-medium">{settings.currency || 'IDR'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Format:</span>
-                    <span className="font-medium">
-                      {formatCurrencyPositionSummary()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Decimals:</span>
-                    <span className="font-medium">{settings.decimalPlaces ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Separator:</span>
-                    <span className="font-medium">
-                      {formatThousandsSeparatorSummary()}
-                    </span>
+                  <div className={!formData.tax_enabled ? 'opacity-40 pointer-events-none' : ''}>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Persentase (%)</label>
+                        <input type="number" name="tax_rate" value={formData.tax_rate || 0} onChange={handleChange} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Label Pajak</label>
+                        <input name="tax_label" value={formData.tax_label || 'PPN'} onChange={handleChange} className={inputClass} placeholder="Contoh: PPN" />
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center gap-3">
+                      <input type="checkbox" name="tax_inclusive" checked={!!formData.tax_inclusive} onChange={handleChange} className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
+                      <label className="text-sm font-medium">Harga sudah termasuk pajak (Inclusive)</label>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Card>
+
+              <Card title="Service Charge" icon={Smartphone} subtitle="Biaya layanan tambahan jika ada.">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 rounded-2xl border dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50">
+                    <div>
+                      <p className="font-bold">Biaya Layanan</p>
+                      <p className="text-xs text-stone-500">Aktifkan biaya layanan tambahan.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" name="service_charge_enabled" checked={!!formData.service_charge_enabled} onChange={handleChange} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-stone-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
+
+                  <div className={!formData.service_charge_enabled ? 'opacity-40 pointer-events-none' : ''}>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Persentase (%)</label>
+                        <input type="number" name="service_charge_rate" value={formData.service_charge_rate || 0} onChange={handleChange} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Label Biaya</label>
+                        <input name="service_charge_label" value={formData.service_charge_label || 'Service'} onChange={handleChange} className={inputClass} placeholder="Contoh: Service" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
           </div>
+        )}
+
+        {activeTab === 'receipt' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card title="Desain Struk" icon={FileText} subtitle="Kustomisasi tampilan struk belanja.">
+                <div className="space-y-5">
+                  <div>
+                    <label className={labelClass}>Pesan Kaki Struk (Footer)</label>
+                    <textarea name="receipt_footer" value={formData.receipt_footer || ''} onChange={handleChange} rows={3} className={inputClass} placeholder="Terima kasih atas kunjungan Anda!" />
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-2xl border dark:border-stone-800">
+                    <div>
+                      <p className="text-sm font-bold">Tampilkan Logo</p>
+                      <p className="text-xs text-stone-500">Cetak logo di bagian atas struk.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" name="receipt_show_logo" checked={!!formData.receipt_show_logo} onChange={handleChange} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-stone-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-2xl border dark:border-stone-800">
+                    <div>
+                      <p className="text-sm font-bold">Rincian Pajak</p>
+                      <p className="text-xs text-stone-500">Tampilkan breakdown pajak di struk.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" name="receipt_show_tax" checked={!!formData.receipt_show_tax} onChange={handleChange} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-stone-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
+                </div>
+              </Card>
+
+              <Card title="Printer & Hardware" icon={Printer} subtitle="Pengaturan ukuran kertas dan pencetakan otomatis.">
+                <div className="space-y-6">
+                  <div>
+                    <label className={labelClass}>Ukuran Kertas</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {['58mm', '80mm'].map(size => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, receipt_paper_size: size as any }))}
+                          className={`px-4 py-4 rounded-2xl border-2 font-bold transition-all ${
+                            formData.receipt_paper_size === size
+                              ? 'border-amber-500 bg-amber-500/5 text-amber-600'
+                              : 'border-stone-100 dark:border-stone-800 text-stone-500'
+                          }`}
+                        >
+                          {size === '58mm' ? '58mm (Kecil)' : '80mm (Besar)'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-2xl border dark:border-stone-800 bg-amber-500/5 border-amber-500/20">
+                    <div>
+                      <p className="text-sm font-bold">Cetak Otomatis</p>
+                      <p className="text-xs text-stone-500">Cetak struk langsung setelah checkout.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" name="receipt_auto_print" checked={!!formData.receipt_auto_print} onChange={handleChange} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-stone-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'security' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card title="Profil Pemilik" icon={UserIcon} subtitle="Perbarui nama lengkap yang terdaftar.">
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="h-16 w-16 rounded-full bg-amber-500 flex items-center justify-center text-white text-2xl font-black">
+                      {user?.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-bold text-lg">{user?.name}</p>
+                      <p className="text-sm text-stone-500">{user?.email}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Nama Lengkap</label>
+                    <input value={profileName} onChange={e => setProfileName(e.target.value)} className={inputClass} />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleProfileSave}
+                    disabled={profileSaving}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-stone-900 dark:bg-white dark:text-stone-900 text-white rounded-2xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    {profileSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </Card>
+
+              <Card title="Ganti Password" icon={Lock} subtitle="Gunakan minimal 8 karakter dengan kombinasi angka.">
+                <div className="space-y-4">
+                  <div>
+                    <label className={labelClass}>Password Sekarang</label>
+                    <div className="relative">
+                      <input type={showPw.current ? 'text' : 'password'} value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={inputClass} />
+                      <button type="button" onClick={() => setShowPw(p => ({ ...p, current: !p.current }))} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400">
+                        {showPw.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Password Baru</label>
+                    <div className="relative">
+                      <input type={showPw.new ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} className={inputClass} />
+                      <button type="button" onClick={() => setShowPw(p => ({ ...p, new: !p.new }))} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400">
+                        {showPw.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Konfirmasi Password</label>
+                    <div className="relative">
+                      <input type={showPw.confirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={inputClass} />
+                      <button type="button" onClick={() => setShowPw(p => ({ ...p, confirm: !p.confirm }))} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400">
+                        {showPw.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePasswordChange}
+                    disabled={pwSaving}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-2xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 w-full"
+                  >
+                    {pwSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                    Ubah Password
+                  </button>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Global Save Button (Float) */}
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-40 ${activeTab === 'security' ? 'hidden' : ''}`}>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="w-full flex items-center justify-center gap-3 py-4 bg-amber-500 text-white font-black text-lg rounded-3xl shadow-2xl shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70"
+          >
+            {isSaving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
+            SIMPAN SEMUA PENGATURAN
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

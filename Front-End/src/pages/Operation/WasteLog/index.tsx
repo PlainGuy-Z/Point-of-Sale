@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Trash2, AlertTriangle, Calendar, DollarSign } from 'lucide-react';
 import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -14,6 +15,7 @@ export default function WasteLog() {
   const { user } = useAuth();
   const { activeShift } = useShift();
   const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
 
   if (user?.role === 'cashier' && !activeShift) {
     return (
@@ -26,8 +28,15 @@ export default function WasteLog() {
             Belum Ada Shift Aktif
           </p>
           <p className={`text-sm ${theme === 'dark' ? 'text-stone-400' : 'text-gray-500'}`}>
-            Silakan buka shift terlebih dahulu di Dashboard untuk mulai mencatat waste.
+            Buka shift di halaman Shift & Kas atau dari dashboard kasir, lalu kembali ke Waste Log.
           </p>
+          <button
+            type="button"
+            onClick={() => navigate('/cashier/shift')}
+            className="mt-6 w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 text-sm"
+          >
+            Ke halaman Shift & Kas
+          </button>
         </div>
       </div>
     );

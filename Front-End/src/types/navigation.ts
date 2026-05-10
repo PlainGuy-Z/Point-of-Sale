@@ -27,7 +27,7 @@ export interface NavigationConfig {
 
 export const navigationConfig = {
   mainMenu: [
-    { id: 'dashboard', title: 'Dashboard', path: '/', iconName: 'LayoutDashboard', type: 'link' },
+    { id: 'dashboard', title: 'Dashboard', path: '/dashboard', iconName: 'LayoutDashboard', type: 'link' },
     { id: 'pos', title: 'Point of Sale', path: '/pos', iconName: 'ShoppingCart', type: 'link' },
     { id: 'insights', title: 'Business Insights', path: '/insights', iconName: 'BarChart3', type: 'link' },
     {

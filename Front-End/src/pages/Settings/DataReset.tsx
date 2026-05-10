@@ -77,7 +77,7 @@ export default function DataResetPage() {
           
           // Auto redirect setelah 5 detik
           setTimeout(() => {
-            navigate('/');
+            navigate('/dashboard');
           }, 5000);
         } else {
           alert('Reset was cancelled or failed.');
@@ -116,7 +116,7 @@ export default function DataResetPage() {
         </div>
         
         <Link 
-          to="/"
+          to="/dashboard"
           className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-all"
         >
           Go to Dashboard Now

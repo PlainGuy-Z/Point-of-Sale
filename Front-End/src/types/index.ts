@@ -54,6 +54,7 @@ export interface TransactionItem {
   cost?: number;
   note?: string;
   modifiers?: string[];
+  description?: string; // ✅ Per-item custom description (e.g., "Pedas sekali", "Tanpa bawang")
   
   // PROMO INFO (optional - untuk tracking di receipt)
   isPromo?: boolean;
@@ -78,6 +79,7 @@ export interface Transaction {
   // TRANSACTION META DATA
   customerName?: string;
   tableNumber?: string;
+  notes?: string; // ✅ General order notes (order_description)
   cashReceived?: number;
   change?: number;
   taxRate?: number;
@@ -153,7 +155,6 @@ export interface TopProduct {
 export interface BusinessSettings {
   storeName: string;
   address: string;
-  taxRate: number;
   currency: string;
   timezone?: string;
   receiptFooter: string;
@@ -208,7 +209,7 @@ export interface Shop {
   address?: string;
   phone?: string;
   logo_url?: string;
-  plan: 'free' | 'pro';
+  plan?: 'free' | 'pro';
 }
 
 export interface AuthUser {
@@ -217,6 +218,8 @@ export interface AuthUser {
   email: string;
   role: 'owner' | 'cashier';
   shop_id: string;
+  /** Indicates whether an app PIN has been configured (cashier UX). Never a raw PIN value. */
+  pin?: boolean;
   shop: Shop;
 }
 

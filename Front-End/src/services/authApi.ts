@@ -2,7 +2,7 @@ import type { AuthUser } from '../types';
 import { ApiError } from './appApi';
 
 function getApiBaseUrl(): string {
-  const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+  const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
   if (!base) {
     throw new Error('VITE_API_BASE_URL is not set. Add it to Front-End/.env (e.g. http://localhost:4000).');
   }
@@ -57,6 +57,11 @@ export interface ChangePasswordData {
   newPassword: string;
 }
 
+export interface UpdateProfileData {
+  name?: string;
+  shop_name?: string;
+}
+
 export const authApi = {
   register: async (data: RegisterData): Promise<{ user: AuthUser }> =>
     http<{ user: AuthUser }>('/auth/register', {
@@ -76,6 +81,12 @@ export const authApi = {
 
   me: async (): Promise<{ user: AuthUser }> =>
     http<{ user: AuthUser }>('/auth/me'),
+
+  updateProfile: async (data: UpdateProfileData): Promise<{ user: AuthUser }> =>
+    http<{ user: AuthUser }>('/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 
   changePassword: async (data: ChangePasswordData): Promise<{ message: string }> =>
     http<{ message: string }>('/auth/change-password', {

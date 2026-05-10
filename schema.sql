@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   grand_total    money_int NOT NULL,
   customer_name  TEXT,
   table_number   TEXT,
+  notes          TEXT,
   payment_method TEXT NOT NULL,
   status         TEXT NOT NULL DEFAULT 'paid',
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -64,6 +65,7 @@ CREATE TABLE IF NOT EXISTS transaction_items (
   name           TEXT NOT NULL,
   price          money_int NOT NULL,
   quantity       INTEGER NOT NULL CHECK (quantity > 0),
+  description    TEXT,
   is_custom      BOOLEAN NOT NULL DEFAULT false,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT transaction_items_custom_consistency CHECK (

@@ -9,6 +9,8 @@ import { appRouter } from './routes/app.js';
 import { authRouter } from './routes/auth.js';
 import { usersRouter } from './routes/users.js';
 import { shiftsRouter } from './routes/shifts.js';
+import { transactionsRouter } from './routes/transactions.js';
+import { settingsRouter } from './routes/settings.js';
 import { authenticateToken } from './middleware/auth.js';
 
 export function createApp() {
@@ -41,6 +43,8 @@ export function createApp() {
   app.use('/pos', authenticateToken, posRouter);
   app.use('/users', authenticateToken, usersRouter);
   app.use('/shifts', authenticateToken, shiftsRouter);
+  app.use('/transactions', authenticateToken, transactionsRouter);
+  app.use('/settings', authenticateToken, settingsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

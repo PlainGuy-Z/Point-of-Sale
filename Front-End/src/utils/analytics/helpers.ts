@@ -75,4 +75,13 @@ export function localDateKey(date: Date | string): string {
   } catch {
     return 'invalid-date';
   }
-}
+}
+
+/** Calendar key (YYYY-MM-DD) in local timezone, or null if date is missing/invalid */
+export function transactionLocalDateKey(date: unknown): string | null {
+  if (date == null) return null;
+  const d = date instanceof Date ? date : new Date(date as string | number);
+  if (Number.isNaN(d.getTime())) return null;
+  const key = localDateKey(d);
+  return key === 'invalid-date' ? null : key;
+}

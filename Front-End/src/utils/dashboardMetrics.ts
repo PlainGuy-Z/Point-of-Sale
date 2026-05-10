@@ -1,5 +1,5 @@
 import type { Transaction, Product, Customer, WasteLog } from '../types';
-import { safeParseDate, localDateKey } from './analytics/helpers'; // ✅ Import dari helpers baru
+import { localDateKey, transactionLocalDateKey } from './analytics/helpers';
 import { isLowStock, isOutOfStock, isStockTracked } from './stockUtils';
 
 export interface DashboardMetrics {
@@ -55,7 +55,8 @@ export const calculateDashboardMetrics = (
     // Prefer backend-computed profit (authoritative), fallback to item-cost estimate.
     if (Number.isFinite(t.profit)) return Math.trunc(t.profit);
     let cost = 0;
-    for (const item of t.items) {
+    const lineItems = Array.isArray(t.items) ? t.items : [];
+    for (const item of lineItems) {
       cost += (productCostById.get(item.productId) ?? 0) * item.quantity;
     }
     return Math.trunc(t.total - cost);
@@ -64,16 +65,8 @@ export const calculateDashboardMetrics = (
   const todayKey = formatDateKey(today);
   const yesterdayKey = formatDateKey(yesterday);
   
-  // Filter valid transactions dengan date yang valid
-  const validTransactions = transactions.filter(t => {
-    try {
-      const date = safeParseDate(t.date);
-      return !isNaN(date.getTime());
-    } catch {
-      return false;
-    }
-  });
-  
+  const validTransactions = transactions.filter((t) => transactionLocalDateKey(t.date) !== null);
+
   // Single pass untuk analisis transaksi
   const dailyData: Record<string, DailyData> = {};
   let todayRevenue = 0;
@@ -84,7 +77,7 @@ export const calculateDashboardMetrics = (
   let estimatedLossToday = 0;
   
   validTransactions.forEach(transaction => {
-    const dateKey = formatDateKey(transaction.date);
+    const dateKey = transactionLocalDateKey(transaction.date)!;
     
     if (!dailyData[dateKey]) {
       dailyData[dateKey] = { date: dateKey, revenue: 0, transactions: 0 };
@@ -186,19 +179,11 @@ export const getLast7DaysRevenue = (transactions: Transaction[]) => {
   
   const revenueByDay: Record<string, number> = {};
   
-  // Filter valid transactions
-  const validTransactions = transactions.filter(t => {
-    try {
-      safeParseDate(t.date);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-  
+  const validTransactions = transactions.filter((t) => transactionLocalDateKey(t.date) !== null);
+
   // Single pass untuk revenue
   validTransactions.forEach(transaction => {
-    const dateKey = formatDateKey(transaction.date);
+    const dateKey = transactionLocalDateKey(transaction.date)!;
     revenueByDay[dateKey] = (revenueByDay[dateKey] || 0) + Math.trunc(transaction.total);
   });
   
@@ -217,21 +202,14 @@ export const getTopProductsToday = (
   products: Product[],
   limit: number = 5
 ) => {
-  // Filter valid transactions
-  const validTransactions = todayTransactions.filter(t => {
-    try {
-      safeParseDate(t.date);
-      return true;
-    } catch {
-      return false;
-    }
-  });
+  const validTransactions = todayTransactions.filter((t) => transactionLocalDateKey(t.date) !== null);
   
   const productSales = new Map<string, { quantity: number; revenue: number }>();
   
   // Hitung penjualan hari ini
   validTransactions.forEach(transaction => {
-    transaction.items.forEach(item => {
+    const items = Array.isArray(transaction.items) ? transaction.items : [];
+    items.forEach(item => {
       // Ignore manual/custom items that don't map to real products
       if (!item.productId || item.productId === 'manual' || item.productId.startsWith('manual-')) return;
       const existing = productSales.get(item.productId);

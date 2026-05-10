@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Coffee, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { Coffee, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const { login, status, user } = useAuth();
@@ -19,11 +19,7 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (status === 'authenticated' && user) {
-      if (user.role === 'cashier') {
-        navigate('/cashier-dashboard', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
+      navigate('/dashboard', { replace: true });
     }
   }, [status, user, navigate]);
 
@@ -34,8 +30,8 @@ export default function Login() {
     try {
       await login(email, password);
       // AuthContext will update status → useEffect will redirect
-    } catch (err: any) {
-      setError(err.message || 'Login gagal. Periksa email dan password Anda.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Login gagal. Periksa email dan password Anda.');
     } finally {
       setIsLoading(false);
     }
@@ -53,8 +49,46 @@ export default function Login() {
           ? 'linear-gradient(135deg, #0c0a09 0%, #1c1917 50%, #0c0a09 100%)'
           : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #f9fafb 100%)',
         transition: 'background 0.3s',
+        position: 'relative',
       }}
     >
+      {/* Back to Home Button */}
+      <Link
+        to="/"
+        style={{
+          position: 'absolute',
+          top: 24,
+          left: 24,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          color: isDark ? '#a8a29e' : '#78716c',
+          textDecoration: 'none',
+          fontSize: 14,
+          fontWeight: 600,
+          padding: '8px 16px',
+          borderRadius: 9999,
+          backgroundColor: isDark ? 'rgba(28, 25, 23, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+          backdropFilter: 'blur(8px)',
+          border: `1px solid ${isDark ? '#292524' : '#e5e7eb'}`,
+          transition: 'all 0.2s',
+          zIndex: 10,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = isDark ? '#fafaf9' : '#0c0a09';
+          e.currentTarget.style.backgroundColor = isDark ? '#292524' : '#ffffff';
+          e.currentTarget.style.transform = 'translateX(-4px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = isDark ? '#a8a29e' : '#78716c';
+          e.currentTarget.style.backgroundColor = isDark ? 'rgba(28, 25, 23, 0.5)' : 'rgba(255, 255, 255, 0.5)';
+          e.currentTarget.style.transform = 'translateX(0)';
+        }}
+      >
+        <ArrowLeft style={{ width: 16, height: 16 }} />
+        Kembali ke Beranda
+      </Link>
+
       <div
         style={{
           width: '100%',
@@ -70,31 +104,36 @@ export default function Login() {
       >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 20,
-              background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)',
-            }}
-          >
-            <Coffee style={{ width: 32, height: 32, color: '#ffffff' }} />
-          </div>
-          <h1
-            style={{
-              fontSize: 28,
-              fontWeight: 800,
-              color: isDark ? '#fafaf9' : '#0c0a09',
-              marginBottom: 4,
-            }}
-          >
-            Coffee<span style={{ color: '#f59e0b' }}>Pos</span>
-          </h1>
+          <Link to="/" style={{ display: 'inline-block', textDecoration: 'none', color: 'inherit' }}>
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 20,
+                background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)',
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <Coffee style={{ width: 32, height: 32, color: '#ffffff' }} />
+            </div>
+            <h1
+              style={{
+                fontSize: 28,
+                fontWeight: 800,
+                color: isDark ? '#fafaf9' : '#0c0a09',
+                marginBottom: 4,
+              }}
+            >
+              Coffee<span style={{ color: '#f59e0b' }}>Pos</span>
+            </h1>
+          </Link>
           <p style={{ color: isDark ? '#a8a29e' : '#78716c', fontSize: 14 }}>
             Masuk ke dashboard toko Anda
           </p>

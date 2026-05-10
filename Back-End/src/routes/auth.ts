@@ -37,6 +37,15 @@ const ChangePasswordSchema = z.object({
   newPassword: z.string().min(8)
 });
 
+const UpdateMeSchema = z
+  .object({
+    name: z.string().trim().min(2).optional(),
+    shop_name: z.string().trim().min(2).optional()
+  })
+  .refine((d) => d.name !== undefined || d.shop_name !== undefined, {
+    message: 'Minimal satu field diperlukan'
+  });
+
 const ResetCashierPasswordSchema = z.object({
   cashierId: z.string().uuid(),
   newPassword: z.string().min(8)
@@ -134,6 +143,7 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
         email: result.user.email,
         role: result.user.role,
         shop_id: result.user.shop_id,
+        pin: false,
         shop: {
           id: result.shop.id,
           name: result.shop.name,
@@ -156,6 +166,7 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
     const result = await pool.query(
       `SELECT u.id::text, u.name, u.email, u.role, u.password_hash, u.is_active,
               u.shop_id::text,
+              (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
        FROM coffeepos.users u
        JOIN coffeepos.shops s ON s.id = u.shop_id
@@ -193,6 +204,7 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
         email: user.email,
         role: user.role,
         shop_id: user.shop_id,
+        pin: Boolean(user.pin),
         shop: {
           id: user.shop_id,
           name: user.shop_name,
@@ -223,6 +235,7 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
   try {
     const result = await pool.query(
       `SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
+              (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
        FROM coffeepos.users u
        JOIN coffeepos.shops s ON s.id = u.shop_id
@@ -243,10 +256,67 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
         email: user.email,
         role: user.role,
         shop_id: user.shop_id,
+        pin: Boolean(user.pin),
         shop: {
           id: user.shop_id,
           name: user.shop_name,
           slug: user.shop_slug
+        }
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── PUT /auth/me ─────────────────────────────────────────────
+
+authRouter.put('/me', authenticateToken, validateBody(UpdateMeSchema), async (req, res, next) => {
+  try {
+    const body = req.body as z.infer<typeof UpdateMeSchema>;
+
+    if (body.shop_name !== undefined && req.user!.role !== 'owner') {
+      throw new HttpError(403, 'FORBIDDEN', 'Hanya pemilik toko yang dapat mengubah nama toko');
+    }
+
+    await withTransaction(async (client) => {
+      if (body.name !== undefined) {
+        await client.query(
+          `UPDATE coffeepos.users SET name = $1, updated_at = now() WHERE id = $2::uuid`,
+          [body.name, req.user!.id]
+        );
+      }
+      if (body.shop_name !== undefined) {
+        await client.query(
+          `UPDATE coffeepos.shops SET name = $1 WHERE id = $2::uuid`,
+          [body.shop_name, req.user!.shop_id]
+        );
+      }
+    });
+
+    const result = await pool.query(
+      `SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
+              (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
+              s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
+       FROM coffeepos.users u
+       JOIN coffeepos.shops s ON s.id = u.shop_id
+       WHERE u.id = $1::uuid`,
+      [req.user!.id]
+    );
+
+    const row = result.rows[0]!;
+    res.json({
+      user: {
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        role: row.role,
+        shop_id: row.shop_id,
+        pin: Boolean(row.pin),
+        shop: {
+          id: row.shop_id,
+          name: row.shop_name,
+          slug: row.shop_slug
         }
       }
     });

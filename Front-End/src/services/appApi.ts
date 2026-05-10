@@ -22,7 +22,7 @@ type CustomerWire = Omit<Customer, 'joinDate' | 'lastVisit'> & {
   lastVisit?: IsoDateString;
 };
 
-type AppStateWire = Omit<AppDataState, 'transactions' | 'wasteLogs' | 'customers'> & {
+export type AppStateWire = Omit<AppDataState, 'transactions' | 'wasteLogs' | 'customers'> & {
   transactions: TransactionWire[];
   wasteLogs: WasteLogWire[];
   customers: CustomerWire[];
@@ -36,7 +36,7 @@ function getApiBaseUrl(): string {
   return base.replace(/\/+$/, '');
 }
 
-async function http<T>(path: string, init?: RequestInit): Promise<T> {
+export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
   const res = await fetch(url, {
     ...init,
@@ -70,7 +70,8 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-function normalizeState(wire: AppStateWire): AppDataState {
+/** Normalize wire JSON from API (ISO date strings) into runtime Date objects */
+export function normalizeAppStateWire(wire: AppStateWire): AppDataState {
   return {
     ...wire,
     customers: wire.customers.map((c) => ({
@@ -89,32 +90,32 @@ export const appApi = {
   put: async <T = any>(path: string, body?: any): Promise<T> => http<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
   delete: async <T = any>(path: string): Promise<T> => http<T>(path, { method: 'DELETE' }),
 
-  getAppState: async (): Promise<AppDataState> => normalizeState(await http<AppStateWire>(`/app/state`)),
+  getAppState: async (): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/state`)),
   // Backwards compatibility (existing call sites)
   getState: async (): Promise<AppDataState> => appApi.getAppState(),
 
-  addProduct: async (product: any): Promise<AppDataState> => normalizeState(await http<AppStateWire>(`/app/products`, { method: 'POST', body: JSON.stringify(product) })),
+  addProduct: async (product: any): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/products`, { method: 'POST', body: JSON.stringify(product) })),
   updateProduct: async (product: any): Promise<AppDataState> =>
-    normalizeState(await http<AppStateWire>(`/app/products/${encodeURIComponent(product.id)}`, { method: 'PUT', body: JSON.stringify(product) })),
+    normalizeAppStateWire(await http<AppStateWire>(`/app/products/${encodeURIComponent(product.id)}`, { method: 'PUT', body: JSON.stringify(product) })),
   deleteProduct: async (id: string): Promise<AppDataState> =>
-    normalizeState(await http<AppStateWire>(`/app/products/${encodeURIComponent(id)}`, { method: 'DELETE' })),
+    normalizeAppStateWire(await http<AppStateWire>(`/app/products/${encodeURIComponent(id)}`, { method: 'DELETE' })),
 
-  addCustomer: async (customer: any): Promise<AppDataState> => normalizeState(await http<AppStateWire>(`/app/customers`, { method: 'POST', body: JSON.stringify(customer) })),
+  addCustomer: async (customer: any): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/customers`, { method: 'POST', body: JSON.stringify(customer) })),
   updateCustomer: async (customer: any): Promise<AppDataState> =>
-    normalizeState(await http<AppStateWire>(`/app/customers/${encodeURIComponent(customer.id)}`, { method: 'PUT', body: JSON.stringify(customer) })),
+    normalizeAppStateWire(await http<AppStateWire>(`/app/customers/${encodeURIComponent(customer.id)}`, { method: 'PUT', body: JSON.stringify(customer) })),
   deleteCustomer: async (id: string): Promise<AppDataState> =>
-    normalizeState(await http<AppStateWire>(`/app/customers/${encodeURIComponent(id)}`, { method: 'DELETE' })),
+    normalizeAppStateWire(await http<AppStateWire>(`/app/customers/${encodeURIComponent(id)}`, { method: 'DELETE' })),
 
-  addWasteLog: async (waste: any): Promise<AppDataState> => normalizeState(await http<AppStateWire>(`/app/waste-logs`, { method: 'POST', body: JSON.stringify(waste) })),
+  addWasteLog: async (waste: any): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/waste-logs`, { method: 'POST', body: JSON.stringify(waste) })),
 
-  updateSettings: async (settings: any): Promise<AppDataState> => normalizeState(await http<AppStateWire>(`/app/settings`, { method: 'PUT', body: JSON.stringify(settings) })),
+  updateSettings: async (settings: any): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/settings`, { method: 'PUT', body: JSON.stringify(settings) })),
 
   addCategory: async (name: string): Promise<AppDataState> =>
-    normalizeState(await http<AppStateWire>(`/app/categories`, { method: 'POST', body: JSON.stringify({ name }) })),
+    normalizeAppStateWire(await http<AppStateWire>(`/app/categories`, { method: 'POST', body: JSON.stringify({ name }) })),
   deleteCategory: async (name: string): Promise<AppDataState> =>
-    normalizeState(await http<AppStateWire>(`/app/categories/${encodeURIComponent(name)}`, { method: 'DELETE' })),
+    normalizeAppStateWire(await http<AppStateWire>(`/app/categories/${encodeURIComponent(name)}`, { method: 'DELETE' })),
 
-  clearOldData: async (): Promise<AppDataState> => normalizeState(await http<AppStateWire>(`/app/maintenance/clear-old-data`, { method: 'POST' })),
-  resetAllData: async (): Promise<AppDataState> => normalizeState(await http<AppStateWire>(`/app/maintenance/reset-all`, { method: 'POST' })),
+  clearOldData: async (): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/maintenance/clear-old-data`, { method: 'POST' })),
+  resetAllData: async (): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/maintenance/reset-all`, { method: 'POST' })),
 };
 

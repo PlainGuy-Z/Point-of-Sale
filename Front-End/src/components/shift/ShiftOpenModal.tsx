@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Coffee, Loader2 } from 'lucide-react';
+import { Coffee, Loader2, X } from 'lucide-react';
 
 interface ShiftOpenModalProps {
   onSuccess?: () => void;
+  /** When set, shows Batal and allows closing without submitting */
+  onCancel?: () => void;
 }
 
-export default function ShiftOpenModal({ onSuccess }: ShiftOpenModalProps) {
+export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalProps) {
   const { user } = useAuth();
   const { openShift, isLoading } = useShift();
   const { theme } = useTheme();
@@ -58,19 +60,42 @@ export default function ShiftOpenModal({ onSuccess }: ShiftOpenModalProps) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <button
+        type="button"
+        aria-label="Tutup"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
+        onClick={() => onCancel?.()}
+      />
 
       {/* Modal */}
-      <div className={`relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 ${
-        isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-200'
-      }`}>
+      <div
+        className={`relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 ${
+          isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-200'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shift-open-title"
+      >
         <div className="p-6 md:p-8 space-y-6">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className={`absolute top-4 right-4 p-2 rounded-xl transition-colors ${
+                isDark ? 'text-stone-400 hover:bg-stone-800' : 'text-gray-500 hover:bg-gray-100'
+              }`}
+              aria-label="Batal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
           {/* Header */}
           <div className="text-center space-y-2">
             <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20`}>
               <Coffee className="w-8 h-8 text-white" />
             </div>
-            <h2 className={`text-2xl font-black tracking-tight mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <h2 id="shift-open-title" className={`text-2xl font-black tracking-tight mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Mulai Shift Baru
             </h2>
             <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-gray-500'}`}>
@@ -137,6 +162,21 @@ export default function ShiftOpenModal({ onSuccess }: ShiftOpenModalProps) {
                 'Mulai Shift'
               )}
             </button>
+
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isLoading}
+                className={`w-full py-3 rounded-2xl font-semibold text-sm border transition-colors ${
+                  isDark
+                    ? 'border-stone-700 text-stone-300 hover:bg-stone-800 disabled:opacity-50'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50'
+                }`}
+              >
+                Batal
+              </button>
+            )}
 
             <p className={`text-xs text-center ${isDark ? 'text-stone-500' : 'text-gray-400'}`}>
               Pastikan jumlah uang sudah sesuai sebelum memulai shift

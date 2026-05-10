@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Coffee, Moon, Sun, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { navigationConfig } from '../../data/navigation'; 
 import { getIconComponent } from '../../utils/iconUtils';
@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
 import { useNavigate } from 'react-router-dom';
 import ShiftCloseModal from '../shift/ShiftCloseModal';
+import { appApi } from '../../services/appApi';
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -27,9 +28,39 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
   const { activeShift } = useShift();
   const navigate = useNavigate();
 
+  const [pendingVoidBadge, setPendingVoidBadge] = useState(0);
+  const ownerVoidBadge = user?.role === 'owner' ? pendingVoidBadge : 0;
+
+  useEffect(() => {
+    if (user?.role !== 'owner') return undefined;
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const r = await appApi.get<{ total: number }>('/transactions/void-requests');
+        if (!cancelled) setPendingVoidBadge(typeof r.total === 'number' ? r.total : 0);
+      } catch {
+        if (!cancelled) setPendingVoidBadge(0);
+      }
+    };
+    void poll();
+    const iv = window.setInterval(poll, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(iv);
+    };
+  }, [user?.role]);
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const role = user?.role;
+  const canSeeMenu = (allowed?: Array<'owner' | 'cashier'>) => {
+    if (!role) return false;
+    if (!allowed?.length) return true;
+    return allowed.includes(role);
   };
 
   const toggleMenu = (menuId: string) => {
@@ -86,18 +117,33 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
               </button>
             )}
           </div>
+
+          {user?.role === 'cashier' && activeShift && !isCollapsed && (
+            <div className="mt-1 flex items-center justify-between px-2">
+              <span
+                className={`text-xs ${
+                  theme === 'dark' ? 'text-stone-400' : 'text-stone-500'
+                }`}
+              >
+                Transaksi shift ini:
+              </span>
+              <span className="text-xs font-bold text-amber-500">
+                {activeShift.current_total_transactions ?? activeShift.total_transactions ?? 0}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
         <div className={`flex-1 ${isCollapsed ? 'overflow-visible px-2' : 'overflow-y-auto p-4'} horizontal-scrollbar-thin transition-all duration-300`}>
           <div className="space-y-1">
             {navigationConfig.mainMenu
-              .filter((item) => item.allowedRoles?.includes(user?.role as any) ?? true)
+              .filter((item) => canSeeMenu(item.allowedRoles))
               .map((item) => {
                 const Icon = getIconComponent(item.iconName);
                 
                 if (item.type === 'collapse') {
-                  const subItems = item.subItems?.filter((sub) => sub.allowedRoles?.includes(user?.role as any) ?? true);
+                  const subItems = item.subItems?.filter((sub) => canSeeMenu(sub.allowedRoles));
                   if (!subItems || subItems.length === 0) return null;
                   
                   const filteredItem = { ...item, subItems };
@@ -105,7 +151,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
                   return (
                     <SidebarCollapse
                       key={item.id}
-                      item={filteredItem as any}
+                      item={filteredItem}
                       icon={Icon || undefined}
                       isOpen={openMenus[item.id] || false}
                       onToggle={() => !isCollapsed && toggleMenu(item.id)}
@@ -118,7 +164,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
                 return (
                   <SidebarItem
                     key={item.id}
-                    item={item as any}
+                    item={item}
                     icon={Icon || undefined}
                     isCollapsed={isCollapsed}
                   />
@@ -130,14 +176,14 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
 
           <div className="space-y-1">
             {navigationConfig.bottomMenu
-              .filter((item) => item.allowedRoles?.includes(user?.role as any) ?? true)
+              .filter((item) => canSeeMenu(item.allowedRoles))
               .map((item) => {
                 const Icon = getIconComponent(item.iconName);
                 if (item.id === 'logout') {
                   return (
                     <div key={item.id} onClick={(e) => { e.preventDefault(); handleLogout(); }}>
                       <SidebarItem
-                        item={item as any}
+                        item={item}
                         icon={Icon || undefined}
                         isCollapsed={isCollapsed}
                       />
@@ -147,9 +193,10 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
                 return (
                   <SidebarItem
                     key={item.id}
-                    item={item as any}
+                    item={item}
                     icon={Icon || undefined}
                     isCollapsed={isCollapsed}
+                    badge={item.id === 'owner-history' ? ownerVoidBadge : undefined}
                   />
                 );
               })}

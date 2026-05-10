@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { appApi } from '../services/appApi';
 
@@ -36,7 +37,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchActiveShift = async () => {
+  const refreshShift = useCallback(async () => {
     if (status !== 'authenticated' || !user || user.role !== 'cashier') {
       setActiveShift(null);
       setIsLoading(false);
@@ -52,11 +53,12 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [status, user]);
 
   useEffect(() => {
-    fetchActiveShift();
-  }, [user, status]);
+    setIsLoading(true);
+    void refreshShift();
+  }, [refreshShift]);
 
   const openShift = async (opening_cash: number) => {
     setIsLoading(true);
@@ -79,7 +81,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ShiftContext.Provider value={{ activeShift, isLoading, openShift, closeShift, refreshShift: fetchActiveShift }}>
+    <ShiftContext.Provider value={{ activeShift, isLoading, openShift, closeShift, refreshShift }}>
       {children}
     </ShiftContext.Provider>
   );

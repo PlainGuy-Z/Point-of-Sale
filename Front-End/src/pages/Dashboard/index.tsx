@@ -17,6 +17,7 @@ import TopProducts from '../../components/dashboard/TopProducts';
 import LowStockAlert from '../../components/dashboard/LowStockAlert';
 import ProfitChart from '../../components/dashboard/ProfitChart';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import { useApp } from '../../contexts/AppContext';
 
 
 
@@ -50,6 +51,7 @@ const HeaderBadge = ({ children, isDark, type = 'info' }: {
 
 export default function Dashboard() {
   const { theme } = useTheme();
+  const { isServiceLoading, transactions } = useApp();
   const { metrics, topProductsToday, rawData } = useDashboardMetrics(); 
   const isDark = theme === 'dark';
 
@@ -64,6 +66,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {isServiceLoading && transactions.length === 0 && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
+            isDark ? 'bg-stone-900 border-stone-800 text-stone-300' : 'bg-amber-50 border-amber-200 text-amber-900'
+          }`}
+        >
+          Memuat data penjualan dari server…
+        </div>
+      )}
       {/* Bagian Header */}
       <div className={`rounded-2xl p-6 ${isDark 
         ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800' 
