@@ -1112,6 +1112,12 @@ export default function PointOfSale() {
           onCustomerNameChange={setCustomCustomerName}
           onTableNumberChange={setTableNumber}
           onOrderTypeChange={handleOrderType}
+          onOrderDescriptionChange={setOrderNote}
+          onClose={() => setCheckoutDetailsFormOpen(false)}
+          onSubmit={handleCheckoutDetailsSubmit}
+        />
+      )}
+
       {shiftGateOpen && (
         <ShiftOpenModal
           onSuccess={() => {
