@@ -14,6 +14,7 @@ export function createApp() {
     const app = express();
     app.disable('x-powered-by');
     app.use(helmet());
+    
     // Cookie parser must be before routes so req.cookies is populated
     app.use(cookieParser());
     app.use(cors({

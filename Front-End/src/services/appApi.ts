@@ -28,16 +28,22 @@ export type AppStateWire = Omit<AppDataState, 'transactions' | 'wasteLogs' | 'cu
   customers: CustomerWire[];
 };
 
+/** * Ambil Root URL saja dari .env (Contoh: https://...railway.app)
+ * Tanpa tambahan /auth atau /api di ujungnya.
+ */
 function getApiBaseUrl(): string {
   const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
   if (!base) {
-    throw new Error('VITE_API_BASE_URL is not set. Add it to Front-End/.env (e.g. http://localhost:4000).');
+    throw new Error('VITE_API_BASE_URL is not set. Add it to Front-End/.env');
   }
   return base.replace(/\/+$/, '');
 }
 
 export async function http<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = `${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
+  // Path dipastikan selalu diawali dengan '/'
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${getApiBaseUrl()}${cleanPath}`;
+  
   const res = await fetch(url, {
     ...init,
     credentials: 'include',
@@ -49,6 +55,7 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     if (res.status === 401) {
+      // Jika session habis, arahkan ke login
       window.location.href = '/login';
       throw new ApiError(401, 'Session expired', 'UNAUTHORIZED');
     }
@@ -61,16 +68,13 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
       else if (body?.message) message = body.message;
       if (body?.error?.code) code = body.error.code;
       if (body?.error?.details) details = body.error.details;
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
     throw new ApiError(res.status, message, code, details);
   }
 
   return (await res.json()) as T;
 }
 
-/** Normalize wire JSON from API (ISO date strings) into runtime Date objects */
 export function normalizeAppStateWire(wire: AppStateWire): AppDataState {
   return {
     ...wire,
@@ -85,37 +89,58 @@ export function normalizeAppStateWire(wire: AppStateWire): AppDataState {
 }
 
 export const appApi = {
+  // Method dasar untuk custom call
   get: async <T = any>(path: string): Promise<T> => http<T>(path),
-  post: async <T = any>(path: string, body?: any): Promise<T> => http<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
-  put: async <T = any>(path: string, body?: any): Promise<T> => http<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
-  delete: async <T = any>(path: string): Promise<T> => http<T>(path, { method: 'DELETE' }),
+  post: async <T = any>(path: string, body?: any): Promise<T> => 
+    http<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  
+  /** * KHUSUS LOGIN/REGISTER 
+   * Pakai prefix /auth secara eksplisit agar masuk ke authRouter di backend
+   */
+  login: async (credentials: any) => appApi.post('/auth/login', credentials),
+  register: async (data: any) => appApi.post('/auth/register', data),
+  logout: async () => appApi.post('/auth/logout'),
 
-  getAppState: async (): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/state`)),
-  // Backwards compatibility (existing call sites)
+  // Rute yang membutuhkan token (Protected) - Semua pakai prefix /app
+  getAppState: async (): Promise<AppDataState> => 
+    normalizeAppStateWire(await http<AppStateWire>(`/app/state`)),
+  
   getState: async (): Promise<AppDataState> => appApi.getAppState(),
 
-  addProduct: async (product: any): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/products`, { method: 'POST', body: JSON.stringify(product) })),
+  addProduct: async (product: any): Promise<AppDataState> => 
+    normalizeAppStateWire(await http<AppStateWire>(`/app/products`, { method: 'POST', body: JSON.stringify(product) })),
+  
   updateProduct: async (product: any): Promise<AppDataState> =>
     normalizeAppStateWire(await http<AppStateWire>(`/app/products/${encodeURIComponent(product.id)}`, { method: 'PUT', body: JSON.stringify(product) })),
+  
   deleteProduct: async (id: string): Promise<AppDataState> =>
-    normalizeAppStateWire(await http<AppStateWire>(`/app/products/${encodeURIComponent(id)}`, { method: 'DELETE' })),
+  // Gunakan AppStateWire di dalam http, bukan AppDataState
+  normalizeAppStateWire(await http<AppStateWire>(`/app/products/${encodeURIComponent(id)}`, { method: 'DELETE' })),
 
-  addCustomer: async (customer: any): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/customers`, { method: 'POST', body: JSON.stringify(customer) })),
+  addCustomer: async (customer: any): Promise<AppDataState> => 
+    normalizeAppStateWire(await http<AppStateWire>(`/app/customers`, { method: 'POST', body: JSON.stringify(customer) })),
+  
   updateCustomer: async (customer: any): Promise<AppDataState> =>
     normalizeAppStateWire(await http<AppStateWire>(`/app/customers/${encodeURIComponent(customer.id)}`, { method: 'PUT', body: JSON.stringify(customer) })),
+  
   deleteCustomer: async (id: string): Promise<AppDataState> =>
     normalizeAppStateWire(await http<AppStateWire>(`/app/customers/${encodeURIComponent(id)}`, { method: 'DELETE' })),
 
-  addWasteLog: async (waste: any): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/waste-logs`, { method: 'POST', body: JSON.stringify(waste) })),
+  addWasteLog: async (waste: any): Promise<AppDataState> => 
+    normalizeAppStateWire(await http<AppStateWire>(`/app/waste-logs`, { method: 'POST', body: JSON.stringify(waste) })),
 
-  updateSettings: async (settings: any): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/settings`, { method: 'PUT', body: JSON.stringify(settings) })),
+  updateSettings: async (settings: any): Promise<AppDataState> => 
+    normalizeAppStateWire(await http<AppStateWire>(`/app/settings`, { method: 'PUT', body: JSON.stringify(settings) })),
 
   addCategory: async (name: string): Promise<AppDataState> =>
     normalizeAppStateWire(await http<AppStateWire>(`/app/categories`, { method: 'POST', body: JSON.stringify({ name }) })),
+  
   deleteCategory: async (name: string): Promise<AppDataState> =>
     normalizeAppStateWire(await http<AppStateWire>(`/app/categories/${encodeURIComponent(name)}`, { method: 'DELETE' })),
 
-  clearOldData: async (): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/maintenance/clear-old-data`, { method: 'POST' })),
-  resetAllData: async (): Promise<AppDataState> => normalizeAppStateWire(await http<AppStateWire>(`/app/maintenance/reset-all`, { method: 'POST' })),
+  clearOldData: async (): Promise<AppDataState> => 
+    normalizeAppStateWire(await http<AppStateWire>(`/app/maintenance/clear-old-data`, { method: 'POST' })),
+  
+  resetAllData: async (): Promise<AppDataState> => 
+    normalizeAppStateWire(await http<AppStateWire>(`/app/maintenance/reset-all`, { method: 'POST' })),
 };
-
