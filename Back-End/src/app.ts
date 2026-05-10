@@ -41,7 +41,7 @@ export function createApp() {
       // Izinkan semua Vercel preview domain milik project ini
       if (
         origin.endsWith('.vercel.app') &&
-        origin.includes('point-of-sale')
+        origin.includes('smartpos-cafe') // ganti dengan nama project Vercel kamu
       ) {
         return callback(null, true);
       }
