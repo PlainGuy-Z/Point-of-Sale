@@ -68,12 +68,13 @@ function signToken(payload: TokenPayload): string {
 }
 
 function setCookie(res: import('express').Response, token: string): void {
+  const isProd = env.NODE_ENV === 'production';
   res.cookie('token', token, {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    path: '/'
+    secure: isProd,              // true di production (HTTPS wajib)
+    sameSite: isProd ? 'none' : 'lax', // 'none' untuk cross-domain production
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/',
   });
 }
 
@@ -220,11 +221,12 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
 // ── POST /auth/logout ───────────────────────────────────────
 
 authRouter.post('/logout', (_req, res) => {
+  const isProd = env.NODE_ENV === 'production';
   res.clearCookie('token', {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/'
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/',
   });
   res.json({ message: 'Logged out successfully' });
 });

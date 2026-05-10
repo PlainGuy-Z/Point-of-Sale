@@ -17,28 +17,64 @@ export function createApp() {
   const app = express();
 
   app.disable('x-powered-by');
-  app.use(helmet());
 
-  // Cookie parser must be before routes so req.cookies is populated
+  // Helmet dengan crossOriginResourcePolicy dinonaktifkan
+  // agar tidak memblok cross-domain requests dari Vercel
+  app.use(helmet({
+    crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false,
+  }));
+
   app.use(cookieParser());
 
-  app.use(
-    cors({
-      origin: env.corsOrigins.length > 0 ? env.corsOrigins : true,
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type']
-    })
-  );
+  // CORS options — support exact match + Vercel preview domains
+  const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+      // Izinkan request tanpa origin (Postman, Railway health check, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Cek exact match dari env variable
+      if (env.corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Izinkan semua Vercel preview domain milik project ini
+      if (
+        origin.endsWith('.vercel.app') &&
+        origin.includes('point-of-sale')
+      ) {
+        return callback(null, true);
+      }
+
+      // Izinkan localhost untuk development
+      if (origin.startsWith('http://localhost:')) {
+        return callback(null, true);
+      }
+
+      console.warn(`[CORS] Blocked origin: ${origin}`);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 200,
+  };
+
+  // Handle preflight OPTIONS SEBELUM semua route — wajib untuk CORS
+  app.options('*', cors(corsOptions));
+  app.use(cors(corsOptions));
+
+  // Header untuk Chrome Private Network Access policy
+  app.use((_req, res, next) => {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    next();
+  });
 
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
 
-  // Auth routes (unprotected — register/login/logout handle their own auth)
   app.use('/auth', authRouter);
-
-  // Protected routes — require valid JWT
   app.use('/app', authenticateToken, appRouter);
   app.use('/pos', authenticateToken, posRouter);
   app.use('/users', authenticateToken, usersRouter);
