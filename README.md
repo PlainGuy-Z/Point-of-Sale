@@ -17,29 +17,21 @@
 ## 📸 Screenshots
 
 ### Landing Page
-| Dark Mode |
-|-----------|------------|
-| ![Landing Dark](./docs/landing-dark.png)
+  ![Landing Dark](./docs/landing-dark.png)
 
 ### Point of Sale (POS)
-| Dark Mode | Light Mode |
-|-----------|------------|
-| ![POS Dark](./docs/pos-dark.png)|
+
+ ![POS Dark](./docs/pos-dark.png)|
 
 ### Product Management
-| Dark Mode | Light Mode |
-|-----------|------------|
-| ![Product Dark](./docs/product-dark.png) |
 
-### Business Insights & Dashboard
-| Dark Mode | Light Mode |
-|-----------|------------|
-| ![Insight Dark](./docs/insight-dark.png) |
+ ![Product Dark](./docs/product-dark.png) |
 
-### Business Insights & Dashboard
-| Dark Mode | Light Mode |
-|-----------|------------|
-| ![Dashboard Dark](./docs/insight-dark.png) |
+
+ ![Insight Dark](./docs/insight-dark.png) |
+
+
+ ![Dashboard Dark](./docs/insight-dark.png) |
 
 ---
 
