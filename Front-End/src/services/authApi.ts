@@ -1,13 +1,6 @@
 import type { AuthUser } from '../types';
 import { ApiError } from './appApi';
-
-function getApiBaseUrl(): string {
-  const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
-  if (!base) {
-    throw new Error('VITE_API_BASE_URL is not set. Add it to Front-End/.env (e.g. http://localhost:4000).');
-  }
-  return base.replace(/\/+$/, '');
-}
+import { getApiBaseUrl } from './apiBaseUrl';
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;

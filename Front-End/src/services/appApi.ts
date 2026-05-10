@@ -1,4 +1,5 @@
 import type { AppDataState, Customer, Transaction, WasteLog } from '../types';
+import { getApiBaseUrl } from './apiBaseUrl';
 
 type IsoDateString = string;
 
@@ -31,14 +32,6 @@ export type AppStateWire = Omit<AppDataState, 'transactions' | 'wasteLogs' | 'cu
 /** * Ambil Root URL saja dari .env (Contoh: https://...railway.app)
  * Tanpa tambahan /auth atau /api di ujungnya.
  */
-function getApiBaseUrl(): string {
-  const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
-  if (!base) {
-    throw new Error('VITE_API_BASE_URL is not set. Add it to Front-End/.env');
-  }
-  return base.replace(/\/+$/, '');
-}
-
 export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   // Path dipastikan selalu diawali dengan '/'
   const cleanPath = path.startsWith('/') ? path : `/${path}`;

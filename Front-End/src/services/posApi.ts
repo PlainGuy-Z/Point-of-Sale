@@ -1,5 +1,6 @@
 import type { Transaction, TransactionItem } from '../types';
 import { ApiError } from './appApi';
+import { getApiBaseUrl } from './apiBaseUrl';
 
 /**
  * Backend contract (DTO) — keep frontend payload minimal.
@@ -41,14 +42,6 @@ type TransactionResponse = Omit<Transaction, 'date' | 'items'> & {
 export interface CheckoutResponse {
   transaction: TransactionResponse;
   appState: any; // Shape of AppDataState
-}
-
-function getApiBaseUrl(): string {
-  const base = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
-  if (!base) {
-    throw new Error('VITE_API_BASE_URL is not set. Add it to Front-End/.env (e.g. http://localhost:4000).');
-  }
-  return base.replace(/\/+$/, '');
 }
 
 async function http<T>(path: string, init: RequestInit): Promise<T> {
