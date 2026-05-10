@@ -174,16 +174,28 @@ root.render(
 // SERVICE WORKER REGISTRATION (PWA) - Production only
 // ============================================================================
 
+async function registerServiceWorkerIfAvailable(): Promise<void> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !isProduction) {
+    return;
+  }
+
+  try {
+    const response = await fetch('/sw.js', { method: 'HEAD' });
+    if (!response.ok) {
+      console.warn('Service worker not registered because /sw.js was not found.');
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    console.log('ServiceWorker registered:', registration.scope);
+  } catch (error) {
+    console.warn('ServiceWorker registration skipped or failed:', error);
+  }
+}
+
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && isProduction) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(
-      (registration) => {
-        console.log('ServiceWorker registered:', registration.scope);
-      },
-      (error) => {
-        console.log('ServiceWorker registration failed:', error);
-      }
-    );
+    void registerServiceWorkerIfAvailable();
   });
 }
 
