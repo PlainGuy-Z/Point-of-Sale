@@ -16,22 +16,20 @@
 
 ## 📸 Screenshots
 
-### Landing Page
-  ![Landing Dark](./docs/landing-dark.png)
 
 ### Point of Sale (POS)
 
- ![POS Dark](./docs/pos-dark.png)|
+ ![POS Dark](./docs/pos-dark.png)
 
 ### Product Management
 
- ![Product Dark](./docs/product-dark.png) |
+ ![Product Dark](./docs/product-dark.png) 
 
 
- ![Insight Dark](./docs/insight-dark.png) |
+ ![Insight Dark](./docs/insight-dark.png) 
 
 
- ![Dashboard Dark](./docs/insight-dark.png) |
+ ![Dashboard Dark](./docs/insight-dark.png) 
 
 ---
 
