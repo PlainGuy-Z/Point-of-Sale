@@ -731,7 +731,7 @@ export default function PointOfSale() {
                   <button
                     onClick={() => {
                       if (!cartIsEmpty) {
-                        setCheckoutDetailsFormOpen(true);
+                        setPanel('checkout');
                       }
                     }}
                     disabled={cartIsEmpty}
