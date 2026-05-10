@@ -9,6 +9,7 @@ interface CheckoutDetailsFormProps {
   onCustomerNameChange: (value: string) => void;
   onTableNumberChange: (value: string) => void;
   onOrderDescriptionChange: (value: string) => void;
+  onOrderTypeChange: (value: 'dine-in' | 'take-away') => void;
   onClose: () => void;
   onSubmit: () => void;
 }
@@ -21,6 +22,7 @@ export default function CheckoutDetailsForm({
   onCustomerNameChange,
   onTableNumberChange,
   onOrderDescriptionChange,
+  onOrderTypeChange,
   onClose,
   onSubmit
 }: CheckoutDetailsFormProps) {
@@ -31,8 +33,7 @@ export default function CheckoutDetailsForm({
 
   // Validate form
   const isFormValid =
-    customerName.trim().length > 0 &&
-    (orderType === 'take-away' || (isTableNumberRequired && tableNumber.trim().length > 0));
+    (!isTableNumberRequired || tableNumber.trim().length > 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4">
@@ -70,12 +71,35 @@ export default function CheckoutDetailsForm({
 
         {/* Content */}
         <div className="p-5 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+          {/* Order Type Selector */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">Order Type</label>
+            <div className={`flex gap-2 p-1 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
+              {(['dine-in', 'take-away'] as const).map(type => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => onOrderTypeChange(type)}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${orderType === type
+                    ? isDark
+                      ? 'bg-stone-800 text-amber-400'
+                      : 'bg-white text-amber-600 shadow-sm'
+                    : isDark
+                      ? 'text-stone-400 hover:text-stone-200'
+                      : 'text-stone-500 hover:text-gray-700'
+                    }`}
+                >
+                  {type === 'dine-in' ? 'Dine In' : 'Take Away'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Customer Name Field */}
           <div>
             <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
               <User className="w-4 h-4" />
               Customer Name
-              <span className="text-red-500">*</span>
             </label>
             <input
               type="text"

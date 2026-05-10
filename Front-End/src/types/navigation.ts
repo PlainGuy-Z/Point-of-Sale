@@ -1,5 +1,6 @@
 // src/types/navigation.ts
-export type MenuItemType = 'link' | 'collapse';
+
+export type MenuItemType = 'link' | 'collapse'| 'button';
 
 export interface SubMenuItem {
   id: string;
@@ -26,6 +27,7 @@ export interface NavigationConfig {
 }
 
 export const navigationConfig = {
+  
   mainMenu: [
     { id: 'dashboard', title: 'Dashboard', path: '/dashboard', iconName: 'LayoutDashboard', type: 'link' },
     { id: 'pos', title: 'Point of Sale', path: '/pos', iconName: 'ShoppingCart', type: 'link' },

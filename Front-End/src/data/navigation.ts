@@ -1,4 +1,9 @@
-export const navigationConfig = {
+import type { MenuItem } from '../types/navigation';
+
+export const navigationConfig : { 
+  mainMenu: MenuItem[];
+   bottomMenu: MenuItem[];
+   } = {
   mainMenu: [
     {
       id: 'dashboard',
