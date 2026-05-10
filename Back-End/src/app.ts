@@ -61,7 +61,8 @@ export function createApp() {
   };
 
   // Handle preflight OPTIONS SEBELUM semua route — wajib untuk CORS
-  app.options('*', cors(corsOptions));
+  // ✅ Ganti jadi ini
+  app.options('/{*path}', cors(corsOptions));
   app.use(cors(corsOptions));
 
   // Header untuk Chrome Private Network Access policy
