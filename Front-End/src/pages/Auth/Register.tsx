@@ -58,6 +58,14 @@ const handleSubmit = async (e: React.FormEvent) => {
     // Redirect manual setelah register sukses
     navigate('/verify-email', { replace: true });
   } catch (err: any) {
+    if (err.details?.fieldErrors) {
+      const firstField = Object.keys(err.details.fieldErrors)[0];
+      if (firstField) {
+        setError(`${firstField}: ${err.details.fieldErrors[firstField][0]}`);
+        setIsLoading(false);
+        return;
+      }
+    }
     setError(err.message || 'Pendaftaran gagal. Silakan coba lagi.');
   } finally {
     setIsLoading(false);
@@ -247,6 +255,7 @@ useEffect(() => {
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
                     required
+                    minLength={2}
                     placeholder="Contoh: Kopi Kenangan"
                     style={inputStyle}
                     onFocus={(e) => { e.target.style.borderColor = '#f59e0b'; e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.15)'; }}
@@ -297,6 +306,7 @@ useEffect(() => {
                     value={ownerName}
                     onChange={(e) => setOwnerName(e.target.value)}
                     required
+                    minLength={2}
                     placeholder="Nama Anda"
                     style={inputStyle}
                     onFocus={(e) => { e.target.style.borderColor = '#f59e0b'; e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.15)'; }}
@@ -331,6 +341,7 @@ useEffect(() => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={8}
                     placeholder="Minimal 8 karakter"
                     style={inputStyle}
                     onFocus={(e) => { e.target.style.borderColor = '#f59e0b'; e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.15)'; }}
@@ -355,6 +366,7 @@ useEffect(() => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    minLength={8}
                     placeholder="Ketik ulang password"
                     style={inputStyle}
                     onFocus={(e) => { e.target.style.borderColor = '#f59e0b'; e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.15)'; }}
