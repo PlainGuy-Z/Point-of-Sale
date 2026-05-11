@@ -9,6 +9,8 @@ import { validateBody } from '../http/validate.js';
 import { env } from '../env.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireOwner } from '../middleware/requireRole.js';
+import { sendVerificationEmail } from '../services/email.js';
+import { canResendOtp, generateOtp, getOtpExpiry, isOtpExpired } from '../utils/otp.js';
 export const authRouter = Router();
 // ── Schemas ──────────────────────────────────────────────────
 const RegisterSchema = z.object({
@@ -31,6 +33,17 @@ const ChangePasswordSchema = z.object({
     currentPassword: z.string().min(1),
     newPassword: z.string().min(8)
 });
+const VerifyOtpSchema = z.object({
+    otp: z.string().length(6).regex(/^[0-9]{6}$/)
+});
+const UpdateMeSchema = z
+    .object({
+    name: z.string().trim().min(2).optional(),
+    shop_name: z.string().trim().min(2).optional()
+})
+    .refine((d) => d.name !== undefined || d.shop_name !== undefined, {
+    message: 'Minimal satu field diperlukan'
+});
 const ResetCashierPasswordSchema = z.object({
     cashierId: z.string().uuid(),
     newPassword: z.string().min(8)
@@ -41,12 +54,13 @@ function signToken(payload) {
     });
 }
 function setCookie(res, token) {
+    const isProd = env.NODE_ENV === 'production';
     res.cookie('token', token, {
         httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        path: '/'
+        secure: isProd, // true di production (HTTPS wajib)
+        sameSite: isProd ? 'none' : 'lax', // 'none' untuk cross-domain production
+        maxAge: 24 * 60 * 60 * 1000,
+        path: '/',
     });
 }
 // ── POST /auth/register ─────────────────────────────────────
@@ -93,6 +107,8 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
                 email: result.user.email,
                 role: result.user.role,
                 shop_id: result.user.shop_id,
+                is_verified: false,
+                pin: false,
                 shop: {
                     id: result.shop.id,
                     name: result.shop.name,
@@ -111,7 +127,9 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
         const body = req.body;
         // Find user + shop
         const result = await pool.query(`SELECT u.id::text, u.name, u.email, u.role, u.password_hash, u.is_active,
+              u.is_verified,
               u.shop_id::text,
+              (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
        FROM coffeepos.users u
        JOIN coffeepos.shops s ON s.id = u.shop_id
@@ -141,6 +159,8 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
                 email: user.email,
                 role: user.role,
                 shop_id: user.shop_id,
+                is_verified: Boolean(user.is_verified),
+                pin: Boolean(user.pin),
                 shop: {
                     id: user.shop_id,
                     name: user.shop_name,
@@ -155,18 +175,20 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
 });
 // ── POST /auth/logout ───────────────────────────────────────
 authRouter.post('/logout', (_req, res) => {
+    const isProd = env.NODE_ENV === 'production';
     res.clearCookie('token', {
         httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/'
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
+        path: '/',
     });
     res.json({ message: 'Logged out successfully' });
 });
 // ── GET /auth/me ────────────────────────────────────────────
 authRouter.get('/me', authenticateToken, async (req, res, next) => {
     try {
-        const result = await pool.query(`SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
+        const result = await pool.query(`SELECT u.id::text, u.name, u.email, u.role, u.is_verified, u.shop_id::text,
+              (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
        FROM coffeepos.users u
        JOIN coffeepos.shops s ON s.id = u.shop_id
@@ -182,10 +204,151 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
                 email: user.email,
                 role: user.role,
                 shop_id: user.shop_id,
+                is_verified: Boolean(user.is_verified),
+                pin: Boolean(user.pin),
                 shop: {
                     id: user.shop_id,
                     name: user.shop_name,
                     slug: user.shop_slug
+                }
+            }
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// ── POST /auth/send-otp ─────────────────────────────────────
+authRouter.post('/send-otp', authenticateToken, async (req, res, next) => {
+    try {
+        const result = await pool.query(`SELECT id::text, email, name, is_verified, otp_sent_at
+       FROM coffeepos.users
+       WHERE id = $1::uuid`, [req.user.id]);
+        if (result.rowCount === 0) {
+            throw new HttpError(401, 'UNAUTHORIZED', 'User not found');
+        }
+        const user = result.rows[0];
+        if (user.is_verified) {
+            throw new HttpError(400, 'ALREADY_VERIFIED', 'Email already verified');
+        }
+        const sentAt = user.otp_sent_at ? new Date(user.otp_sent_at) : null;
+        if (sentAt && !canResendOtp(sentAt)) {
+            const diff = (Date.now() - sentAt.getTime()) / 1000;
+            throw new HttpError(429, 'RATE_LIMITED', 'OTP send rate limited', {
+                secondsLeft: Math.ceil(60 - diff)
+            });
+        }
+        const plainOtp = generateOtp();
+        const otpHash = await bcrypt.hash(plainOtp, 6);
+        await pool.query(`UPDATE coffeepos.users
+       SET otp_code = $1,
+           otp_expires_at = $2,
+           otp_attempts = 0,
+           otp_sent_at = now()
+       WHERE id = $3::uuid`, [otpHash, getOtpExpiry(), req.user.id]);
+        try {
+            await sendVerificationEmail(user.email, user.name, plainOtp);
+        }
+        catch {
+            throw new HttpError(500, 'EMAIL_SEND_FAILED', 'Failed to send verification email');
+        }
+        res.json({ message: 'OTP sent', expiresIn: 180, cooldown: 60 });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// ── POST /auth/verify-otp ───────────────────────────────────
+authRouter.post('/verify-otp', authenticateToken, validateBody(VerifyOtpSchema), async (req, res, next) => {
+    try {
+        const body = req.body;
+        const result = await pool.query(`SELECT id::text, is_verified, otp_code, otp_expires_at, otp_attempts
+       FROM coffeepos.users
+       WHERE id = $1::uuid`, [req.user.id]);
+        if (result.rowCount === 0) {
+            throw new HttpError(401, 'UNAUTHORIZED', 'User not found');
+        }
+        const user = result.rows[0];
+        if (user.is_verified) {
+            throw new HttpError(400, 'ALREADY_VERIFIED', 'Email already verified');
+        }
+        if (!user.otp_code) {
+            throw new HttpError(400, 'NO_OTP_PENDING', 'No OTP verification pending');
+        }
+        if (user.otp_attempts >= 5) {
+            await pool.query(`UPDATE coffeepos.users
+         SET otp_code = NULL,
+             otp_expires_at = NULL,
+             otp_attempts = 0,
+             otp_sent_at = NULL
+         WHERE id = $1::uuid`, [req.user.id]);
+            throw new HttpError(429, 'MAX_ATTEMPTS_EXCEEDED', 'Maximum OTP attempts exceeded');
+        }
+        if (!user.otp_expires_at || isOtpExpired(new Date(user.otp_expires_at))) {
+            await pool.query(`UPDATE coffeepos.users
+         SET otp_code = NULL,
+             otp_expires_at = NULL,
+             otp_attempts = 0,
+             otp_sent_at = NULL
+         WHERE id = $1::uuid`, [req.user.id]);
+            throw new HttpError(400, 'OTP_EXPIRED', 'OTP has expired');
+        }
+        const valid = await bcrypt.compare(body.otp, user.otp_code);
+        if (!valid) {
+            await pool.query(`UPDATE coffeepos.users
+         SET otp_attempts = otp_attempts + 1
+         WHERE id = $1::uuid`, [req.user.id]);
+            throw new HttpError(400, 'INVALID_OTP', 'Invalid OTP', {
+                attemptsLeft: 5 - (user.otp_attempts + 1)
+            });
+        }
+        await pool.query(`UPDATE coffeepos.users
+       SET is_verified = true,
+           otp_code = NULL,
+           otp_expires_at = NULL,
+           otp_attempts = 0,
+           otp_sent_at = NULL
+       WHERE id = $1::uuid`, [req.user.id]);
+        res.json({ message: 'Email verified', verified: true });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// ── PUT /auth/me ─────────────────────────────────────────────
+authRouter.put('/me', authenticateToken, validateBody(UpdateMeSchema), async (req, res, next) => {
+    try {
+        const body = req.body;
+        if (body.shop_name !== undefined && req.user.role !== 'owner') {
+            throw new HttpError(403, 'FORBIDDEN', 'Hanya pemilik toko yang dapat mengubah nama toko');
+        }
+        await withTransaction(async (client) => {
+            if (body.name !== undefined) {
+                await client.query(`UPDATE coffeepos.users SET name = $1, updated_at = now() WHERE id = $2::uuid`, [body.name, req.user.id]);
+            }
+            if (body.shop_name !== undefined) {
+                await client.query(`UPDATE coffeepos.shops SET name = $1 WHERE id = $2::uuid`, [body.shop_name, req.user.shop_id]);
+            }
+        });
+        const result = await pool.query(`SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
+              (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
+              s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
+       FROM coffeepos.users u
+       JOIN coffeepos.shops s ON s.id = u.shop_id
+       WHERE u.id = $1::uuid`, [req.user.id]);
+        const row = result.rows[0];
+        res.json({
+            user: {
+                id: row.id,
+                name: row.name,
+                email: row.email,
+                role: row.role,
+                shop_id: row.shop_id,
+                pin: Boolean(row.pin),
+                shop: {
+                    id: row.shop_id,
+                    name: row.shop_name,
+                    slug: row.shop_slug
                 }
             }
         });

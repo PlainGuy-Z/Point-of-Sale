@@ -13,7 +13,7 @@ async function getShopSettings(shopId: string) {
     `SELECT tax_enabled, tax_rate, tax_inclusive,
             service_charge_enabled, service_charge_rate,
             tax_label, service_charge_label
-     FROM coffeepos.shop_settings
+     FROM shop_settings
      WHERE shop_id = $1`,
     [shopId]
   );
@@ -45,7 +45,7 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
     if (realProductIds.length > 0) {
       const result = await pool.query(
         `SELECT id::text, price, is_promo, promo_price
-         FROM coffeepos.products
+         FROM products
          WHERE id = ANY($1::uuid[]) AND shop_id = $2::uuid`,
         [realProductIds, shopId]
       );
@@ -116,7 +116,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
     let shiftId: string | null = null;
     if (role === 'cashier') {
       const { rows: activeShifts } = await pool.query(
-        `SELECT id FROM coffeepos.shifts WHERE cashier_id = $1 AND status = 'open'`,
+        `SELECT id FROM shifts WHERE cashier_id = $1 AND status = 'open'`,
         [cashierId]
       );
       if (activeShifts.length === 0) {
@@ -137,7 +137,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
       if (productIds.length > 0) {
         const products = await client.query(
           `SELECT id::text AS id, name, price, cost, stock, is_promo, promo_price, is_available
-           FROM coffeepos.products
+           FROM products
            WHERE id = ANY($1::uuid[]) AND shop_id = $2::uuid
            FOR UPDATE`,
           [productIds, shopId]
@@ -197,7 +197,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
           `WITH req AS (
              SELECT unnest($1::uuid[]) AS id, unnest($2::int[]) AS qty
            )
-           UPDATE coffeepos.products p
+           UPDATE products p
            SET stock = CASE WHEN p.stock = -1 THEN -1 ELSE p.stock - req.qty END,
                updated_at = now()
            FROM req
@@ -264,7 +264,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
 
       const txId = crypto.randomUUID();
       const tx = await client.query(
-        `INSERT INTO coffeepos.transactions
+        `INSERT INTO transactions
            (id, subtotal, tax, service_charge, grand_total, discount_amount, customer_name, customer_id,
             table_number, notes, payment_method, cash_received, change_amount, order_type,
             status, shop_id, cashier_id, cashier_name, shift_id)
@@ -313,7 +313,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
       }
 
       const items = await client.query(
-        `INSERT INTO coffeepos.transaction_items
+        `INSERT INTO transaction_items
            (id, transaction_id, product_id, name, price, quantity, description, is_custom)
          VALUES
            ${rowsSql.join(',')}

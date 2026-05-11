@@ -11,6 +11,7 @@ import { usersRouter } from './routes/users.js';
 import { shiftsRouter } from './routes/shifts.js';
 import { transactionsRouter } from './routes/transactions.js';
 import { settingsRouter } from './routes/settings.js';
+import { aiRouter } from './routes/ai.js';
 import { authenticateToken } from './middleware/auth.js';
 
 export function createApp() {
@@ -62,7 +63,7 @@ export function createApp() {
 
   // Handle preflight OPTIONS SEBELUM semua route — wajib untuk CORS
   // ✅ Ganti jadi ini
-  app.options('/{*path}', cors(corsOptions));
+  app.options('*', cors(corsOptions));
   app.use(cors(corsOptions));
 
   // Header untuk Chrome Private Network Access policy
@@ -70,6 +71,8 @@ export function createApp() {
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
     next();
   });
+
+  
 
   app.use(express.json({ limit: '1mb' }));
 
@@ -82,6 +85,7 @@ export function createApp() {
   app.use('/shifts', authenticateToken, shiftsRouter);
   app.use('/transactions', authenticateToken, transactionsRouter);
   app.use('/settings', authenticateToken, settingsRouter);
+  app.use('/api/ai', authenticateToken, aiRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

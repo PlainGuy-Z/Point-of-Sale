@@ -61,7 +61,7 @@ usersRouter.put(
       const body = req.body as z.infer<typeof SetPinSchema>;
       const pinHash = await bcrypt.hash(body.pin, env.BCRYPT_ROUNDS);
       await pool.query(
-        `UPDATE coffeepos.users SET pin = $1, updated_at = now() WHERE id = $2::uuid`,
+        `UPDATE users SET pin = $1, updated_at = now() WHERE id = $2::uuid`,
         [pinHash, req.user!.id]
       );
       res.json({ success: true });
@@ -74,7 +74,7 @@ usersRouter.put(
 usersRouter.delete('/me/pin', requireRole('cashier'), async (req, res, next) => {
   try {
     await pool.query(
-      `UPDATE coffeepos.users SET pin = NULL, updated_at = now() WHERE id = $1::uuid`,
+      `UPDATE users SET pin = NULL, updated_at = now() WHERE id = $1::uuid`,
       [req.user!.id]
     );
     res.json({ success: true });
@@ -90,7 +90,7 @@ usersRouter.post('/:id/reset-password', requireOwner, async (req, res, next) => 
     const { id } = req.params;
 
     const check = await pool.query(
-      `SELECT id::text FROM coffeepos.users
+      `SELECT id::text FROM users
        WHERE id = $1::uuid AND shop_id = $2::uuid AND role = 'cashier'`,
       [id, req.user!.shop_id]
     );
@@ -102,7 +102,7 @@ usersRouter.post('/:id/reset-password', requireOwner, async (req, res, next) => 
     const hash = await bcrypt.hash(temporaryPassword, env.BCRYPT_ROUNDS);
 
     await pool.query(
-      `UPDATE coffeepos.users SET password_hash = $1, updated_at = now() WHERE id = $2::uuid`,
+      `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2::uuid`,
       [hash, id]
     );
 
@@ -125,7 +125,7 @@ usersRouter.get('/', requireOwner, async (req, res, next) => {
          (pin IS NOT NULL AND btrim(pin) <> '') AS pin,
          is_active,
          created_at
-       FROM coffeepos.users
+       FROM users
        WHERE shop_id = $1::uuid AND role = 'cashier'
        ORDER BY created_at DESC`,
       [req.user!.shop_id]
@@ -143,7 +143,7 @@ usersRouter.post('/', requireOwner, validateBody(CreateUserSchema), async (req, 
   try {
     const body = req.body as z.infer<typeof CreateUserSchema>;
 
-    const emailCheck = await pool.query(`SELECT id FROM coffeepos.users WHERE email = $1`, [
+    const emailCheck = await pool.query(`SELECT id FROM users WHERE email = $1`, [
       body.email
     ]);
     if (emailCheck.rowCount! > 0) {
@@ -153,7 +153,7 @@ usersRouter.post('/', requireOwner, validateBody(CreateUserSchema), async (req, 
     const passwordHash = await bcrypt.hash(body.password, env.BCRYPT_ROUNDS);
 
     const result = await pool.query(
-      `INSERT INTO coffeepos.users (shop_id, email, password_hash, name, role, is_active)
+      `INSERT INTO users (shop_id, email, password_hash, name, role, is_active)
        VALUES ($1::uuid, $2, $3, $4, $5, true)
        RETURNING id::text, name, email, role,
          (pin IS NOT NULL AND btrim(pin) <> '') AS pin,
@@ -175,7 +175,7 @@ usersRouter.put('/:id', requireOwner, validateBody(UpdateUserSchema), async (req
     const body = req.body as z.infer<typeof UpdateUserSchema>;
 
     const check = await pool.query(
-      `SELECT id FROM coffeepos.users
+      `SELECT id FROM users
        WHERE id = $1::uuid AND shop_id = $2::uuid AND role = 'cashier'`,
       [id, req.user!.shop_id]
     );
@@ -193,7 +193,7 @@ usersRouter.put('/:id', requireOwner, validateBody(UpdateUserSchema), async (req
     }
     if (body.email !== undefined) {
       const emailCheck = await pool.query(
-        `SELECT id FROM coffeepos.users WHERE email = $1 AND id != $2::uuid`,
+        `SELECT id FROM users WHERE email = $1 AND id != $2::uuid`,
         [body.email, id]
       );
       if (emailCheck.rowCount! > 0) {
@@ -218,7 +218,7 @@ usersRouter.put('/:id', requireOwner, validateBody(UpdateUserSchema), async (req
     const shopIdx = p + 1;
 
     const result = await pool.query(
-      `UPDATE coffeepos.users
+      `UPDATE users
        SET ${sets.join(', ')}
        WHERE id = $${idIdx}::uuid AND shop_id = $${shopIdx}::uuid AND role = 'cashier'
        RETURNING id::text, name, email, role,
@@ -248,7 +248,7 @@ usersRouter.delete('/:id', requireOwner, async (req, res, next) => {
     }
 
     const check = await pool.query(
-      `SELECT id FROM coffeepos.users
+      `SELECT id FROM users
        WHERE id = $1::uuid AND shop_id = $2::uuid AND role = 'cashier'`,
       [id, req.user!.shop_id]
     );
@@ -257,7 +257,7 @@ usersRouter.delete('/:id', requireOwner, async (req, res, next) => {
     }
 
     await pool.query(
-      `UPDATE coffeepos.users SET is_active = false, updated_at = now()
+      `UPDATE users SET is_active = false, updated_at = now()
        WHERE id = $1::uuid AND shop_id = $2::uuid`,
       [id, req.user!.shop_id]
     );

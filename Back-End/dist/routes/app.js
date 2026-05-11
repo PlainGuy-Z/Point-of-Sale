@@ -98,7 +98,7 @@ export async function buildAppState(shopId) {
          t.customer_name,
          t.table_number,
          t.cashier_name,
-         11 AS tax_rate,
+         ss.tax_rate AS tax_rate,
          'dine-in'::text AS order_type,
          NULL::text AS order_note,
          (
@@ -118,7 +118,9 @@ export async function buildAppState(shopId) {
            WHERE i.transaction_id = t.id
          ) AS items
        FROM coffeepos.transactions t
+       LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = t.shop_id
        WHERE t.shop_id = $1::uuid
+         AND COALESCE(t.status::text, 'completed') <> 'voided'
        ORDER BY t.created_at DESC
        LIMIT 200`, [shopId]),
         pool.query(`SELECT
@@ -165,10 +167,10 @@ export async function buildAppState(shopId) {
             paymentMethod: t.payment_method,
             customerName: t.customer_name ?? undefined,
             tableNumber: t.table_number ?? undefined,
-            cashierName: t.cashier_name ?? undefined,
-            taxRate: Number(t.tax_rate),
+            cashierName: t.cashier_name,
+            taxRate: Number(t.tax_rate ?? 11),
             orderType: t.order_type,
-            orderNote: t.order_note ?? undefined
+            orderNote: t.order_note ?? undefined,
         })),
         wasteLogs: wastes.rows.map((w) => ({
             id: w.id,

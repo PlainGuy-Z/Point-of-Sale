@@ -2,29 +2,29 @@
  * SQL Migration (run once):
  *
  * -- Allow stock = -1 for unlimited/untracked products
- * ALTER TABLE coffeepos.products DROP CONSTRAINT IF EXISTS products_stock_check;
- * ALTER TABLE coffeepos.products ADD CONSTRAINT products_stock_check CHECK (stock >= -1);
+ * ALTER TABLE products DROP CONSTRAINT IF EXISTS products_stock_check;
+ * ALTER TABLE products ADD CONSTRAINT products_stock_check CHECK (stock >= -1);
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS discount INTEGER NOT NULL DEFAULT 0
  *   CHECK (discount >= 0 AND discount <= 100);
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS is_promo BOOLEAN NOT NULL DEFAULT false;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS promo_price INTEGER;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS promo_label TEXT;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS promo_start DATE;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS promo_end DATE;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS is_available BOOLEAN NOT NULL DEFAULT true;
  */
 
@@ -66,6 +66,8 @@ const CategorySchema = z.object({
   name: z.string().trim().min(1)
 });
 
+
+
 /* ─── Helper: ensure category exists, filtered by shop ──────── */
 
 async function ensureCategory(
@@ -75,13 +77,13 @@ async function ensureCategory(
 ): Promise<string> {
   const queryRunner = client ?? pool;
   const existing = await queryRunner.query(
-    `SELECT id::text FROM coffeepos.categories WHERE name = $1 AND shop_id = $2::uuid LIMIT 1`,
+    `SELECT id::text FROM categories WHERE name = $1 AND shop_id = $2::uuid LIMIT 1`,
     [categoryName, shopId]
   );
   if (existing.rowCount! > 0) return existing.rows[0].id;
 
   const inserted = await queryRunner.query(
-    `INSERT INTO coffeepos.categories (name, shop_id) VALUES ($1, $2::uuid)
+    `INSERT INTO categories (name, shop_id) VALUES ($1, $2::uuid)
      ON CONFLICT (name, shop_id) DO UPDATE SET name = EXCLUDED.name
      RETURNING id::text`,
     [categoryName, shopId]
@@ -98,8 +100,8 @@ export async function buildAppState(shopId: string) {
               c.name as category, p.stock, p.min_stock, p.cost,
               p.image, p.discount, p.is_promo, p.promo_price,
               p.promo_label, p.promo_start, p.promo_end, p.is_available
-       FROM coffeepos.products p
-       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
        WHERE p.shop_id = $1::uuid
        ORDER BY p.name ASC`,
       [shopId]
@@ -110,12 +112,12 @@ export async function buildAppState(shopId: string) {
          t.created_at AS date,
          t.grand_total AS total,
          (SELECT COALESCE(SUM(p.cost * i.quantity), 0)
-            FROM coffeepos.transaction_items i
-            LEFT JOIN coffeepos.products p ON p.id = i.product_id
+            FROM transaction_items i
+            LEFT JOIN products p ON p.id = i.product_id
            WHERE i.transaction_id = t.id) AS cost,
          (t.subtotal - (SELECT COALESCE(SUM(p.cost * i.quantity), 0)
-            FROM coffeepos.transaction_items i
-            LEFT JOIN coffeepos.products p ON p.id = i.product_id
+            FROM transaction_items i
+            LEFT JOIN products p ON p.id = i.product_id
            WHERE i.transaction_id = t.id)) AS profit,
          t.payment_method,
          t.customer_name,
@@ -137,11 +139,11 @@ export async function buildAppState(shopId: string) {
              ),
              '[]'::json
            )
-           FROM coffeepos.transaction_items i
+           FROM transaction_items i
            WHERE i.transaction_id = t.id
          ) AS items
-       FROM coffeepos.transactions t
-       LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = t.shop_id
+       FROM transactions t
+       LEFT JOIN shop_settings ss ON ss.shop_id = t.shop_id
        WHERE t.shop_id = $1::uuid
          AND COALESCE(t.status::text, 'completed') <> 'voided'
        ORDER BY t.created_at DESC
@@ -157,15 +159,15 @@ export async function buildAppState(shopId: string) {
          w.reason,
          w.loss_amount AS cost_loss,
          w.created_at AS date
-       FROM coffeepos.waste_logs w
-       JOIN coffeepos.products p ON p.id = w.product_id
+       FROM waste_logs w
+       JOIN products p ON p.id = w.product_id
        WHERE w.shop_id = $1::uuid
        ORDER BY w.created_at DESC
        LIMIT 500`,
       [shopId]
     ),
     pool.query(
-      `SELECT id::text, name FROM coffeepos.categories WHERE shop_id = $1::uuid ORDER BY name ASC`,
+      `SELECT id::text, name FROM categories WHERE shop_id = $1::uuid ORDER BY name ASC`,
       [shopId]
     )
   ]);
@@ -248,7 +250,7 @@ appRouter.post('/waste-logs', validateBody(CreateWasteLogSchema), async (req, re
     const shopId = req.user!.shop_id;
     await withTransaction(async (client) => {
       const product = await client.query(
-        `SELECT id::text, name, stock, cost FROM coffeepos.products WHERE id = $1::uuid AND shop_id = $2::uuid FOR UPDATE`,
+        `SELECT id::text, name, stock, cost FROM products WHERE id = $1::uuid AND shop_id = $2::uuid FOR UPDATE`,
         [body.productId, shopId]
       );
       if (product.rowCount === 0) throw new HttpError(400, 'UNKNOWN_PRODUCT', 'productId not found');
@@ -256,8 +258,8 @@ appRouter.post('/waste-logs', validateBody(CreateWasteLogSchema), async (req, re
       const stock = Number(p.stock);
       const cost = Number(p.cost ?? 0);
       if (stock < body.quantity) throw new HttpError(409, 'INSUFFICIENT_STOCK', 'Insufficient stock');
-      await client.query(`UPDATE coffeepos.products SET stock = stock - $2::int, updated_at = now() WHERE id = $1::uuid AND shop_id = $3::uuid`, [body.productId, body.quantity, shopId]);
-      await client.query(`INSERT INTO coffeepos.waste_logs (product_id, quantity, reason, loss_amount, shop_id) VALUES ($1::uuid, $2::int, $3::text, $4::int, $5::uuid)`, [body.productId, body.quantity, body.reason, cost * body.quantity, shopId]);
+      await client.query(`UPDATE products SET stock = stock - $2::int, updated_at = now() WHERE id = $1::uuid AND shop_id = $3::uuid`, [body.productId, body.quantity, shopId]);
+      await client.query(`INSERT INTO waste_logs (product_id, quantity, reason, loss_amount, shop_id) VALUES ($1::uuid, $2::int, $3::text, $4::int, $5::uuid)`, [body.productId, body.quantity, body.reason, cost * body.quantity, shopId]);
     });
     res.status(201).json(await buildAppState(shopId));
   } catch (err) {
@@ -272,7 +274,7 @@ appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) 
     const shopId = req.user!.shop_id;
     const categoryId = await ensureCategory(body.category, shopId);
     await pool.query(
-      `INSERT INTO coffeepos.products
+      `INSERT INTO products
         (name, description, price, category, category_id, stock, min_stock, cost, image,
          discount, is_promo, promo_price, promo_label, promo_start, promo_end, is_available, shop_id)
        VALUES ($1, $2, $3, $4, $5::uuid,
@@ -301,7 +303,7 @@ appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, nex
     const shopId = req.user!.shop_id;
     const categoryId = await ensureCategory(body.category, shopId);
     const result = await pool.query(
-      `UPDATE coffeepos.products
+      `UPDATE products
        SET name = $1, description = $2, price = $3, category = $4,
            category_id = $5::uuid,
            stock = $6, min_stock = $7, cost = $8, image = $9,
@@ -332,7 +334,7 @@ appRouter.delete('/products/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const shopId = req.user!.shop_id;
-    const result = await pool.query(`DELETE FROM coffeepos.products WHERE id = $1::uuid AND shop_id = $2::uuid`, [id, shopId]);
+    const result = await pool.query(`DELETE FROM products WHERE id = $1::uuid AND shop_id = $2::uuid`, [id, shopId]);
     if (result.rowCount === 0) throw new HttpError(404, 'NOT_FOUND', 'Product not found');
     res.json(await buildAppState(shopId));
   } catch (err) {
@@ -345,7 +347,7 @@ appRouter.post('/categories', validateBody(CategorySchema), async (req, res, nex
   try {
     const shopId = req.user!.shop_id;
     await pool.query(
-      `INSERT INTO coffeepos.categories (name, shop_id) VALUES ($1, $2::uuid) ON CONFLICT (name, shop_id) DO NOTHING`,
+      `INSERT INTO categories (name, shop_id) VALUES ($1, $2::uuid) ON CONFLICT (name, shop_id) DO NOTHING`,
       [req.body.name, shopId]
     );
     res.json(await buildAppState(shopId));
@@ -359,7 +361,7 @@ appRouter.delete('/categories/:name', async (req, res, next) => {
   try {
     const shopId = req.user!.shop_id;
     // Note: User should handle product reassignment before deleting category in UI
-    await pool.query(`DELETE FROM coffeepos.categories WHERE name = $1 AND shop_id = $2::uuid`, [req.params.name, shopId]);
+    await pool.query(`DELETE FROM categories WHERE name = $1 AND shop_id = $2::uuid`, [req.params.name, shopId]);
     res.json(await buildAppState(shopId));
   } catch (err) {
     next(err);

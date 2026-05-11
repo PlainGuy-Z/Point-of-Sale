@@ -86,6 +86,9 @@ export const appApi = {
   get: async <T = any>(path: string): Promise<T> => http<T>(path),
   post: async <T = any>(path: string, body?: any): Promise<T> => 
     http<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  put: async <T = any>(path: string, body?: any): Promise<T> => 
+    http<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+  delete: async <T = any>(path: string): Promise<T> => http<T>(path, { method: 'DELETE' }),
   
   /** * KHUSUS LOGIN/REGISTER 
    * Pakai prefix /auth secara eksplisit agar masuk ke authRouter di backend

@@ -1,140 +1,169 @@
-// src/pages/BusinessInsights/index.tsx
-import { useState } from 'react';
-import { BarChart3, TrendingUp, Brain, AlertTriangle, DollarSign, Users } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
+import React, { useState, useEffect } from 'react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { aiApi } from '../../services/aiApi';
+import type { ForecastResponse, AlertsResponse, WasteResponse, SummaryResponse } from '../../services/aiApi';
+
 import WeeklySummary from '../../components/insights/WeeklySummary';
 import TrendsAnalysis from '../../components/insights/TrendsAnalysis';
 import AIAssistant from '../../components/insights/AIAssistant';
 import InsightCard from '../../components/insights/InsightCard';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
-
-type InsightTab = 'weekly' | 'trends' | 'ai';
 
 export default function BusinessInsights() {
-  const [activeTab, setActiveTab] = useState<InsightTab>('weekly');
-  const { transactions, wasteLogs, products } = useApp();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const { format } = useCurrencyFormatter();
 
-  // Empty state
-  if (transactions.length === 0) {
-    return (
-      <div className="text-center py-20 animate-in fade-in duration-300">
-        <BarChart3 className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-stone-700' : 'text-stone-300'}`} />
-        <h3 className={`font-black text-lg ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Belum ada data transaksi</h3>
-        <p className={`text-sm mt-1 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
-          Mulai transaksi untuk melihat insight bisnis
-        </p>
-      </div>
-    );
-  }
+  const [forecast, setForecast] = useState<{ data: ForecastResponse | null; loading: boolean; error: boolean }>({ data: null, loading: true, error: false });
+  const [alerts, setAlerts] = useState<{ data: AlertsResponse | null; loading: boolean; error: boolean }>({ data: null, loading: true, error: false });
+  const [waste, setWaste] = useState<{ data: WasteResponse | null; loading: boolean; error: boolean }>({ data: null, loading: true, error: false });
+  const [summary, setSummary] = useState<{ data: SummaryResponse | null; loading: boolean; error: boolean }>({ data: null, loading: true, error: false });
 
-  // Hitung insights
-  const last7Days = transactions.filter(t => {
-    const date = new Date(t.date);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return date >= weekAgo;
-  });
+  const [wastePeriod, setWastePeriod] = useState<7 | 14 | 30>(30);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const weeklyRevenue = last7Days.reduce((sum, t) => sum + t.total, 0);
-  const weeklyProfit = last7Days.reduce((sum, t) => sum + t.profit, 0);
-  const avgDailyProfit = weeklyProfit / 7;
-  const wasteLoss = wasteLogs.reduce((sum, w) => sum + w.costLoss, 0);
+  const fetchInitialData = async () => {
+    setForecast(prev => ({ ...prev, loading: true, error: false }));
+    setAlerts(prev => ({ ...prev, loading: true, error: false }));
+    setWaste(prev => ({ ...prev, loading: true, error: false }));
+    setSummary(prev => ({ ...prev, loading: true, error: false }));
 
-  // Top product
-  const productSales: Record<string, number> = {};
-  last7Days.forEach(t => {
-    t.items.forEach(item => {
-      productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity;
+    const results = await Promise.allSettled([
+      aiApi.fetchForecast(),
+      aiApi.fetchInventoryAlerts(),
+      aiApi.fetchWasteAnalysis(wastePeriod),
+      aiApi.fetchSummary(),
+    ]);
+
+    setForecast({
+      data: results[0].status === 'fulfilled' ? results[0].value : null,
+      loading: false,
+      error: results[0].status === 'rejected',
     });
-  });
 
-  const topProductId = Object.entries(productSales).sort((a, b) => b[1] - a[1])[0]?.[0];
-  const topProduct = products.find(p => p.id === topProductId);
+    setAlerts({
+      data: results[1].status === 'fulfilled' ? results[1].value : null,
+      loading: false,
+      error: results[1].status === 'rejected',
+    });
 
-  const tabs = [
-    { id: 'weekly' as InsightTab, label: 'Weekly Summary', icon: BarChart3 },
-    { id: 'trends' as InsightTab, label: 'Trends Analysis', icon: TrendingUp },
-    { id: 'ai' as InsightTab, label: 'Ask AI', icon: Brain },
-  ];
+    setWaste({
+      data: results[2].status === 'fulfilled' ? results[2].value : null,
+      loading: false,
+      error: results[2].status === 'rejected',
+    });
+
+    setSummary({
+      data: results[3].status === 'fulfilled' ? results[3].value : null,
+      loading: false,
+      error: results[3].status === 'rejected',
+    });
+
+    setLastUpdated(new Date());
+  };
+
+  useEffect(() => {
+    fetchInitialData().catch((err) => {
+      console.error('Failed to fetch initial data:', err);
+    });
+  }, []);
+
+  const handleWastePeriodChange = async (newPeriod: 7 | 14 | 30) => {
+    setWastePeriod(newPeriod);
+    setWaste(prev => ({ ...prev, loading: true, error: false }));
+    try {
+      const res = await aiApi.fetchWasteAnalysis(newPeriod);
+      setWaste({ data: res, loading: false, error: false });
+    } catch {
+      setWaste({ data: null, loading: false, error: true });
+    }
+  };
+
+  const renderErrorBoundary = (onRetry: () => void) => (
+    <div className={`h-full w-full flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-3xl ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
+      <AlertCircle className={`w-10 h-10 mb-3 ${isDark ? 'text-red-400' : 'text-red-500'}`} />
+      <p className={`font-bold mb-1 ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>Gagal Memuat Data</p>
+      <p className={`text-sm mb-4 text-center ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>
+        Terjadi kesalahan saat mengambil data dari server AI.
+      </p>
+      <button 
+        onClick={onRetry}
+        className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-full ${
+          isDark ? 'bg-stone-800 text-stone-200 hover:bg-stone-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`}
+      >
+        <RefreshCw className="w-4 h-4" /> Coba Lagi
+      </button>
+    </div>
+  );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6 animate-in fade-in duration-300 max-w-[1600px] mx-auto pb-10">
       {/* Header */}
-      <div className={`rounded-3xl border p-6 ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
-        <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          Business <span className="text-amber-500">Insights</span>
-        </h1>
-        <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-          Data mentah menjadi keputusan bisnis
-        </p>
+      <div className={`rounded-3xl border p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
+        <div>
+          <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            Business <span className="text-amber-500">Insights</span>
+          </h1>
+          <p className={`text-sm mt-1 flex items-center gap-2 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+            Data cerdas yang diolah oleh AI
+            <span className="w-1 h-1 rounded-full bg-gray-300 block" />
+            Diupdate {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+        <button 
+          onClick={fetchInitialData}
+          className={`px-4 py-2 text-sm font-bold rounded-xl border flex items-center gap-2 transition-colors ${
+            isDark 
+              ? 'bg-stone-800 border-stone-700 text-stone-200 hover:bg-stone-700' 
+              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
       </div>
 
-      {/* Quick Insights */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <InsightCard
-          title="Weekly Revenue"
-          value={format(weeklyRevenue)}
-          icon={<DollarSign className="w-6 h-6" />}
-          description="Last 7 days"
-          trend={weeklyRevenue > 7000000 ? "up" : "down"}
-        />
-        
-        <InsightCard
-          title="Daily Profit Avg"
-          value={format(Math.round(avgDailyProfit))}
-          icon={<TrendingUp className="w-6 h-6" />}
-          description="Per day average"
-          trend={avgDailyProfit > 500000 ? "up" : "down"}
-        />
-        
-        <InsightCard
-          title="Waste Loss"
-          value={format(wasteLoss)}
-          icon={<AlertTriangle className="w-6 h-6" />}
-          description="Cost leakage"
-          trend={wasteLoss > 200000 ? "danger" : "safe"}
-        />
-        
-        <InsightCard
-          title="Top Product"
-          value={topProduct?.name || "N/A"}
-          icon={<Users className="w-6 h-6" />}
-          description="Most sold this week"
-          trend="neutral"
-        />
-      </div>
-
-      {/* Tabs Navigation */}
-      <div className={`rounded-3xl border overflow-hidden ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
-        <div className={`flex border-b ${isDark ? 'border-stone-800' : 'border-gray-100'}`}>
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`relative flex items-center gap-2 py-4 px-6 text-sm font-bold transition-colors ${
-                activeTab === tab.id
-                  ? isDark ? 'text-amber-400' : 'text-amber-600'
-                  : isDark ? 'text-stone-500 hover:text-stone-300' : 'text-stone-400 hover:text-gray-600'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-              {activeTab === tab.id && (
-                <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? 'bg-amber-400' : 'bg-amber-600'}`} />
-              )}
-            </button>
-          ))}
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Top Row: Full Width Forecast */}
+        <div className="w-full h-[400px]">
+          {forecast.error ? (
+            renderErrorBoundary(() => fetchInitialData())
+          ) : (
+            <WeeklySummary data={forecast.data} isLoading={forecast.loading} />
+          )}
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6 min-h-[400px]">
-          {activeTab === 'weekly' && <WeeklySummary transactions={transactions} />}
-          {activeTab === 'trends' && <TrendsAnalysis transactions={transactions} products={products} />}
-          {activeTab === 'ai' && <AIAssistant transactions={transactions} wasteLogs={wasteLogs} products={products} />}
+        {/* Bottom Row: 60/40 Split */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Left Column (60%): AI Assistant */}
+          <div className="lg:col-span-3">
+            <AIAssistant />
+          </div>
+
+          {/* Right Column (40%): Insight Card & Trends Analysis */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="h-[288px]">
+              {alerts.error ? (
+                renderErrorBoundary(() => fetchInitialData())
+              ) : (
+                <InsightCard data={alerts.data} isLoading={alerts.loading} />
+              )}
+            </div>
+            
+            <div className="h-[370px]">
+              {waste.error ? (
+                renderErrorBoundary(() => handleWastePeriodChange(wastePeriod))
+              ) : (
+                <TrendsAnalysis 
+                  data={waste.data} 
+                  isLoading={waste.loading} 
+                  period={wastePeriod} 
+                  onPeriodChange={handleWastePeriodChange} 
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

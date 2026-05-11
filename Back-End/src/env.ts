@@ -9,8 +9,9 @@ const EnvSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('24h'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).default(12),
   RESEND_API_KEY: z.string().min(1),
-  RESEND_FROM_EMAIL: z.string().email().default('noreply@coffeepos.app'),
-  FRONTEND_URL: z.string().url().default('http://localhost:5173')
+  RESEND_FROM_EMAIL: z.string().email().default('noreply@app'),
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required for AI features')
 });
 
 const parsed = EnvSchema.safeParse(process.env);

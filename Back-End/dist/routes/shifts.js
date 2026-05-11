@@ -49,11 +49,12 @@ shiftsRouter.post('/close', requireRole('cashier'), validateBody(CloseShiftSchem
         // Calculate expected cash from transactions
         // Only cash payment methods count towards expected_cash
         const { rows: totals } = await pool.query(`SELECT 
-        COALESCE(SUM(total), 0) as total_sales,
+        COALESCE(SUM(grand_total), 0) as total_sales,
         COUNT(*) as total_transactions,
-        COALESCE(SUM(CASE WHEN LOWER(payment_method) LIKE '%cash%' OR LOWER(payment_method) LIKE '%tunai%' THEN total ELSE 0 END), 0) as expected_cash_add
+        COALESCE(SUM(CASE WHEN LOWER(payment_method) LIKE '%cash%' OR LOWER(payment_method) LIKE '%tunai%' THEN grand_total ELSE 0 END), 0) as expected_cash_add
        FROM coffeepos.transactions
-       WHERE shift_id = $1`, [shift.id]);
+       WHERE shift_id = $1
+         AND COALESCE(status::text, 'completed') <> 'voided'`, [shift.id]);
         const totalSales = Number(totals[0].total_sales);
         const totalTransactions = Number(totals[0].total_transactions);
         const expectedCashAdd = Number(totals[0].expected_cash_add);
@@ -92,11 +93,12 @@ shiftsRouter.get('/active', requireRole('cashier'), async (req, res, next) => {
         // Get current running totals for display
         const shift = rows[0];
         const { rows: totals } = await pool.query(`SELECT 
-        COALESCE(SUM(total), 0) as total_sales,
+        COALESCE(SUM(grand_total), 0) as total_sales,
         COUNT(*) as total_transactions,
-        COALESCE(SUM(CASE WHEN LOWER(payment_method) LIKE '%cash%' OR LOWER(payment_method) LIKE '%tunai%' THEN total ELSE 0 END), 0) as expected_cash_add
+        COALESCE(SUM(CASE WHEN LOWER(payment_method) LIKE '%cash%' OR LOWER(payment_method) LIKE '%tunai%' THEN grand_total ELSE 0 END), 0) as expected_cash_add
        FROM coffeepos.transactions
-       WHERE shift_id = $1`, [shift.id]);
+       WHERE shift_id = $1
+         AND COALESCE(status::text, 'completed') <> 'voided'`, [shift.id]);
         shift.current_total_sales = Number(totals[0].total_sales);
         shift.current_total_transactions = Number(totals[0].total_transactions);
         shift.current_expected_cash = shift.opening_cash + Number(totals[0].expected_cash_add);
@@ -159,9 +161,17 @@ shiftsRouter.get('/:id', requireRole('owner'), async (req, res, next) => {
         if (shifts.length === 0) {
             throw new HttpError(404, 'NOT_FOUND', 'Shift tidak ditemukan');
         }
-        const { rows: transactions } = await pool.query(`SELECT * FROM coffeepos.transactions 
-       WHERE shift_id = $1 
-       ORDER BY date DESC`, [shiftId]);
+        const { rows: txRows } = await pool.query(`SELECT id::text, grand_total, payment_method, customer_name, created_at
+       FROM coffeepos.transactions 
+       WHERE shift_id = $1::uuid 
+       ORDER BY created_at DESC`, [shiftId]);
+        const transactions = txRows.map((t) => ({
+            id: t.id,
+            date: new Date(t.created_at).toISOString(),
+            total: Number(t.grand_total),
+            paymentMethod: t.payment_method,
+            customerName: t.customer_name ?? undefined
+        }));
         res.json({
             ...shifts[0],
             transactions

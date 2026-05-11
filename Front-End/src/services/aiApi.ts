@@ -1,0 +1,128 @@
+import { http } from './appApi';
+
+export type ForecastItem = {
+  date: string;
+  day_name: string;
+  predicted_revenue: number;
+  predicted_transactions: number;
+  confidence: 'high' | 'medium' | 'low';
+};
+
+export type ForecastResponse = ForecastItem[];
+
+export type InventoryAlertItem = {
+  product_id: string;
+  name: string;
+  current_stock: number;
+  adu: number;
+  days_to_stockout: number;
+  urgency: 'critical' | 'warning' | 'watch';
+};
+
+export type AlertsResponse = InventoryAlertItem[];
+
+export type WasteProduct = {
+  product_id: string;
+  name: string;
+  waste_qty: number;
+  sold_qty: number;
+  waste_ratio: number;
+  waste_cost: number;
+};
+
+export type WasteResponse = {
+  period_days: number;
+  total_waste_cost: number;
+  previous_period_waste_cost: number;
+  trend_percentage: number;
+  top_waste_products: WasteProduct[];
+};
+
+export type ChatMessage = {
+  role: 'user' | 'model';
+  content: string;
+};
+
+export type ChatResponse = {
+  reply: string;
+  context_snapshot: {
+    today_revenue: number;
+    this_week_revenue: number;
+  };
+};
+
+export type SummaryResponse = {
+  today_revenue: number;
+  yesterday_revenue: number;
+  this_week_revenue: number;
+  last_week_revenue: number;
+  this_month_revenue: number;
+  day_over_day_change_percent: number;
+  week_over_week_change_percent: number;
+  top_products_today: string;
+  low_stock_count: number;
+  active_shifts_count: number;
+};
+
+export const aiApi = {
+  fetchForecast: async (): Promise<ForecastResponse> => {
+    try {
+      const response = await http<{ data: { forecast: ForecastResponse } }>('/api/ai/forecast');
+      console.log('Forecast response:', response);
+      return response.data.forecast;
+    } catch (error) {
+      console.error('Forecast error:', error);
+      throw error;
+    }
+  },
+
+  fetchInventoryAlerts: async (): Promise<AlertsResponse> => {
+    try {
+      const response = await http<{ 
+        data: {
+          alerts: AlertsResponse;
+          total_critical: number; 
+          total_warning: number; 
+          generated_at: string;
+        }
+      }>('/api/ai/inventory-alerts');
+      return response.data.alerts;
+    } catch (error) {
+      console.error('Inventory alerts error:', error);
+      throw error;
+    }
+  },
+
+  fetchWasteAnalysis: async (days: 7 | 14 | 30 = 30): Promise<WasteResponse> => {
+    try {
+      const response = await http<{ data: WasteResponse }>(`/api/ai/waste-analysis?days=${days}`);
+      return response.data;
+    } catch (error) {
+      console.error('Waste analysis error:', error);
+      throw error;
+    }
+  },
+
+  sendChatMessage: async (message: string, history: ChatMessage[] = []): Promise<ChatResponse> => {
+    try {
+      const response = await http<{ data: ChatResponse }>('/api/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message, conversation_history: history }),
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Chat message error:', error);
+      throw error;
+    }
+  },
+
+  fetchSummary: async (): Promise<SummaryResponse> => {
+    try {
+      const response = await http<{ data: SummaryResponse }>('/api/ai/summary');
+      return response.data;
+    } catch (error) {
+      console.error('Summary error:', error);
+      throw error;
+    }
+  },
+};

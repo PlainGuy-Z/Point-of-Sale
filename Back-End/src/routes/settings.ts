@@ -18,7 +18,7 @@ settingsRouter.get('/', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Get shop name
-    const shopResult = await pool.query('SELECT name, slug FROM coffeepos.shops WHERE id = $1', [shopId]);
+    const shopResult = await pool.query('SELECT name, slug FROM shops WHERE id = $1', [shopId]);
     if (shopResult.rows.length === 0) {
       res.status(404).json({ message: 'Shop not found' });
       return;
@@ -26,12 +26,12 @@ settingsRouter.get('/', async (req: Request, res: Response): Promise<void> => {
     const shop = shopResult.rows[0];
 
     // Get settings
-    let settingsResult = await pool.query('SELECT * FROM coffeepos.shop_settings WHERE shop_id = $1', [shopId]);
+    let settingsResult = await pool.query('SELECT * FROM shop_settings WHERE shop_id = $1', [shopId]);
     
     // Create default settings if not exists
     if (settingsResult.rows.length === 0) {
-      await pool.query('INSERT INTO coffeepos.shop_settings (shop_id) VALUES ($1)', [shopId]);
-      settingsResult = await pool.query('SELECT * FROM coffeepos.shop_settings WHERE shop_id = $1', [shopId]);
+      await pool.query('INSERT INTO shop_settings (shop_id) VALUES ($1)', [shopId]);
+      settingsResult = await pool.query('SELECT * FROM shop_settings WHERE shop_id = $1', [shopId]);
     }
 
     const settings = settingsResult.rows[0];
@@ -97,7 +97,7 @@ settingsRouter.put('/', async (req: Request, res: Response): Promise<void> => {
 
     // Update shop name if provided
     if (body.shop_name) {
-      await pool.query('UPDATE coffeepos.shops SET name = $1 WHERE id = $2', [body.shop_name, shopId]);
+      await pool.query('UPDATE shops SET name = $1 WHERE id = $2', [body.shop_name, shopId]);
     }
 
     // Build UPDATE query for shop_settings dynamically based on provided fields
@@ -116,7 +116,7 @@ settingsRouter.put('/', async (req: Request, res: Response): Promise<void> => {
     if (updateFields.length > 0) {
       updateFields.push(`updated_at = NOW()`);
       const query = `
-        INSERT INTO coffeepos.shop_settings (shop_id) 
+        INSERT INTO shop_settings (shop_id) 
         VALUES ($${paramIndex}) 
         ON CONFLICT (shop_id) DO UPDATE SET 
         ${updateFields.join(', ')}
@@ -129,8 +129,8 @@ settingsRouter.put('/', async (req: Request, res: Response): Promise<void> => {
     await pool.query('COMMIT');
     
     // Fetch updated settings to return
-    const shopResult = await pool.query('SELECT name, slug FROM coffeepos.shops WHERE id = $1', [shopId]);
-    const settingsResult = await pool.query('SELECT * FROM coffeepos.shop_settings WHERE shop_id = $1', [shopId]);
+    const shopResult = await pool.query('SELECT name, slug FROM shops WHERE id = $1', [shopId]);
+    const settingsResult = await pool.query('SELECT * FROM shop_settings WHERE shop_id = $1', [shopId]);
     
     res.json({
       shop_name: shopResult.rows[0].name,

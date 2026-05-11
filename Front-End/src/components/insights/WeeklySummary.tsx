@@ -1,143 +1,134 @@
-import { BarChart3, TrendingUp, DollarSign, Package, Users } from 'lucide-react';
-import type { Transaction } from '../../types';
+import React from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import type { ForecastResponse } from '../../services/aiApi';
+import { TrendingUp, Clock } from 'lucide-react';
 
 interface WeeklySummaryProps {
-  transactions: Transaction[];
+  data: ForecastResponse | null;
+  isLoading: boolean;
 }
 
-export default function WeeklySummary({ transactions }: WeeklySummaryProps) {
+const CONFIDENCE_COLORS = {
+  high: '#22c55e', // text-green-500
+  medium: '#f59e0b', // text-amber-500
+  low: '#9ca3af', // text-gray-400
+};
+
+export default function WeeklySummary({ data, isLoading }: WeeklySummaryProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
 
-  // 1. Hitung data mingguan
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    return date;
-  }).reverse();
-
-  const weeklyData = last7Days.map(date => {
-    const dayTransactions = transactions.filter(t => 
-      new Date(t.date).toDateString() === date.toDateString()
-    );
-    
-    return {
-      date: date.toLocaleDateString('id-ID', { weekday: 'short' }),
-      revenue: dayTransactions.reduce((sum, t) => sum + t.total, 0),
-      transactions: dayTransactions.length,
-      profit: dayTransactions.reduce((sum, t) => sum + t.profit, 0),
-    };
-  });
-
-  // 2. Variabel Statistik Utama
-  const totalRevenue = weeklyData.reduce((sum, d) => sum + d.revenue, 0);
-  const totalTransactions = weeklyData.reduce((sum, d) => sum + d.transactions, 0);
-  const avgTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
-  const avgProfit = weeklyData.reduce((sum, d) => sum + d.profit, 0) / 7;
-
-  // 3. Konfigurasi Statistik untuk Mapping
-  const statsConfig = [
-    { label: 'Weekly Revenue', value: format(totalRevenue), icon: DollarSign, color: 'amber' },
-    { label: 'Total Transactions', value: totalTransactions.toString(), icon: Package, color: 'green' },
-    { label: 'Avg Ticket', value: format(Math.round(avgTicket)), icon: TrendingUp, color: 'amber' },
-    { label: 'Daily Profit Avg', value: format(Math.round(avgProfit)), icon: Users, color: 'purple' },
-  ];
-
-  // Map warna manual untuk menghindari dynamic class error di Tailwind
-  const getColorClasses = (color: string) => {
-    const mapping: Record<string, string> = {
-      amber: isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-600',
-      green: isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-50 text-green-600',
-      blue: isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-600',
-      purple: isDark ? 'bg-purple-900/30 text-purple-400' : 'bg-purple-50 text-purple-600',
-    };
-    return mapping[color];
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const point = payload[0].payload;
+      return (
+        <div className={`p-4 rounded-xl shadow-xl border ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-100'}`}>
+          <p className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{point.day_name}</p>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className={isDark ? 'text-stone-400' : 'text-gray-500'}>Revenue:</span>
+              <span className={`font-medium ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>{format(point.predicted_revenue)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className={isDark ? 'text-stone-400' : 'text-gray-500'}>Transactions:</span>
+              <span className={`font-medium ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>{point.predicted_transactions}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className={isDark ? 'text-stone-400' : 'text-gray-500'}>Confidence:</span>
+              <span className="font-medium capitalize" style={{ color: CONFIDENCE_COLORS[point.confidence as keyof typeof CONFIDENCE_COLORS] }}>
+                {point.confidence}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {statsConfig.map((stat, idx) => (
-          <div key={idx} className={`p-4 rounded-2xl border transition-all duration-200 ${
-            isDark ? 'bg-stone-950/50 border-stone-800 hover:bg-stone-950' : 'bg-gray-50 border-gray-100 hover:shadow-sm'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-2xl ${getColorClasses(stat.color)}`}>
-                <stat.icon className="w-5 h-5" />
-              </div>
-              <div>
-                <p className={`text-xs font-medium ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>{stat.label}</p>
-                <p className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>{stat.value}</p>
-              </div>
-            </div>
+    <div className={`rounded-3xl border p-6 flex flex-col h-full ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <TrendingUp className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
+            Prediksi 7 Hari
+          </h2>
+          <p className={`text-sm mt-1 flex items-center gap-1.5 ${isDark ? 'text-stone-400' : 'text-gray-500'}`}>
+            <Clock className="w-3.5 h-3.5" />
+            Terakhir diupdate: {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+        
+        {/* Legend */}
+        <div className="flex gap-4 text-xs font-medium">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-green-500" />
+            <span className={isDark ? 'text-stone-300' : 'text-gray-600'}>Tinggi</span>
           </div>
-        ))}
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-amber-500" />
+            <span className={isDark ? 'text-stone-300' : 'text-gray-600'}>Sedang</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-gray-400" />
+            <span className={isDark ? 'text-stone-300' : 'text-gray-600'}>Rendah</span>
+          </div>
+        </div>
       </div>
 
-      {/* Daily Breakdown */}
-      <div className={`rounded-3xl border p-6 transition-colors ${
-        isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'
-      }`}>
-        <h3 className={`font-black mb-6 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          <BarChart3 className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
-          Daily Performance
-        </h3>
-        
-        <div className="space-y-4">
-          {weeklyData.map((day, index) => (
-            <div key={index} className="flex items-center gap-4">
-              <div className="w-16">
-                <p className={`font-bold text-sm ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>{day.date}</p>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <span className={`text-sm font-medium ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>
-                    {format(day.revenue)}
-                  </span>
-                  <span className={`text-xs font-medium ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
-                    {day.transactions} trans
-                  </span>
-                </div>
-                <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-stone-800' : 'bg-gray-100'}`}>
-                  <div 
-                    className={`h-full transition-all duration-500 rounded-full ${
-                      isDark ? 'bg-amber-500/80' : 'bg-gradient-to-r from-amber-500 to-orange-500'
-                    }`}
-                    style={{ width: `${(day.revenue / Math.max(...weeklyData.map(d => d.revenue), 1)) * 100}%` }}
-                    title={format(day.revenue)}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Health Indicator */}
-        <div className={`mt-8 p-4 rounded-2xl border ${
-          isDark ? 'bg-stone-950/50 border-stone-800' : 'bg-gray-50 border-gray-100'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`font-bold text-sm lg:text-base ${isDark ? 'text-white' : 'text-gray-900'}`}>Weekly Health</p>
-              <p className={`text-xs lg:text-sm ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
-                {totalRevenue > 5000000 ? 'Excellent' : totalRevenue > 3000000 ? 'Good' : 'Needs Improvement'}
-              </p>
-            </div>
-            <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-              totalRevenue > 5000000 
-                ? (isDark ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-800')
-                : totalRevenue > 3000000 
-                  ? (isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-800')
-                  : (isDark ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-800')
-            }`}>
-              {totalRevenue > 5000000 ? '✓ Healthy' : totalRevenue > 3000000 ? '⚠ Moderate' : '✗ Needs Attention'}
-            </div>
+      <div className="flex-1 w-full min-h-[300px]">
+        {isLoading || !data ? (
+          <div className="w-full h-full flex items-end justify-between gap-2 px-4 pb-8">
+            {[...Array(7)].map((_, i) => (
+              <div 
+                key={i} 
+                className={`w-full rounded-t-sm animate-pulse ${isDark ? 'bg-stone-800' : 'bg-gray-100'}`}
+                style={{ height: `${Math.max(20, Math.random() * 100)}%`, animationDelay: `${i * 100}ms` }}
+              />
+            ))}
           </div>
-        </div>
+        ) : data.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <p className={isDark ? 'text-stone-500' : 'text-gray-400'}>Data prediksi tidak tersedia.</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <XAxis 
+                dataKey="day_name" 
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(val) => val.substring(0, 3)}
+                stroke={isDark ? '#78716c' : '#9ca3af'}
+                fontSize={12}
+                dy={10}
+              />
+              <YAxis 
+                hide 
+                domain={[0, 'dataMax']}
+              />
+              <Tooltip 
+                content={<CustomTooltip />} 
+                cursor={{ fill: isDark ? '#292524' : '#f3f4f6', radius: 4 }}
+              />
+              <Bar 
+                dataKey="predicted_revenue" 
+                radius={[4, 4, 0, 0]}
+              >
+                {data.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={CONFIDENCE_COLORS[entry.confidence as keyof typeof CONFIDENCE_COLORS]} 
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
