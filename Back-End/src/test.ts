@@ -4,7 +4,7 @@ import { buildAppState } from './routes/app.js';
 
 async function test() {
   try {
-    const { rows: shops } = await pool.query('SELECT id FROM shops LIMIT 1');
+    const { rows: shops } = await pool.query('SELECT id FROM coffeepos.shops LIMIT 1');
     if (shops.length === 0) {
       console.log('No shops found');
       return;

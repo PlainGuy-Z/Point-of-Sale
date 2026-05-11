@@ -92,7 +92,7 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
 
     // Check email uniqueness
     const emailCheck = await pool.query(
-      `SELECT id FROM users WHERE email = $1`,
+      `SELECT id FROM coffeepos.users WHERE email = $1`,
       [body.email]
     );
     if (emailCheck.rowCount! > 0) {
@@ -101,7 +101,7 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
 
     // Check slug uniqueness
     const slugCheck = await pool.query(
-      `SELECT id FROM shops WHERE slug = $1`,
+      `SELECT id FROM coffeepos.shops WHERE slug = $1`,
       [body.shopSlug]
     );
     if (slugCheck.rowCount! > 0) {
@@ -114,7 +114,7 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
     // Create shop + owner in transaction
     const result = await withTransaction(async (client) => {
       const shopResult = await client.query(
-        `INSERT INTO shops (name, slug)
+        `INSERT INTO coffeepos.shops (name, slug)
          VALUES ($1, $2)
          RETURNING id::text, name, slug`,
         [body.shopName, body.shopSlug]
@@ -122,7 +122,7 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
       const shop = shopResult.rows[0];
 
       const userResult = await client.query(
-        `INSERT INTO users (shop_id, email, password_hash, name, role)
+        `INSERT INTO coffeepos.users (shop_id, email, password_hash, name, role)
          VALUES ($1::uuid, $2, $3, $4, 'owner')
          RETURNING id::text, name, email, role, shop_id::text`,
         [shop.id, body.email, passwordHash, body.ownerName]
@@ -177,8 +177,8 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
               u.shop_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
-       FROM users u
-       JOIN shops s ON s.id = u.shop_id
+       FROM coffeepos.users u
+       JOIN coffeepos.shops s ON s.id = u.shop_id
        WHERE u.email = $1`,
       [body.email]
     );
@@ -248,8 +248,8 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
       `SELECT u.id::text, u.name, u.email, u.role, u.is_verified, u.shop_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
-       FROM users u
-       JOIN shops s ON s.id = u.shop_id
+       FROM coffeepos.users u
+       JOIN coffeepos.shops s ON s.id = u.shop_id
        WHERE u.id = $1::uuid`,
       [req.user!.id]
     );
@@ -286,7 +286,7 @@ authRouter.post('/send-otp', authenticateToken, async (req, res, next) => {
   try {
     const result = await pool.query(
       `SELECT id::text, email, name, is_verified, otp_sent_at
-       FROM users
+       FROM coffeepos.users
        WHERE id = $1::uuid`,
       [req.user!.id]
     );
@@ -312,7 +312,7 @@ authRouter.post('/send-otp', authenticateToken, async (req, res, next) => {
     const otpHash = await bcrypt.hash(plainOtp, 6);
 
     await pool.query(
-      `UPDATE users
+      `UPDATE coffeepos.users
        SET otp_code = $1,
            otp_expires_at = $2,
            otp_attempts = 0,
@@ -340,7 +340,7 @@ authRouter.post('/verify-otp', authenticateToken, validateBody(VerifyOtpSchema),
 
     const result = await pool.query(
       `SELECT id::text, is_verified, otp_code, otp_expires_at, otp_attempts
-       FROM users
+       FROM coffeepos.users
        WHERE id = $1::uuid`,
       [req.user!.id]
     );
@@ -360,7 +360,7 @@ authRouter.post('/verify-otp', authenticateToken, validateBody(VerifyOtpSchema),
 
     if (user.otp_attempts >= 5) {
       await pool.query(
-        `UPDATE users
+        `UPDATE coffeepos.users
          SET otp_code = NULL,
              otp_expires_at = NULL,
              otp_attempts = 0,
@@ -374,7 +374,7 @@ authRouter.post('/verify-otp', authenticateToken, validateBody(VerifyOtpSchema),
 
     if (!user.otp_expires_at || isOtpExpired(new Date(user.otp_expires_at))) {
       await pool.query(
-        `UPDATE users
+        `UPDATE coffeepos.users
          SET otp_code = NULL,
              otp_expires_at = NULL,
              otp_attempts = 0,
@@ -389,7 +389,7 @@ authRouter.post('/verify-otp', authenticateToken, validateBody(VerifyOtpSchema),
     const valid = await bcrypt.compare(body.otp, user.otp_code);
     if (!valid) {
       await pool.query(
-        `UPDATE users
+        `UPDATE coffeepos.users
          SET otp_attempts = otp_attempts + 1
          WHERE id = $1::uuid`,
         [req.user!.id]
@@ -401,7 +401,7 @@ authRouter.post('/verify-otp', authenticateToken, validateBody(VerifyOtpSchema),
     }
 
     await pool.query(
-      `UPDATE users
+      `UPDATE coffeepos.users
        SET is_verified = true,
            otp_code = NULL,
            otp_expires_at = NULL,
@@ -430,13 +430,13 @@ authRouter.put('/me', authenticateToken, validateBody(UpdateMeSchema), async (re
     await withTransaction(async (client) => {
       if (body.name !== undefined) {
         await client.query(
-          `UPDATE users SET name = $1, updated_at = now() WHERE id = $2::uuid`,
+          `UPDATE coffeepos.users SET name = $1, updated_at = now() WHERE id = $2::uuid`,
           [body.name, req.user!.id]
         );
       }
       if (body.shop_name !== undefined) {
         await client.query(
-          `UPDATE shops SET name = $1 WHERE id = $2::uuid`,
+          `UPDATE coffeepos.shops SET name = $1 WHERE id = $2::uuid`,
           [body.shop_name, req.user!.shop_id]
         );
       }
@@ -446,8 +446,8 @@ authRouter.put('/me', authenticateToken, validateBody(UpdateMeSchema), async (re
       `SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
-       FROM users u
-       JOIN shops s ON s.id = u.shop_id
+       FROM coffeepos.users u
+       JOIN coffeepos.shops s ON s.id = u.shop_id
        WHERE u.id = $1::uuid`,
       [req.user!.id]
     );
@@ -485,7 +485,7 @@ authRouter.post(
 
       // Get current password hash
       const result = await pool.query(
-        `SELECT password_hash FROM users WHERE id = $1::uuid`,
+        `SELECT password_hash FROM coffeepos.users WHERE id = $1::uuid`,
         [req.user!.id]
       );
 
@@ -501,7 +501,7 @@ authRouter.post(
       const newHash = await bcrypt.hash(body.newPassword, env.BCRYPT_ROUNDS);
 
       await pool.query(
-        `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2::uuid`,
+        `UPDATE coffeepos.users SET password_hash = $1, updated_at = now() WHERE id = $2::uuid`,
         [newHash, req.user!.id]
       );
 
@@ -525,7 +525,7 @@ authRouter.post(
 
       // Verify cashier belongs to same shop
       const cashier = await pool.query(
-        `SELECT id, shop_id::text FROM users
+        `SELECT id, shop_id::text FROM coffeepos.users
          WHERE id = $1::uuid AND shop_id = $2::uuid`,
         [body.cashierId, req.user!.shop_id]
       );
@@ -537,7 +537,7 @@ authRouter.post(
       const newHash = await bcrypt.hash(body.newPassword, env.BCRYPT_ROUNDS);
 
       await pool.query(
-        `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2::uuid`,
+        `UPDATE coffeepos.users SET password_hash = $1, updated_at = now() WHERE id = $2::uuid`,
         [newHash, body.cashierId]
       );
 

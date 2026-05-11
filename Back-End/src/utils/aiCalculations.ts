@@ -59,7 +59,7 @@ export async function getSalesForecast(pool: Pool, shopId: string): Promise<Fore
         EXTRACT(DOW FROM created_at) as dow,
         SUM(grand_total) as daily_revenue,
         COUNT(id) as daily_transactions
-      FROM transactions
+      FROM coffeepos.transactions
       WHERE shop_id = $1 AND created_at >= NOW() - INTERVAL '60 days' AND status = 'completed'
       GROUP BY DATE(created_at), EXTRACT(DOW FROM created_at)
     ),
@@ -129,8 +129,8 @@ export async function getInventoryAlerts(pool: Pool, shopId: string): Promise<In
   const query = `
     WITH sold_last_14 AS (
       SELECT product_id, SUM(quantity) as total_qty_sold
-      FROM transaction_items ti
-      JOIN transactions t ON ti.transaction_id = t.id
+      FROM coffeepos.transaction_items ti
+      JOIN coffeepos.transactions t ON ti.transaction_id = t.id
       WHERE t.shop_id = $1 AND t.created_at >= NOW() - INTERVAL '14 days' AND t.status = 'completed'
       GROUP BY product_id
     )
@@ -139,7 +139,7 @@ export async function getInventoryAlerts(pool: Pool, shopId: string): Promise<In
       p.name,
       p.stock as current_stock,
       COALESCE(s.total_qty_sold, 0) / 14.0 as adu
-    FROM products p
+    FROM coffeepos.products p
     LEFT JOIN sold_last_14 s ON p.id = s.product_id
     WHERE p.shop_id = $1
   `;
@@ -181,14 +181,14 @@ export async function getWasteAnalysis(pool: Pool, shopId: string, days: number 
   const queryCurrent = `
     WITH waste_period AS (
       SELECT product_id, SUM(quantity) as total_waste_qty
-      FROM waste_logs
+      FROM coffeepos.waste_logs
       WHERE shop_id = $1 AND created_at >= NOW() - INTERVAL '${days} days'
       GROUP BY product_id
     ),
     sold_period AS (
       SELECT ti.product_id, SUM(ti.quantity) as total_sold
-      FROM transaction_items ti
-      JOIN transactions t ON ti.transaction_id = t.id
+      FROM coffeepos.transaction_items ti
+      JOIN coffeepos.transactions t ON ti.transaction_id = t.id
       WHERE t.shop_id = $1 AND t.created_at >= NOW() - INTERVAL '${days} days' AND t.status = 'completed'
       GROUP BY ti.product_id
     )
@@ -198,7 +198,7 @@ export async function getWasteAnalysis(pool: Pool, shopId: string, days: number 
       p.cost,
       COALESCE(w.total_waste_qty, 0) as waste_qty,
       COALESCE(s.total_sold, 0) as sold_qty
-    FROM products p
+    FROM coffeepos.products p
     JOIN waste_period w ON p.id = w.product_id
     LEFT JOIN sold_period s ON p.id = s.product_id
     WHERE p.shop_id = $1
@@ -206,8 +206,8 @@ export async function getWasteAnalysis(pool: Pool, shopId: string, days: number 
 
   const queryPrevious = `
     SELECT SUM(w.quantity * p.cost) as prev_waste_cost
-    FROM waste_logs w
-    JOIN products p ON w.product_id = p.id
+    FROM coffeepos.waste_logs w
+    JOIN coffeepos.products p ON w.product_id = p.id
     WHERE w.shop_id = $1 
       AND w.created_at >= NOW() - INTERVAL '${days * 2} days'
       AND w.created_at < NOW() - INTERVAL '${days} days'
@@ -275,15 +275,15 @@ export async function getBusinessSummary(pool: Pool, shopId: string): Promise<Bu
       SUM(CASE WHEN created_at >= date_trunc('week', CURRENT_DATE) THEN grand_total ELSE 0 END) as this_week_revenue,
       SUM(CASE WHEN created_at >= date_trunc('week', CURRENT_DATE - INTERVAL '1 week') AND created_at < date_trunc('week', CURRENT_DATE) THEN grand_total ELSE 0 END) as last_week_revenue,
       SUM(CASE WHEN created_at >= date_trunc('month', CURRENT_DATE) THEN grand_total ELSE 0 END) as this_month_revenue
-    FROM transactions
+    FROM coffeepos.transactions
     WHERE shop_id = $1 AND status = 'completed'
   `;
 
   const topProductsQuery = `
     SELECT p.name, SUM(ti.quantity) as qty
-    FROM transaction_items ti
-    JOIN transactions t ON ti.transaction_id = t.id
-    JOIN products p ON ti.product_id = p.id
+    FROM coffeepos.transaction_items ti
+    JOIN coffeepos.transactions t ON ti.transaction_id = t.id
+    JOIN coffeepos.products p ON ti.product_id = p.id
     WHERE t.shop_id = $1 AND t.created_at >= CURRENT_DATE AND t.status = 'completed'
     GROUP BY p.id, p.name
     ORDER BY qty DESC
@@ -292,13 +292,13 @@ export async function getBusinessSummary(pool: Pool, shopId: string): Promise<Bu
 
   const lowStockQuery = `
     SELECT COUNT(*) as count
-    FROM products
+    FROM coffeepos.products
     WHERE shop_id = $1 AND stock <= 10
   `;
 
   const shiftsQuery = `
     SELECT COUNT(*) as count
-    FROM shifts
+    FROM coffeepos.shifts
     WHERE shop_id = $1 AND status = 'open'
   `;
 

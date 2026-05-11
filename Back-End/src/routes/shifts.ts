@@ -24,7 +24,7 @@ shiftsRouter.post('/open', requireRole('cashier'), validateBody(OpenShiftSchema)
 
     // Check if there is already an active shift for this cashier
     const { rows: activeShifts } = await pool.query(
-      `SELECT id FROM shifts 
+      `SELECT id FROM coffeepos.shifts 
        WHERE cashier_id = $1 AND status = 'open'`,
       [cashier_id]
     );
@@ -35,7 +35,7 @@ shiftsRouter.post('/open', requireRole('cashier'), validateBody(OpenShiftSchema)
 
     // Create new shift
     const { rows: newShift } = await pool.query(
-      `INSERT INTO shifts 
+      `INSERT INTO coffeepos.shifts 
         (shop_id, cashier_id, cashier_name, opening_cash, status)
        VALUES ($1, $2, $3, $4, 'open')
        RETURNING *`,
@@ -56,7 +56,7 @@ shiftsRouter.post('/close', requireRole('cashier'), validateBody(CloseShiftSchem
 
     // Get active shift
     const { rows: activeShifts } = await pool.query(
-      `SELECT * FROM shifts 
+      `SELECT * FROM coffeepos.shifts 
        WHERE cashier_id = $1 AND status = 'open'`,
       [cashier_id]
     );
@@ -67,14 +67,14 @@ shiftsRouter.post('/close', requireRole('cashier'), validateBody(CloseShiftSchem
 
     const shift = activeShifts[0];
 
-    // Calculate expected cash from transactions
+    // Calculate expected cash from coffeepos.transactions
     // Only cash payment methods count towards expected_cash
     const { rows: totals } = await pool.query(
       `SELECT 
         COALESCE(SUM(grand_total), 0) as total_sales,
         COUNT(*) as total_transactions,
         COALESCE(SUM(CASE WHEN LOWER(payment_method) LIKE '%cash%' OR LOWER(payment_method) LIKE '%tunai%' THEN grand_total ELSE 0 END), 0) as expected_cash_add
-       FROM transactions
+       FROM coffeepos.transactions
        WHERE shift_id = $1
          AND COALESCE(status::text, 'completed') <> 'voided'`,
       [shift.id]
@@ -89,7 +89,7 @@ shiftsRouter.post('/close', requireRole('cashier'), validateBody(CloseShiftSchem
 
     // Update shift
     const { rows: updatedShift } = await pool.query(
-      `UPDATE shifts 
+      `UPDATE coffeepos.shifts 
        SET 
          status = 'closed',
          closed_at = now(),
@@ -116,7 +116,7 @@ shiftsRouter.get('/active', requireRole('cashier'), async (req, res, next) => {
     const { id: cashier_id } = req.user!;
 
     const { rows } = await pool.query(
-      `SELECT * FROM shifts 
+      `SELECT * FROM coffeepos.shifts 
        WHERE cashier_id = $1 AND status = 'open'
        ORDER BY opened_at DESC
        LIMIT 1`,
@@ -134,7 +134,7 @@ shiftsRouter.get('/active', requireRole('cashier'), async (req, res, next) => {
         COALESCE(SUM(grand_total), 0) as total_sales,
         COUNT(*) as total_transactions,
         COALESCE(SUM(CASE WHEN LOWER(payment_method) LIKE '%cash%' OR LOWER(payment_method) LIKE '%tunai%' THEN grand_total ELSE 0 END), 0) as expected_cash_add
-       FROM transactions
+       FROM coffeepos.transactions
        WHERE shift_id = $1
          AND COALESCE(status::text, 'completed') <> 'voided'`,
       [shift.id]
@@ -183,7 +183,7 @@ shiftsRouter.get('/', requireRole('owner'), async (req, res, next) => {
     }
 
     const { rows: shifts } = await pool.query(
-      `SELECT * FROM shifts 
+      `SELECT * FROM coffeepos.shifts 
        ${whereClause} 
        ORDER BY opened_at DESC 
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
@@ -191,7 +191,7 @@ shiftsRouter.get('/', requireRole('owner'), async (req, res, next) => {
     );
 
     const { rows: totalCount } = await pool.query(
-      `SELECT COUNT(*) FROM shifts ${whereClause}`,
+      `SELECT COUNT(*) FROM coffeepos.shifts ${whereClause}`,
       params
     );
 
@@ -215,7 +215,7 @@ shiftsRouter.get('/:id', requireRole('owner'), async (req, res, next) => {
     const shiftId = req.params.id;
 
     const { rows: shifts } = await pool.query(
-      `SELECT * FROM shifts 
+      `SELECT * FROM coffeepos.shifts 
        WHERE id = $1 AND shop_id = $2`,
       [shiftId, shop_id]
     );
@@ -226,7 +226,7 @@ shiftsRouter.get('/:id', requireRole('owner'), async (req, res, next) => {
 
     const { rows: txRows } = await pool.query(
       `SELECT id::text, grand_total, payment_method, customer_name, created_at
-       FROM transactions 
+       FROM coffeepos.transactions 
        WHERE shift_id = $1::uuid 
        ORDER BY created_at DESC`,
       [shiftId]

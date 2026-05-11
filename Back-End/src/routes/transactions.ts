@@ -122,8 +122,8 @@ const TX_AGG_SELECT = `
     t.void_review_note,
     t.shift_id::text,
     ${itemsAggJson()} AS items_json
-  FROM transactions t
-  LEFT JOIN transaction_items i ON i.transaction_id = t.id
+  FROM coffeepos.transactions t
+  LEFT JOIN coffeepos.transaction_items i ON i.transaction_id = t.id
 `;
 
 function parseItemsJson(raw: unknown): unknown[] {
@@ -184,7 +184,7 @@ transactionsRouter.get('/summary', async (req, res, next) => {
 
     const sql = `
       SELECT COUNT(*)::int AS c, COALESCE(SUM(t.grand_total), 0)::bigint AS s
-      FROM transactions t
+      FROM coffeepos.transactions t
       WHERE t.shop_id = $1::uuid
       ${cashierExpr}
       AND ${NON_VOID}
@@ -295,7 +295,7 @@ transactionsRouter.get('/', async (req, res, next) => {
 
     const whereSql = clauses.join(' AND ');
 
-    const { rows: cntRows } = await pool.query(`SELECT COUNT(*)::int AS c FROM transactions t WHERE ${whereSql}`, qp);
+    const { rows: cntRows } = await pool.query(`SELECT COUNT(*)::int AS c FROM coffeepos.transactions t WHERE ${whereSql}`, qp);
     const total = Number(cntRows[0]?.c ?? 0);
 
     qp.push(limit, offset);
@@ -333,7 +333,7 @@ transactionsRouter.post('/:id/void-request', validateBody(VoidRequestSchema), as
       const { rows: found } = await client.query(
         `SELECT *, 
                 (DATE(created_at AT TIME ZONE '${TZ}') = DATE((now() AT TIME ZONE '${TZ}'))) AS is_today
-         FROM transactions
+         FROM coffeepos.transactions
          WHERE id = $1::uuid AND shop_id = $2::uuid
          FOR UPDATE`,
         [txId, shopId]
@@ -353,7 +353,7 @@ transactionsRouter.post('/:id/void-request', validateBody(VoidRequestSchema), as
       }
 
       await client.query(
-        `UPDATE transactions SET
+        `UPDATE coffeepos.transactions SET
            status = 'pending_void',
            void_reason = $1,
            void_requested_by = $2::uuid,
@@ -373,7 +373,7 @@ transactionsRouter.post('/:id/void-request', validateBody(VoidRequestSchema), as
 
 async function reverseStockForTransaction(client: PoolClient, txUuid: string) {
   const { rows: lines } = await client.query(
-    `SELECT product_id, quantity FROM transaction_items WHERE transaction_id = $1::uuid AND product_id IS NOT NULL`,
+    `SELECT product_id, quantity FROM coffeepos.transaction_items WHERE transaction_id = $1::uuid AND product_id IS NOT NULL`,
     [txUuid]
   );
 
@@ -381,7 +381,7 @@ async function reverseStockForTransaction(client: PoolClient, txUuid: string) {
     const pid = line.product_id as string;
     const qty = Number(line.quantity);
     await client.query(
-      `UPDATE products
+      `UPDATE coffeepos.products
        SET stock = CASE WHEN stock = -1 THEN -1 ELSE stock + $2::int END,
            updated_at = now()
        WHERE id = $1::uuid`,
@@ -399,7 +399,7 @@ transactionsRouter.post('/:id/void-approve', requireOwner, validateBody(VoidAppr
 
     await withTransaction(async (client) => {
       const { rows } = await client.query(
-        `SELECT *, grand_total FROM transactions WHERE id = $1::uuid AND shop_id = $2::uuid FOR UPDATE`,
+        `SELECT *, grand_total FROM coffeepos.transactions WHERE id = $1::uuid AND shop_id = $2::uuid FOR UPDATE`,
         [txId, shopId]
       );
       if (rows.length === 0) throw new HttpError(404, 'NOT_FOUND', 'Transaction not found');
@@ -412,7 +412,7 @@ transactionsRouter.post('/:id/void-approve', requireOwner, validateBody(VoidAppr
       await reverseStockForTransaction(client, txId);
 
       await client.query(
-        `UPDATE transactions SET
+        `UPDATE coffeepos.transactions SET
            status = 'voided',
            void_reviewed_by = $1::uuid,
            void_reviewed_at = now(),
@@ -426,7 +426,7 @@ transactionsRouter.post('/:id/void-approve', requireOwner, validateBody(VoidAppr
       const grandTotal = Number(trx.grand_total ?? 0);
       if (shiftId) {
         await client.query(
-          `UPDATE shifts
+          `UPDATE coffeepos.shifts
            SET total_transactions = GREATEST(0, COALESCE(total_transactions, 0) - 1),
                total_sales = GREATEST(0, COALESCE(total_sales, 0) - $1::bigint)
            WHERE id = $2::uuid AND status = 'closed'`,
@@ -451,7 +451,7 @@ transactionsRouter.post('/:id/void-reject', requireOwner, validateBody(VoidRejec
 
     await withTransaction(async (client) => {
       const { rows } = await client.query(
-        `SELECT * FROM transactions WHERE id = $1::uuid AND shop_id = $2::uuid FOR UPDATE`,
+        `SELECT * FROM coffeepos.transactions WHERE id = $1::uuid AND shop_id = $2::uuid FOR UPDATE`,
         [txId, shopId]
       );
       if (rows.length === 0) throw new HttpError(404, 'NOT_FOUND', 'Transaction not found');
@@ -462,7 +462,7 @@ transactionsRouter.post('/:id/void-reject', requireOwner, validateBody(VoidRejec
       }
 
       await client.query(
-        `UPDATE transactions SET
+        `UPDATE coffeepos.transactions SET
            status = 'completed',
            void_reviewed_by = $1::uuid,
            void_reviewed_at = now(),
