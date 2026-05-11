@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import VerificationBanner from '../common/VerificationBanner';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export default function Layout() {
@@ -18,7 +19,8 @@ export default function Layout() {
       
       <main className={`${isCollapsed ? 'ml-16' : 'ml-64'} flex-1 overflow-auto transition-all duration-300`}>
         {/* Tanpa header sama sekali */}
-        <div className="p-0"> 
+        <div className="p-0">
+          <VerificationBanner />
           <Outlet />
         </div>
       </main>

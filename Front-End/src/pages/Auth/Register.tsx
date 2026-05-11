@@ -26,7 +26,7 @@ export default function Register() {
   // Redirect if already authenticated
   useEffect(() => {
     if (status === 'authenticated' && user) {
-      navigate('/dashboard', { replace: true });
+      navigate('/verify-email', { replace: true });
     }
   }, [status, user, navigate]);
 

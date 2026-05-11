@@ -218,6 +218,7 @@ export interface AuthUser {
   email: string;
   role: 'owner' | 'cashier';
   shop_id: string;
+  is_verified: boolean;
   /** Indicates whether an app PIN has been configured (cashier UX). Never a raw PIN value. */
   pin?: boolean;
   shop: Shop;

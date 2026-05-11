@@ -49,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async () => {
     await authApi.logout();
+    localStorage.removeItem('verifyBannerDismissed');
     setUser(null);
     setStatus('unauthenticated');
   }, []);

@@ -75,6 +75,20 @@ export const authApi = {
   me: async (): Promise<{ user: AuthUser }> =>
     http<{ user: AuthUser }>('/auth/me'),
 
+  sendOtp: async (): Promise<{
+    message: string;
+    expiresIn: number;
+    cooldown: number;
+  }> => http('/auth/send-otp', { method: 'POST' }),
+
+  verifyOtp: async (otp: string): Promise<{
+    message: string;
+    verified: boolean;
+  }> => http('/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ otp }),
+  }),
+
   updateProfile: async (data: UpdateProfileData): Promise<{ user: AuthUser }> =>
     http<{ user: AuthUser }>('/auth/me', {
       method: 'PUT',

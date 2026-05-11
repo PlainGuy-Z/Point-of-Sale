@@ -9,6 +9,8 @@ import { validateBody } from '../http/validate.js';
 import { env } from '../env.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireOwner } from '../middleware/requireRole.js';
+import { sendVerificationEmail } from '../services/email.js';
+import { canResendOtp, generateOtp, getOtpExpiry, isOtpExpired } from '../utils/otp.js';
 
 export const authRouter = Router();
 
@@ -35,6 +37,10 @@ const LoginSchema = z.object({
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(8)
+});
+
+const VerifyOtpSchema = z.object({
+  otp: z.string().length(6).regex(/^[0-9]{6}$/)
 });
 
 const UpdateMeSchema = z
@@ -144,6 +150,7 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
         email: result.user.email,
         role: result.user.role,
         shop_id: result.user.shop_id,
+        is_verified: false,
         pin: false,
         shop: {
           id: result.shop.id,
@@ -166,6 +173,7 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
     // Find user + shop
     const result = await pool.query(
       `SELECT u.id::text, u.name, u.email, u.role, u.password_hash, u.is_active,
+              u.is_verified,
               u.shop_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
@@ -205,6 +213,7 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
         email: user.email,
         role: user.role,
         shop_id: user.shop_id,
+        is_verified: Boolean(user.is_verified),
         pin: Boolean(user.pin),
         shop: {
           id: user.shop_id,
@@ -236,7 +245,7 @@ authRouter.post('/logout', (_req, res) => {
 authRouter.get('/me', authenticateToken, async (req, res, next) => {
   try {
     const result = await pool.query(
-      `SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
+      `SELECT u.id::text, u.name, u.email, u.role, u.is_verified, u.shop_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
        FROM coffeepos.users u
@@ -258,6 +267,7 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
         email: user.email,
         role: user.role,
         shop_id: user.shop_id,
+        is_verified: Boolean(user.is_verified),
         pin: Boolean(user.pin),
         shop: {
           id: user.shop_id,
@@ -266,6 +276,142 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
         }
       }
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /auth/send-otp ─────────────────────────────────────
+authRouter.post('/send-otp', authenticateToken, async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT id::text, email, name, is_verified, otp_sent_at
+       FROM coffeepos.users
+       WHERE id = $1::uuid`,
+      [req.user!.id]
+    );
+
+    if (result.rowCount === 0) {
+      throw new HttpError(401, 'UNAUTHORIZED', 'User not found');
+    }
+
+    const user = result.rows[0];
+    if (user.is_verified) {
+      throw new HttpError(400, 'ALREADY_VERIFIED', 'Email already verified');
+    }
+
+    const sentAt = user.otp_sent_at ? new Date(user.otp_sent_at) : null;
+    if (sentAt && !canResendOtp(sentAt)) {
+      const diff = (Date.now() - sentAt.getTime()) / 1000;
+      throw new HttpError(429, 'RATE_LIMITED', 'OTP send rate limited', {
+        secondsLeft: Math.ceil(60 - diff)
+      });
+    }
+
+    const plainOtp = generateOtp();
+    const otpHash = await bcrypt.hash(plainOtp, 6);
+
+    await pool.query(
+      `UPDATE coffeepos.users
+       SET otp_code = $1,
+           otp_expires_at = $2,
+           otp_attempts = 0,
+           otp_sent_at = now()
+       WHERE id = $3::uuid`,
+      [otpHash, getOtpExpiry(), req.user!.id]
+    );
+
+    try {
+      await sendVerificationEmail(user.email, user.name, plainOtp);
+    } catch {
+      throw new HttpError(500, 'EMAIL_SEND_FAILED', 'Failed to send verification email');
+    }
+
+    res.json({ message: 'OTP sent', expiresIn: 180, cooldown: 60 });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /auth/verify-otp ───────────────────────────────────
+authRouter.post('/verify-otp', authenticateToken, validateBody(VerifyOtpSchema), async (req, res, next) => {
+  try {
+    const body = req.body as z.infer<typeof VerifyOtpSchema>;
+
+    const result = await pool.query(
+      `SELECT id::text, is_verified, otp_code, otp_expires_at, otp_attempts
+       FROM coffeepos.users
+       WHERE id = $1::uuid`,
+      [req.user!.id]
+    );
+
+    if (result.rowCount === 0) {
+      throw new HttpError(401, 'UNAUTHORIZED', 'User not found');
+    }
+
+    const user = result.rows[0];
+    if (user.is_verified) {
+      throw new HttpError(400, 'ALREADY_VERIFIED', 'Email already verified');
+    }
+
+    if (!user.otp_code) {
+      throw new HttpError(400, 'NO_OTP_PENDING', 'No OTP verification pending');
+    }
+
+    if (user.otp_attempts >= 5) {
+      await pool.query(
+        `UPDATE coffeepos.users
+         SET otp_code = NULL,
+             otp_expires_at = NULL,
+             otp_attempts = 0,
+             otp_sent_at = NULL
+         WHERE id = $1::uuid`,
+        [req.user!.id]
+      );
+
+      throw new HttpError(429, 'MAX_ATTEMPTS_EXCEEDED', 'Maximum OTP attempts exceeded');
+    }
+
+    if (!user.otp_expires_at || isOtpExpired(new Date(user.otp_expires_at))) {
+      await pool.query(
+        `UPDATE coffeepos.users
+         SET otp_code = NULL,
+             otp_expires_at = NULL,
+             otp_attempts = 0,
+             otp_sent_at = NULL
+         WHERE id = $1::uuid`,
+        [req.user!.id]
+      );
+
+      throw new HttpError(400, 'OTP_EXPIRED', 'OTP has expired');
+    }
+
+    const valid = await bcrypt.compare(body.otp, user.otp_code);
+    if (!valid) {
+      await pool.query(
+        `UPDATE coffeepos.users
+         SET otp_attempts = otp_attempts + 1
+         WHERE id = $1::uuid`,
+        [req.user!.id]
+      );
+
+      throw new HttpError(400, 'INVALID_OTP', 'Invalid OTP', {
+        attemptsLeft: 5 - (user.otp_attempts + 1)
+      });
+    }
+
+    await pool.query(
+      `UPDATE coffeepos.users
+       SET is_verified = true,
+           otp_code = NULL,
+           otp_expires_at = NULL,
+           otp_attempts = 0,
+           otp_sent_at = NULL
+       WHERE id = $1::uuid`,
+      [req.user!.id]
+    );
+
+    res.json({ message: 'Email verified', verified: true });
   } catch (err) {
     next(err);
   }

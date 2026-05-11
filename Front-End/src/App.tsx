@@ -14,6 +14,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 const LandingPage = lazy(() => import('./pages/Auth/LandingPage'));
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
+const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
 
 // App Pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -231,6 +232,11 @@ function AppRoutes() {
               <OwnerHistory />
             </Suspense>
           </RoleRoute>
+        } />
+        <Route path="verify-email" element={
+          <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
+            <VerifyEmail />
+          </Suspense>
         } />
       </Route>
 
