@@ -87,6 +87,14 @@ function AppRoutes() {
         </Suspense>
       } />
 
+      <Route path="/verify-email" element={
+        <ProtectedRoute>
+          <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
+            <VerifyEmail />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+
       <Route path="/welcome" element={<Navigate to="/" replace />} />
 
       {/* Protected routes */}
@@ -232,11 +240,6 @@ function AppRoutes() {
               <OwnerHistory />
             </Suspense>
           </RoleRoute>
-        } />
-        <Route path="verify-email" element={
-          <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
-            <VerifyEmail />
-          </Suspense>
         } />
       </Route>
 

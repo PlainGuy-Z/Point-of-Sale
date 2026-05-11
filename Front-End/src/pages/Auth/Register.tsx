@@ -23,12 +23,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (status === 'authenticated' && user) {
-      navigate('/verify-email', { replace: true });
-    }
-  }, [status, user, navigate]);
+
 
   const generateSlug = (name: string) =>
     name.toLowerCase()
@@ -43,30 +38,44 @@ export default function Register() {
     }
   }, [shopName, slugEdited]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
 
-    if (password !== confirmPassword) {
-      setError('Password dan Konfirmasi Password tidak cocok.');
-      return;
-    }
+  if (password !== confirmPassword) {
+    setError('Password dan Konfirmasi Password tidak cocok.');
+    return;
+  }
 
-    if (!/^[a-z0-9-]+$/.test(shopSlug)) {
-      setError('Slug toko hanya boleh berisi huruf kecil, angka, dan strip (-).');
-      return;
-    }
+  if (!/^[a-z0-9-]+$/.test(shopSlug)) {
+    setError('Slug toko hanya boleh berisi huruf kecil, angka, dan strip (-).');
+    return;
+  }
 
-    setIsLoading(true);
-    try {
-      await register({ shopName, shopSlug, ownerName, email, password });
-      // AuthContext will update status -> useEffect will redirect
-    } catch (err: any) {
-      setError(err.message || 'Pendaftaran gagal. Silakan coba lagi.');
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  try {
+    await register({ shopName, shopSlug, ownerName, email, password });
+    // Redirect manual setelah register sukses
+    navigate('/verify-email', { replace: true });
+  } catch (err: any) {
+    setError(err.message || 'Pendaftaran gagal. Silakan coba lagi.');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+// Tambah ini — redirect kalau sudah login saat buka halaman register
+useEffect(() => {
+  if (status === 'authenticated' && user) {
+    // Sudah login → ke dashboard, bukan ke verify
+    if (user.role === 'cashier') {
+      navigate('/pos', { replace: true });
+    } else {
+      navigate('/', { replace: true });
     }
-  };
+  }
+}, [status, user, navigate]);
 
   const inputStyle = {
     width: '100%',

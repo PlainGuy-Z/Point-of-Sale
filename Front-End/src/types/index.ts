@@ -184,6 +184,8 @@ export interface CheckoutParams {
   cashReceived?: number;
   change?: number;
   orderNote?: string;
+  notes?: string; // ✅ General order notes (order_description)
+  
   applyTax?: boolean;
 }
 

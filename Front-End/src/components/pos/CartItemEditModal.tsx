@@ -5,6 +5,7 @@ import type { CartItemWithInput } from '../../types';
 
 interface CartItemEditModalProps {
   item: CartItemWithInput;
+    itemIndex: number;
   onSave: (updatedItem: CartItemWithInput) => void;
   onRemove: () => void;
   onClose: () => void;
@@ -12,6 +13,7 @@ interface CartItemEditModalProps {
 
 export default function CartItemEditModal({
   item,
+    itemIndex,   
   onSave,
   onRemove,
   onClose
