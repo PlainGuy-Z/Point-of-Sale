@@ -2,7 +2,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../env.js';
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY ?? '');
-const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL_NAME });
+const modelName = env.GEMINI_MODEL_NAME === 'gemini-1.5-flash'
+  ? 'gemini-2.0-flash'
+  : env.GEMINI_MODEL_NAME;
+const model = genAI.getGenerativeModel({ model: modelName });
 
 export type ChatMessage = {
   role: 'user' | 'model';

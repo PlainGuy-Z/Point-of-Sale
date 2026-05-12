@@ -14,7 +14,7 @@ const EnvSchema = z.object({
 
   // ✅ Optional — tidak crash jika belum ada
   GEMINI_API_KEY: z.string().min(1).optional(),
-  GEMINI_MODEL_NAME: z.string().min(1).default('gemini-1.5-flash'),
+  GEMINI_MODEL_NAME: z.string().min(1).default('gemini-2.5-flash'),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
