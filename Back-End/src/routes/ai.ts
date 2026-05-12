@@ -13,7 +13,8 @@ import {
   WasteAnalysis,
   BusinessSummary
 } from '../utils/aiCalculations.js';
-import { generateChatResponse, ChatMessage } from '../services/gemini.js';
+import { generateChatResponse } from '../services/gemini.js';
+import type { ChatMessage } from '../services/gemini.js';
 
 const aiRouter = Router();
 

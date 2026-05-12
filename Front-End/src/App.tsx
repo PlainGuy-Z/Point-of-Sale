@@ -5,6 +5,7 @@ import Layout from './components/Layout/Layout';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AIProvider } from './contexts/AIContext';
 import { AppProvider } from './contexts/AppContext';
 import { ShiftProvider } from './contexts/ShiftContext';
 import { SettingsProvider } from './contexts/SettingsContext';
@@ -253,9 +254,11 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
+        <AIProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AIProvider>
       </AuthProvider>
     </ErrorBoundary>
   );
