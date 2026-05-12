@@ -61,7 +61,7 @@ ${userQuestion}
 
   // Simple cache cleanup logic to prevent unbounded growth
   if (insightCache.size > 1000) {
-    const now = Date.now();
+    const now = Date.now(); 
     for (const [key, value] of insightCache.entries()) {
       if (now - value.timestamp > INSIGHT_TTL_MS) {
         insightCache.delete(key);
