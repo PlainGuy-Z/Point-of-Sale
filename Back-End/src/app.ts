@@ -55,7 +55,7 @@ export function createApp() {
     optionsSuccessStatus: 200,
   };
 
-  app.options('/{*any}', cors(corsOptions));
+  app.options('*', cors(corsOptions));
   app.use(cors(corsOptions));
 
   app.use((_req, res, next) => {
