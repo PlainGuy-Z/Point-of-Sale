@@ -5,13 +5,15 @@ import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useShift } from '../../../contexts/ShiftContext';
+import { Skeleton, SkeletonCard } from '../../../components/common/Skeleton';
 import WasteLogTable from '../../../components/operation/WasteLogTable';
 import AddWasteForm from '../../../components/operation/AddWasteForm';
 import type { WasteLog } from '../../../types';
 
 export default function WasteLog() {
-  const { products, wasteLogs, addWasteLog } = useApp();
+  const { products, wasteLogs, addWasteLog, isServiceLoading } = useApp();
   const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const { user } = useAuth();
   const { activeShift } = useShift();
   const [showForm, setShowForm] = useState(false);
@@ -42,8 +44,6 @@ export default function WasteLog() {
     );
   }
 
-  const isDark = theme === 'dark';
-
   // Hitung total loss
   const totalLoss = wasteLogs.reduce((sum, w) => sum + w.costLoss, 0);
   const today = new Date().toDateString();
@@ -65,6 +65,51 @@ export default function WasteLog() {
 
   return (
     <div className="space-y-6">
+      {isServiceLoading && wasteLogs.length === 0 ? (
+        <>
+          <div>
+            <Skeleton className="w-32 h-8 mb-2" rounded="rounded-lg" />
+            <Skeleton className="w-64 h-4" rounded="rounded-md" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonCard key={i} className="rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Skeleton className="w-24 h-3 mb-3" rounded="rounded-md" />
+                    <Skeleton className="w-16 h-7" rounded="rounded-lg" />
+                  </div>
+                  <Skeleton className="w-12 h-12" rounded="rounded-xl" />
+                </div>
+                <Skeleton className="w-28 h-2.5 mt-2" rounded="rounded-md" />
+              </SkeletonCard>
+            ))}
+          </div>
+          <div className={`rounded-2xl shadow-sm border overflow-hidden ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
+            <table className="w-full">
+              <thead className={isDark ? 'bg-stone-950/50' : 'bg-gray-50'}>
+                <tr className="text-xs text-stone-500 uppercase tracking-wider">
+                  {['Product','Quantity','Reason','Cost Loss','Date'].map(h=>(
+                    <th key={h} className="text-left p-4 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className={`border-t ${isDark ? 'border-stone-800' : 'border-gray-100'}`}>
+                    <td className="p-4"><Skeleton className="w-28 h-3" rounded="rounded-md" /></td>
+                    <td className="p-4"><Skeleton className="w-10 h-3" rounded="rounded-md" /></td>
+                    <td className="p-4"><Skeleton className="w-20 h-3" rounded="rounded-md" /></td>
+                    <td className="p-4"><Skeleton className="w-16 h-3" rounded="rounded-md" /></td>
+                    <td className="p-4"><Skeleton className="w-24 h-3" rounded="rounded-md" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : (
+        <>
       {/* Header */}
       <div>
         <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -181,6 +226,8 @@ export default function WasteLog() {
       }`}>
         <WasteLogTable wasteLogs={wasteLogs} products={products} />
       </div>
+        </>
+      )}
     </div>
   );
 }

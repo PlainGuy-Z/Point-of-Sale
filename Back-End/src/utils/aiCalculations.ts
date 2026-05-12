@@ -86,7 +86,7 @@ export async function getSalesForecast(pool: Pool, shopId: string): Promise<Fore
   `;
 
   const { rows } = await pool.query(query, [shopId]);
-  
+
   const dowMap = new Map();
   for (const row of rows) {
     dowMap.set(Number(row.dow), {
@@ -105,7 +105,7 @@ export async function getSalesForecast(pool: Pool, shopId: string): Promise<Fore
     const dow = targetDate.getDay();
 
     const stats = dowMap.get(dow) || { avg_revenue: 0, avg_transactions: 0, data_points: 0 };
-    
+
     let confidence: 'high' | 'medium' | 'low' = 'low';
     if (stats.data_points >= 8) confidence = 'high';
     else if (stats.data_points >= 4) confidence = 'medium';
@@ -153,7 +153,7 @@ export async function getInventoryAlerts(pool: Pool, shopId: string): Promise<In
 
     if (adu > 0 && currentStock !== null) {
       const daysToStockout = currentStock / adu;
-      
+
       if (daysToStockout < 7) {
         let urgency: 'critical' | 'warning' | 'watch' = 'watch';
         if (daysToStockout < 2) urgency = 'critical';
@@ -225,7 +225,7 @@ export async function getWasteAnalysis(pool: Pool, shopId: string, days: number 
     const wasteQty = Number(row.waste_qty);
     const soldQty = Number(row.sold_qty);
     const cost = Number(row.cost);
-    
+
     const wasteCost = wasteQty * cost;
     totalWasteCost += wasteCost;
 
@@ -248,7 +248,7 @@ export async function getWasteAnalysis(pool: Pool, shopId: string, days: number 
 
   const prevWasteCost = Number(prevRes.rows[0]?.prev_waste_cost || 0);
   let trendPercentage = 0;
-  
+
   if (prevWasteCost > 0) {
     trendPercentage = ((totalWasteCost - prevWasteCost) / prevWasteCost) * 100;
   } else if (totalWasteCost > 0) {
@@ -268,16 +268,39 @@ export async function getWasteAnalysis(pool: Pool, shopId: string, days: number 
  * Gathers an overarching business summary snapshot suitable for providing AI context.
  */
 export async function getBusinessSummary(pool: Pool, shopId: string): Promise<BusinessSummary> {
+  // Di getBusinessSummary, ganti query revenuesQuery:
   const revenuesQuery = `
-    SELECT
-      SUM(CASE WHEN created_at >= CURRENT_DATE THEN grand_total ELSE 0 END) as today_revenue,
-      SUM(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE THEN grand_total ELSE 0 END) as yesterday_revenue,
-      SUM(CASE WHEN created_at >= date_trunc('week', CURRENT_DATE) THEN grand_total ELSE 0 END) as this_week_revenue,
-      SUM(CASE WHEN created_at >= date_trunc('week', CURRENT_DATE - INTERVAL '1 week') AND created_at < date_trunc('week', CURRENT_DATE) THEN grand_total ELSE 0 END) as last_week_revenue,
-      SUM(CASE WHEN created_at >= date_trunc('month', CURRENT_DATE) THEN grand_total ELSE 0 END) as this_month_revenue
-    FROM coffeepos.transactions
-    WHERE shop_id = $1 AND status = 'completed'
-  `;
+  SELECT
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta')::date = 
+      (NOW() AT TIME ZONE 'Asia/Jakarta')::date
+      THEN grand_total ELSE 0 END) as today_revenue,
+
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta')::date = 
+      (NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1
+      THEN grand_total ELSE 0 END) as yesterday_revenue,
+
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta') >= 
+      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'Asia/Jakarta'
+      THEN grand_total ELSE 0 END) as this_week_revenue,
+
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta') >= 
+      (date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') - INTERVAL '1 week') AT TIME ZONE 'Asia/Jakarta'
+      AND (created_at AT TIME ZONE 'Asia/Jakarta') < 
+      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'Asia/Jakarta'
+      THEN grand_total ELSE 0 END) as last_week_revenue,
+
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta') >= 
+      date_trunc('month', NOW() AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'Asia/Jakarta'
+      THEN grand_total ELSE 0 END) as this_month_revenue
+
+  FROM coffeepos.transactions
+  WHERE shop_id = $1 AND status = 'completed'
+`;
 
   const topProductsQuery = `
     SELECT p.name, SUM(ti.quantity) as qty
@@ -293,7 +316,10 @@ export async function getBusinessSummary(pool: Pool, shopId: string): Promise<Bu
   const lowStockQuery = `
     SELECT COUNT(*) as count
     FROM coffeepos.products
-    WHERE shop_id = $1 AND stock <= 10
+    WHERE shop_id = $1 
+      AND stock <= COALESCE(min_stock, 5)
+      AND stock >= 0
+      AND is_available = true
   `;
 
   const shiftsQuery = `
@@ -314,7 +340,7 @@ export async function getBusinessSummary(pool: Pool, shopId: string): Promise<Bu
   const yesterday = Number(rev.yesterday_revenue || 0);
   const thisWeek = Number(rev.this_week_revenue || 0);
   const lastWeek = Number(rev.last_week_revenue || 0);
-  
+
   let dodChange = 0;
   if (yesterday > 0) dodChange = ((today - yesterday) / yesterday) * 100;
   else if (today > 0) dodChange = 100;

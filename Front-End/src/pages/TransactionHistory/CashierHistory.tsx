@@ -8,6 +8,7 @@ import VoidRequestModal from '../../components/transactions/VoidRequestModal';
 import { appApi, ApiError } from '../../services/appApi';
 import type { HistoryTransaction, TransactionsListResponse } from '../../types/historyTransaction';
 import { Loader2, Search } from 'lucide-react';
+import { Skeleton } from '../../components/common/Skeleton';
 
 function itemSummary(t: HistoryTransaction): string {
   return (
@@ -97,9 +98,8 @@ function Inner() {
         </header>
 
         <div
-          className={`mb-6 flex flex-col gap-4 rounded-3xl border p-5 md:flex-row md:flex-wrap md:items-center ${
-            isDark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'
-          }`}
+          className={`mb-6 flex flex-col gap-4 rounded-3xl border p-5 md:flex-row md:flex-wrap md:items-center ${isDark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'
+            }`}
         >
           <div className={`relative flex-1 ${isDark ? '' : ''}`}>
             <Search className={`absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${isDark ? 'text-stone-600' : 'text-stone-400'}`} />
@@ -107,9 +107,8 @@ function Inner() {
               placeholder="Cari nama pelanggan atau ID transaksi"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className={`w-full rounded-3xl border py-3 pl-12 pr-4 outline-none focus:ring-2 focus:ring-amber-500/40 ${
-                isDark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-stone-50'
-              }`}
+              className={`w-full rounded-3xl border py-3 pl-12 pr-4 outline-none focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-stone-50'
+                }`}
               aria-label="Cari transaksi"
             />
           </div>
@@ -119,11 +118,10 @@ function Inner() {
                 key={k}
                 type="button"
                 onClick={() => setStatus(k === 'all' ? 'all' : k)}
-                className={`rounded-full px-4 py-2 text-xs font-black uppercase ${
-                  (k === 'all' ? status === 'all' : status === k)
+                className={`rounded-full px-4 py-2 text-xs font-black uppercase ${(k === 'all' ? status === 'all' : status === k)
                     ? 'bg-amber-500 text-white'
                     : `border ${isDark ? 'border-stone-700 text-stone-300' : 'border-stone-200 text-stone-700'}`
-                }`}
+                  }`}
               >
                 {k === 'all' ? 'Semua' : k === 'completed' ? 'Selesai' : k === 'pending_void' ? 'Pending Void' : 'Dibatalkan'}
               </button>
@@ -148,8 +146,23 @@ function Inner() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-24">
-            <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className={`rounded-3xl border p-5 ${isDark ? 'border-stone-800 bg-stone-900/50' : 'border-stone-200 bg-white'}`}>
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <Skeleton className="h-4 w-20 mb-2" />
+                    <Skeleton className="h-6 w-32" />
+                  </div>
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                </div>
+                <Skeleton className="h-4 w-48 mb-3" />
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-8 w-24 rounded-full" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div
@@ -173,9 +186,8 @@ function Inner() {
                   <div className="flex flex-col items-end gap-2">
                     <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ${statusBadge(t.status, isDark)}`}>{statusLabel(t.status)}</span>
                     <span
-                      className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase ${
-                        isDark ? 'border border-stone-700 text-stone-300' : 'border border-stone-300 text-stone-700'
-                      }`}
+                      className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase ${isDark ? 'border border-stone-700 text-stone-300' : 'border border-stone-300 text-stone-700'
+                        }`}
                     >
                       {t.order_type === 'takeaway' ? 'Take-away' : 'Dine-in'}
                     </span>

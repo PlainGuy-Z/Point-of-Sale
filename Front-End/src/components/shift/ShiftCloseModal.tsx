@@ -99,7 +99,7 @@ export default function ShiftCloseModal({ onClose }: ShiftCloseModalProps) {
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(100vh-120px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(100vh-120px)] horizontal-scrollbar-thin">
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Summary Cards */}

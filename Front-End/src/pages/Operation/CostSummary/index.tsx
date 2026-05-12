@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useCurrencyFormatter } from '../../../hooks/useCurrencyFormatter';
 import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext'; // Import context tema
 import { getBusinessHealth } from '../../../utils/analytics/inventoryAnalytics';
@@ -9,10 +10,12 @@ import {
   PieChart,
   AlertTriangle
 } from 'lucide-react';
+import { Skeleton, SkeletonCard } from '../../../components/common/Skeleton';
 
 export default function CostSummary() {
-  const { transactions, wasteLogs } = useApp();
+  const { transactions, wasteLogs, isServiceLoading, products } = useApp();
   const { theme } = useTheme(); // Ambil tema
+  const { format } = useCurrencyFormatter();
   const isDark = theme === 'dark';
 
   // Kalkulasi Finansial Menyeluruh
@@ -40,6 +43,25 @@ export default function CostSummary() {
       health
     };
   }, [transactions, wasteLogs]);
+
+  if (isServiceLoading && products.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="w-64 h-8 mb-6" rounded="rounded-xl" />
+        <Skeleton className="w-full h-32" rounded="rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Skeleton className="h-32" rounded="rounded-2xl" />
+          <Skeleton className="h-32" rounded="rounded-2xl" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Skeleton className="h-64" rounded="rounded-2xl" />
+          </div>
+          <Skeleton className="h-64" rounded="rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20">
@@ -94,7 +116,7 @@ export default function CostSummary() {
             Total Revenue
           </div>
           <div className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {summary.revenue}
+            {format(summary.revenue)}
           </div>
         </div>
 
@@ -125,7 +147,7 @@ export default function CostSummary() {
               ? isDark ? 'text-green-400' : 'text-green-700' 
               : 'text-red-600'
           }`}>
-            {summary.netOperationalProfit}
+            {format(summary.netOperationalProfit)}
           </div>
         </div>
       </div>
@@ -152,7 +174,7 @@ export default function CostSummary() {
                   Cost of Goods Sold (Bahan Baku)
                 </span>
                 <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {summary.cogs}
+                  {format(summary.cogs)}
                 </span>
               </div>
               <div className={`w-full rounded-full h-3 overflow-hidden ${
@@ -180,7 +202,7 @@ export default function CostSummary() {
                    <AlertTriangle className="w-3 h-3 text-red-500" />
                 </span>
                 <span className="font-medium text-red-500">
-                  {summary.wasteLoss}
+                  {format(summary.wasteLoss)}
                 </span>
               </div>
               <div className={`w-full rounded-full h-3 overflow-hidden ${
@@ -237,18 +259,18 @@ export default function CostSummary() {
             <div className="flex justify-between">
               <span className={isDark ? 'text-stone-400' : 'text-stone-500'}>Gross Profit</span>
               <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {summary.grossProfit}
+                {format(summary.grossProfit)}
               </span>
             </div>
             <div className="flex justify-between text-red-500">
               <span>- Waste</span>
-              <span className="font-medium">{summary.wasteLoss}</span>
+              <span className="font-medium">{format(summary.wasteLoss)}</span>
             </div>
             <div className={`border-t my-2 pt-2 flex justify-between font-bold ${
               isDark ? 'border-stone-800 text-white' : 'border-gray-200 text-gray-900'
             }`}>
               <span>Net Profit</span>
-              <span>{summary.netOperationalProfit}</span>
+              <span>{format(summary.netOperationalProfit)}</span>
             </div>
           </div>
         </div>

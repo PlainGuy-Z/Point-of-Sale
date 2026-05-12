@@ -10,6 +10,7 @@ import type { HistoryTransaction, TransactionsListResponse, TxSummaryMonth, TxSu
 import type { CreatedCashier } from '../../components/users/AddCashierModal';
 import { appApi, ApiError } from '../../services/appApi';
 import { Loader2, Search, Download, AlertTriangle } from 'lucide-react';
+import { Skeleton } from '../../components/common/Skeleton';
 
 function itemSummary(t: HistoryTransaction): string {
   return (
@@ -211,9 +212,8 @@ function Inner() {
                 { k: 'Total Transaksi Bulan Ini', v: monthSumm?.month_count ?? 0, num: true as const },
               ] as const
             ).map((c) => {
-              const cls = `rounded-3xl border px-6 py-5 text-left shadow-sm transition ${
-                dark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'
-              } ${'onClick' in c && c.onClick ? 'cursor-pointer hover:border-amber-500/60' : ''} ${'amber' in c && c.amber ? 'ring-2 ring-amber-500/50' : ''}`;
+              const cls = `rounded-3xl border px-6 py-5 text-left shadow-sm transition ${dark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'
+                } ${'onClick' in c && c.onClick ? 'cursor-pointer hover:border-amber-500/60' : ''} ${'amber' in c && c.amber ? 'ring-2 ring-amber-500/50' : ''}`;
               const inner = (
                 <>
                   <p className={`text-xs font-black uppercase tracking-wider ${dark ? 'text-stone-500' : 'text-stone-500'}`}>{c.k}</p>
@@ -300,13 +300,12 @@ function Inner() {
                 key={k}
                 type="button"
                 onClick={() => setStatus(k === 'all' ? 'all' : k)}
-                className={`rounded-full border px-4 py-2 text-xs font-black uppercase ${
-                  k === 'all' ? status === 'all' : status === k
+                className={`rounded-full border px-4 py-2 text-xs font-black uppercase ${k === 'all' ? status === 'all' : status === k
                     ? 'border-amber-500 bg-amber-500 text-white'
                     : dark
                       ? 'border-stone-700 text-stone-300'
                       : 'border-stone-200 text-stone-700'
-                }`}
+                  }`}
               >
                 {k === 'all' ? 'Semua' : k === 'completed' ? 'Selesai' : k === 'pending_void' ? 'Menunggu Void' : 'Dibatalkan'}
               </button>
@@ -329,8 +328,16 @@ function Inner() {
         </div>
 
         {loading ? (
-          <div className="py-24 text-center">
-            <Loader2 className="mx-auto h-12 w-12 animate-spin text-amber-500" />
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className={`rounded-2xl border p-4 flex gap-4 items-center ${dark ? 'border-stone-800 bg-stone-900/50' : 'border-stone-200 bg-white'}`}>
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-6 w-20 ml-auto" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+            ))}
           </div>
         ) : rows.length === 0 ? (
           <div className={`rounded-3xl border py-24 text-center ${dark ? 'border-stone-800' : 'border-stone-200'}`}>

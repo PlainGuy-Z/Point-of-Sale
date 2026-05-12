@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import type { Transaction } from '../../types';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface ReceiptTransaction extends Transaction {
   customerName?: string;
@@ -30,6 +31,7 @@ export default function ReceiptModal({
   const { theme } = useTheme();
   const { settings } = useSettings();
   const isDark = theme === 'dark';
+  const { format } = useCurrencyFormatter();
 
   const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString('id-ID', {
@@ -62,7 +64,7 @@ export default function ReceiptModal({
 
     const itemsText = transaction.items
       .map(i => {
-        let line = `${i.quantity}x ${i.note || 'Item'} - Rp ${i.price * i.quantity}`;
+        let line = `${i.quantity}x ${i.note || 'Item'} - ${format(i.price * i.quantity)}`;
         if (i.description) {
           line += ` (${i.description})`;
         }
@@ -82,7 +84,7 @@ ${orderTypeInfo}Pelanggan: ${transaction.customerName || 'Walk-in'}
 ${tableInfo}
 ${itemsText}
 
-TOTAL: Rp ${transaction.total}
+TOTAL: ${format(transaction.total)}
 Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
 `.trim();
 
@@ -114,7 +116,7 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4 text-sm max-h-[60vh] overflow-y-auto">
+        <div className="p-5 space-y-4 text-sm max-h-[60vh] overflow-y-auto horizontal-scrollbar-thin">
           {/* Info - DENGAN ORDER TYPE */}
           <div className={`space-y-1 text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
             <div>{formatDate(transaction.date)}</div>
@@ -157,11 +159,11 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
                     {item.note || 'Product'} {item.description && <span className="font-normal italic text-xs opacity-75">- {item.description}</span>}
                   </div>
                   <div className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
-                    {item.quantity} × Rp {item.price.toLocaleString('id-ID')}
+                    {item.quantity} × {format(item.price)}
                   </div>
                 </div>
                 <div className="text-right">
-                  Rp {(item.price * item.quantity).toLocaleString('id-ID')}
+                  {format(item.price * item.quantity)}
                 </div>
               </div>
             ))}
@@ -171,26 +173,26 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
           <div className={`pt-3 space-y-1 border-t ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
             <div className="flex justify-between text-xs">
               <span>Subtotal</span>
-              <span>Rp {(transaction.subtotal || transaction.total).toLocaleString('id-ID')}</span>
+              <span>{format(transaction.subtotal || transaction.total)}</span>
             </div>
 
             {(transaction.tax !== undefined && transaction.tax > 0) && (
               <div className="flex justify-between text-xs">
                 <span>{settings?.tax_label || 'Pajak'} ({transaction.taxRate || 0}%)</span>
-                <span>Rp {transaction.tax.toLocaleString('id-ID')}</span>
+                <span>{format(transaction.tax)}</span>
               </div>
             )}
 
             {(transaction.service_charge !== undefined && transaction.service_charge > 0) && (
               <div className="flex justify-between text-xs">
                 <span>{settings?.service_charge_label || 'Service'}</span>
-                <span>Rp {transaction.service_charge.toLocaleString('id-ID')}</span>
+                <span>{format(transaction.service_charge)}</span>
               </div>
             )}
 
             <div className="flex justify-between font-black pt-1 text-base border-t border-dashed mt-1 dark:border-stone-800">
               <span>Total</span>
-              <span>Rp {transaction.total.toLocaleString('id-ID')}</span>
+              <span>{format(transaction.total)}</span>
             </div>
 
             <div className={`pt-2 text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
@@ -203,13 +205,13 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
                   <div className="flex justify-between text-xs">
                     <span>Tunai</span>
                     <span>
-                      Rp {transaction.cashReceived.toLocaleString('id-ID')}
+                      {format(transaction.cashReceived)}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span>Kembali</span>
                     <span>
-                      Rp {(transaction.change || 0).toLocaleString('id-ID')}
+                      {format(transaction.change || 0)}
                     </span>
                   </div>
                 </>

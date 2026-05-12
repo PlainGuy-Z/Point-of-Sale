@@ -1,10 +1,13 @@
 export const useCurrencyFormatter = () => {
-  /**
-   * Raw Data Policy:
-   * - Do NOT add currency symbols or locale formatting (e.g. "Rp", separators).
-   * - Keep all price/amount values displayed as raw integers (stringified).
-   */
-  const format = (amount: number): string => String(Math.trunc(Number(amount) || 0));
+  const format = (amount: number): string => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Math.trunc(Number(amount) || 0));
+  };
+
   const parse = (value: string): number => {
     const cleaned = String(value ?? '').replace(/[^\d.-]/g, '');
     const n = Number(cleaned);
@@ -19,7 +22,7 @@ export const useCurrencyFormatter = () => {
     formatDualCurrency: (amount: number) => ({ original: format(amount), converted: format(amount) }),
     formatInput: (value: string | number) => String(value ?? ''),
     isValid: (value: string) => /^\d*([.]\d+)?$/.test(String(value ?? '').trim()) || String(value ?? '').trim() === '',
-    getCurrencySymbol: () => '',
+    getCurrencySymbol: () => 'Rp',
     getConversionRate: () => 1,
     canConvertTo: () => false,
     getAvailableCurrencies: () => [],

@@ -21,3 +21,12 @@ pool.connect((err, client, release) => {
   if (release) release();
 });
 
+// Tangani error pada idle clients (mencegah crash/terminal error karena ECONNRESET dari Supabase)
+pool.on('error', (err, client) => {
+  if ((err as any).code === 'ECONNRESET') {
+    // Supabase sering memutus koneksi idle, cukup log ringan atau abaikan
+    console.warn('⚠️ Idle client connection diputus oleh server (ECONNRESET)');
+  } else {
+    console.error('Unexpected error on idle client', err);
+  }
+});

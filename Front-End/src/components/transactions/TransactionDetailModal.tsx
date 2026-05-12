@@ -72,7 +72,7 @@ export default function TransactionDetailModal({
         onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       >
         <div
-          className={`max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border shadow-2xl ${
+          className={`max-h-[90vh] w-full max-w-2xl overflow-y-auto horizontal-scrollbar-thin rounded-3xl border shadow-2xl ${
             isDark ? 'border-stone-800 bg-stone-900 text-stone-100' : 'border-stone-200 bg-white text-stone-900'
           }`}
         >

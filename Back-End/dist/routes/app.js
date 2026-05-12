@@ -2,29 +2,29 @@
  * SQL Migration (run once):
  *
  * -- Allow stock = -1 for unlimited/untracked products
- * ALTER TABLE coffeepos.products DROP CONSTRAINT IF EXISTS products_stock_check;
- * ALTER TABLE coffeepos.products ADD CONSTRAINT products_stock_check CHECK (stock >= -1);
+ * ALTER TABLE products DROP CONSTRAINT IF EXISTS products_stock_check;
+ * ALTER TABLE products ADD CONSTRAINT products_stock_check CHECK (stock >= -1);
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS discount INTEGER NOT NULL DEFAULT 0
  *   CHECK (discount >= 0 AND discount <= 100);
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS is_promo BOOLEAN NOT NULL DEFAULT false;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS promo_price INTEGER;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS promo_label TEXT;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS promo_start DATE;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS promo_end DATE;
  *
- * ALTER TABLE coffeepos.products
+ * ALTER TABLE products
  *   ADD COLUMN IF NOT EXISTS is_available BOOLEAN NOT NULL DEFAULT true;
  */
 import { Router } from 'express';

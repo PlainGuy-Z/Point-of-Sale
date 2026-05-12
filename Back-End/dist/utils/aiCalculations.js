@@ -197,16 +197,39 @@ export async function getWasteAnalysis(pool, shopId, days = 30) {
  * Gathers an overarching business summary snapshot suitable for providing AI context.
  */
 export async function getBusinessSummary(pool, shopId) {
+    // Di getBusinessSummary, ganti query revenuesQuery:
     const revenuesQuery = `
-    SELECT
-      SUM(CASE WHEN created_at >= CURRENT_DATE THEN grand_total ELSE 0 END) as today_revenue,
-      SUM(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE THEN grand_total ELSE 0 END) as yesterday_revenue,
-      SUM(CASE WHEN created_at >= date_trunc('week', CURRENT_DATE) THEN grand_total ELSE 0 END) as this_week_revenue,
-      SUM(CASE WHEN created_at >= date_trunc('week', CURRENT_DATE - INTERVAL '1 week') AND created_at < date_trunc('week', CURRENT_DATE) THEN grand_total ELSE 0 END) as last_week_revenue,
-      SUM(CASE WHEN created_at >= date_trunc('month', CURRENT_DATE) THEN grand_total ELSE 0 END) as this_month_revenue
-    FROM coffeepos.transactions
-    WHERE shop_id = $1 AND status = 'completed'
-  `;
+  SELECT
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta')::date = 
+      (NOW() AT TIME ZONE 'Asia/Jakarta')::date
+      THEN grand_total ELSE 0 END) as today_revenue,
+
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta')::date = 
+      (NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1
+      THEN grand_total ELSE 0 END) as yesterday_revenue,
+
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta') >= 
+      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'Asia/Jakarta'
+      THEN grand_total ELSE 0 END) as this_week_revenue,
+
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta') >= 
+      (date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') - INTERVAL '1 week') AT TIME ZONE 'Asia/Jakarta'
+      AND (created_at AT TIME ZONE 'Asia/Jakarta') < 
+      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'Asia/Jakarta'
+      THEN grand_total ELSE 0 END) as last_week_revenue,
+
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta') >= 
+      date_trunc('month', NOW() AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'Asia/Jakarta'
+      THEN grand_total ELSE 0 END) as this_month_revenue
+
+  FROM coffeepos.transactions
+  WHERE shop_id = $1 AND status = 'completed'
+`;
     const topProductsQuery = `
     SELECT p.name, SUM(ti.quantity) as qty
     FROM coffeepos.transaction_items ti
@@ -220,7 +243,10 @@ export async function getBusinessSummary(pool, shopId) {
     const lowStockQuery = `
     SELECT COUNT(*) as count
     FROM coffeepos.products
-    WHERE shop_id = $1 AND stock <= 10
+    WHERE shop_id = $1 
+      AND stock <= COALESCE(min_stock, 5)
+      AND stock >= 0
+      AND is_available = true
   `;
     const shiftsQuery = `
     SELECT COUNT(*) as count

@@ -16,30 +16,23 @@ import { authenticateToken } from './middleware/auth.js';
 export function createApp() {
     const app = express();
     app.disable('x-powered-by');
-    // Helmet dengan crossOriginResourcePolicy dinonaktifkan
-    // agar tidak memblok cross-domain requests dari Vercel
     app.use(helmet({
         crossOriginResourcePolicy: false,
         crossOriginOpenerPolicy: false,
     }));
     app.use(cookieParser());
-    // CORS options — support exact match + Vercel preview domains
     const corsOptions = {
         origin: (origin, callback) => {
-            // Izinkan request tanpa origin (Postman, Railway health check, server-to-server)
             if (!origin)
                 return callback(null, true);
-            // Cek exact match dari env variable
             if (env.corsOrigins.includes(origin)) {
                 return callback(null, true);
             }
-            // Izinkan semua Vercel preview domain milik project ini
+            // ✅ Fix: nama project yang benar
             if (origin.endsWith('.vercel.app') &&
-                origin.includes('smartpos-cafe') // ganti dengan nama project Vercel kamu
-            ) {
+                origin.includes('point-of-sale')) {
                 return callback(null, true);
             }
-            // Izinkan localhost untuk development
             if (origin.startsWith('http://localhost:')) {
                 return callback(null, true);
             }
@@ -51,11 +44,8 @@ export function createApp() {
         allowedHeaders: ['Content-Type', 'Authorization'],
         optionsSuccessStatus: 200,
     };
-    // Handle preflight OPTIONS SEBELUM semua route — wajib untuk CORS
-    // ✅ Ganti jadi ini
-    app.options('/{*path}', cors(corsOptions));
+    app.options(/.*/, cors(corsOptions));
     app.use(cors(corsOptions));
-    // Header untuk Chrome Private Network Access policy
     app.use((_req, res, next) => {
         res.setHeader('Access-Control-Allow-Private-Network', 'true');
         next();

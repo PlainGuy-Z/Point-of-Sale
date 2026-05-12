@@ -1,173 +1,155 @@
-import type { MenuItem } from '../types/navigation';
+// src/data/navigation.ts
 
-export const navigationConfig : { 
-  mainMenu: MenuItem[];
-   bottomMenu: MenuItem[];
-   } = {
-  mainMenu: [
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface NavItem {
+  id: string;
+  label: string;
+  icon: string;
+  path: string;
+  badge?: number;
+}
+
+export interface NavSection {
+  id: string;
+  label: string | null;
+  items: NavItem[];
+  /** Icon shown as the single group icon when sidebar is collapsed. If null, items render individually. */
+  collapsedIcon?: string;
+}
+
+export interface Navigation {
+  sections: NavSection[];
+}
+
+// ─── Owner Navigation ─────────────────────────────────────────────────────────
+
+const ownerNavigation: Navigation = {
+  sections: [
     {
-      id: 'dashboard',
-      title: 'Dashboard',
-      path: '/dashboard',
-      iconName: 'LayoutDashboard',
-      type: 'link',
-      allowedRoles: ['owner', 'cashier'] as Array<'owner' | 'cashier'>
+      id: 'main',
+      label: null,
+      items: [
+        { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard', path: '/dashboard' },
+      ],
     },
     {
-      id: 'pos',
-      title: 'Point of Sale',
-      path: '/pos',
-      iconName: 'ShoppingCart',
-      type: 'link',
-      allowedRoles: ['owner', 'cashier'] as Array<'owner' | 'cashier'>
+      id: 'daily',
+      label: 'HARIAN',
+      collapsedIcon: 'ShoppingCart',
+      items: [
+        { id: 'pos', label: 'Point of Sale', icon: 'ShoppingCart', path: '/pos' },
+        { id: 'sales-report', label: 'Laporan Penjualan', icon: 'BarChart2', path: '/sales-report' },
+      ],
     },
     {
-      id: 'transaction-history',
-      title: 'Riwayat Transaksi',
-      path: '/history',
-      iconName: 'ClipboardList',
-      type: 'link',
-      allowedRoles: ['cashier'] as Array<'owner' | 'cashier'>
+      id: 'reports',
+      label: 'LAPORAN & ANALITIK',
+      collapsedIcon: 'BarChart3',
+      items: [
+        { id: 'business-insights', label: 'Business Intelligence', icon: 'BrainCircuit', path: '/insights' },
+        { id: 'transactions', label: 'Riwayat Transaksi', icon: 'Receipt', path: '/transactions' },
+        { id: 'shifts', label: 'Laporan Shift', icon: 'ClipboardList', path: '/shifts' },
+      ],
     },
     {
-      id: 'waste-log-standalone',
-      title: 'Waste Log',
-      path: '/operation/waste-log',
-      iconName: 'Trash2',
-      type: 'link',
-      allowedRoles: ['cashier'] as Array<'owner' | 'cashier'>
-    },
-    {
-      id: 'insights',
-      title: 'Business Insight AI',
-      path: '/insights',
-      iconName: 'BarChart3',
-      type: 'link',
-      allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
-    },
-    {
-      id: 'operation',
-      title: 'Operation',
-      iconName: 'Box',
-      type: 'collapse',
-      allowedRoles: ['owner'] as Array<'owner' | 'cashier'>,
-      subItems: [
-        {
-          id: 'prod-mgmt',
-          title: 'Product Management',
-          path: '/operation/products',
-          iconName: 'PackagePlus',
-          type: 'link',
-          allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
-        },
-        {
-          id: 'waste-log',
-          title: 'Waste Log',
-          path: '/operation/waste-log',
-          iconName: 'Trash2',
-          type: 'link',
-          allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
-        },
-        {
-          id: 'inv-usage',
-          title: 'Inventory Usage',
-          path: '/operation/inventory-usage',
-          iconName: 'History',
-          type: 'link',
-          allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
-        },
-        {
-          id: 'cost-summary',
-          title: 'Cost Summary',
-          path: '/operation/cost-summary',
-          iconName: 'DollarSign',
-          type: 'link',
-          allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
-        },
-      ]
+      id: 'products',
+      label: 'PRODUK & STOK',
+      collapsedIcon: 'Package',
+      items: [
+        { id: 'product-management', label: 'Manajemen Produk', icon: 'Package', path: '/operation/products' },
+        { id: 'inventory', label: 'Inventory & Biaya', icon: 'Layers', path: '/operation/inventory-usage' },
+        { id: 'waste-log', label: 'Waste Log', icon: 'Trash2', path: '/operation/waste-log' },
+      ],
     },
     {
       id: 'customers',
-      title: 'Customers',
-      iconName: 'Users',
-      type: 'collapse',
-      allowedRoles: ['owner'] as Array<'owner' | 'cashier'>,
-      subItems: [
-        {
-          id: 'members',
-          title: 'Members',
-          path: '/customers/members',
-          iconName: 'UserCheck',
-          type: 'link',
-          allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
-        },
-        {
-          id: 'visit-history',
-          title: 'Visit History',
-          path: '/customers/visit-history',
-          iconName: 'Clock',
-          type: 'link',
-          allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
-        },
-        {
-          id: 'loyalty-insight',
-          title: 'Loyalty Insight',
-          path: '/customers/loyalty-insight',
-          iconName: 'Gem',
-          type: 'link',
-          allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
-        },
-      ]
+      label: 'PELANGGAN',
+      collapsedIcon: 'Users',
+      items: [
+        { id: 'members', label: 'Members', icon: 'Users', path: '/customers/members' },
+        { id: 'loyalty', label: 'Loyalty & Kunjungan', icon: 'Trophy', path: '/customers/loyalty-insight' },
+      ],
+    },
+    {
+      id: 'management',
+      label: 'MANAJEMEN',
+      collapsedIcon: 'Settings',
+      items: [
+        { id: 'users', label: 'Manajemen Kasir', icon: 'UserCog', path: '/users' },
+        { id: 'settings', label: 'Settings', icon: 'Settings', path: '/settings' },
+        { id: 'help', label: 'Help Center', icon: 'HelpCircle', path: '/help' },
+      ],
     },
   ],
-  bottomMenu: [
+};
+
+// ─── Cashier Navigation ───────────────────────────────────────────────────────
+
+const cashierNavigation: Navigation = {
+  sections: [
     {
-      id: 'shifts',
-      title: 'Laporan Shift',
-      path: '/shifts',
-      iconName: 'ClipboardList',
-      type: 'link',
-      allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
+      id: 'main',
+      label: null,
+      items: [
+        { id: 'cashier-dashboard', label: 'Dashboard', icon: 'LayoutDashboard', path: '/dashboard' },
+        { id: 'pos', label: 'Point of Sale', icon: 'ShoppingCart', path: '/pos' },
+      ],
     },
     {
-      id: 'owner-history',
-      title: 'Riwayat Transaksi',
-      path: '/transactions',
-      iconName: 'ClipboardList',
-      type: 'link',
-      allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
+      id: 'daily',
+      label: 'HARIAN',
+      items: [
+        { id: 'waste-log', label: 'Waste Log', icon: 'Trash2', path: '/operation/waste-log' },
+      ],
     },
     {
-      id: 'user-management',
-      title: 'Manajemen Kasir',
-      path: '/users',
-      iconName: 'Users',
-      type: 'link',
-      allowedRoles: ['owner'] as Array<'owner' | 'cashier'>
+      id: 'reports',
+      label: 'LAPORAN',
+      items: [
+        { id: 'shifts', label: 'Shift Saya', icon: 'Clock', path: '/cashier/shift' },
+        { id: 'transactions', label: 'Riwayat Transaksi', icon: 'Receipt', path: '/history' },
+      ],
     },
     {
-      id: 'settings',
-      title: 'Settings',
-      path: '/settings',
-      iconName: 'Settings',
-      type: 'link',
-      allowedRoles: ['owner', 'cashier'] as Array<'owner' | 'cashier'>
+      id: 'management',
+      label: 'LAINNYA',
+      items: [
+        { id: 'settings', label: 'Settings', icon: 'Settings', path: '/settings' },
+        { id: 'help', label: 'Help Center', icon: 'HelpCircle', path: '/help' },
+      ],
     },
-    {
-      id: 'help',
-      title: 'Help Center',
-      path: '/help',
-      iconName: 'HelpCircle',
-      type: 'link',
-      allowedRoles: ['owner', 'cashier'] as Array<'owner' | 'cashier'>
-    },
-    {
-      id: 'logout',
-      title: 'Logout',
-      path: '/logout',
-      iconName: 'LogOut',
-      type: 'link',
-      allowedRoles: ['owner', 'cashier'] as Array<'owner' | 'cashier'>
-    },
-  ]
+  ],
+};
+
+// ─── Getter ───────────────────────────────────────────────────────────────────
+
+export function getNavigation(role: 'owner' | 'cashier'): Navigation {
+  return role === 'owner' ? ownerNavigation : cashierNavigation;
+}
+
+// ─── Legacy export (kept for backward compatibility, may be removed later) ────
+
+/** @deprecated Use getNavigation(role) instead */
+export const navigationConfig = {
+  mainMenu: [
+    ...ownerNavigation.sections.flatMap((s) =>
+      s.items.map((item) => ({
+        id: item.id,
+        title: item.label,
+        path: item.path,
+        iconName: item.icon,
+        type: 'link' as const,
+        allowedRoles: ['owner'] as Array<'owner' | 'cashier'>,
+      }))
+    ),
+  ],
+  bottomMenu: [] as Array<{
+    id: string;
+    title: string;
+    path: string;
+    iconName: string;
+    type: 'link';
+    allowedRoles: Array<'owner' | 'cashier'>;
+  }>,
 };

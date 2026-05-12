@@ -46,7 +46,7 @@ shiftsRouter.post('/close', requireRole('cashier'), validateBody(CloseShiftSchem
             throw new HttpError(404, 'NO_ACTIVE_SHIFT', 'Tidak ada shift yang aktif');
         }
         const shift = activeShifts[0];
-        // Calculate expected cash from transactions
+        // Calculate expected cash from coffeepos.transactions
         // Only cash payment methods count towards expected_cash
         const { rows: totals } = await pool.query(`SELECT 
         COALESCE(SUM(grand_total), 0) as total_sales,

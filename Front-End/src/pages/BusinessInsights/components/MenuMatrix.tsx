@@ -1,3 +1,5 @@
+//src/pages/BusinessInsights/components/MenuMatrix.tsx
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import { Grid3x3, AlertCircle } from 'lucide-react';

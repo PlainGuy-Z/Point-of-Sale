@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Coffee, Moon, Sun, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
-import { navigationConfig } from '../../data/navigation'; 
+import { getNavigation } from '../../data/navigation';
+import type { NavItem, NavSection } from '../../data/navigation';
 import { getIconComponent } from '../../utils/iconUtils';
 import SidebarItem from './SidebarItem';
-import SidebarCollapse from './SidebarCollapse';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ShiftCloseModal from '../shift/ShiftCloseModal';
 import { appApi } from '../../services/appApi';
 
@@ -16,20 +16,161 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
+// ─── Collapsed Group with Flyout ──────────────────────────────────────────────
+
+
+function CollapsedGroup({
+  section,
+  isDark,
+  getBadge,
+}: {
+  section: NavSection;
+  isDark: boolean;
+  getBadge: (id: string) => number | undefined;
+}) {
+  const [showFlyout, setShowFlyout] = useState(false);
+  const location = useLocation();
+
+  const GroupIcon = section.collapsedIcon
+    ? getIconComponent(section.collapsedIcon)
+    : null;
+
+  const isAnyActive = section.items.some(
+    (item) => location.pathname === item.path
+  );
+
+  const totalBadge = section.items.reduce(
+    (sum, item) => sum + (getBadge(item.id) ?? 0),
+    0
+  );
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setShowFlyout(true)}
+      onMouseLeave={() => setShowFlyout(false)}
+    >
+      {/* Single group icon */}
+      <button
+        type="button"
+        onClick={() => setShowFlyout((v) => !v)}
+        className={`
+          group relative w-10 h-10 mx-auto flex items-center justify-center rounded-xl
+          transition-all duration-200
+          ${isAnyActive
+            ? isDark
+              ? 'bg-amber-500/10 border-l-[3px] border-l-amber-500'
+              : 'bg-amber-500/8 border-l-[3px] border-l-amber-500'
+            : isDark
+              ? 'hover:bg-stone-900 border-l-[3px] border-l-transparent'
+              : 'hover:bg-stone-100 border-l-[3px] border-l-transparent'
+          }
+        `}
+      >
+        {GroupIcon && (
+          <GroupIcon
+            className={`w-[18px] h-[18px] transition-colors duration-200 ${
+              isAnyActive
+                ? 'text-amber-500'
+                : isDark
+                  ? 'text-stone-500'
+                  : 'text-stone-400'
+            }`}
+          />
+        )}
+
+        {/* Badge dot */}
+        {totalBadge > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-500" />
+        )}
+      </button>
+
+      {/* Flyout popup */}
+      {showFlyout && (
+        <div className="absolute left-full top-0 z-[9999] pl-3">
+          <div
+            className={`
+              min-w-[200px] rounded-2xl border shadow-2xl py-2
+              ${isDark
+                ? 'bg-stone-900 border-stone-700/80 shadow-black/40'
+                : 'bg-white border-stone-200 shadow-stone-200/60'
+              }
+            `}
+          >
+            {/* Group label */}
+            <p
+              className={`px-4 py-2 text-[10px] font-bold uppercase tracking-wider ${
+                isDark ? 'text-stone-500' : 'text-stone-400'
+              }`}
+            >
+              {section.label}
+            </p>
+
+            {/* Child items */}
+            {section.items.map((item) => {
+              const isItemActive = location.pathname === item.path;
+              const ItemIcon = getIconComponent(item.icon);
+              const badge = getBadge(item.id);
+
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  onClick={() => setShowFlyout(false)}
+                  className={`
+                    flex items-center gap-2.5 mx-2 px-3 py-2 rounded-xl
+                    transition-all duration-150
+                    ${isItemActive
+                      ? isDark
+                        ? 'bg-amber-500/10 text-amber-200'
+                        : 'bg-amber-500/10 text-amber-900'
+                      : isDark
+                        ? 'hover:bg-stone-800 text-stone-300'
+                        : 'hover:bg-stone-100 text-stone-700'
+                    }
+                  `}
+                >
+                  {ItemIcon && (
+                    <ItemIcon
+                      className={`w-4 h-4 flex-shrink-0 ${
+                        isItemActive
+                          ? 'text-amber-500'
+                          : isDark
+                            ? 'text-stone-400'
+                            : 'text-stone-500'
+                      }`}
+                    />
+                  )}
+                  <span className="text-[13px] font-semibold">{item.label}</span>
+                  {badge != null && badge > 0 && (
+                    <span className="ml-auto flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-stone-900 leading-none">
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  )}
+                  {isItemActive && !(badge != null && badge > 0) && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps) {
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    operation: false,
-    customers: false,
-  });
   const [showCloseModal, setShowCloseModal] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { activeShift } = useShift();
   const navigate = useNavigate();
+  const isDark = theme === 'dark';
 
+  // ── Void request badge polling (owner only) ─────────────────────────────────
   const [pendingVoidBadge, setPendingVoidBadge] = useState(0);
-  const ownerVoidBadge = user?.role === 'owner' ? pendingVoidBadge : 0;
 
   useEffect(() => {
     if (user?.role !== 'owner') return undefined;
@@ -51,80 +192,112 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
     };
   }, [user?.role]);
 
+  // ── Handlers ────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
-  const role = user?.role;
-  const canSeeMenu = (allowed?: Array<'owner' | 'cashier'>) => {
-    if (!role) return false;
-    if (!allowed?.length) return true;
-    return allowed.includes(role);
+  // ── Navigation data ─────────────────────────────────────────────────────────
+  const role = user?.role ?? 'cashier';
+  const navigation = getNavigation(role);
+
+  // ── Badge mapping ───────────────────────────────────────────────────────────
+  const getBadge = (itemId: string): number | undefined => {
+    if (itemId === 'transactions' && role === 'owner') return pendingVoidBadge || undefined;
+    return undefined;
   };
 
-  const toggleMenu = (menuId: string) => {
-    setOpenMenus(prev => ({
-      ...prev,
-      [menuId]: !prev[menuId],
-    }));
+  // ── Logout nav item ─────────────────────────────────────────────────────────
+  const logoutItem: NavItem = {
+    id: 'logout',
+    label: 'Logout',
+    icon: 'LogOut',
+    path: '/logout',
   };
-
-  const sidebarClass =
-    theme === 'dark'
-      ? 'bg-stone-950 text-stone-100 border-stone-800'
-      : 'bg-white text-stone-900 border-stone-200';
 
   return (
     <>
-      <div className={`${sidebarClass} ${isCollapsed ? 'w-16 overflow-visible' : 'w-64 overflow-hidden'} h-screen fixed left-0 top-0 z-40 flex flex-col border-r transition-all duration-300`}>
-        
-        {/* Header */}
-        <div className={`${isCollapsed ? 'p-3' : 'p-6'} border-b ${theme === 'dark' ? 'border-stone-800' : 'border-stone-200'} transition-all duration-300`}>
+      <div
+        className={`
+          ${isDark ? 'bg-stone-950 text-stone-100 border-stone-800' : 'bg-white text-stone-900 border-stone-200'}
+          ${isCollapsed ? 'w-[68px] overflow-visible' : 'w-[260px] overflow-hidden'}
+          h-screen fixed left-0 top-0 z-40 flex flex-col border-r transition-all duration-300
+        `}
+      >
+        {/* ═══════════════════════════════════════════════════════════════════════
+            HEADER
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <div
+          className={`
+            ${isCollapsed ? 'p-3' : 'px-5 py-5'}
+            border-b ${isDark ? 'border-stone-800/60' : 'border-stone-200'}
+            transition-all duration-300
+          `}
+        >
           <div className={`flex items-center ${isCollapsed ? 'flex-col' : 'gap-3'}`}>
-            <div className={`${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'} rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0 transition-all duration-300`}>
-              <Coffee className={`${isCollapsed ? 'h-5 w-5' : 'h-6 w-6'} text-amber-500`} />
+            <div
+              className={`
+                ${isCollapsed ? 'w-10 h-10' : 'w-10 h-10'}
+                rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10
+                border border-amber-500/20
+                flex items-center justify-center flex-shrink-0
+                transition-all duration-300
+              `}
+            >
+              <Coffee className={`${isCollapsed ? 'h-5 w-5' : 'h-5 w-5'} text-amber-500`} />
             </div>
+
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl font-bold truncate">{user?.shop?.name || 'Coffee Shop'}</h1>
-                <div className="flex items-center gap-2">
-                  <p className={`text-sm truncate ${theme === 'dark' ? 'text-stone-400' : 'text-stone-500'}`}>
+                <h1 className={`text-base font-bold truncate ${isDark ? 'text-white' : 'text-stone-900'}`}>
+                  {user?.shop?.name || 'Coffee Shop'}
+                </h1>
+                <div className="flex items-center gap-1.5">
+                  <p className={`text-xs truncate ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
                     POS System
                   </p>
                   {user?.role === 'cashier' && (
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${activeShift ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        activeShift
+                          ? 'bg-green-500/10 text-green-500'
+                          : 'bg-yellow-500/10 text-yellow-500'
+                      }`}
+                    >
                       {activeShift ? '●' : '○'}
                     </span>
                   )}
                 </div>
               </div>
             )}
+
             {onToggleCollapse && (
               <button
                 onClick={onToggleCollapse}
                 title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                className={`${isCollapsed ? 'mt-3' : 'ml-auto'} p-1.5 rounded-xl border transition-all duration-150 ${
-                  theme === 'dark'
-                    ? 'border-stone-800 hover:bg-[#1a1614] text-stone-400 hover:text-stone-200'
-                    : 'border-stone-200 hover:bg-stone-100 text-stone-500 hover:text-stone-800'
-                }`}
+                className={`
+                  ${isCollapsed ? 'mt-2' : 'ml-auto'}
+                  p-1.5 rounded-xl border transition-all duration-200
+                  ${isDark
+                    ? 'border-stone-800 hover:bg-stone-900 text-stone-500 hover:text-stone-300'
+                    : 'border-stone-200 hover:bg-stone-100 text-stone-400 hover:text-stone-700'
+                  }
+                `}
               >
-                {isCollapsed
-                  ? <ChevronRight className="w-4 h-4" />
-                  : <ChevronLeft className="w-4 h-4" />
-                }
+                {isCollapsed ? (
+                  <ChevronRight className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                )}
               </button>
             )}
           </div>
 
+          {/* Shift counter for cashier */}
           {user?.role === 'cashier' && activeShift && !isCollapsed && (
-            <div className="mt-1 flex items-center justify-between px-2">
-              <span
-                className={`text-xs ${
-                  theme === 'dark' ? 'text-stone-400' : 'text-stone-500'
-                }`}
-              >
+            <div className="mt-2 flex items-center justify-between px-1">
+              <span className={`text-xs ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
                 Transaksi shift ini:
               </span>
               <span className="text-xs font-bold text-amber-500">
@@ -134,135 +307,192 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
           )}
         </div>
 
-        {/* Navigation */}
-        <div className={`flex-1 ${isCollapsed ? 'overflow-visible px-2' : 'overflow-y-auto p-4'} horizontal-scrollbar-thin transition-all duration-300`}>
-          <div className="space-y-1">
-            {navigationConfig.mainMenu
-              .filter((item) => canSeeMenu(item.allowedRoles))
-              .map((item) => {
-                const Icon = getIconComponent(item.iconName);
-                
-                if (item.type === 'collapse') {
-                  const subItems = item.subItems?.filter((sub) => canSeeMenu(sub.allowedRoles));
-                  if (!subItems || subItems.length === 0) return null;
-                  
-                  const filteredItem = { ...item, subItems };
-                  
-                  return (
-                    <SidebarCollapse
-                      key={item.id}
-                      item={filteredItem}
-                      icon={Icon || undefined}
-                      isOpen={openMenus[item.id] || false}
-                      onToggle={() => !isCollapsed && toggleMenu(item.id)}
-                      getIcon={getIconComponent}
-                      isCollapsed={isCollapsed}
-                    />
-                  );
-                }
-                
-                return (
-                  <SidebarItem
-                    key={item.id}
-                    item={item}
-                    icon={Icon || undefined}
-                    isCollapsed={isCollapsed}
+        {/* ═══════════════════════════════════════════════════════════════════════
+            NAVIGATION SECTIONS
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <div
+          className={`
+            flex-1 transition-all duration-300
+            ${isCollapsed ? 'overflow-visible px-2 py-3' : 'overflow-y-auto px-3 py-3'}
+            horizontal-scrollbar-thin
+          `}
+        >
+          <nav className="space-y-1">
+            {navigation.sections.map((section, sectionIndex) => (
+              <div key={section.id}>
+                {/* Section divider (between sections, not before the first one) */}
+                {sectionIndex > 0 && (
+                  <div
+                    className={`
+                      ${isCollapsed ? 'mx-2 my-2' : 'mx-1 my-2'}
+                      h-px
+                      ${isDark ? 'bg-stone-800/60' : 'bg-stone-200/80'}
+                    `}
                   />
-                );
-              })}
-          </div>
+                )}
 
-          {!isCollapsed && <div className={`h-px my-4 ${theme === 'dark' ? 'bg-[#1a1614]' : 'bg-stone-200'}`}></div>}
+                {/* Section label (expanded mode only) */}
+                {section.label && !isCollapsed && (
+                  <div className="px-3 pt-2 pb-1.5">
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-[0.08em] ${
+                        isDark ? 'text-stone-600' : 'text-stone-400'
+                      }`}
+                    >
+                      {section.label}
+                    </span>
+                  </div>
+                )}
 
-          <div className="space-y-1">
-            {navigationConfig.bottomMenu
-              .filter((item) => canSeeMenu(item.allowedRoles))
-              .map((item) => {
-                const Icon = getIconComponent(item.iconName);
-                if (item.id === 'logout') {
-                  return (
-                    <div key={item.id} onClick={(e) => { e.preventDefault(); handleLogout(); }}>
-                      <SidebarItem
-                        item={item}
-                        icon={Icon || undefined}
-                        isCollapsed={isCollapsed}
-                      />
-                    </div>
-                  );
-                }
-                return (
-                  <SidebarItem
-                    key={item.id}
-                    item={item}
-                    icon={Icon || undefined}
-                    isCollapsed={isCollapsed}
-                    badge={item.id === 'owner-history' ? ownerVoidBadge : undefined}
+                {/* Section items */}
+                {isCollapsed && section.collapsedIcon ? (
+                  // ── COLLAPSED: grouped icon with flyout ──────────────────
+                  <CollapsedGroup
+                    section={section}
+                    isDark={isDark}
+                    getBadge={getBadge}
                   />
-                );
-              })}
-          </div>
+                ) : (
+                  // ── EXPANDED (or ungrouped collapsed): individual items ──
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const Icon = getIconComponent(item.icon);
+                      return (
+                        <SidebarItem
+                          key={item.id}
+                          item={item}
+                          icon={Icon || undefined}
+                          isCollapsed={isCollapsed}
+                          badge={getBadge(item.id)}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* ── Logout ─────────────────────────────────────────────────── */}
+            <div>
+              <div
+                className={`
+                  ${isCollapsed ? 'mx-2 my-2' : 'mx-1 my-2'}
+                  h-px
+                  ${isDark ? 'bg-stone-800/60' : 'bg-stone-200/80'}
+                `}
+              />
+              <SidebarItem
+                item={logoutItem}
+                icon={LogOut}
+                isCollapsed={isCollapsed}
+                onClick={handleLogout}
+              />
+            </div>
+          </nav>
         </div>
 
-        {/* Footer (profile + theme toggle) */}
-        <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t ${theme === 'dark' ? 'border-stone-800' : 'border-stone-200'} transition-all duration-300`}>
-          
+        {/* ═══════════════════════════════════════════════════════════════════════
+            FOOTER
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <div
+          className={`
+            ${isCollapsed ? 'p-2' : 'p-3'}
+            border-t ${isDark ? 'border-stone-800/60' : 'border-stone-200'}
+            transition-all duration-300
+          `}
+        >
+          {/* Cashier shift close button */}
           {user?.role === 'cashier' && activeShift && (
-            <div className="mb-3">
+            <div className="mb-2">
               <button
                 onClick={() => setShowCloseModal(true)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-3xl border transition-all duration-150 ${
-                  theme === 'dark'
+                className={`
+                  w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all duration-200
+                  ${isDark
                     ? 'border-red-900/30 text-red-400 hover:bg-red-900/20'
                     : 'border-red-200 text-red-600 hover:bg-red-50'
-                }`}
+                  }
+                `}
               >
                 <LogOut className="w-4 h-4" />
-                {!isCollapsed && <span className="text-xs font-bold uppercase tracking-wider">Tutup Shift</span>}
+                {!isCollapsed && (
+                  <span className="text-xs font-bold uppercase tracking-wider">Tutup Shift</span>
+                )}
               </button>
             </div>
           )}
 
-          <div className={`flex ${isCollapsed ? 'flex-col items-center gap-2 p-2' : 'items-center gap-3 p-3'} rounded-3xl border ${
-            theme === 'dark'
-              ? 'bg-stone-950/40 border-stone-800'
-              : 'bg-stone-50 border-stone-200'
-          }`}>
-            <div className={`w-10 h-10 rounded-3xl flex items-center justify-center border flex-shrink-0 ${
-              theme === 'dark' ? 'bg-stone-950 border-stone-800' : 'bg-white border-stone-200'
-            }`}>
+          {/* User profile + theme toggle */}
+          <div
+            className={`
+              flex ${isCollapsed ? 'flex-col items-center gap-2 p-2' : 'items-center gap-2.5 p-2.5'}
+              rounded-xl border
+              ${isDark
+                ? 'bg-stone-900/50 border-stone-800/60'
+                : 'bg-stone-50 border-stone-200'
+              }
+            `}
+          >
+            <div
+              className={`
+                w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0
+                ${isDark ? 'bg-stone-950 border-stone-800' : 'bg-white border-stone-200'}
+              `}
+            >
               {!isCollapsed ? (
-                <span className={`font-black uppercase ${theme === 'dark' ? 'text-stone-200' : 'text-stone-900'}`}>
+                <span
+                  className={`font-black text-sm uppercase ${
+                    isDark ? 'text-stone-200' : 'text-stone-900'
+                  }`}
+                >
                   {user?.name?.[0] || 'U'}
                 </span>
               ) : (
-                <Coffee className="w-5 h-5 text-amber-500" />
+                <Coffee className="w-4 h-4 text-amber-500" />
               )}
             </div>
+
             {!isCollapsed && (
-              <div className="min-w-0">
-                <p className="font-semibold truncate">{user?.name || 'User'}</p>
-                <p className={`text-xs truncate uppercase tracking-wider font-semibold mt-0.5 ${theme === 'dark' ? 'text-amber-500/80' : 'text-amber-600'}`}>
+              <div className="min-w-0 flex-1">
+                <p className={`text-sm font-semibold truncate ${isDark ? 'text-stone-200' : 'text-stone-900'}`}>
+                  {user?.name || 'User'}
+                </p>
+                <p
+                  className={`text-[10px] truncate uppercase tracking-wider font-semibold mt-0.5 ${
+                    isDark ? 'text-amber-500/80' : 'text-amber-600'
+                  }`}
+                >
                   {user?.role || 'operator'}
                 </p>
               </div>
             )}
+
             <button
               onClick={toggleTheme}
-              className={`${isCollapsed ? '' : 'ml-auto'} inline-flex items-center gap-2 ${isCollapsed ? 'p-2' : 'px-3 py-2'} rounded-3xl border text-xs font-black transition-all ${
-                theme === 'dark'
-                  ? 'bg-stone-950 border-stone-800 text-stone-200 hover:bg-[#1a1614]'
-                  : 'bg-white border-stone-200 text-stone-800 hover:bg-stone-50'
-              }`}
+              className={`
+                ${isCollapsed ? '' : 'ml-auto'}
+                inline-flex items-center gap-1.5
+                ${isCollapsed ? 'p-2' : 'px-2.5 py-1.5'}
+                rounded-xl border text-xs font-bold transition-all duration-200
+                ${isDark
+                  ? 'bg-stone-950 border-stone-800 text-stone-300 hover:bg-stone-900'
+                  : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
+                }
+              `}
               aria-label="Toggle theme"
               title="Toggle theme"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-amber-500" />}
-              {!isCollapsed && <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>}
+              {isDark ? (
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+              ) : (
+                <Moon className="w-3.5 h-3.5 text-amber-500" />
+              )}
+              {!isCollapsed && <span>{isDark ? 'Light' : 'Dark'}</span>}
             </button>
           </div>
         </div>
       </div>
-      
+
       {showCloseModal && <ShiftCloseModal onClose={() => setShowCloseModal(false)} />}
     </>
   );

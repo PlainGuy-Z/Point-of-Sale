@@ -1,3 +1,4 @@
+//src/pages/BusinessInsights/components/AIChatPanel.tsx
 import React, { useRef, useEffect, useState } from 'react';
 import { Bot, User, Send, Trash2, X, Sparkles } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -78,7 +79,7 @@ export default function AIChatPanel() {
       </div>
 
       {/* Chat Area */}
-      <div style={{ flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:12 }}>
+      <div className="horizontal-scrollbar-thin" style={{ flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:12 }}>
         {messages.length === 0 ? (
           <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
             <div style={{ width:56, height:56, borderRadius:16, background:'linear-gradient(135deg, #7c3aed20, #0d948820)', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -134,10 +135,10 @@ export default function AIChatPanel() {
                     {msg.role==='ai' && msg.contextSnapshot && (
                       <div style={{ display:'flex', gap:8, marginTop:4, flexWrap:'wrap' }}>
                         <span style={{ fontSize:10, padding:'2px 8px', borderRadius:999, background:isDark?'#292524':'#f5f5f4', color:isDark?'#78716c':'#a8a29e' }}>
-                          Today: {fmtRp(msg.contextSnapshot.today_revenue)}
+                          Today: {fmtRp(msg.contextSnapshot.today_revenue ?? 0)}
                         </span>
                         <span style={{ fontSize:10, padding:'2px 8px', borderRadius:999, background:isDark?'#292524':'#f5f5f4', color:isDark?'#78716c':'#a8a29e' }}>
-                          Week: {fmtRp(msg.contextSnapshot.this_week_revenue)}
+                          Week: {fmtRp(msg.contextSnapshot.this_week_revenue ?? 0)}
                         </span>
                       </div>
                     )}
@@ -202,6 +203,7 @@ export default function AIChatPanel() {
             disabled={isLoading}
             rows={1}
             placeholder="Tanya AI advisor..."
+            className="horizontal-scrollbar-thin"
             style={{
               flex:1, resize:'none', fontSize:13, padding:'10px 14px', borderRadius:12,
               border:`1px solid ${isDark?'#292524':'#e7e5e4'}`,
@@ -211,6 +213,7 @@ export default function AIChatPanel() {
               maxHeight:72, opacity:isLoading?0.5:1,
             }}
           />
+
           <button onClick={handleSend} disabled={!input.trim()||isLoading}
             style={{
               width:40, height:40, borderRadius:10, border:'none', cursor:!input.trim()||isLoading?'default':'pointer',

@@ -116,13 +116,17 @@ export const aiApi = {
     }
   },
 
-  fetchSummary: async (): Promise<SummaryResponse> => {
+  fetchSummary: async (opts?: { bust?: boolean }): Promise<SummaryResponse> => {
     try {
-      const response = await http<{ data: SummaryResponse }>('/api/ai/summary');
+      const url = opts?.bust ? '/api/ai/summary?bust=1' : '/api/ai/summary';
+      const response = await http<{ data: SummaryResponse }>(url);
       return response.data;
     } catch (error) {
       console.error('Summary error:', error);
       throw error;
     }
   },
+
+
+  
 };

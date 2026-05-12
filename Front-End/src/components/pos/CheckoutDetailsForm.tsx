@@ -70,7 +70,7 @@ export default function CheckoutDetailsForm({
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+        <div className="p-5 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto horizontal-scrollbar-thin">
           {/* Order Type Selector */}
           <div>
             <label className="block text-sm font-semibold mb-2">Order Type</label>

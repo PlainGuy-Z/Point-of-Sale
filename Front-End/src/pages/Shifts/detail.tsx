@@ -198,7 +198,7 @@ export default function ShiftDetail() {
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto horizontal-scrollbar-thin">
               <table className="w-full">
                 <thead className={`sticky top-0 ${isDark ? 'bg-stone-950/90' : 'bg-gray-50/90'} backdrop-blur-sm z-10`}>
                   <tr className={`border-b text-xs uppercase tracking-wider ${isDark ? 'border-stone-800 text-stone-500' : 'border-gray-200 text-gray-500'}`}>

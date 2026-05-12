@@ -15,18 +15,19 @@ import { useProductCatalog } from '../../hooks/useProductCatalog';
 import ProductGrid from '../../components/pos/ProductGrid';
 import CategoryPills from '../../components/pos/CategoryPills';
 import PaymentModal from '../../components/pos/PaymentModal';
-import CartItemEditModal from '../../components/pos/CartItemEditModal';
 import CheckoutDetailsForm from '../../components/pos/CheckoutDetailsForm';
 import ReceiptModal from '../../components/pos/ReceiptModal';
+import CartItemEditPanel from '../../components/pos/CartItemEditPanel';
 import type { Transaction, TransactionItem, CartItemWithInput, Product } from '../../types';
 import { ApiError } from '../../services/appApi';
 import { posApi } from '../../services/posApi';
 import { getEffectivePrice } from '../../utils/priceUtils';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 import ShiftOpenModal from '../../components/shift/ShiftOpenModal';
+import PointOfSaleSkeleton from '../../components/pos/PointOfSaleSkeleton';
 
 // ─── Panel view type ──────────────────────────────────────────────────────────
-type CartPanel = 'cart' | 'checkout' | 'manual';
+type CartPanel = 'cart' | 'checkout' | 'manual' | 'edit';
 
 export default function PointOfSale() {
   const createManualItemId = () =>
@@ -182,7 +183,7 @@ export default function PointOfSale() {
     const { price: priceToUse, isPromoActive } = getEffectivePrice(product);
     setCart(prev => {
       const existingIndex = prev.findIndex(item =>
-        item.productId === productId && !item.note && (!item.modifiers || item.modifiers.length === 0)
+        item.productId === productId && !item.note && !item.variantName && (!item.modifiers || item.modifiers.length === 0)
       );
       if (existingIndex >= 0) {
         const newCart = [...prev];
@@ -226,6 +227,7 @@ export default function PointOfSale() {
     if (editingItemIndex !== null) {
       setCart(prev => { const n = [...prev]; n[editingItemIndex] = { ...updatedItem as CartItemWithInput }; return n; });
       setEditingItemIndex(null);
+      setPanel('cart');
     }
   };
 
@@ -247,7 +249,13 @@ export default function PointOfSale() {
       try {
         const res = await posApi.quote({
           cart: cart.map(i => ({
-            productId: i.productId, quantity: i.quantity, note: i.note, modifiers: i.modifiers,
+            productId: i.productId, 
+            quantity: i.quantity, 
+            note: i.note, 
+            modifiers: i.modifiers,
+            variantName: i.variantName,
+            variantPrice: i.variantPrice,
+            description: i.description,
             ...(i.productId.startsWith('manual-') ? { price: i.price } : {}),
           })),
           customerId: selectedCustomer, customerName: customCustomerName,
@@ -284,7 +292,8 @@ export default function PointOfSale() {
       await checkout({
         cart: cart.map(item => ({
           ...item,
-          // Include description field for backend
+          variantName: item.variantName,
+          variantPrice: item.variantPrice,
           description: item.description
         })),
         paymentMethod: method,
@@ -377,8 +386,12 @@ export default function PointOfSale() {
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────────
+  if (isServiceLoading && products.length === 0) {
+    return <PointOfSaleSkeleton />;
+  }
+
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col lg:flex-row gap-4 relative">
+    <div className="h-[calc(100vh-2rem)] flex flex-col lg:flex-row gap-4 relative animate-in fade-in duration-300">
 
       {/* ══════════════════════════════════════════════════════════════════════════
           LEFT — Product Catalog
@@ -536,7 +549,7 @@ export default function PointOfSale() {
               </div>
 
               {/* Cart items */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto horizontal-scrollbar-thin">
                 {cartIsEmpty ? (
                   <div className="h-full flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
                     {/* Background decoration */}
@@ -586,7 +599,8 @@ export default function PointOfSale() {
                       const product = products.find(p => p.id === item.productId);
                       const itemName = product ? product.name : (item.note || 'Custom Item');
                       const isPromoItem = item.isPromo && item.originalPrice;
-                      const lineTotal = item.price * item.quantity;
+                      const basePrice = item.price + (item.variantPrice || 0);
+                      const lineTotal = basePrice * item.quantity;
                       const isManual = item.productId.startsWith('manual-');
 
                       return (
@@ -603,7 +617,10 @@ export default function PointOfSale() {
                             {/* Item info */}
                             <div
                               className="flex-1 min-w-0 cursor-pointer"
-                              onClick={() => setEditingItemIndex(idx)}
+                              onClick={() => {
+                                setEditingItemIndex(idx);
+                                setPanel('edit');
+                              }}
                             >
                               <div className="flex items-center gap-1.5">
                                 {isManual && (
@@ -618,6 +635,11 @@ export default function PointOfSale() {
                               <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 {itemName} {item.description && <span className="font-normal italic opacity-75">- {item.description}</span>}
                               </p>
+                              {item.variantName && (
+                                <p className={`text-[10px] font-medium ${isDark ? 'text-amber-400/80' : 'text-amber-600/80'}`}>
+                                  + {item.variantName} ({format(item.variantPrice || 0)})
+                                </p>
+                              )}
                               <div className="flex items-center gap-2 mt-0.5">
                                 {isPromoItem && (
                                   <span className={`text-[10px] line-through ${isDark ? 'text-stone-700' : 'text-stone-400'}`}>
@@ -628,7 +650,7 @@ export default function PointOfSale() {
                                   ? isDark ? 'text-red-400' : 'text-red-600'
                                   : isDark ? 'text-amber-400' : 'text-amber-600'
                                   }`}>
-                                  {format(item.price)}
+                                  {format(item.price + (item.variantPrice || 0))}
                                 </span>
                               </div>
                             </div>
@@ -767,7 +789,7 @@ export default function PointOfSale() {
                 </h3>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 horizontal-scrollbar-thin">
                 {/* Order type */}
                 <div>
                   <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
@@ -941,7 +963,7 @@ export default function PointOfSale() {
                 </h3>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 horizontal-scrollbar-thin">
                 {/* Nama */}
                 <div>
                   <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
@@ -994,15 +1016,15 @@ export default function PointOfSale() {
                     />
                   </div>
                   {/* Quick price buttons */}
-                  <div className="grid grid-cols-4 gap-1.5 mt-2">
+                  <div className="flex gap-2 mt-2 overflow-x-auto horizontal-scrollbar-thin pb-2">
                     {quickPrices.map(p => {
                       const isSelected = manualItemPrice === p.toString();
                       return (
                         <button
                           key={p}
                           onClick={() => setManualItemPrice(p.toString())}
-                          className={`py-2 rounded-2xl text-[10px] font-black transition-all ${isSelected
-                            ? 'bg-amber-500 text-white'
+                          className={`flex-shrink-0 px-4 py-2 rounded-2xl text-[10px] font-black transition-all ${isSelected
+                            ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
                             : isDark
                               ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
                               : 'bg-gray-100 border border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700'
@@ -1077,30 +1099,36 @@ export default function PointOfSale() {
               </div>
             </>
           )}
+
+          {/* ── Panel: EDIT ITEM ───────────────────────────────────────────── */}
+          {panel === 'edit' && editingItemIndex !== null && cart[editingItemIndex] && (
+            <CartItemEditPanel
+              item={cart[editingItemIndex]}
+              itemIndex={editingItemIndex}
+              onSave={(updatedItem) => {
+                setCart(prev => {
+                  const newCart = [...prev];
+                  newCart[editingItemIndex] = updatedItem;
+                  return newCart;
+                });
+                setEditingItemIndex(null);
+                setPanel('cart');
+              }}
+              onRemove={() => {
+                setCart(prev => prev.filter((_, i) => i !== editingItemIndex));
+                setEditingItemIndex(null);
+                setPanel('cart');
+              }}
+              onClose={() => {
+                setEditingItemIndex(null);
+                setPanel('cart');
+              }}
+            />
+          )}
         </div>
       </div>
 
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
-      {/* Cart Item Edit Modal */}
-      {editingItemIndex !== null && cart[editingItemIndex] && (
-        <CartItemEditModal
-          item={cart[editingItemIndex]}
-          itemIndex={editingItemIndex}
-          onSave={(updatedItem) => {
-            setCart(prev => {
-              const newCart = [...prev];
-              newCart[editingItemIndex] = updatedItem;
-              return newCart;
-            });
-            setEditingItemIndex(null);
-          }}
-          onRemove={() => {
-            setCart(prev => prev.filter((_, i) => i !== editingItemIndex));
-            setEditingItemIndex(null);
-          }}
-          onClose={() => setEditingItemIndex(null)}
-        />
-      )}
 
       {/* Checkout Details Form */}
       {isCheckoutDetailsFormOpen && (

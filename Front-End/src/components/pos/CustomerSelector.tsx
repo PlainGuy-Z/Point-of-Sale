@@ -64,7 +64,7 @@ export default function CustomerSelector({
       </div>
 
       {/* List Area */}
-      <div className="max-h-44 overflow-y-auto custom-scrollbar pr-1 space-y-1">
+      <div className="max-h-44 overflow-y-auto custom-scrollbar horizontal-scrollbar-thin pr-1 space-y-1">
         {filteredCustomers.length > 0 ? (
           filteredCustomers.map(customer => {
             const isSelected = selectedCustomer === customer.id;

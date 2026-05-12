@@ -56,6 +56,10 @@ export interface TransactionItem {
   modifiers?: string[];
   description?: string; // ✅ Per-item custom description (e.g., "Pedas sekali", "Tanpa bawang")
   
+  // CUSTOM VARIANTS (e.g. "Extra Shot", "Topping Keju")
+  variantName?: string;
+  variantPrice?: number;
+  
   // PROMO INFO (optional - untuk tracking di receipt)
   isPromo?: boolean;
   originalPrice?: number;

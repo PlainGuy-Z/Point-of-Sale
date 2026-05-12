@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Plus, Minus, Trash2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { CartItemWithInput } from '../../types';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface CartItemEditModalProps {
   item: CartItemWithInput;
@@ -20,9 +21,12 @@ export default function CartItemEditModal({
 }: CartItemEditModalProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { format } = useCurrencyFormatter();
 
   const [quantity, setQuantity] = useState(item.quantity);
   const [description, setDescription] = useState(item.description || '');
+  const [variantName, setVariantName] = useState(item.variantName || '');
+  const [variantPrice, setVariantPrice] = useState<number>(item.variantPrice || 0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
@@ -34,7 +38,9 @@ export default function CartItemEditModal({
     const updatedItem: CartItemWithInput = {
       ...item,
       quantity: Math.max(1, quantity),
-      description: description.trim()
+      description: description.trim(),
+      variantName: variantName.trim() || undefined,
+      variantPrice: variantPrice > 0 ? variantPrice : undefined
     };
     onSave(updatedItem);
     onClose();
@@ -155,6 +161,42 @@ export default function CartItemEditModal({
             </p>
           </div>
 
+          {/* Variant Section */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase text-stone-600 dark:text-stone-400 mb-2">
+                Variant Name
+              </label>
+              <input
+                type="text"
+                value={variantName}
+                onChange={(e) => setVariantName(e.target.value)}
+                placeholder="e.g. Extra Keju"
+                className={`w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition ${
+                  isDark
+                    ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
+                    : 'bg-white border-stone-200 text-stone-900 placeholder-stone-400'
+                }`}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-stone-600 dark:text-stone-400 mb-2">
+                Variant Price
+              </label>
+              <input
+                type="number"
+                value={variantPrice || ''}
+                onChange={(e) => setVariantPrice(parseInt(e.target.value) || 0)}
+                placeholder="0"
+                className={`w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition ${
+                  isDark
+                    ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
+                    : 'bg-white border-stone-200 text-stone-900 placeholder-stone-400'
+                }`}
+              />
+            </div>
+          </div>
+
           {/* Price Info */}
           <div
             className={`p-3 rounded-lg border ${
@@ -163,12 +205,12 @@ export default function CartItemEditModal({
           >
             <div className="flex justify-between text-sm mb-1">
               <span className={isDark ? 'text-stone-400' : 'text-stone-600'}>Unit Price:</span>
-              <span className="font-semibold">Rp {item.price.toLocaleString('id-ID')}</span>
+              <span className="font-semibold">{format(item.price + variantPrice)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className={isDark ? 'text-stone-400' : 'text-stone-600'}>Subtotal:</span>
               <span className="font-bold text-base">
-                Rp {(item.price * quantity).toLocaleString('id-ID')}
+                {format((item.price + variantPrice) * quantity)}
               </span>
             </div>
           </div>

@@ -3,6 +3,7 @@ import type { Product } from '../../types';
 import { getEffectivePrice } from '../../utils/priceUtils';
 import { isOutOfStock as checkOutOfStock, getStockDisplay } from '../../utils/stockUtils';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 
 interface ProductGridProps {
@@ -16,6 +17,7 @@ export default function ProductGrid({
 }: ProductGridProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { format } = useCurrencyFormatter();
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
@@ -154,7 +156,7 @@ export default function ProductGrid({
                     font-bold text-sm md:text-base
                       ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : 'text-amber-500'}
                   `}>
-                    {priceToShow}
+                    {format(priceToShow)}
                   </span>
                 </div>
                 
@@ -165,7 +167,7 @@ export default function ProductGrid({
                       text-[10px] line-through
                       ${isDark ? 'text-stone-500' : 'text-stone-400'}
                     `}>
-                       {product.price}
+                       {format(product.price)}
                     </span>
                     <span className={`
                       text-[10px] px-1 py-0.5 rounded font-bold

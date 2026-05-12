@@ -114,13 +114,16 @@ aiRouter.get('/waste-analysis', async (req, res, next) => {
 aiRouter.get('/summary', async (req, res, next) => {
     try {
         const storeId = req.user.shop_id;
-        const cached = getCache(summaryCache, storeId);
-        if (cached) {
-            res.json({ data: cached });
-            return;
+        const bust = req.query.bust === '1'; // ← tambah ini
+        if (!bust) {
+            const cached = getCache(summaryCache, storeId);
+            if (cached) {
+                res.json({ data: cached });
+                return;
+            }
         }
         const summary = await getBusinessSummary(pool, storeId);
-        setCache(summaryCache, storeId, summary, 10);
+        setCache(summaryCache, storeId, summary, 2);
         res.json({ data: summary });
     }
     catch (error) {

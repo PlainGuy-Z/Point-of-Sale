@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Banknote, CreditCard, QrCode, CheckCircle } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface PaymentModalProps {
   total: number;
@@ -11,6 +12,7 @@ interface PaymentModalProps {
 export default function PaymentModal({ total, onClose, onConfirm }: PaymentModalProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { format } = useCurrencyFormatter();
   
   const [method, setMethod] = useState<'cash' | 'card' | 'qris'>('cash');
   const [rawCashValue, setRawCashValue] = useState<string>(''); // Store raw numeric value without formatting
@@ -198,7 +200,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
           }`}>
             <span className={`text-sm font-bold ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>Total</span>
             <div className="text-xl font-black text-amber-500">
-              {total}
+              {format(total)}
             </div>
           </div>
 
@@ -243,7 +245,9 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                     </button>
                   </div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className={`text-lg font-black ${isDark ? 'text-white' : 'text-stone-900'}`}>{rawCashValue || '0'}</div>
+                    <div className={`text-lg font-black ${isDark ? 'text-white' : 'text-stone-900'}`}>
+                      {rawCashValue ? format(Number(rawCashValue)) : format(0)}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {quickAmounts().map((amount) => (
@@ -252,7 +256,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                         onClick={() => handleQuickCash(amount)} 
                         className={`py-2 px-2 rounded-3xl text-[10px] font-black border ${isDark ? 'bg-stone-950 border-stone-800 text-stone-200 hover:bg-[#1a1614]' : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'}`}
                       >
-                        {amount}
+                        {format(amount)}
                       </button>
                     ))}
                   </div>
@@ -261,7 +265,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                 <div className={`p-4 rounded-3xl border ${change >= 0 ? (isDark ? 'bg-green-900/10 border-green-800' : 'bg-green-50 border-green-200') : (isDark ? 'bg-red-900/10 border-red-800' : 'bg-red-50 border-red-200')}`}>
                   <span className="text-xs text-stone-400 font-semibold uppercase">Change</span>
                   <div className={`text-lg font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {Math.abs(change)}
+                    {format(Math.abs(change))}
                   </div>
                 </div>
               </div>

@@ -8,9 +8,10 @@ import {
   Save, 
   RefreshCw
 } from 'lucide-react';
+import { Skeleton } from '../../../components/common/Skeleton';
 
 export default function InventoryUsage() {
-  const { products, transactions, wasteLogs, updateProduct } = useApp();
+  const { products, transactions, wasteLogs, updateProduct, isServiceLoading } = useApp();
   const { theme } = useTheme(); // Ambil tema
   const isDark = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,6 +64,34 @@ export default function InventoryUsage() {
       }
     }
   };
+
+  if (isServiceLoading && products.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <Skeleton className="w-48 h-8 mb-2" rounded="rounded-xl" />
+            <Skeleton className="w-64 h-4" rounded="rounded-md" />
+          </div>
+          <Skeleton className="w-40 h-10" rounded="rounded-xl" />
+        </div>
+        <Skeleton className="w-full h-12" rounded="rounded-2xl" />
+        <div className={`rounded-2xl border p-4 ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-100'}`}>
+          <div className="space-y-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex gap-4 items-center">
+                <Skeleton className="w-1/4 h-6" />
+                <Skeleton className="w-1/6 h-6 ml-auto" />
+                <Skeleton className="w-16 h-6" />
+                <Skeleton className="w-16 h-6" />
+                <Skeleton className="w-20 h-6" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20">

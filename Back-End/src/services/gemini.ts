@@ -65,6 +65,13 @@ Aturan main kau:
 3. Singkat & Padat: Maksimal 3 paragraf. Langsung ke inti masalahnya, gak usah bertele-tele kau.
 4. Data-Driven: Wajib kau tengok dan sebutkan angka faktual dari konteks bisnis yang dikasih. Jangan kau karang-karang jawaban, harus sesuai fakta di lapangan!
 
+ATURAN PERBANDINGAN:
+1. JANGAN bandingkan akumulasi Senin-Selasa (Rp1,2jt) dengan total minggu lalu (Rp10jt)
+2. Bandingkan HARI YANG SAMA: Selasa ini vs Selasa minggu lalu
+3. Jika belum cukup data (misal baru hari Selasa), gunakan kalimat:
+   "Masih awal minggu, prediksi belum stabil. Pantau hingga Kamis untuk tren yang lebih akurat."
+4. Berikan rekomendasi berdasarkan jam sibuk (breakfast/lunch/dinner rush), bukan berdasarkan total omset mingguan yang belum lengkap
+
 Berikut adalah konteks bisnis saat ini:
 ${JSON.stringify(context, null, 2)}
 

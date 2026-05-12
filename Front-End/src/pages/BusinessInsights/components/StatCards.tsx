@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Package, Star, DollarSign, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Package, Star, DollarSign, Calendar, BarChart3 } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import type { SummaryResponse } from '../../../services/aiApi';
 
@@ -96,8 +96,8 @@ export default function StatCards({ summary, isLoading }: StatCardsProps) {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
-        {[1, 2, 3, 4].map((i) => (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 20 }}>
+        {[1, 2, 3, 4, 5].map((i) => (
           <SkeletonCard key={i} isDark={isDark} />
         ))}
       </div>
@@ -120,10 +120,18 @@ export default function StatCards({ summary, isLoading }: StatCardsProps) {
     {
       label: 'Omzet Minggu Ini',
       value: formatRupiah(summary.this_week_revenue),
-      sub: `vs minggu lalu: ${summary.week_over_week_change_percent >= 0 ? '+' : ''}${summary.week_over_week_change_percent.toFixed(1)}%`,
+      sub: `rata-rata harian: ${formatRupiah(Math.round(summary.this_week_revenue / 7))}`,
       trend: summary.week_over_week_change_percent,
       accent: '#0d9488',
       icon: Calendar,
+    },
+    {
+      label: 'Omzet Minggu Lalu',
+      value: formatRupiah(summary.last_week_revenue),
+      sub: `total minggu ini`,
+      trend: null,
+      accent: '#6b7280',
+      icon: BarChart3,
     },
     {
       label: 'Stok Rendah',
@@ -146,7 +154,7 @@ export default function StatCards({ summary, isLoading }: StatCardsProps) {
   ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 20 }}>
       {cards.map((card) => {
         const IconComp = card.icon;
         return (

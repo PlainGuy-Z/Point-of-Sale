@@ -37,6 +37,9 @@ const CashierShiftHub = lazy(() => import('./pages/Shifts/CashierShiftHub'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const CashierHistory = lazy(() => import('./pages/TransactionHistory/CashierHistory'));
 const OwnerHistory = lazy(() => import('./pages/TransactionHistory/OwnerHistory'));
+const SalesReport = lazy(() => import('./pages/SalesReport'));
+const HelpCenter = lazy(() => import('./pages/HelpCenter'));
+
 
 interface RoleRouteProps {
   allowedRoles: ('owner' | 'cashier')[];
@@ -119,6 +122,16 @@ function AppRoutes() {
         <Route path="operation/waste-log" element={
           <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
             <WasteLog />
+          </Suspense>
+        } />
+        <Route path="sales-report" element={
+          <Suspense fallback={<LoadingSpinner text="Memuat Laporan..." />}>
+            <SalesReport />
+          </Suspense>
+        } />
+        <Route path="help" element={
+          <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
+            <HelpCenter />
           </Suspense>
         } />
 

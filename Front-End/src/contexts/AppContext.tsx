@@ -138,7 +138,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           quantity: i.quantity,
           note: i.note,
           modifiers: i.modifiers,
-          description: i.description, // ✅ Include description
+          description: i.description,
+          variantName: i.variantName,
+          variantPrice: i.variantPrice,
           ...(i.productId.startsWith('manual-') ? { price: i.price } : {}),
         })),
         paymentMethod: params.paymentMethod,

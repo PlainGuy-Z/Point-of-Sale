@@ -54,7 +54,7 @@ export default function InsightCard({ data, isLoading }: InsightCardProps) {
         )}
       </div>
 
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-6 overflow-y-auto horizontal-scrollbar-thin">
         {isLoading ? (
           <div className="space-y-4">
             {[...Array(4)].map((_, i) => (

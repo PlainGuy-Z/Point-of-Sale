@@ -13,6 +13,8 @@ export interface PosCartLineInput {
   note?: string;
   modifiers?: string[];
   description?: string; // ✅ Per-item custom description
+  variantName?: string;
+  variantPrice?: number;
   // Manual/custom items (productId starts with "manual-")
   price?: number;
 }

@@ -34,7 +34,7 @@ export default function BusinessInsights() {
   const [summary, setSummary] = useState<DataSlice<SummaryResponse>>(initSlice);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (bust = false) => {
     setForecast((p) => ({ ...p, loading: true, error: false }));
     setWaste((p) => ({ ...p, loading: true, error: false }));
     setSummary((p) => ({ ...p, loading: true, error: false }));
@@ -42,7 +42,7 @@ export default function BusinessInsights() {
     const [fRes, wRes, sRes] = await Promise.allSettled([
       aiApi.fetchForecast(),
       aiApi.fetchWasteAnalysis(30),
-      aiApi.fetchSummary(),
+      aiApi.fetchSummary({ bust }),
     ]);
 
     setForecast({ data: fRes.status === 'fulfilled' ? fRes.value : null, loading: false, error: fRes.status === 'rejected' });
@@ -51,7 +51,7 @@ export default function BusinessInsights() {
     setLastUpdated(new Date());
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { fetchAll(true); }, [fetchAll]);
 
   const bg = isDark ? '#0a0908' : '#f0f4f8';
 
@@ -77,7 +77,7 @@ export default function BusinessInsights() {
             {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
-        <button onClick={fetchAll} style={{
+        <button onClick={() => fetchAll()} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
           border: `1px solid ${isDark ? '#292524' : '#e2e8f0'}`, cursor: 'pointer',
           background: isDark ? '#292524' : '#fff', color: isDark ? '#d6d3d1' : '#475569',
@@ -89,10 +89,12 @@ export default function BusinessInsights() {
         </button>
       </div>
 
+
+
       {/* ── Split Panel ──────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 24, height: 'calc(100vh - 160px)' }}>
         {/* LEFT — scrollable */}
-        <div style={{ flex: '0 0 65%', overflowY: 'auto', paddingRight: 4 }}>
+        <div className="horizontal-scrollbar-thin" style={{ flex: '0 0 65%', overflowY: 'auto', paddingRight: 4 }}>
           {summary.error ? (
             <ErrorBlock onRetry={fetchAll} isDark={isDark} />
           ) : (

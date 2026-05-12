@@ -134,6 +134,7 @@ export async function buildAppState(shopId: string) {
                  'quantity', i.quantity,
                  'price', i.price,
                  'note', i.name,
+                 'description', i.description,
                  'modifiers', '[]'::json
                )
              ),
