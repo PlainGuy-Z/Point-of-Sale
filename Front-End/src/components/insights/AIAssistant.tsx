@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, RefreshCw, MessageSquare } from 'lucide-react';
+import { Send, Bot, User, RefreshCw, MessageSquare, ArrowDown } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus, prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 import { aiApi, type ChatMessage } from '../../services/aiApi';
@@ -16,15 +20,27 @@ export default function AIAssistant() {
   const [error, setError] = useState<string | null>(null);
   const [contextSnapshot, setContextSnapshot] = useState<{ today: number; week: number } | null>(null);
 
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (force = false) => {
+    if (force || !isScrolledUp) {
+      endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [history, isLoading]);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    // Check if user has scrolled up more than 100px from the bottom
+    const isUp = scrollHeight - scrollTop - clientHeight > 100;
+    setIsScrolledUp(isUp);
+  };
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -41,6 +57,8 @@ export default function AIAssistant() {
     setInputValue('');
     setIsLoading(true);
     setError(null);
+    setIsScrolledUp(false);
+    setTimeout(() => scrollToBottom(true), 50);
 
     try {
       const response = await aiApi.sendChatMessage(text, history);
@@ -84,7 +102,7 @@ export default function AIAssistant() {
   ];
 
   return (
-    <div className={`flex flex-col h-[600px] rounded-3xl border overflow-hidden ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
+    <div className={`flex flex-col h-[600px] relative rounded-3xl border overflow-hidden ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
       
       {/* Header Context Snapshot */}
       <div className={`px-6 py-4 flex items-center justify-between border-b ${isDark ? 'border-stone-800' : 'border-gray-100'}`}>
@@ -105,7 +123,11 @@ export default function AIAssistant() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 horizontal-scrollbar-thin">
+      <div 
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-6 space-y-4 horizontal-scrollbar-thin"
+      >
         {history.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center space-y-6">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDark ? 'bg-stone-800' : 'bg-amber-50'}`}>
@@ -142,12 +164,41 @@ export default function AIAssistant() {
                 }`}>
                   {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                 </div>
-                <div className={`p-4 rounded-2xl text-sm ${
+                <div className={`p-4 rounded-2xl text-sm overflow-x-auto ${
                   msg.role === 'user'
                     ? (isDark ? 'bg-amber-500/10 text-amber-50 border border-amber-500/20' : 'bg-amber-50 text-amber-900 border border-amber-100')
                     : (isDark ? 'bg-stone-800 text-stone-200' : 'bg-gray-50 text-gray-800 border border-gray-100')
-                } whitespace-pre-wrap`}>
-                  {msg.content}
+                } ${msg.role === 'user' ? 'whitespace-pre-wrap' : 'prose prose-sm max-w-none ' + (isDark ? 'prose-invert' : '')}`}>
+                  {msg.role === 'model' ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        code(props) {
+                          const { children, className, node, ...rest } = props;
+                          const { ref, ...sanitizedRest } = rest as any;
+                          const match = /language-(\w+)/.exec(className || '');
+                          return match ? (
+                            <SyntaxHighlighter
+                              {...sanitizedRest}
+                              PreTag="div"
+                              children={String(children).replace(/\n$/, '')}
+                              language={match[1]}
+                              style={isDark ? vscDarkPlus : prism}
+                              className="rounded-md !my-2 !text-xs"
+                            />
+                          ) : (
+                            <code {...rest} className={`${className || ''} bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono`}>
+                              {children}
+                            </code>
+                          )
+                        }
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               </div>
             </div>
@@ -185,8 +236,23 @@ export default function AIAssistant() {
         <div ref={endOfMessagesRef} />
       </div>
 
+      {/* Scroll to Bottom Button */}
+      {isScrolledUp && (
+        <button
+          onClick={() => scrollToBottom(true)}
+          className={`absolute bottom-24 right-6 p-3 rounded-full shadow-lg transition-all transform hover:scale-105 z-10 flex items-center justify-center ${
+            isDark 
+              ? 'bg-stone-800 text-amber-400 border border-stone-700 hover:bg-stone-700' 
+              : 'bg-white text-amber-600 border border-gray-200 hover:bg-gray-50'
+          }`}
+          title="Scroll to bottom"
+        >
+          <ArrowDown className="w-5 h-5" />
+        </button>
+      )}
+
       {/* Input Area */}
-      <div className={`p-4 border-t ${isDark ? 'border-stone-800 bg-stone-900/80' : 'border-gray-100 bg-white'}`}>
+      <div className={`p-4 border-t relative z-20 ${isDark ? 'border-stone-800 bg-stone-900/80' : 'border-gray-100 bg-white'}`}>
         <div className="relative">
           <input
             type="text"

@@ -82,6 +82,7 @@ export interface Transaction {
 
   // TRANSACTION META DATA
   customerName?: string;
+  cashierName?: string;
   tableNumber?: string;
   notes?: string; // ✅ General order notes (order_description)
   cashReceived?: number;

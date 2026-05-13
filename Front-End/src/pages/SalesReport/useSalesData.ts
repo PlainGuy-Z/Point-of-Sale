@@ -212,7 +212,7 @@ export function useSalesData(
     const map = new Map<string, { revenue: number; count: number }>();
     filtered.forEach((t) => {
       const d = t.date instanceof Date ? t.date : new Date(t.date);
-      const key = d.toISOString().slice(0, 10);
+const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const e = map.get(key) || { revenue: 0, count: 0 };
       e.revenue += t.total;
       e.count += 1;
@@ -220,11 +220,15 @@ export function useSalesData(
     });
     return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, d]) => ({
-        date,
-        label: new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-        ...d,
-      }));
+      .map(([date, d]) => {
+        const [year, month, day] = date.split('-').map(Number);
+        const localDate = new Date(year, month - 1, day);
+        return {
+          date,
+          label: localDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+          ...d,
+        };
+      });
   }, [filtered, isSingleDay]);
 
   const peakHour = useMemo(() => {
@@ -283,7 +287,7 @@ export function useSalesData(
   const cashierPerformance: CashierPerformance[] = useMemo(() => {
     const map = new Map<string, { transactions: number; revenue: number }>();
     filtered.forEach((t) => {
-      const name = t.customerName || 'Kasir';
+      const name = t.cashierName || 'Kasir';
       const e = map.get(name) || { transactions: 0, revenue: 0 };
       e.transactions += 1;
       e.revenue += t.total;

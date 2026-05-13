@@ -128,7 +128,7 @@ export default function StatCards({ summary, isLoading }: StatCardsProps) {
     {
       label: 'Omzet Minggu Lalu',
       value: formatRupiah(summary.last_week_revenue),
-      sub: `total minggu ini`,
+      sub: `total minggu lalu`,
       trend: null,
       accent: '#6b7280',
       icon: BarChart3,
