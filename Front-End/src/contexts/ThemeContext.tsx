@@ -16,12 +16,12 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Cek localStorage atau default ke light
+    // Cek localStorage atau default ke dark pada kunjungan pertama
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('coffee-pos-theme');
       if (saved === 'light' || saved === 'dark') return saved;
     }
-    return 'light';
+    return 'dark';
   });
 
   useEffect(() => {
