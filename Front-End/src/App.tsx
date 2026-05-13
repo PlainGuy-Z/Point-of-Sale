@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Layout from './components/Layout/Layout';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import PWAInstallBanner from './components/common/PWAInstallBanner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AIProvider } from './contexts/AIContext';
 import { AppProvider } from './contexts/AppContext';
@@ -268,6 +269,7 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <AIProvider>
+          <PWAInstallBanner />
           <Router>
             <AppRoutes />
           </Router>

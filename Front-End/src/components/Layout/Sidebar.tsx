@@ -14,6 +14,8 @@ import { appApi } from '../../services/appApi';
 interface SidebarProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  isMobileOpen?: boolean;
+  onNavigate?: () => void;
 }
 
 // ─── Collapsed Group with Flyout ──────────────────────────────────────────────
@@ -23,10 +25,12 @@ function CollapsedGroup({
   section,
   isDark,
   getBadge,
+  onNavigate,
 }: {
   section: NavSection;
   isDark: boolean;
   getBadge: (id: string) => number | undefined;
+  onNavigate?: () => void;
 }) {
   const [showFlyout, setShowFlyout] = useState(false);
   const location = useLocation();
@@ -116,7 +120,10 @@ function CollapsedGroup({
                 <Link
                   key={item.id}
                   to={item.path}
-                  onClick={() => setShowFlyout(false)}
+                  onClick={() => {
+                    if (onNavigate) onNavigate();
+                    setShowFlyout(false);
+                  }}
                   className={`
                     flex items-center gap-2.5 mx-2 px-3 py-2 rounded-xl
                     transition-all duration-150
@@ -160,7 +167,7 @@ function CollapsedGroup({
   );
 }
 
-export default function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobileOpen = false, onNavigate }: SidebarProps) {
   const [showCloseModal, setShowCloseModal] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
@@ -221,8 +228,9 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
       <div
         className={`
           ${isDark ? 'bg-stone-950 text-stone-100 border-stone-800' : 'bg-white text-stone-900 border-stone-200'}
-          ${isCollapsed ? 'w-[68px] overflow-visible' : 'w-[260px] overflow-hidden'}
-          h-screen fixed left-0 top-0 z-40 flex flex-col border-r transition-all duration-300
+          ${isCollapsed && !isMobileOpen ? 'w-[68px] overflow-visible' : 'w-[240px] overflow-hidden'}
+          h-screen fixed left-0 top-0 z-50 flex flex-col border-r transition-all duration-300
+          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* ═══════════════════════════════════════════════════════════════════════
@@ -351,6 +359,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
                     section={section}
                     isDark={isDark}
                     getBadge={getBadge}
+                    onNavigate={onNavigate}
                   />
                 ) : (
                   // ── EXPANDED (or ungrouped collapsed): individual items ──
@@ -364,6 +373,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
                           icon={Icon || undefined}
                           isCollapsed={isCollapsed}
                           badge={getBadge(item.id)}
+                          onNavigate={onNavigate}
                         />
                       );
                     })}
@@ -386,6 +396,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
                 icon={LogOut}
                 isCollapsed={isCollapsed}
                 onClick={handleLogout}
+                onNavigate={onNavigate}
               />
             </div>
           </nav>

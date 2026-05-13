@@ -12,6 +12,7 @@ interface SidebarCollapseProps {
   onToggle: () => void;
   getIcon: (iconName: string) => LucideIcon | null;
   isCollapsed?: boolean;
+  onNavigate?: () => void;
 }
 
 export default function SidebarCollapse({ 
@@ -20,7 +21,8 @@ export default function SidebarCollapse({
   isOpen, 
   onToggle,
   getIcon,
-  isCollapsed = false
+  isCollapsed = false,
+  onNavigate,
 }: SidebarCollapseProps) {
   const location = useLocation();
   const { theme } = useTheme();
@@ -100,7 +102,10 @@ export default function SidebarCollapse({
                 <Link
                   key={subItem.id}
                   to={subItem.path}
-                  onClick={() => setShowFlyout(false)}
+                  onClick={() => {
+                    if (onNavigate) onNavigate();
+                    setShowFlyout(false);
+                  }}
                   className={`
                     flex items-center gap-3 mx-2 px-3 py-2 rounded-xl
                     transition-all duration-150
@@ -142,6 +147,9 @@ export default function SidebarCollapse({
               <Link
                 key={subItem.id}
                 to={subItem.path}
+                onClick={() => {
+                  if (onNavigate) onNavigate();
+                }}
                 className={`
                   flex items-center gap-3 px-4 py-2 rounded-3xl
                   transition-all duration-150 border

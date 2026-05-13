@@ -391,7 +391,7 @@ export default function PointOfSale() {
   }
 
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col lg:flex-row gap-4 relative animate-in fade-in duration-300">
+    <div className="h-full min-h-0 flex flex-col lg:flex-row gap-4 relative animate-in fade-in duration-300 overflow-hidden">
 
       {/* ══════════════════════════════════════════════════════════════════════════
           LEFT — Product Catalog
@@ -487,7 +487,7 @@ export default function PointOfSale() {
       ══════════════════════════════════════════════════════════════════════════ */}
       <div className={`
         flex flex-col
-        fixed bottom-0 left-0 right-0 z-20
+        fixed bottom-0 left-0 right-0 z-30
         lg:static lg:w-[380px] xl:w-[420px] lg:flex-shrink-0
         rounded-t-3xl lg:rounded-2xl
         border shadow-2xl
@@ -498,7 +498,7 @@ export default function PointOfSale() {
 
         {/* Mobile drag handle */}
         <button
-          className="lg:hidden w-full flex flex-col items-center pt-3 pb-2 cursor-pointer"
+          className="lg:hidden w-full flex flex-col items-center min-h-14 pt-3 pb-2 cursor-pointer"
           onClick={() => setCartExpanded(!isCartExpanded)}
           aria-label={isCartExpanded ? 'Collapse cart' : 'Expand cart'}
         >

@@ -9,6 +9,7 @@ interface SidebarItemProps {
   isCollapsed?: boolean;
   badge?: number;
   onClick?: () => void;
+  onNavigate?: () => void;
 }
 
 export default function SidebarItem({
@@ -17,6 +18,7 @@ export default function SidebarItem({
   isCollapsed = false,
   badge,
   onClick,
+  onNavigate,
 }: SidebarItemProps) {
   const location = useLocation();
   const { theme } = useTheme();
@@ -94,7 +96,10 @@ export default function SidebarItem({
     return (
       <button
         type="button"
-        onClick={onClick}
+        onClick={() => {
+          if (onNavigate) onNavigate();
+          onClick();
+        }}
         title={isCollapsed ? item.label : undefined}
         className={`${baseClasses} ${stateClasses}`}
       >
@@ -107,6 +112,9 @@ export default function SidebarItem({
     <Link
       to={item.path}
       title={isCollapsed ? item.label : undefined}
+      onClick={() => {
+        if (onNavigate) onNavigate();
+      }}
       className={`${baseClasses} ${stateClasses}`}
     >
       {content}
