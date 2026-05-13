@@ -10,11 +10,13 @@ export function isStockTracked(product: Product): boolean {
 }
 
 export function isLowStock(product: Product): boolean {
+  if (product.isAvailable === false) return false;
   if (!isStockTracked(product)) return false;
   return product.stock > 0 && product.stock <= product.minStock;
 }
 
 export function isOutOfStock(product: Product): boolean {
+  if (product.isAvailable === false) return false;
   if (!isStockTracked(product)) return false;
   return product.stock <= 0;
 }

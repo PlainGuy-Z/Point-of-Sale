@@ -8,6 +8,7 @@ import PWAInstallBanner from './components/common/PWAInstallBanner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AIProvider } from './contexts/AIContext';
 import { AppProvider } from './contexts/AppContext';
+import { CartProvider } from './contexts/CartContext';
 import { ShiftProvider } from './contexts/ShiftContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -22,6 +23,7 @@ const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CashierDashboard = lazy(() => import('./pages/Dashboard/CashierDashboard'));
 const PointOfSale = lazy(() => import('./pages/PointOfSale'));
+const CategoryPage = lazy(() => import('./pages/PointOfSale/CategoryPage'));
 const BusinessInsights = lazy(() => import('./pages/BusinessInsights'));
 const WasteLog = lazy(() => import('./pages/Operation/WasteLog'));
 const InventoryUsage = lazy(() => import('./pages/Operation/InventoryUsage'));
@@ -108,18 +110,27 @@ function AppRoutes() {
           <AppProvider>
             <SettingsProvider>
               <ShiftProvider>
-                <Layout />
+                <CartProvider>
+                  <Layout />
+                </CartProvider>
               </ShiftProvider>
             </SettingsProvider>
           </AppProvider>
         </ProtectedRoute>
       }>
         {/* All roles */}
-        <Route path="pos" element={
-          <Suspense fallback={<LoadingSpinner text="Memuat POS..." />}>
-            <PointOfSale />
-          </Suspense>
-        } />
+        <Route path="pos">
+          <Route index element={
+            <Suspense fallback={<LoadingSpinner text="Memuat POS..." />}>
+              <PointOfSale />
+            </Suspense>
+          } />
+          <Route path="category/:categoryName" element={
+            <Suspense fallback={<LoadingSpinner text="Memuat kategori..." />}>
+              <CategoryPage />
+            </Suspense>
+          } />
+        </Route>
         <Route path="operation/waste-log" element={
           <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
             <WasteLog />

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, ShoppingCart, Trash2, User, Plus, PlusCircle,
@@ -11,8 +11,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useCart } from '../../contexts/CartContext';
 import { useProductCatalog } from '../../hooks/useProductCatalog';
-import { useToast } from '../../hooks/useToast';
+import { getRecentSalesMapByPeriod } from '../../utils/analytics/productAnalytics';
 import ProductGrid from '../../components/pos/ProductGrid';
 import CategoryPills from '../../components/pos/CategoryPills';
 import PaymentModal from '../../components/pos/PaymentModal';
@@ -20,6 +21,7 @@ import CheckoutDetailsForm from '../../components/pos/CheckoutDetailsForm';
 import ReceiptModal from '../../components/pos/ReceiptModal';
 import CartItemEditPanel from '../../components/pos/CartItemEditPanel';
 import MobileCart from '../../components/pos/MobileCart';
+import MobileCategoryCarousel from '../../components/pos/MobileCategoryCarousel.tsx';
 import type { Transaction, TransactionItem, CartItemWithInput, Product } from '../../types';
 import { ApiError } from '../../services/appApi';
 import { posApi } from '../../services/posApi';
@@ -41,6 +43,76 @@ const useIsMobile = () => {
   }, []);
   return isMobile;
 };
+
+interface CategoryCarousel {
+  categoryName: string;
+  totalSales: number;
+  products: Product[];
+}
+
+function useCategoryCarousels(
+  products: Product[],
+  transactions: Transaction[],
+  periodDays: number,
+  searchTerm: string = ''
+): CategoryCarousel[] {
+  return useMemo(() => {
+    const salesMap = getRecentSalesMapByPeriod(transactions, periodDays);
+    const searchLower = searchTerm.toLowerCase().trim();
+    const availableProducts = products
+      .filter(product => {
+        const isAvailable = product.isAvailable !== false && product.stock !== 0;
+        if (!isAvailable) return false;
+        if (!searchLower) return true;
+        return product.name.toLowerCase().includes(searchLower) || product.category?.toLowerCase().includes(searchLower);
+      })
+      .map(product => ({
+        ...product,
+        recentSalesCount: salesMap.get(product.id) || 0
+      }));
+
+    const grouped = new Map<string, { products: Product[]; totalSales: number }>();
+
+    for (const product of availableProducts) {
+      const categoryName = product.category || 'Lainnya';
+      const productSales = product.recentSalesCount || 0;
+      const entry = grouped.get(categoryName) || { products: [], totalSales: 0 };
+      entry.products.push(product);
+      entry.totalSales += productSales;
+      grouped.set(categoryName, entry);
+    }
+
+    const categories = Array.from(grouped.entries()).map(([categoryName, bucket]) => ({
+      categoryName,
+      totalSales: bucket.totalSales,
+      products: bucket.products
+        .slice()
+        .sort((a, b) => {
+          const delta = (b.recentSalesCount || 0) - (a.recentSalesCount || 0);
+          return delta !== 0 ? delta : a.name.localeCompare(b.name);
+        })
+        .slice(0, 10),
+    }));
+
+    const top10Overall = [...availableProducts]
+      .sort((a, b) => {
+        const delta = (b.recentSalesCount || 0) - (a.recentSalesCount || 0);
+        return delta !== 0 ? delta : a.name.localeCompare(b.name);
+      })
+      .slice(0, 10);
+
+    const sortedCategories = categories.sort((a, b) => b.totalSales - a.totalSales);
+
+    return [
+      {
+        categoryName: 'Semua',
+        totalSales: Number.POSITIVE_INFINITY,
+        products: top10Overall,
+      },
+      ...sortedCategories,
+    ];
+  }, [products, transactions, periodDays, searchTerm]);
+}
 
 // ─── Panel view type ──────────────────────────────────────────────────────────
 type CartPanel = 'cart' | 'checkout' | 'manual' | 'edit';
@@ -70,7 +142,6 @@ export default function PointOfSale() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
-  const { showToast, ToastComponent } = useToast();
   const isMobile = useIsMobile();
 
   // ── Catalog ─────────────────────────────────────────────────────────────────
@@ -82,7 +153,7 @@ export default function PointOfSale() {
   });
 
   // ── Cart ─────────────────────────────────────────────────────────────────────
-  const [cart, setCart] = useState<CartItemWithInput[]>([]);
+  const { cart, setCart, addToCart: addProductToCart, addCustomItem, removeFromCart: removeCartItem, updateCartItem, clearCart } = useCart();
   const [selectedCustomer, setSelectedCustomer] = useState<string>();
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
   const [isCheckoutDetailsFormOpen, setCheckoutDetailsFormOpen] = useState(false);
@@ -91,10 +162,6 @@ export default function PointOfSale() {
   const [shiftGateOpen, setShiftGateOpen] = useState(false);
 
   // ── Swipe-to-delete (mobile) ─────────────────────────────────────────────────
-  // FIX: Completely rewritten swipe logic.
-  // - Uses a per-item "revealed" state (index → boolean) so delete button sits
-  //   INSIDE the item row (not behind it), preventing bleed-through.
-  // - Tracks vertical vs horizontal intent to not interfere with scroll.
   const [revealedDeleteIndex, setRevealedDeleteIndex] = useState<number | null>(null);
   const swipeRef = useRef<SwipeState>({
     activeIndex: null,
@@ -121,7 +188,6 @@ export default function PointOfSale() {
     };
     swipeStartYRef.current = touch.clientY;
     swipeIntentLockedRef.current = 'none';
-    // Close other revealed items
     if (revealedDeleteIndex !== null && revealedDeleteIndex !== index) {
       setRevealedDeleteIndex(null);
     }
@@ -135,7 +201,6 @@ export default function PointOfSale() {
     const deltaX = touch.clientX - s.startX;
     const deltaY = touch.clientY - swipeStartYRef.current;
 
-    // Lock intent after 8px of movement
     if (swipeIntentLockedRef.current === 'none') {
       if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
         swipeIntentLockedRef.current = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
@@ -144,15 +209,11 @@ export default function PointOfSale() {
 
     if (swipeIntentLockedRef.current !== 'horizontal') return;
 
-    // Prevent page scroll while swiping horizontally
     e.preventDefault();
 
     swipeRef.current.currentX = touch.clientX;
-
-    // Only allow left swipe; clamp between 0 and -88px
     const clampedDelta = Math.max(-88, Math.min(0, deltaX));
 
-    // Reveal delete if swiped past threshold
     if (clampedDelta <= -44) {
       setRevealedDeleteIndex(index);
     } else {
@@ -180,7 +241,6 @@ export default function PointOfSale() {
   // ── Mobile Bottom Sheet ───────────────────────────────────────────────────────
   const [sheetState, setSheetState] = useState<SheetState>('collapsed');
 
-  // Close sheet completely when the cart is emptied on mobile
   useEffect(() => {
     if (cart.length === 0 && sheetState !== 'collapsed') {
       setSheetState('collapsed');
@@ -229,6 +289,9 @@ export default function PointOfSale() {
   const [manualItemName, setManualItemName] = useState('');
   const [manualItemPrice, setManualItemPrice] = useState('');
   const [manualItemCategory, setManualItemCategory] = useState('');
+  const [manualItemDescription, setManualItemDescription] = useState('');
+  const [manualItemVariantName, setManualItemVariantName] = useState('');
+  const [manualItemVariantPrice, setManualItemVariantPrice] = useState('');
   const [manualItemQuantity, setManualItemQuantity] = useState(1);
   const manualNameRef = useRef<HTMLInputElement>(null);
 
@@ -236,6 +299,7 @@ export default function PointOfSale() {
   const { sortedProducts, topBestSellers, promoProductsCount } = useProductCatalog(
     products, transactions, search, selectedCategory, bestSellerPeriod
   );
+  const categoryCarousels = useCategoryCarousels(products, transactions, bestSellerPeriod, search);
 
   useEffect(() => {
     localStorage.setItem('posBestSellerPeriod', bestSellerPeriod.toString());
@@ -262,6 +326,9 @@ export default function PointOfSale() {
     setManualItemName('');
     setManualItemPrice('');
     setManualItemCategory('');
+    setManualItemDescription('');
+    setManualItemVariantName('');
+    setManualItemVariantPrice('');
     setManualItemQuantity(1);
   };
 
@@ -269,6 +336,7 @@ export default function PointOfSale() {
     if (!manualItemName.trim() || !manualItemPrice) return null;
     const price = parseFloat(manualItemPrice.replace(/\./g, ''));
     if (isNaN(price) || price <= 0) return null;
+    const variantPrice = parseFloat(manualItemVariantPrice.replace(/\./g, '')) || 0;
     const name = manualItemName.trim().charAt(0).toUpperCase() + manualItemName.trim().slice(1);
     return {
       productId: createManualItemId(),
@@ -276,6 +344,9 @@ export default function PointOfSale() {
       quantity: manualItemQuantity > 0 ? manualItemQuantity : 1,
       price,
       note: name,
+      description: manualItemDescription.trim() || undefined,
+      variantName: manualItemVariantName.trim() || undefined,
+      variantPrice: variantPrice > 0 ? variantPrice : undefined,
       modifiers: manualItemCategory.trim() ? [manualItemCategory.trim()] : [],
     };
   };
@@ -283,7 +354,7 @@ export default function PointOfSale() {
   const addManualItemToCart = () => {
     const item = buildManualItem();
     if (!item) { alert('Masukkan nama dan harga yang valid'); return; }
-    setCart(prev => [...prev, item]);
+    addCustomItem(item);
     resetManualForm();
     setPanel('cart');
   };
@@ -292,7 +363,7 @@ export default function PointOfSale() {
     if (isPaymentModalOpen) return;
     const item = buildManualItem();
     if (!item) { alert('Masukkan nama dan harga yang valid'); return; }
-    setCart(prev => [...prev, item]);
+    addCustomItem(item);
     resetManualForm();
     setPanel('cart');
     if (blockCheckoutForShift()) return;
@@ -302,42 +373,7 @@ export default function PointOfSale() {
   const addToCart = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
-    if (product.isAvailable === false) return;
-    if (product.stock !== -1 && product.stock <= 0) return;
-    const { price: priceToUse, isPromoActive } = getEffectivePrice(product);
-    let itemAdded = false;
-    setCart(prev => {
-      const existingIndex = prev.findIndex(item =>
-        item.productId === productId && !item.note && !item.variantName && (!item.modifiers || item.modifiers.length === 0)
-      );
-      if (existingIndex >= 0) {
-        const newCart = [...prev];
-        if (product.stock === -1 || newCart[existingIndex].quantity + 1 <= product.stock) {
-          newCart[existingIndex].quantity += 1;
-          itemAdded = true;
-        }
-        return newCart;
-      }
-      if (product.stock !== -1 && product.stock < 1) return prev;
-      const newItem: CartItemWithInput = {
-        productId,
-        name: product.name,
-        quantity: 1,
-        price: priceToUse,
-        modifiers: []
-      };
-      if (isPromoActive) {
-        newItem.isPromo = true;
-        newItem.originalPrice = product.price;
-        newItem.promoPrice = priceToUse;
-        newItem.promoLabel = product.promoLabel;
-      }
-      itemAdded = true;
-      return [...prev, newItem];
-    });
-    if (itemAdded) {
-      showToast(`${product.name} ditambahkan ke keranjang`, 'success');
-    }
+    addProductToCart(product);
   };
 
   const updateQuantity = (index: number, delta: number) => {
@@ -353,12 +389,12 @@ export default function PointOfSale() {
 
   const removeFromCart = (index: number) => {
     resetSwipe();
-    setCart(prev => prev.filter((_, i) => i !== index));
+    removeCartItem(index);
   };
 
   const handleUpdateCartItem = (updatedItem: TransactionItem) => {
     if (editingItemIndex !== null) {
-      setCart(prev => { const n = [...prev]; n[editingItemIndex] = { ...updatedItem as CartItemWithInput }; return n; });
+      updateCartItem(editingItemIndex, { ...updatedItem as CartItemWithInput });
       setEditingItemIndex(null);
       setPanel('cart');
     }
@@ -517,10 +553,6 @@ export default function PointOfSale() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   // CART ITEM — extracted for clarity
-  // FIX: Delete button is now rendered INSIDE the row flex layout (rightmost),
-  //      not as an absolutely-positioned overlay behind. This prevents bleed-through.
-  //      On mobile: swipe-left reveals the delete zone with a red background that
-  //      slides in from the right using a clip/width approach rather than absolute.
   // ─────────────────────────────────────────────────────────────────────────────
   const renderCartItem = (item: CartItemWithInput, idx: number) => {
     const product = products.find(p => p.id === item.productId);
@@ -532,27 +564,19 @@ export default function PointOfSale() {
     const isRevealed = revealedDeleteIndex === idx;
 
     const cardBg = isPromoItem
-      ? isDark ? 'bg-red-900/15 border-red-800/30' : 'bg-red-50 border-red-200'
+      ? isDark ? 'bg-red-900/15 border-red-800/30' : 'bg-red-50 border border-red-200'
       : isManual
-        ? isDark ? 'bg-amber-900/10 border-amber-800/20' : 'bg-amber-50 border-amber-100'
-        : isDark ? 'bg-stone-900/60 border-stone-800' : 'bg-gray-50 border-gray-200';
+        ? isDark ? 'bg-amber-900/10 border-amber-800/20' : 'bg-blue-50 border border-blue-200'
+        : isDark ? 'bg-stone-900/60 border-stone-800' : 'bg-[#F8FAFC] border border-[#E2E8F0]';
 
     return (
       <div
         key={`${item.productId}-${idx}`}
         className="relative"
-        // Close this reveal if user taps elsewhere
         onClick={() => {
           if (isRevealed) resetSwipe();
         }}
       >
-        {/*
-          MOBILE SWIPE-TO-DELETE — NEW APPROACH
-          The delete zone is a sibling div that slides in from the right.
-          The card slides left via CSS transform.
-          Both sit inside a clipping container (overflow-hidden on this outer div).
-          This way the red zone NEVER bleeds through neighbouring rows.
-        */}
         <div className="overflow-hidden rounded-2xl">
           <div
             className="flex"
@@ -579,7 +603,7 @@ export default function PointOfSale() {
                 >
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {isManual && (
-                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide ${isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide ${isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-blue-100 text-blue-600'}`}>
                         Custom
                       </span>
                     )}
@@ -589,7 +613,7 @@ export default function PointOfSale() {
                       </span>
                     )}
                   </div>
-                  <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
                     {itemName}
                     {item.description && (
                       <span className="font-normal italic opacity-60"> — {item.description}</span>
@@ -602,13 +626,13 @@ export default function PointOfSale() {
                   )}
                   <div className="flex items-center gap-2 mt-0.5">
                     {isPromoItem && (
-                      <span className={`text-[10px] line-through ${isDark ? 'text-stone-600' : 'text-stone-400'}`}>
+                      <span className={`text-[10px] line-through ${isDark ? 'text-stone-600' : 'text-[#94A3B8]'}`}>
                         {format(item.originalPrice!)}
                       </span>
                     )}
                     <span className={`text-xs font-black ${isPromoItem
-                      ? isDark ? 'text-red-400' : 'text-red-600'
-                      : isDark ? 'text-amber-400' : 'text-amber-600'
+                      ? isDark ? 'text-red-400' : 'text-red-600 font-black'
+                      : isDark ? 'text-amber-400' : 'text-teal-700 font-black'
                       }`}>
                       {format(basePrice)}
                     </span>
@@ -620,10 +644,6 @@ export default function PointOfSale() {
                   className="flex items-center gap-1"
                   onClick={e => e.stopPropagation()}
                 >
-                  {/*
-                    FIX: Touch targets are now 36×36px (≥44 with padding area).
-                    Using padding trick: the visual button is smaller but tap area is full.
-                  */}
                   <button
                     onClick={() => updateQuantity(idx, -1)}
                     disabled={item.quantity <= 1}
@@ -632,13 +652,13 @@ export default function PointOfSale() {
                       transition-all active:scale-90 disabled:opacity-30 select-none
                       ${isDark
                         ? 'bg-stone-800 hover:bg-amber-500 hover:text-white text-stone-300'
-                        : 'bg-gray-200 hover:bg-amber-500 hover:text-white text-gray-600'}
+                        : 'bg-[#F1F5F9] hover:bg-teal-500 hover:text-white text-[#475569]'}
                     `}
                     style={{ minWidth: 32, minHeight: 32 }}
                   >
                     −
                   </button>
-                  <span className={`w-7 text-center text-sm font-black tabular-nums select-none ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  <span className={`w-7 text-center text-sm font-black tabular-nums select-none ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
                     {item.quantity}
                   </span>
                   <button
@@ -649,7 +669,7 @@ export default function PointOfSale() {
                       transition-all active:scale-90 disabled:opacity-30 select-none
                       ${isDark
                         ? 'bg-stone-800 hover:bg-amber-500 hover:text-white text-stone-300'
-                        : 'bg-gray-200 hover:bg-amber-500 hover:text-white text-gray-600'}
+                        : 'bg-[#F1F5F9] hover:bg-teal-500 hover:text-white text-[#475569]'}
                     `}
                     style={{ minWidth: 32, minHeight: 32 }}
                   >
@@ -661,7 +681,7 @@ export default function PointOfSale() {
                 <div className="text-right" style={{ minWidth: 56 }}>
                   <p className={`text-sm font-black tabular-nums ${isPromoItem
                     ? isDark ? 'text-red-400' : 'text-red-600'
-                    : isDark ? 'text-amber-400' : 'text-amber-600'
+                    : isDark ? 'text-amber-400' : 'text-teal-700'
                     }`}>
                     {format(lineTotal)}
                   </p>
@@ -675,7 +695,7 @@ export default function PointOfSale() {
                     transition-all active:scale-90
                     ${isDark
                       ? 'text-stone-700 hover:text-red-400 hover:bg-red-400/10'
-                      : 'text-stone-300 hover:text-red-500 hover:bg-red-50'}
+                      : 'text-[#CBD5E1] hover:text-red-500 hover:bg-red-50'}
                   `}
                 >
                   <Trash2 size={13} />
@@ -683,12 +703,7 @@ export default function PointOfSale() {
               </div>
             </div>
 
-            {/*
-              MOBILE DELETE ZONE — slides in from right as card slides left.
-              Width matches the translateX offset (80px).
-              This sits NEXT to (not behind) the card in the flex row,
-              so it can never bleed through other items.
-            */}
+            {/* MOBILE DELETE ZONE */}
             <div
               className="lg:hidden flex-shrink-0 flex items-center justify-center bg-red-500 rounded-2xl ml-2"
               style={{ width: 68 }}
@@ -716,18 +731,18 @@ export default function PointOfSale() {
       {/* ── Panel: CART ──────────────────────────────────────────────────── */}
       {panel === 'cart' && (
         <>
-          {/* Cart header — hidden on mobile (sheet handle shows title instead) */}
-          <div className={`flex-shrink-0 px-5 py-4 border-b flex items-center justify-between lg:flex ${isMobile ? 'hidden' : 'flex'} ${isDark ? 'border-stone-900 bg-stone-950/40' : 'border-gray-100 bg-white'}`}>
+          {/* Cart header */}
+          <div className={`flex-shrink-0 px-5 py-4 border-b flex items-center justify-between lg:flex ${isMobile ? 'hidden' : 'flex'} ${isDark ? 'border-stone-900 bg-stone-950/40' : 'border-[#E2E8F0] bg-white'}`}>
             <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDark ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDark ? 'bg-amber-500/10 text-amber-500' : 'bg-teal-50 text-teal-600'}`}>
                 <ShoppingCart size={16} />
               </div>
               <div>
-                <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
                   Shopping Cart
                 </h3>
                 {!cartIsEmpty && (
-                  <p className={`text-[10px] font-bold ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                  <p className={`text-[10px] font-bold ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
                     {cart.reduce((sum, item) => sum + item.quantity, 0)} item dipilih
                   </p>
                 )}
@@ -736,7 +751,7 @@ export default function PointOfSale() {
             {!cartIsEmpty && (
               <button
                 onClick={() => setCart([])}
-                className={`p-2 rounded-xl transition-all ${isDark ? 'text-stone-700 hover:text-red-400 hover:bg-red-400/10' : 'text-stone-300 hover:text-red-500 hover:bg-red-50'}`}
+                className={`p-2 rounded-xl transition-all ${isDark ? 'text-stone-700 hover:text-red-400 hover:bg-red-400/10' : 'text-[#CBD5E1] hover:text-red-500 hover:bg-red-50'}`}
                 title="Kosongkan keranjang"
               >
                 <Trash2 size={16} />
@@ -747,22 +762,21 @@ export default function PointOfSale() {
           {/* Cart items */}
           <div
             className="flex-1 overflow-y-auto horizontal-scrollbar-thin"
-            // Clicking empty space in scroll area closes any revealed swipe
             onClick={() => { if (revealedDeleteIndex !== null) resetSwipe(); }}
           >
             {cartIsEmpty ? (
               <div className="h-full flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
                 <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full blur-[80px] opacity-20 ${isDark ? 'bg-amber-500' : 'bg-amber-300'}`} />
                 <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-500">
-                  <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-amber-500/5'}`}>
+                  <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-[#E2E8F0] shadow-amber-500/5'}`}>
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
                       <ShoppingCart size={24} />
                     </div>
                   </div>
-                  <h4 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <h4 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
                     Keranjang kosong
                   </h4>
-                  <p className={`text-sm mt-2 max-w-[200px] leading-relaxed ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                  <p className={`text-sm mt-2 max-w-[200px] leading-relaxed ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
                     Pilih menu untuk memulai transaksi
                   </p>
                   <button
@@ -784,15 +798,15 @@ export default function PointOfSale() {
                   onClick={() => setPanel('manual')}
                   className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-bold border border-dashed transition-all active:scale-[0.98] ${isDark
                     ? 'border-stone-800 text-stone-500 hover:border-amber-500/50 hover:text-amber-400'
-                    : 'border-gray-200 text-stone-400 hover:border-amber-300 hover:text-amber-600'
+                    : 'border-gray-200 text-[#94A3B8] hover:border-amber-300 hover:text-amber-600'
                     }`}
                 >
                   <PlusCircle size={13} /> Tambah Item Manual
                 </button>
 
-                {/* Swipe hint — only shown when cart has items and user hasn't swiped yet */}
+                {/* Swipe hint */}
                 {isMobile && cart.length > 0 && revealedDeleteIndex === null && (
-                  <p className={`text-center text-[10px] font-medium pb-0.5 ${isDark ? 'text-stone-700' : 'text-stone-300'}`}>
+                  <p className={`text-center text-[10px] font-medium pb-0.5 ${isDark ? 'text-stone-700' : 'text-[#E2E8F0]'}`}>
                     ← geser untuk hapus
                   </p>
                 )}
@@ -803,39 +817,39 @@ export default function PointOfSale() {
           </div>
 
           {/* Footer: summary + action buttons */}
-          <div className={`flex-shrink-0 border-t p-4 space-y-3 ${isDark ? 'border-stone-900 bg-stone-950/80' : 'border-gray-100 bg-white/90'}`}>
+          <div className={`flex-shrink-0 border-t p-4 space-y-3 ${isDark ? 'border-stone-900 bg-stone-950/80' : 'border-[#E2E8F0] bg-white/95'}`}>
             {!cartIsEmpty && (
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>Subtotal</span>
-                  <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>{format(quote.subtotal)}</span>
+                  <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>Subtotal</span>
+                  <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#475569]'}`}>{format(quote.subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                    <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
                       Pajak ({quote.taxRate || 0}%)
                     </span>
                     <button
                       onClick={() => setTaxEnabled(t => !t)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${taxEnabled ? 'bg-amber-500' : isDark ? 'bg-stone-800' : 'bg-gray-300'}`}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${taxEnabled ? 'bg-teal-500' : isDark ? 'bg-stone-800' : 'bg-[#CBD5E1]'}`}
                     >
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
                     </button>
                   </div>
-                  <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-gray-700') : (isDark ? 'text-stone-700 line-through' : 'text-stone-300 line-through')}`}>
+                  <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-[#475569]') : (isDark ? 'text-stone-700 line-through' : 'text-[#CBD5E1] line-through')}`}>
                     {format(quote.tax)}
                   </span>
                 </div>
                 {quote.serviceCharge > 0 && (
                   <div className="flex justify-between text-xs">
-                    <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                    <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
                       {quote.serviceChargeLabel || 'Service'} ({quote.serviceChargeRate || 0}%)
                     </span>
-                    <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>{format(quote.serviceCharge)}</span>
+                    <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#475569]'}`}>{format(quote.serviceCharge)}</span>
                   </div>
                 )}
-                <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
-                  <span className={`font-black text-sm uppercase ${isDark ? 'text-white' : 'text-gray-800'}`}>Total</span>
+                <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
+                  <span className={`font-black text-sm uppercase ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Total</span>
                   <span className="font-black text-lg text-amber-500 tabular-nums">{format(quote.grandTotal)}</span>
                 </div>
               </div>
@@ -847,7 +861,7 @@ export default function PointOfSale() {
                 disabled={!canPay}
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wide transition-all duration-200 active:scale-[0.97] ${canPay
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:opacity-90'
-                  : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
+                  : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed'
                   }`}
               >
                 <Zap size={15} />
@@ -857,10 +871,10 @@ export default function PointOfSale() {
                 onClick={() => { if (!cartIsEmpty) { resetSwipe(); setPanel('checkout'); } }}
                 disabled={cartIsEmpty}
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wide border transition-all active:scale-[0.97] ${cartIsEmpty
-                  ? isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
+                  ? isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-[#E2E8F0] text-[#CBD5E1] cursor-not-allowed'
                   : isDark
                     ? 'border-stone-800 text-stone-200 hover:border-amber-500/40 hover:text-amber-400'
-                    : 'border-gray-200 text-gray-700 hover:border-amber-400 hover:text-amber-700'
+                    : 'border border-[#E2E8F0] text-[#0F172A] hover:border-teal-300 hover:text-teal-700'
                   }`}
               >
                 <ReceiptText size={15} />
@@ -875,29 +889,29 @@ export default function PointOfSale() {
       {/* ── Panel: CHECKOUT DETAIL ────────────────────────────────────────── */}
       {panel === 'checkout' && (
         <>
-          <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+          <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
             <button
               onClick={() => setPanel('cart')}
-              className={`p-2 rounded-xl transition-colors active:scale-90 ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-gray-100 text-stone-500'}`}
+              className={`p-2 rounded-xl transition-colors active:scale-90 ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-[#F1F5F9] text-[#475569]'}`}
             >
               <ArrowLeft size={16} />
             </button>
-            <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
               Checkout Detail
             </h3>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 horizontal-scrollbar-thin">
             <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Tipe Order</label>
-              <div className={`flex gap-1 p-1 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Tipe Order</label>
+              <div className={`flex gap-1 p-1 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-[#F1F5F9]'}`}>
                 {(['dine-in', 'take-away'] as const).map(type => (
                   <button
                     key={type}
                     onClick={() => handleOrderType(type)}
                     className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all active:scale-[0.97] ${orderType === type
-                      ? isDark ? 'bg-stone-800 text-amber-400' : 'bg-white text-amber-600 shadow-sm'
-                      : isDark ? 'text-stone-400' : 'text-stone-500'
+                      ? isDark ? 'bg-stone-800 text-amber-400' : 'bg-white text-teal-600 shadow-sm'
+                      : isDark ? 'text-stone-400' : 'text-[#475569]'
                       }`}
                   >
                     {type === 'dine-in' ? 'Dine In' : 'Take Away'}
@@ -907,21 +921,21 @@ export default function PointOfSale() {
             </div>
 
             <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Info Customer</label>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Info Customer</label>
               <div className="space-y-2">
                 <div className="relative">
-                  <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
                   <input
                     type="text"
                     placeholder="Nama customer (opsional)"
                     value={selectedCustomerData ? selectedCustomerData.name : customCustomerName}
                     onChange={e => { if (selectedCustomer) setSelectedCustomer(undefined); setCustomCustomerName(e.target.value); }}
-                    className={`w-full pl-8 pr-3 py-3 text-sm rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+                    className={`w-full pl-8 pr-3 py-3 text-sm rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
                   />
                 </div>
                 {orderType === 'dine-in' && (
                   <div className="relative">
-                    <Hash size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <Hash size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
                     <input
                       type="text"
                       inputMode="numeric"
@@ -929,7 +943,7 @@ export default function PointOfSale() {
                       value={tableNumber}
                       onChange={e => { if (e.target.value === '' || /^\d+$/.test(e.target.value)) setTableNumber(e.target.value); }}
                       onKeyDown={handleTableNumberKeyDown}
-                      className={`w-full pl-8 pr-3 py-3 text-sm rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+                      className={`w-full pl-8 pr-3 py-3 text-sm rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
                     />
                   </div>
                 )}
@@ -937,7 +951,7 @@ export default function PointOfSale() {
             </div>
 
             <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
                 <span className="flex items-center gap-1.5"><MessageSquare size={10} /> Catatan (opsional)</span>
               </label>
               <textarea
@@ -945,67 +959,67 @@ export default function PointOfSale() {
                 placeholder="e.g. No sugar, extra hot..."
                 value={orderNote}
                 onChange={e => setOrderNote(e.target.value)}
-                className={`w-full p-3 text-sm rounded-2xl border outline-none resize-none transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+                className={`w-full p-3 text-sm rounded-2xl border outline-none resize-none transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
               />
             </div>
 
-            <div className={`rounded-2xl border p-3 space-y-1.5 ${isDark ? 'border-stone-900 bg-stone-900/40' : 'border-gray-100 bg-gray-50'}`}>
-              <p className={`text-[10px] font-black uppercase mb-2 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Ringkasan</p>
+            <div className={`rounded-2xl border p-3 space-y-1.5 ${isDark ? 'border-stone-900 bg-stone-900/40' : 'border-[#E2E8F0] bg-[#F8FAFC]'}`}>
+              <p className={`text-[10px] font-black uppercase mb-2 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Ringkasan</p>
               {cart.map((item, idx) => {
                 const product = products.find(p => p.id === item.productId);
                 const name = product?.name ?? item.note ?? 'Item';
                 return (
                   <div key={idx} className="flex justify-between text-xs">
-                    <span className={`truncate flex-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
+                    <span className={`truncate flex-1 ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>
                       {item.quantity}× {name}
                     </span>
-                    <span className={`font-bold ml-2 tabular-nums ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>
+                    <span className={`font-bold ml-2 tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>
                       {format(item.price * item.quantity)}
                     </span>
                   </div>
                 );
               })}
-              <div className={`pt-1.5 mt-1.5 border-t space-y-1 ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
+              <div className={`pt-1.5 mt-1.5 border-t space-y-1 ${isDark ? 'border-stone-800' : 'border-[#E2E8F0]'}`}>
                 <div className="flex justify-between text-xs">
-                  <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>Subtotal</span>
-                  <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-gray-600'}`}>{format(quote.subtotal)}</span>
+                  <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>Subtotal</span>
+                  <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(quote.subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5">
-                    <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                    <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
                       {quote.taxLabel || 'Pajak'} ({quote.taxRate || 0}%)
                     </span>
                     <button
                       onClick={() => setTaxEnabled(t => !t)}
-                      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${taxEnabled ? 'bg-amber-500' : isDark ? 'bg-stone-800' : 'bg-gray-300'}`}
+                      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${taxEnabled ? 'bg-teal-500' : isDark ? 'bg-stone-800' : 'bg-[#CBD5E1]'}`}
                     >
                       <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
                     </button>
                   </div>
-                  <span className={`tabular-nums ${taxEnabled ? (isDark ? 'text-stone-300' : 'text-gray-600') : (isDark ? 'text-stone-800 line-through' : 'text-stone-300 line-through')}`}>
+                  <span className={`tabular-nums ${taxEnabled ? (isDark ? 'text-stone-300' : 'text-[#475569]') : (isDark ? 'text-stone-800 line-through' : 'text-[#CBD5E1] line-through')}`}>
                     {format(quote.tax)}
                   </span>
                 </div>
                 {quote.serviceCharge > 0 && (
                   <div className="flex justify-between text-xs">
-                    <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                    <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
                       {quote.serviceChargeLabel || 'Service'} ({quote.serviceChargeRate || 0}%)
                     </span>
-                    <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-gray-600'}`}>{format(quote.serviceCharge)}</span>
+                    <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(quote.serviceCharge)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-black text-sm pt-1 border-t border-dashed mt-1 dark:border-stone-800">
-                  <span className={isDark ? 'text-white' : 'text-gray-800'}>Total</span>
+                  <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>Total</span>
                   <span className="text-amber-500 tabular-nums">{format(quote.grandTotal)}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+          <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
             <button
               onClick={() => setPanel('cart')}
-              className={`flex-1 py-3.5 rounded-2xl font-black text-sm border transition-all active:scale-[0.97] ${isDark ? 'border-stone-800 text-stone-300 hover:bg-stone-900' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`flex-1 py-3.5 rounded-2xl font-black text-sm border transition-all active:scale-[0.97] ${isDark ? 'border-stone-800 text-stone-300 hover:bg-stone-900' : 'border-[#E2E8F0] text-[#475569] hover:bg-[#F1F5F9]'}`}
             >
               Batal
             </button>
@@ -1014,7 +1028,7 @@ export default function PointOfSale() {
               disabled={!canPay}
               className={`flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm text-white uppercase tracking-wide transition-all duration-200 active:scale-[0.97] ${canPay
                 ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20 hover:opacity-90'
-                : 'bg-gray-400 cursor-not-allowed'
+                : 'bg-stone-400 cursor-not-allowed'
                 }`}
             >
               {isServiceLoading ? 'Memproses...' : isQuoteLoading ? 'Menghitung...' : (
@@ -1028,21 +1042,21 @@ export default function PointOfSale() {
       {/* ── Panel: MANUAL ITEM ────────────────────────────────────────────── */}
       {panel === 'manual' && (
         <>
-          <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+          <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
             <button
               onClick={() => { resetManualForm(); setPanel('cart'); }}
-              className={`p-2 rounded-xl transition-colors active:scale-90 ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-gray-100 text-stone-500'}`}
+              className={`p-2 rounded-xl transition-colors active:scale-90 ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-[#F1F5F9] text-[#475569]'}`}
             >
               <ArrowLeft size={16} />
             </button>
-            <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
               Item Manual
             </h3>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3 horizontal-scrollbar-thin">
             <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-teal-600'}`}>
                 <span className="flex items-center gap-1"><Pencil size={9} /> Nama Item *</span>
               </label>
               <input
@@ -1051,23 +1065,80 @@ export default function PointOfSale() {
                 placeholder="Nama item..."
                 value={manualItemName}
                 onChange={e => setManualItemName(e.target.value)}
-                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
               />
             </div>
             <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Kategori (opsional)</label>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Kategori (opsional)</label>
               <input
                 type="text"
                 placeholder="e.g. Service, Custom..."
                 value={manualItemCategory}
                 onChange={e => setManualItemCategory(e.target.value)}
-                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
               />
             </div>
             <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>Harga (Rp) *</label>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Deskripsi (opsional)</label>
+              <textarea
+                value={manualItemDescription}
+                onChange={e => setManualItemDescription(e.target.value)}
+                placeholder="e.g. Pedas sekali, Tanpa bawang"
+                className={`w-full min-h-[88px] p-3 rounded-2xl border outline-none text-sm resize-none transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Variant</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Extra Keju"
+                  value={manualItemVariantName}
+                  onChange={e => setManualItemVariantName(e.target.value)}
+                  className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
+                />
+              </div>
+              <div>
+                <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Harga Variant (Rp)</label>
+                <div className="relative">
+                  <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>Rp</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={manualItemVariantPrice ? Number(manualItemVariantPrice).toLocaleString('id-ID') : ''}
+                    onChange={e => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setManualItemVariantPrice(raw);
+                    }}
+                    className={`w-full pl-10 pr-3 py-3 rounded-2xl border outline-none text-sm font-black text-right transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A]'}`}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-2 overflow-x-auto horizontal-scrollbar-thin pb-1">
+              {quickPrices.map(p => {
+                const isSelected = manualItemVariantPrice === p.toString();
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setManualItemVariantPrice(p.toString())}
+                    className={`flex-shrink-0 px-4 py-2 rounded-2xl text-[10px] font-black transition-all active:scale-95 ${isSelected
+                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                      : isDark
+                        ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
+                        : 'bg-[#F1F5F9] border border-[#E2E8F0] text-[#475569] hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700'
+                    }`}
+                  >
+                    {p >= 1000000 ? `${p / 1000000}jt` : `${p / 1000}k`}
+                  </button>
+                );
+              })}
+            </div>
+            <div>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-teal-600'}`}>Harga (Rp) *</label>
               <div className="relative">
-                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? 'text-stone-400' : 'text-stone-400'}`}>Rp</span>
+                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>Rp</span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -1077,7 +1148,7 @@ export default function PointOfSale() {
                     const raw = e.target.value.replace(/\D/g, '');
                     setManualItemPrice(raw);
                   }}
-                  className={`w-full pl-10 pr-3 py-3 rounded-2xl border outline-none text-sm font-black text-right transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800'}`}
+                  className={`w-full pl-10 pr-3 py-3 rounded-2xl border outline-none text-sm font-black text-right transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A]'}`}
                 />
               </div>
               <div className="flex gap-2 mt-2 overflow-x-auto horizontal-scrollbar-thin pb-1">
@@ -1091,7 +1162,7 @@ export default function PointOfSale() {
                         ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
                         : isDark
                           ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
-                          : 'bg-gray-100 border border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700'
+                          : 'bg-[#F1F5F9] border border-[#E2E8F0] text-[#475569] hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700'
                         }`}
                     >
                       {p >= 1000000 ? `${p / 1000000}jt` : `${p / 1000}k`}
@@ -1101,36 +1172,36 @@ export default function PointOfSale() {
               </div>
             </div>
             <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Jumlah</label>
-              <div className={`flex items-center gap-3 p-1 rounded-2xl w-fit ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Jumlah</label>
+              <div className={`flex items-center gap-3 p-1 rounded-2xl w-fit ${isDark ? 'bg-stone-900' : 'bg-[#F1F5F9]'}`}>
                 <button
                   onClick={() => setManualItemQuantity(q => Math.max(1, q - 1))}
-                  className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-gray-700 hover:bg-amber-500 hover:text-white shadow-sm'}`}
+                  className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-[#475569] hover:bg-teal-500 hover:text-white shadow-sm'}`}
                 >−</button>
-                <span className={`w-10 text-center font-black text-base ${isDark ? 'text-white' : 'text-gray-800'}`}>{manualItemQuantity}</span>
+                <span className={`w-10 text-center font-black text-base ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>{manualItemQuantity}</span>
                 <button
                   onClick={() => setManualItemQuantity(q => q + 1)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-gray-700 hover:bg-amber-500 hover:text-white shadow-sm'}`}
+                  className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-[#475569] hover:bg-teal-500 hover:text-white shadow-sm'}`}
                 >+</button>
               </div>
             </div>
             {manualItemPrice && Number(manualItemPrice) > 0 && (
-              <div className={`flex items-center justify-between p-3 rounded-2xl ${isDark ? 'bg-amber-900/20 border border-amber-800/30' : 'bg-amber-50 border border-amber-100'}`}>
-                <span className={`text-xs font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>Total ({manualItemQuantity}×)</span>
-                <span className={`text-base font-black tabular-nums ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
+              <div className={`flex items-center justify-between p-3 rounded-2xl ${isDark ? 'bg-amber-900/20 border border-amber-800/30' : 'bg-[#F0FDFA] border border-[#99F6E4]'}`}>
+                <span className={`text-xs font-bold ${isDark ? 'text-amber-400' : 'text-teal-700'}`}>Total ({manualItemQuantity}×)</span>
+                <span className={`text-base font-black tabular-nums ${isDark ? 'text-amber-300' : 'text-teal-700'}`}>
                   {format(Number(manualItemPrice) * manualItemQuantity)}
                 </span>
               </div>
             )}
           </div>
 
-          <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+          <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
             <button
               onClick={quickPayManualItem}
               disabled={!manualItemName.trim() || !manualItemPrice || isPaymentModalOpen}
               className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all duration-200 active:scale-[0.97] ${manualItemName.trim() && manualItemPrice
                 ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 hover:opacity-90'
-                : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
+                : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed'
                 }`}
             >
               <Zap size={14} /> Quick Pay
@@ -1141,8 +1212,8 @@ export default function PointOfSale() {
               className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm border transition-all duration-200 active:scale-[0.97] ${manualItemName.trim() && manualItemPrice
                 ? isDark
                   ? 'border-stone-700 text-stone-200 hover:border-amber-500/50 hover:text-amber-400'
-                  : 'border-gray-300 text-gray-700 hover:border-amber-400 hover:text-amber-700'
-                : isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
+                  : 'border border-[#E2E8F0] text-[#0F172A] hover:border-teal-300 hover:text-teal-700'
+                : isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-[#E2E8F0] text-[#CBD5E1] cursor-not-allowed'
                 }`}
             >
               <Package size={14} /> Ke Cart
@@ -1212,61 +1283,95 @@ export default function PointOfSale() {
               </button>
             </div>
           )}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <h1 className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-800'}`}>
-              Menu <span className="text-amber-500">Explorer</span>
-            </h1>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Cari menu..."
-                className={`w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 outline-none text-sm transition-all ${isDark
-                  ? 'bg-stone-900 border-stone-800 text-white focus:border-amber-500'
-                  : 'bg-gray-50 border-gray-200 text-gray-800 focus:border-amber-500'
-                  }`}
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+          {/* ── Catalog Header ── */}
+          <div className={`${isMobile ? 'sticky top-0 z-20 pt-2 pb-1 -mx-4 px-4 bg-inherit' : 'mb-4'}`}>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+              <h1 className={`text-xl md:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'} ${isMobile ? 'hidden' : ''}`}>
+                Menu <span className="text-amber-500">Explorer</span>
+              </h1>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Cari menu..."
+                  className={`w-full pl-10 pr-4 py-3 min-h-[44px] rounded-2xl border-2 outline-none text-sm transition-all shadow-sm ${isDark
+                    ? 'bg-stone-900 border-stone-800 text-white focus:border-amber-500'
+                    : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8] focus:border-teal-400'
+                    }`}
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  onFocus={(e) => {
+                    if (isMobile) {
+                      e.target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                />
+              </div>
             </div>
-          </div>
 
-          <CategoryPills selected={selectedCategory} onSelect={setSelectedCategory} />
-
-          <div className="flex items-center justify-between">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl text-xs font-bold ${isDark ? 'bg-stone-800 text-amber-400 border border-amber-800/30' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-              <TrendingUp size={12} />
-              <span>Trending:</span>
-              <select
-                value={bestSellerPeriod}
-                onChange={e => setBestSellerPeriod(Number(e.target.value))}
-                className={`${isDark ? 'bg-stone-800 text-amber-300' : 'bg-amber-50 text-amber-600'} border-none outline-none text-xs font-bold appearance-none cursor-pointer`}
-              >
-                <option value="1">Today</option>
-                <option value="3">3 Hari</option>
-                <option value="7">7 Hari</option>
-                <option value="14">14 Hari</option>
-                <option value="30">30 Hari</option>
-              </select>
+            <div className="hidden lg:block">
+              <CategoryPills selected={selectedCategory} onSelect={setSelectedCategory} />
             </div>
-            <div className="flex items-center gap-2">
-              {promoProductsCount > 0 && (
-                <div className={`px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 ${isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-600'}`}>
-                  <Flame size={10} /><span>{promoProductsCount} PROMO</span>
-                </div>
-              )}
-              {topBestSellers.length > 0 && (
-                <div className={`px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
-                  <Trophy size={10} /><span>{topBestSellers.length} BEST</span>
-                </div>
-              )}
+
+            <div className="flex items-center justify-between pb-2">
+              <div className={`flex items-center gap-2 px-3 py-2 min-h-[40px] rounded-2xl text-xs font-bold ${isDark ? 'bg-stone-800 text-amber-400 border border-amber-800/30' : 'bg-teal-50 text-teal-700 border border-teal-200'}`}>
+                <TrendingUp size={12} />
+                <span>Trending:</span>
+                <select
+                  value={bestSellerPeriod}
+                  onChange={e => setBestSellerPeriod(Number(e.target.value))}
+                  className={`${isDark ? 'bg-stone-800 text-amber-300' : 'bg-teal-50 text-teal-600'} border-none outline-none text-xs font-bold appearance-none cursor-pointer`}
+                >
+                  <option value="1">1 Hari</option>
+                  <option value="2">2 Hari</option>
+                  <option value="3">3 Hari</option>
+                  <option value="7">7 Hari</option>
+                  <option value="14">14 Hari</option>
+                  <option value="30">30 Hari</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                {promoProductsCount > 0 && (
+                  <div className={`px-2 py-1.5 min-h-[32px] rounded-xl text-[10px] font-bold border flex items-center gap-1 ${isDark ? 'bg-red-900/30 text-red-400 border-red-800/30' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                    <Flame size={10} /><span>{promoProductsCount} PROMO</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Product grid — bottom padding clears sticky bottom sheet on mobile */}
+        {/* Product grid */}
         <div className={`flex-1 overflow-y-auto horizontal-scrollbar-thin pr-1 ${isMobile ? 'pb-24' : ''}`}>
-          <ProductGrid products={sortedProducts} onAddToCart={addToCart} />
+          {isMobile ? (
+            <div className="py-2">
+              {categoryCarousels.length === 0 || categoryCarousels.every(c => c.products.length === 0) ? (
+                <div className={`flex flex-col items-center justify-center min-h-[300px] text-center px-4 ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>
+                  <Package size={48} className={`mb-4 ${isDark ? 'text-stone-700' : 'text-[#CBD5E1]'}`} />
+                  <p className="font-semibold text-sm mb-1">
+                    {search ? 'Tidak ada hasil pencarian' : 'Tidak ada produk'}
+                  </p>
+                  <p className="text-xs">
+                    {search ? `Coba cari dengan kata kunci lain "${search}"` : 'Produk akan muncul di sini'}
+                  </p>
+                </div>
+              ) : (
+                categoryCarousels
+                  .filter(carousel => carousel.products.length > 0)
+                  .map(carousel => (
+                    <MobileCategoryCarousel
+                      key={carousel.categoryName}
+                      carousel={carousel}
+                      isDark={isDark}
+                      onAddToCart={addToCart}
+                      onViewAll={(catName) => navigate(`/pos/category/${encodeURIComponent(catName)}`)}
+                    />
+                  ))
+              )}
+            </div>
+          ) : (
+            <ProductGrid products={sortedProducts} onAddToCart={addToCart} />
+          )}
         </div>
 
         {isMobile && (
@@ -1279,15 +1384,39 @@ export default function PointOfSale() {
             onOpen={() => setSheetState('peek')}
             onClose={() => setSheetState('collapsed')}
             onQuickPay={quickPayCart}
-            onCheckout={() => { if (!cartIsEmpty) { resetSwipe(); setPanel('checkout'); } }}
+            onCheckout={() => {
+              if (!cartIsEmpty) {
+                resetSwipe();
+                setSheetState('collapsed');
+                setPanel('checkout');
+              }
+            }}
             onEditItem={(index) => {
               setEditingItemIndex(index);
+              setSheetState('collapsed');
               setPanel('edit');
             }}
             onRemoveItem={removeFromCart}
             onClearCart={() => setCart([])}
             onUpdateQuantity={(index, delta) => updateQuantity(index, delta)}
+            onManualItem={() => setPanel('manual')}
           />
+        )}
+
+        {/* ── Mobile Panel Overlay ── */}
+        {isMobile && panel !== 'cart' && (
+          <>
+            <div
+              className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => { setPanel('cart'); setEditingItemIndex(null); }}
+            />
+            <div
+              className={`fixed bottom-0 left-0 right-0 z-40 mx-2 flex flex-col rounded-t-3xl border shadow-[0_-12px_60px_rgba(0,0,0,0.40)] transition-all duration-300 ease-out animate-in slide-in-from-bottom-96 ${isDark ? 'border-stone-800/20 bg-stone-950' : 'border-[#E2E8F0] bg-white'}`}
+              style={{ height: '88vh', maxHeight: '92vh' }}
+            >
+              {renderCartContent()}
+            </div>
+          </>
         )}
       </div>
 
@@ -1298,15 +1427,14 @@ export default function PointOfSale() {
         <div className={`
           hidden lg:flex flex-col
           lg:w-[380px] xl:w-[420px] lg:flex-shrink-0
-          rounded-2xl border shadow-2xl overflow-hidden
-          ${isDark ? 'bg-stone-950 border-stone-800' : 'bg-white border-gray-100'}
+          rounded-2xl border shadow-xl overflow-hidden
+          ${isDark ? 'bg-stone-950 border-stone-800' : 'bg-white border-[#E2E8F0] shadow-xl'}
         `}>
           {renderCartContent()}
         </div>
       )}
 
-      {/* ── Modals ──────────────────────────────────────────────────────────── */}
-      {ToastComponent}
+      {/* ── Modals ── */}
       {isCheckoutDetailsFormOpen && (
         <CheckoutDetailsForm
           customerName={customCustomerName}
@@ -1341,7 +1469,6 @@ export default function PointOfSale() {
         />
       )}
 
-      {ToastComponent}
       {receiptTransaction && (
         <ReceiptModal
           transaction={receiptTransaction}

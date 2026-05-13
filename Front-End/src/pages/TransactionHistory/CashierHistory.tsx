@@ -7,7 +7,7 @@ import TransactionDetailModal from '../../components/transactions/TransactionDet
 import VoidRequestModal from '../../components/transactions/VoidRequestModal';
 import { appApi, ApiError } from '../../services/appApi';
 import type { HistoryTransaction, TransactionsListResponse } from '../../types/historyTransaction';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, ChevronDown, Filter } from 'lucide-react';
 import { Skeleton } from '../../components/common/Skeleton';
 
 function itemSummary(t: HistoryTransaction): string {
@@ -49,6 +49,7 @@ function Inner() {
 
   const [detail, setDetail] = useState<HistoryTransaction | null>(null);
   const [voidTarget, setVoidTarget] = useState<HistoryTransaction | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const todayLabel = useMemo(
     () =>
@@ -92,56 +93,70 @@ function Inner() {
     <>
       {ToastComponent}
       <div className={`mx-auto max-w-5xl animate-in fade-in pb-16 ${isDark ? 'text-white' : 'text-stone-900'}`}>
-        <header className="mb-6 space-y-2">
-          <h1 className="text-3xl font-black">Riwayat Transaksi</h1>
+        <header className="mb-6 space-y-1">
+          <h1 className="text-2xl md:text-3xl font-black">Riwayat Transaksi</h1>
           <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>Transaksi Hari Ini — {todayLabel}</p>
         </header>
 
         <div
-          className={`mb-6 flex flex-col gap-4 rounded-3xl border p-5 md:flex-row md:flex-wrap md:items-center ${isDark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'
-            }`}
+          className={`mb-6 rounded-3xl border ${isDark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'}`}
         >
-          <div className={`relative flex-1 ${isDark ? '' : ''}`}>
-            <Search className={`absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${isDark ? 'text-stone-600' : 'text-stone-400'}`} />
-            <input
-              placeholder="Cari nama pelanggan atau ID transaksi"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={`w-full rounded-3xl border py-3 pl-12 pr-4 outline-none focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-stone-50'
-                }`}
-              aria-label="Cari transaksi"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {(['all', 'completed', 'pending_void', 'voided'] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setStatus(k === 'all' ? 'all' : k)}
-                className={`rounded-full px-4 py-2 text-xs font-black uppercase ${(k === 'all' ? status === 'all' : status === k)
-                    ? 'bg-amber-500 text-white'
-                    : `border ${isDark ? 'border-stone-700 text-stone-300' : 'border-stone-200 text-stone-700'}`
+          {/* Collapsible header */}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(o => !o)}
+            className={`w-full flex items-center justify-between p-4 md:hidden ${isDark ? 'text-stone-300' : 'text-stone-700'}`}
+          >
+            <div className="flex items-center gap-2">
+              <Filter size={16} className="text-amber-500" />
+              <span className="text-sm font-bold">Filter & Pencarian</span>
+            </div>
+            <ChevronDown size={16} className={`transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          <div className={`space-y-4 p-4 md:p-5 ${filtersOpen ? 'block' : 'hidden md:block'} ${filtersOpen ? 'pt-0 md:pt-5' : ''}`}>
+            <div className={`relative flex-1 ${isDark ? '' : ''}`}>
+              <Search className={`absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${isDark ? 'text-stone-600' : 'text-stone-400'}`} />
+              <input
+                placeholder="Cari nama pelanggan atau ID transaksi"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={`w-full rounded-3xl border py-3 min-h-[44px] pl-12 pr-4 outline-none focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-stone-50'
                   }`}
+                aria-label="Cari transaksi"
+              />
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {(['all', 'completed', 'pending_void', 'voided'] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setStatus(k === 'all' ? 'all' : k)}
+                  className={`rounded-full px-4 py-2.5 min-h-[44px] text-xs font-black uppercase whitespace-nowrap flex-shrink-0 ${(k === 'all' ? status === 'all' : status === k)
+                      ? 'bg-amber-500 text-white'
+                      : `border ${isDark ? 'border-stone-700 text-stone-300' : 'border-stone-200 text-stone-700'}`
+                    }`}
+                >
+                  {k === 'all' ? 'Semua' : k === 'completed' ? 'Selesai' : k === 'pending_void' ? 'Pending Void' : 'Dibatalkan'}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className={`rounded-full px-4 py-2.5 min-h-[44px] text-xs font-bold ${sort === 'desc' ? 'bg-amber-500 text-white' : 'border dark:border-stone-700'}`}
+                onClick={() => setSort('desc')}
               >
-                {k === 'all' ? 'Semua' : k === 'completed' ? 'Selesai' : k === 'pending_void' ? 'Pending Void' : 'Dibatalkan'}
+                Terbaru
               </button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className={`rounded-full px-4 py-2 text-xs font-bold ${sort === 'desc' ? 'bg-amber-500 text-white' : 'border dark:border-stone-700'}`}
-              onClick={() => setSort('desc')}
-            >
-              Terbaru
-            </button>
-            <button
-              type="button"
-              className={`rounded-full px-4 py-2 text-xs font-bold ${sort === 'asc' ? 'bg-amber-500 text-white' : 'border dark:border-stone-700'}`}
-              onClick={() => setSort('asc')}
-            >
-              Terlama
-            </button>
+              <button
+                type="button"
+                className={`rounded-full px-4 py-2.5 min-h-[44px] text-xs font-bold ${sort === 'asc' ? 'bg-amber-500 text-white' : 'border dark:border-stone-700'}`}
+                onClick={() => setSort('asc')}
+              >
+                Terlama
+              </button>
+            </div>
           </div>
         </div>
 
@@ -203,7 +218,7 @@ function Inner() {
                     <button
                       type="button"
                       onClick={() => setDetail(t)}
-                      className="rounded-3xl border border-amber-500/60 px-4 py-2 text-xs font-black uppercase tracking-wide hover:bg-amber-500 hover:text-white"
+                      className="rounded-3xl border border-amber-500/60 px-4 py-2.5 min-h-[44px] text-xs font-black uppercase tracking-wide hover:bg-amber-500 hover:text-white"
                     >
                       Lihat Detail
                     </button>
@@ -220,7 +235,7 @@ function Inner() {
               type="button"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-3xl border px-6 py-2 text-sm font-bold disabled:opacity-40 dark:border-stone-700"
+              className={`rounded-3xl border px-6 py-2.5 min-h-[44px] text-sm font-bold disabled:opacity-40 ${isDark ? 'border-stone-700' : 'border-stone-200'}`}
             >
               Sebelumnya
             </button>
@@ -228,7 +243,7 @@ function Inner() {
               type="button"
               disabled={page * limit >= total}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-3xl border px-6 py-2 text-sm font-bold disabled:opacity-40 dark:border-stone-700"
+              className={`rounded-3xl border px-6 py-2.5 min-h-[44px] text-sm font-bold disabled:opacity-40 ${isDark ? 'border-stone-700' : 'border-stone-200'}`}
             >
               Berikutnya
             </button>

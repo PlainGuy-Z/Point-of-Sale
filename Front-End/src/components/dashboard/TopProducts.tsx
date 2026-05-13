@@ -1,4 +1,4 @@
-import { TrendingUp, Package } from 'lucide-react';
+import { TrendingUp, Package, Trophy } from 'lucide-react';
 import type { Product } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
@@ -23,78 +23,90 @@ export default function TopProducts({
   
   if (topProducts.length === 0) {
     return (
-      <div className={`rounded-2xl p-5 ${isDark 
-        ? 'bg-gradient-to-br from-stone-900 to-stone-900 border border-stone-800' 
-        : 'bg-gradient-to-br from-white to-gray-50 border border-gray-100'
+      <div className={`rounded-2xl p-5 border ${isDark 
+        ? 'bg-gradient-to-br from-stone-900 to-stone-900 border-stone-800' 
+        : 'bg-white border-[#E2E8F0] shadow-sm'
       }`}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <h3 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
             {title}
           </h3>
           <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
         </div>
-        <div className={`text-center py-8 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+        <div className={`text-center py-8 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
           <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>Tidak ada data penjualan hari ini</p>
+          <p className="font-medium">Tidak ada data penjualan hari ini</p>
         </div>
       </div>
     );
   }
+
+  const maxRevenue = topProducts.length > 0 ? topProducts[0].revenue || 1 : 1;
   
   return (
-    <div className={`rounded-2xl p-5 ${isDark 
-      ? 'bg-gradient-to-br from-stone-900 to-stone-900 border border-stone-800' 
-      : 'bg-gradient-to-br from-white to-gray-50 border border-gray-100'
+    <div className={`rounded-2xl p-5 border ${isDark 
+      ? 'bg-gradient-to-br from-stone-900 to-stone-900 border-stone-800' 
+      : 'bg-white border-[#E2E8F0] shadow-sm'
     }`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
           {title}
         </h3>
-        <TrendingUp className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-500'}`} />
+        <TrendingUp className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-teal-600'}`} />
       </div>
       
-      <div className="space-y-3">
+      <div className="space-y-4">
         {topProducts.map((product, index) => {
           const rank = index + 1;
           const quantity = product.quantity || 0;
           const revenue = product.revenue || 0;
+          const progress = (revenue / maxRevenue) * 100;
           
           return (
             <div 
               key={product.id} 
-              className={`flex items-center justify-between p-3 rounded-2xl transition-all ${isDark 
+              className={`group relative flex flex-col p-3 rounded-xl transition-all ${isDark 
                 ? 'bg-stone-800/50 hover:bg-stone-800/70' 
-                : 'bg-gray-50 hover:bg-gray-100'
+                : 'hover:bg-[#F8FAFC]'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
-                  rank === 1 ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white' :
-                  rank === 2 ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-white' :
-                  rank === 3 ? 'bg-gradient-to-r from-amber-700 to-amber-800 text-white' :
-                  isDark ? 'bg-stone-700 text-stone-300' : 'bg-gray-200 text-gray-700'
-                }`}>
-                  {rank}
-                </div>
-                <div>
-                  <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    {product.name}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
-                      {quantity} terjual
-                    </span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shadow-sm border ${
+                    rank === 1 && !isDark ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    (rank === 2 || rank === 3) && !isDark ? 'bg-slate-50 text-slate-600 border-[#E2E8F0]' :
+                    rank === 1 && isDark ? 'bg-amber-500 text-stone-950 border-amber-400' :
+                    isDark ? 'bg-stone-700 text-stone-300 border-stone-600' : 'bg-gray-100 text-gray-700 border-gray-200'
+                  }`}>
+                    {rank === 1 ? <Trophy size={14} /> : rank}
+                  </div>
+                  <div>
+                    <p className={`font-semibold text-sm leading-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
+                      {product.name}
+                    </p>
+                    <p className={`text-[10px] uppercase tracking-wider font-bold mt-0.5 ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>
+                      {product.category} • {quantity} terjual
+                    </p>
                   </div>
                 </div>
+                
+                <div className="text-right">
+                  <p className={`font-bold text-sm ${isDark ? 'text-amber-400' : 'text-teal-700'}`}>
+                    {format(revenue)}
+                  </p>
+                </div>
               </div>
-              
-              <div className="text-right">
-                <p className={`font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                  {format(revenue)}
-                </p>
-                <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
-                  {format(product.price)}/pc
-                </p>
+
+              {/* Progress bar fill mapping */}
+              <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-stone-900' : 'bg-[#F1F5F9]'}`}>
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ${
+                    isDark 
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500' 
+                      : 'bg-gradient-to-r from-teal-500 to-teal-600'
+                  }`}
+                  style={{ width: `${progress}%` }}
+                />
               </div>
             </div>
           );
@@ -102,12 +114,12 @@ export default function TopProducts({
       </div>
       
       {topProducts.length > 0 && (
-        <div className={`mt-4 pt-3 border-t ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
-          <div className="flex justify-between text-sm">
-            <span className={isDark ? 'text-stone-400' : 'text-gray-600'}>
-              Total {topProducts.length} produk
+        <div className={`mt-6 pt-4 border-t ${isDark ? 'border-stone-800' : 'border-[#E2E8F0]'}`}>
+          <div className="flex justify-between items-center text-xs">
+            <span className={`font-bold uppercase tracking-widest ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
+              Total Revenue Top {topProducts.length}
             </span>
-            <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+            <span className={`text-sm font-black ${isDark ? 'text-green-400' : 'text-teal-700'}`}>
               {format(topProducts.reduce((sum, p) => sum + (p.revenue || 0), 0))}
             </span>
           </div>

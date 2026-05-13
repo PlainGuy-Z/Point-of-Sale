@@ -159,6 +159,29 @@ export function getBestSellersByPeriod(
   return bestSellers;
 }
 
+export function getRecentSalesMapByPeriod(
+  transactions: Transaction[],
+  periodDays: number = 3
+): Map<string, number> {
+  const validTransactions = filterValidTransactions(transactions);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const cutoffDate = new Date(startOfToday);
+  cutoffDate.setDate(startOfToday.getDate() - (periodDays - 1));
+
+  const salesMap = new Map<string, number>();
+  validTransactions.forEach(transaction => {
+    const transactionDate = safeParseDate(transaction.date);
+    if (transactionDate < cutoffDate) return;
+
+    transaction.items.forEach(item => {
+      salesMap.set(item.productId, (salesMap.get(item.productId) || 0) + item.quantity);
+    });
+  });
+
+  return salesMap;
+}
+
 // ==================== UPDATE PRODUCTS WITH BEST SELLER STATUS ====================
 export function updateProductsWithBestSellerStatus(
   products: Product[],

@@ -63,14 +63,14 @@ export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalPr
       <button
         type="button"
         aria-label="Tutup"
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
         onClick={() => onCancel?.()}
       />
 
       {/* Modal */}
       <div
-        className={`relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 ${
-          isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-200'
+        className={`relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 ${
+          isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-[#E2E8F0]'
         }`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -82,8 +82,8 @@ export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalPr
             <button
               type="button"
               onClick={onCancel}
-              className={`absolute top-4 right-4 p-2 rounded-xl transition-colors ${
-                isDark ? 'text-stone-400 hover:bg-stone-800' : 'text-gray-500 hover:bg-gray-100'
+              className={`absolute top-4 right-4 p-2 rounded-lg transition-colors ${
+                isDark ? 'text-stone-400 hover:bg-stone-800' : 'text-[#94A3B8] hover:text-[#475569] hover:bg-[#F1F5F9]'
               }`}
               aria-label="Batal"
             >
@@ -92,40 +92,40 @@ export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalPr
           )}
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20`}>
-              <Coffee className="w-8 h-8 text-white" />
+            <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-amber-50 shadow-lg shadow-amber-500/10 border border-amber-100`}>
+              <Coffee className="w-8 h-8 text-amber-500" />
             </div>
-            <h2 id="shift-open-title" className={`text-2xl font-black tracking-tight mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <h2 id="shift-open-title" className={`text-2xl font-bold tracking-tight mt-4 ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
               Mulai Shift Baru
             </h2>
-            <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-gray-500'}`}>
+            <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>
               Masukkan jumlah uang modal awal di laci kasir
             </p>
           </div>
 
           {/* Info Cards */}
-          <div className={`p-4 rounded-2xl space-y-3 ${isDark ? 'bg-stone-950/50' : 'bg-gray-50'}`}>
+          <div className={`p-4 rounded-xl space-y-3 ${isDark ? 'bg-stone-950/50' : 'bg-[#F8FAFC]'}`}>
             <div className="flex justify-between items-center text-sm">
-              <span className={isDark ? 'text-stone-400' : 'text-gray-500'}>Kasir</span>
-              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{user?.name}</span>
+              <span className={isDark ? 'text-stone-400' : 'text-[#475569]'}>Kasir</span>
+              <span className={`font-semibold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>{user?.name}</span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className={isDark ? 'text-stone-400' : 'text-gray-500'}>Tanggal</span>
-              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{formattedDate}</span>
+              <span className={isDark ? 'text-stone-400' : 'text-[#475569]'}>Tanggal</span>
+              <span className={`font-semibold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>{formattedDate}</span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className={isDark ? 'text-stone-400' : 'text-gray-500'}>Waktu Buka</span>
-              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{formattedTime} WIB</span>
+              <span className={isDark ? 'text-stone-400' : 'text-[#475569]'}>Waktu Buka</span>
+              <span className={`font-semibold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>{formattedTime} WIB</span>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className={`block text-sm font-medium ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>
+              <label className={`block text-sm font-bold uppercase tracking-wider ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>
                 Modal Awal (Rp)
               </label>
               <div className="relative">
-                <span className={`absolute left-4 top-1/2 -translate-y-1/2 font-bold ${isDark ? 'text-stone-400' : 'text-gray-500'}`}>
+                <span className={`absolute left-4 top-1/2 -translate-y-1/2 font-bold ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>
                   Rp
                 </span>
                 <input
@@ -133,24 +133,24 @@ export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalPr
                   value={formattedCashDisplay}
                   onChange={handleCashChange}
                   placeholder="0"
-                  className={`w-full pl-12 pr-4 py-4 rounded-2xl text-lg font-bold outline-none transition-all ${
+                  className={`w-full pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none transition-all focus:border-teal-400 focus:bg-white ${
                     isDark 
-                      ? 'bg-stone-950 border border-stone-800 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500' 
-                      : 'bg-white border border-gray-300 text-gray-900 focus:border-amber-500 focus:ring-1 focus:ring-amber-500'
+                      ? 'bg-stone-950 border border-stone-800 text-white focus:ring-1 focus:ring-teal-500' 
+                      : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A]'
                   }`}
                   autoFocus
                 />
               </div>
-              {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+              {error && <p className="text-red-500 text-xs mt-1 font-medium">{error}</p>}
             </div>
 
             <button
               type="submit"
               disabled={isLoading || !openingCash}
-              className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-white transition-all active:scale-[0.98] ${
+              className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-white transition-all active:scale-[0.98] shadow-lg ${
                 isLoading || !openingCash
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg hover:shadow-amber-500/25'
+                  ? 'bg-gray-300 cursor-not-allowed'
+                  : 'bg-teal-600 hover:bg-teal-700 shadow-teal-600/20'
               }`}
             >
               {isLoading ? (
@@ -168,17 +168,17 @@ export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalPr
                 type="button"
                 onClick={onCancel}
                 disabled={isLoading}
-                className={`w-full py-3 rounded-2xl font-semibold text-sm border transition-colors ${
+                className={`w-full py-3 rounded-xl font-bold text-sm border transition-all ${
                   isDark
                     ? 'border-stone-700 text-stone-300 hover:bg-stone-800 disabled:opacity-50'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50'
+                    : 'bg-white border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC] disabled:opacity-50'
                 }`}
               >
                 Batal
               </button>
             )}
 
-            <p className={`text-xs text-center ${isDark ? 'text-stone-500' : 'text-gray-400'}`}>
+            <p className={`text-xs text-center font-medium ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
               Pastikan jumlah uang sudah sesuai sebelum memulai shift
             </p>
           </form>

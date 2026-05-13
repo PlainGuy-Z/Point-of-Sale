@@ -81,12 +81,13 @@ const testimonials = [
 // ─── POS Mockup — mirrors the actual app UI from screenshots ─────────────────
 function POSMockup({ isDark }: { isDark: boolean }) {
   // Exact color tokens matching the real app
-  const bg      = isDark ? '#111111' : '#f8f8f8';
+  const bg      = isDark ? '#111111' : '#F8FAFC';
   const panel   = isDark ? '#1a1a1a' : '#ffffff';
-  const card    = isDark ? '#222222' : '#f1f1f1';
-  const border  = isDark ? '#2e2e2e' : '#e0e0e0';
-  const text    = isDark ? '#ffffff' : '#111111';
-  const muted   = isDark ? '#888888' : '#666666';
+  const card    = isDark ? '#222222' : '#F1F5F9';
+  const border  = isDark ? '#2e2e2e' : '#E2E8F0';
+  const text    = isDark ? '#ffffff' : '#0F172A';
+  const muted   = isDark ? '#888888' : '#475569';
+  const teal_acc = '#0D9488';
   const amber   = '#f59e0b';
   const orange  = '#ea580c';
   const red     = '#ef4444';
@@ -123,12 +124,12 @@ function POSMockup({ isDark }: { isDark: boolean }) {
         <div style={{ flex: 1, padding: '18px 16px', minWidth: 0, borderRight: `1px solid ${border}` }}>
 
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', marginBottom: 12 }}>
             <h2 style={{ fontSize: 18, fontWeight: 900, color: text, margin: 0, letterSpacing: '-0.01em' }}>
-              Menu <span style={{ color: amber }}>Explorer</span>
+              Menu <span style={{ color: teal_acc }}>Explorer</span>
             </h2>
             {/* Search bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: card, border: `1.5px solid ${border}`, borderRadius: 20, padding: '5px 12px', flex: 1, maxWidth: 160, marginLeft: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: panel, border: `1.5px solid ${border}`, borderRadius: 20, padding: '5px 12px', flex: 1, maxWidth: 160, marginLeft: 12 }}>
               <Search size={11} color={muted} />
               <span style={{ fontSize: 10, color: muted }}>Cari menu...</span>
             </div>
@@ -139,7 +140,7 @@ function POSMockup({ isDark }: { isDark: boolean }) {
             {['All', 'Coffee', 'Food', 'Non-Coffee', 'Tea'].map((cat, i) => (
               <div key={cat} style={{
                 padding: '4px 10px', borderRadius: 20, fontSize: 9, fontWeight: 700,
-                background: i === 0 ? `linear-gradient(135deg, ${amber}, ${orange})` : card,
+                background: i === 0 ? `linear-gradient(135deg, ${amber}, ${orange})` : panel,
                 color: i === 0 ? '#fff' : muted,
                 border: `1px solid ${i === 0 ? 'transparent' : border}`,
                 flexShrink: 0,
@@ -149,9 +150,9 @@ function POSMockup({ isDark }: { isDark: boolean }) {
 
           {/* Trending bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.08)', border: `1px solid ${isDark ? 'rgba(245,158,11,0.25)' : 'rgba(245,158,11,0.2)'}`, borderRadius: 10, padding: '3px 10px' }}>
-              <TrendingUp size={9} color={amber} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: amber }}>Trending: 3 Hari</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: isDark ? 'rgba(13,148,136,0.1)' : '#F0FDFA', border: `1px solid ${isDark ? 'rgba(13,148,136,0.25)' : '#99F6E4'}`, borderRadius: 10, padding: '3px 10px' }}>
+              <TrendingUp size={9} color={teal_acc} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: teal_acc }}>Trending: 3 Hari</span>
             </div>
             <div style={{ display: 'flex', gap: 5 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)', borderRadius: 8, padding: '2px 7px' }}>
@@ -169,14 +170,14 @@ function POSMockup({ isDark }: { isDark: boolean }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {menuItems.map((item) => (
               <div key={item.name} style={{
-                background: card, borderRadius: 12,
+                background: panel, borderRadius: 12,
                 border: `1px solid ${border}`,
                 overflow: 'hidden', position: 'relative',
                 opacity: item.soldOut ? 0.6 : 1,
               }}>
                 {/* Product image placeholder */}
                 <div style={{
-                  height: 68, background: `linear-gradient(135deg, ${item.color}30, ${item.color}18)`,
+                  height: 68, background: isDark ? `linear-gradient(135deg, ${item.color}30, ${item.color}18)` : '#F8FAFC',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   position: 'relative',
                 }}>
@@ -186,7 +187,7 @@ function POSMockup({ isDark }: { isDark: boolean }) {
                     <div style={{ position: 'absolute', top: 5, left: 5, background: '#dc2626', color: '#fff', fontSize: 7, fontWeight: 800, padding: '2px 5px', borderRadius: 5 }}>{item.badge}</div>
                   )}
                   {item.rank && (
-                    <div style={{ position: 'absolute', top: 5, right: 5, display: 'flex', alignItems: 'center', gap: 2, background: isDark ? '#333' : '#e5e7eb', borderRadius: 8, padding: '2px 5px' }}>
+                    <div style={{ position: 'absolute', top: 5, right: 5, display: 'flex', alignItems: 'center', gap: 2, background: isDark ? '#333' : '#FFFFFF', border: `1px solid ${border}`, borderRadius: 8, padding: '2px 5px' }}>
                       <Trophy size={7} color={amber} />
                       <span style={{ fontSize: 7, fontWeight: 800, color: amber }}>{item.rank}</span>
                     </div>
@@ -200,7 +201,7 @@ function POSMockup({ isDark }: { isDark: boolean }) {
                 <div style={{ padding: '7px 8px' }}>
                   <div style={{ fontSize: 11, fontWeight: 800, color: text, marginBottom: 1 }}>{item.name}</div>
                   <div style={{ fontSize: 8, color: muted, marginBottom: 4, fontWeight: 600 }}>{item.cat}</div>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: item.isPromo ? red : amber }}>{item.price}</div>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: item.isPromo ? red : teal_acc }}>{item.price}</div>
                   {item.orig && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ fontSize: 8, color: muted, textDecoration: 'line-through' }}>{item.orig}</span>
@@ -218,12 +219,12 @@ function POSMockup({ isDark }: { isDark: boolean }) {
         </div>
 
         {/* ── RIGHT: Shopping Cart ── */}
-        <div style={{ width: 220, background: isDark ? '#161616' : '#fdfdfd', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ width: 220, background: isDark ? '#161616' : '#FFFFFF', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
 
           {/* Cart header */}
           <div style={{ padding: '16px 14px 10px', borderBottom: `1px solid ${border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 9, background: `linear-gradient(135deg, ${amber}, ${orange})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 28, height: 28, borderRadius: 9, background: `linear-gradient(135deg, ${teal_acc}, #0f766e)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ShoppingCart size={13} color="#fff" />
               </div>
               <div>
@@ -256,22 +257,22 @@ function POSMockup({ isDark }: { isDark: boolean }) {
                     <div style={{ fontSize: 11, fontWeight: 800, color: text, marginBottom: 2 }}>{item.name}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       {item.orig && <span style={{ fontSize: 8, color: muted, textDecoration: 'line-through' }}>{item.orig}</span>}
-                      <span style={{ fontSize: 10, fontWeight: 900, color: item.isPromo ? red : amber }}>{item.price}</span>
+                      <span style={{ fontSize: 10, fontWeight: 900, color: item.isPromo ? red : teal_acc }}>{item.price}</span>
                     </div>
                   </div>
                   {/* Qty controls */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 18, height: 18, borderRadius: 5, background: isDark ? '#333' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 18, height: 18, borderRadius: 5, background: isDark ? '#333' : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: 11, fontWeight: 900, color: text, lineHeight: 1 }}>−</span>
                     </div>
                     <span style={{ fontSize: 10, fontWeight: 800, color: text, minWidth: 12, textAlign: 'center' }}>{item.qty}</span>
-                    <div style={{ width: 18, height: 18, borderRadius: 5, background: isDark ? '#333' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 18, height: 18, borderRadius: 5, background: isDark ? '#333' : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: 11, fontWeight: 900, color: text, lineHeight: 1 }}>+</span>
                     </div>
                   </div>
                   {/* Price + delete */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 6 }}>
-                    <span style={{ fontSize: 10, fontWeight: 900, color: item.isPromo ? red : amber, minWidth: 36, textAlign: 'right' }}>{item.price}</span>
+                    <span style={{ fontSize: 10, fontWeight: 900, color: item.isPromo ? red : teal_acc, minWidth: 36, textAlign: 'right' }}>{item.price}</span>
                     <Trash2 size={10} color={muted} />
                   </div>
                 </div>
@@ -280,16 +281,16 @@ function POSMockup({ isDark }: { isDark: boolean }) {
           </div>
 
           {/* Summary + actions */}
-          <div style={{ padding: '10px 12px', borderTop: `1px solid ${border}`, background: isDark ? '#161616' : '#fdfdfd' }}>
+          <div style={{ padding: '10px 12px', borderTop: `1px solid ${border}`, background: isDark ? '#161616' : '#FFFFFF' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <span style={{ fontSize: 10, color: muted }}>Subtotal</span>
               <span style={{ fontSize: 10, fontWeight: 700, color: text }}>64000</span>
             </div>
             {/* Tax toggle row */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, background: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.06)', border: `1px solid ${isDark ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.15)'}`, borderRadius: 8, padding: '5px 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, background: isDark ? 'rgba(13,148,136,0.08)' : '#F0FDFA', border: `1px solid ${isDark ? 'rgba(13,148,136,0.2)' : '#99F6E4'}`, borderRadius: 8, padding: '5px 8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {/* Toggle switch */}
-                <div style={{ width: 28, height: 15, borderRadius: 8, background: amber, display: 'flex', alignItems: 'center', padding: '0 2px', justifyContent: 'flex-end' }}>
+                <div style={{ width: 28, height: 15, borderRadius: 8, background: teal_acc, display: 'flex', alignItems: 'center', padding: '0 2px', justifyContent: 'flex-end' }}>
                   <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#fff' }} />
                 </div>
                 <span style={{ fontSize: 9, color: muted }}>Pajak (11%)</span>
@@ -355,12 +356,13 @@ function POSMockup({ isDark }: { isDark: boolean }) {
 
 // ─── Product Table Mockup — mirrors screenshot 2 ─────────────────────────────
 function ProductTableMockup({ isDark }: { isDark: boolean }) {
-  const bg     = isDark ? '#111111' : '#f8f8f8';
+  const bg     = isDark ? '#111111' : '#F8FAFC';
   const panel  = isDark ? '#1a1a1a' : '#ffffff';
-  const card   = isDark ? '#222222' : '#f1f1f1';
-  const border = isDark ? '#2e2e2e' : '#e0e0e0';
-  const text   = isDark ? '#ffffff' : '#111111';
-  const muted  = isDark ? '#888888' : '#666666';
+  const card   = isDark ? '#222222' : '#F1F5F9';
+  const border = isDark ? '#2e2e2e' : '#E2E8F0';
+  const text   = isDark ? '#ffffff' : '#0F172A';
+  const muted  = isDark ? '#888888' : '#475569';
+  const teal_acc = '#0D9488';
   const amber  = '#f59e0b';
   const orange = '#ea580c';
   const red    = '#ef4444';
@@ -385,7 +387,7 @@ function ProductTableMockup({ isDark }: { isDark: boolean }) {
     }}>
       {/* Toolbar */}
       <div style={{ padding: '14px 18px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: panel }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: `linear-gradient(135deg, ${amber}, ${orange})`, borderRadius: 20, padding: '6px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: `linear-gradient(135deg, ${teal_acc}, #0f766e)`, borderRadius: 20, padding: '6px 14px' }}>
           <Plus size={12} color="#fff" />
           <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>New Product</span>
         </div>
@@ -396,7 +398,7 @@ function ProductTableMockup({ isDark }: { isDark: boolean }) {
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 10, color: muted, fontWeight: 600 }}>Sales Period:</span>
           {['Today', '3 Days', '7 Days', '30 Days'].map((p, i) => (
-            <div key={p} style={{ padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: i === 1 ? `linear-gradient(135deg, ${amber}, ${orange})` : card, color: i === 1 ? '#fff' : muted, border: `1px solid ${i === 1 ? 'transparent' : border}` }}>{p}</div>
+            <div key={p} style={{ padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: i === 1 ? `linear-gradient(135deg, ${teal_acc}, #0f766e)` : card, color: i === 1 ? '#fff' : muted, border: `1px solid ${i === 1 ? 'transparent' : border}` }}>{p}</div>
           ))}
         </div>
       </div>
@@ -425,7 +427,7 @@ function ProductTableMockup({ isDark }: { isDark: boolean }) {
         <div key={row.name} style={{ display: 'grid', gridTemplateColumns: '2.5fr 0.9fr 1.1fr 0.7fr 1fr 0.9fr 1fr 0.8fr', gap: 0, padding: '12px 18px', borderBottom: ri < rows.length - 1 ? `1px solid ${border}` : 'none', alignItems: 'center', background: ri % 2 === 0 ? bg : (isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)') }}>
           {/* Product */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: isDark ? '#2a2a2a' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: isDark ? '#2a2a2a' : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Coffee size={16} color={muted} />
             </div>
             <div>
@@ -490,20 +492,20 @@ function FeatureCard({ icon: Icon, title, desc, isDark, delay }: {
         padding: '28px 26px', borderRadius: 16,
         background: isDark ? '#1c1917' : '#ffffff',
         border: `1px solid ${hovered
-          ? (isDark ? 'rgba(0,128,128,0.45)' : 'rgba(0,128,128,0.3)')
-          : (isDark ? '#292524' : '#e5e7eb')}`,
+          ? (isDark ? 'rgba(13,148,136,0.45)' : '#99F6E4')
+          : (isDark ? '#292524' : '#E2E8F0')}`,
         opacity: inView ? 1 : 0,
         transform: inView ? 'translateY(0)' : 'translateY(20px)',
         transition: `opacity 0.55s ease ${delay}ms, transform 0.55s ease ${delay}ms, border-color 0.2s, box-shadow 0.2s`,
-        boxShadow: hovered ? (isDark ? '0 8px 32px rgba(0,128,128,0.1)' : '0 8px 32px rgba(0,128,128,0.07)') : 'none',
+        boxShadow: hovered ? (isDark ? '0 8px 32px rgba(13,148,136,0.1)' : '0 8px 32px rgba(13,148,136,0.07)') : 'none',
         cursor: 'default',
       }}
     >
-      <div style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 18, background: isDark ? 'rgba(0,128,128,0.12)' : 'rgba(0,128,128,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Icon size={20} color="#008080" />
+      <div style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 18, background: isDark ? 'rgba(13,148,136,0.12)' : '#F0FDFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon size={20} color="#0D9488" />
       </div>
-      <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: isDark ? '#f5f5f4' : '#111827', letterSpacing: '-0.01em' }}>{title}</h3>
-      <p style={{ fontSize: 14, lineHeight: 1.65, color: isDark ? '#a8a29e' : '#6b7280', margin: 0 }}>{desc}</p>
+      <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: isDark ? '#f5f5f4' : '#0F172A', letterSpacing: '-0.01em' }}>{title}</h3>
+      <p style={{ fontSize: 14, lineHeight: 1.65, color: isDark ? '#a8a29e' : '#475569', margin: 0 }}>{desc}</p>
     </div>
   );
 }
@@ -532,13 +534,13 @@ export default function LandingPage() {
   }
 
   const c = {
-    bg:      isDark ? '#0c0a09' : '#fafaf8',
-    surface: isDark ? '#1c1917' : '#ffffff',
-    border:  isDark ? '#292524' : '#e5e7eb',
-    text:    isDark ? '#f5f5f4' : '#111827',
-    muted:   isDark ? '#a8a29e' : '#6b7280',
-    subtle:  isDark ? '#57534e' : '#9ca3af',
-    teal:    '#008080',
+    bg:      isDark ? '#0c0a09' : '#F8FAFC',
+    surface: isDark ? '#1c1917' : '#FFFFFF',
+    border:  isDark ? '#292524' : '#E2E8F0',
+    text:    isDark ? '#f5f5f4' : '#0F172A',
+    muted:   isDark ? '#a8a29e' : '#475569',
+    subtle:  isDark ? '#57534e' : '#94A3B8',
+    teal:    '#0D9488',
     brown:   '#4B3621',
     brownTint: isDark ? 'rgba(75,54,33,0.28)' : 'rgba(75,54,33,0.06)',
     amber:   '#f59e0b',
@@ -553,22 +555,22 @@ export default function LandingPage() {
         @keyframes floatB { 0%,100%{transform:translateY(0)} 50%{transform:translateY(7px)} }
         @keyframes subtleFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
         *{box-sizing:border-box;}
-        ::selection{background:rgba(0,128,128,0.18);}
+        ::selection{background:rgba(13,148,136,0.18);}
         .nav-cta:hover{opacity:0.86;transform:translateY(-1px);}
-        .hero-cta:hover{opacity:0.88;transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,128,128,0.3)!important;}
+        .hero-cta:hover{opacity:0.88;transform:translateY(-2px);box-shadow:0 12px 32px rgba(13,148,136,0.3)!important;}
         .sec-cta:hover{background:${isDark ? '#1c1917' : '#f3f4f6'}!important;}
         .footer-link:hover{color:${c.text}!important;}
         .tab-btn:hover{opacity:0.8;}
       `}</style>
 
       {/* ═══════════ NAVBAR ═══════════ */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(20px) saturate(1.6)', background: isDark ? 'rgba(12,10,9,0.92)' : 'rgba(250,250,248,0.92)', borderBottom: `1px solid ${c.border}` }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(20px) saturate(1.6)', background: isDark ? 'rgba(12,10,9,0.92)' : 'rgba(248,250,252,0.92)', borderBottom: `1px solid ${c.border}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <div style={{ width: 33, height: 33, borderRadius: 10, background: c.brown, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Coffee size={16} color="#fff" />
             </div>
-            <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>
+            <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em', color: c.text }}>
               smartpos<span style={{ color: c.teal }}>.</span><span style={{ color: c.muted, fontWeight: 400 }}>cafe</span>
             </span>
           </div>
@@ -576,8 +578,8 @@ export default function LandingPage() {
             <button onClick={toggleTheme} style={{ width: 34, height: 34, borderRadius: 9, border: `1px solid ${c.border}`, background: 'transparent', cursor: 'pointer', color: c.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
               {isDark ? <Sun size={15} /> : <Moon size={15} />}
             </button>
-            <Link to="/login" style={{ padding: '8px 16px', borderRadius: 9, border: `1px solid ${c.border}`, color: c.text, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'all 0.15s' }}>Masuk</Link>
-            <Link to="/register" className="nav-cta" style={{ padding: '8px 18px', borderRadius: 9, background: c.teal, color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,128,128,0.22)' }}>Daftar Gratis</Link>
+            <Link to="/login" style={{ padding: '8px 16px', borderRadius: 9, border: `1px solid ${c.border}`, color: c.text, fontSize: 13, fontWeight: 600, textDecoration: 'none', transition: 'all 0.15s' }}>Masuk</Link>
+            <Link to="/register" className="nav-cta" style={{ padding: '8px 18px', borderRadius: 9, background: c.teal, color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(13,148,136,0.22)' }}>Daftar Gratis</Link>
           </div>
         </div>
       </nav>
@@ -585,8 +587,8 @@ export default function LandingPage() {
       {/* ═══════════ HERO ═══════════ */}
       <section style={{ position: 'relative', padding: '72px 28px 80px', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: isDark
-          ? 'radial-gradient(ellipse 70% 55% at 72% 38%, rgba(0,128,128,0.045) 0%, transparent 60%), radial-gradient(ellipse 45% 35% at 15% 82%, rgba(75,54,33,0.055) 0%, transparent 60%)'
-          : 'radial-gradient(ellipse 70% 55% at 72% 38%, rgba(0,128,128,0.05) 0%, transparent 60%), radial-gradient(ellipse 45% 35% at 15% 82%, rgba(75,54,33,0.04) 0%, transparent 60%)',
+          ? 'radial-gradient(ellipse 70% 55% at 72% 38%, rgba(13,148,136,0.045) 0%, transparent 60%), radial-gradient(ellipse 45% 35% at 15% 82%, rgba(75,54,33,0.055) 0%, transparent 60%)'
+          : 'radial-gradient(ellipse 70% 55% at 72% 38%, rgba(13,148,136,0.05) 0%, transparent 60%), radial-gradient(ellipse 45% 35% at 15% 82%, rgba(75,54,33,0.04) 0%, transparent 60%)',
         }} />
 
         <div ref={heroRef} style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(340px, 480px) 1fr', gap: 64, alignItems: 'center' }}>
@@ -605,15 +607,15 @@ export default function LandingPage() {
               Laporan Otomatis.
             </h1>
 
-            <p style={{ fontSize: 16, lineHeight: 1.72, color: c.muted, marginBottom: 38, maxWidth: 420, fontWeight: 400 }}>
+            <p style={{ fontSize: 16, lineHeight: 1.72, color: c.muted, marginBottom: 38, maxWidth: 420, fontWeight: 500 }}>
               Dari kasir hingga laporan harian — satu platform untuk semua kebutuhan operasional kedai kopi Anda.
             </p>
 
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
-              <Link to="/register" className="hero-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 26px', borderRadius: 11, background: c.teal, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,128,128,0.28)', transition: 'all 0.2s' }}>
+              <Link to="/register" className="hero-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 26px', borderRadius: 11, background: c.teal, color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(13,148,136,0.28)', transition: 'all 0.2s' }}>
                 Mulai Gratis Sekarang <ArrowRight size={16} />
               </Link>
-              <Link to="/login" className="sec-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 26px', borderRadius: 11, border: `1px solid ${c.border}`, color: c.text, fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s', background: 'transparent' }}>
+              <Link to="/login" className="sec-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 26px', borderRadius: 11, border: `1px solid ${c.border}`, color: c.text, fontSize: 14, fontWeight: 600, textDecoration: 'none', transition: 'all 0.2s', background: 'transparent' }}>
                 Sudah punya akun <ChevronRight size={15} />
               </Link>
             </div>
@@ -621,12 +623,12 @@ export default function LandingPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 {[...Array(5)].map((_, i) => <Star key={i} size={13} fill="#f59e0b" color="#f59e0b" />)}
-                <span style={{ fontSize: 13, fontWeight: 600, color: c.text, marginLeft: 5 }}>4.9/5</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: c.text, marginLeft: 5 }}>4.9/5</span>
               </div>
               <div style={{ width: 1, height: 14, background: c.border }} />
-              <span style={{ fontSize: 13, color: c.muted }}>Tanpa kartu kredit</span>
+              <span style={{ fontSize: 13, color: c.muted, fontWeight: 500 }}>Tanpa kartu kredit</span>
               <div style={{ width: 1, height: 14, background: c.border }} />
-              <span style={{ fontSize: 13, color: c.muted }}>Setup 30 detik</span>
+              <span style={{ fontSize: 13, color: c.muted, fontWeight: 500 }}>Setup 30 detik</span>
             </div>
           </div>
 
@@ -642,8 +644,8 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 28px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0 }}>
           {stats.map((s, i) => (
             <div key={s.value} style={{ textAlign: 'center', borderRight: i < 3 ? `1px solid ${c.border}` : 'none', padding: '0 24px' }}>
-              <div style={{ fontSize: 25, fontWeight: 800, color: c.teal, letterSpacing: '-0.03em' }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: c.muted, marginTop: 4, fontWeight: 500 }}>{s.label}</div>
+              <div style={{ fontSize: 25, fontWeight: 900, color: c.teal, letterSpacing: '-0.03em' }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: c.muted, marginTop: 4, fontWeight: 600 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -652,11 +654,11 @@ export default function LandingPage() {
       {/* ═══════════ FEATURE SHOWCASE ═══════════ */}
       <section style={{ padding: '88px 28px', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Lihat Langsung</div>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(26px, 3.2vw, 40px)', fontWeight: 400, margin: '0 0 14px', letterSpacing: '-0.022em', lineHeight: 1.2 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Lihat Langsung</div>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(26px, 3.2vw, 40px)', fontWeight: 400, margin: '0 0 14px', letterSpacing: '-0.022em', lineHeight: 1.2, color: c.text }}>
             Tampilan Aplikasi yang Sesungguhnya
           </h2>
-          <p style={{ fontSize: 14, color: c.muted, maxWidth: 420, margin: '0 auto 28px', lineHeight: 1.65 }}>
+          <p style={{ fontSize: 14, color: c.muted, maxWidth: 420, margin: '0 auto 28px', lineHeight: 1.65, fontWeight: 500 }}>
             Bukan mockup generik. Ini adalah tampilan asli SmartPOS yang digunakan setiap hari oleh ratusan kasir di seluruh Indonesia.
           </p>
           {/* Tab toggle */}
@@ -670,7 +672,7 @@ export default function LandingPage() {
                 className="tab-btn"
                 onClick={() => setShowcaseTab(tab.id as 'pos' | 'products')}
                 style={{
-                  padding: '8px 20px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.2s',
+                  padding: '8px 20px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.2s',
                   background: showcaseTab === tab.id ? c.teal : 'transparent',
                   color: showcaseTab === tab.id ? '#fff' : c.muted,
                 }}
@@ -696,12 +698,12 @@ export default function LandingPage() {
       <section ref={featuresSection.ref} style={{ padding: '88px 28px', background: c.surface, borderTop: `1px solid ${c.border}`, borderBottom: `1px solid ${c.border}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 56, opacity: featuresSection.inView ? 1 : 0, transform: featuresSection.inView ? 'translateY(0)' : 'translateY(16px)', transition: 'all 0.6s ease' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>Fitur Platform</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>Fitur Platform</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 }}>
-              <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(26px, 3.2vw, 40px)', fontWeight: 400, margin: 0, letterSpacing: '-0.022em', maxWidth: 440, lineHeight: 1.2 }}>
+              <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(26px, 3.2vw, 40px)', fontWeight: 400, margin: 0, letterSpacing: '-0.022em', maxWidth: 440, lineHeight: 1.2, color: c.text }}>
                 Semua yang Anda Butuhkan,<br />dalam Satu Tempat
               </h2>
-              <p style={{ fontSize: 14, color: c.muted, maxWidth: 320, margin: 0, lineHeight: 1.65 }}>
+              <p style={{ fontSize: 14, color: c.muted, maxWidth: 320, margin: 0, lineHeight: 1.65, fontWeight: 500 }}>
                 Fitur enterprise-grade tanpa kerumitan. Didesain agar siapapun bisa langsung produktif dari hari pertama.
               </p>
             </div>
@@ -716,9 +718,9 @@ export default function LandingPage() {
       {/* ═══════════ HOW IT WORKS ═══════════ */}
       <section style={{ padding: '88px 28px', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Cara Kerja</div>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(26px, 3vw, 38px)', fontWeight: 400, letterSpacing: '-0.022em', margin: '0 auto 12px', lineHeight: 1.2 }}>Mulai dalam 3 Langkah</h2>
-          <p style={{ fontSize: 14, color: c.muted, margin: 0 }}>Dari daftar hingga transaksi pertama — kurang dari 5 menit.</p>
+          <div style={{ fontSize: 11, fontWeight: 800, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Cara Kerja</div>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(26px, 3vw, 38px)', fontWeight: 400, letterSpacing: '-0.022em', margin: '0 auto 12px', lineHeight: 1.2, color: c.text }}>Mulai dalam 3 Langkah</h2>
+          <p style={{ fontSize: 14, color: c.muted, margin: 0, fontWeight: 500 }}>Dari daftar hingga transaksi pertama — kurang dari 5 menit.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 0 }}>
           {[
@@ -727,12 +729,12 @@ export default function LandingPage() {
             { step: '03', icon: RefreshCw,  title: 'Langsung Jual',  desc: 'Buka POS, mulai transaksi. Laporan otomatis tersedia.' },
           ].map((item, i) => (
             <div key={item.step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '0 32px', borderRight: i < 2 ? `1px solid ${c.border}` : 'none' }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: isDark ? 'rgba(0,128,128,0.12)' : 'rgba(0,128,128,0.08)', border: `2px solid ${isDark ? 'rgba(0,128,128,0.28)' : 'rgba(0,128,128,0.18)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+              <div style={{ width: 52, height: 52, borderRadius: '50%', background: isDark ? 'rgba(13,148,136,0.12)' : '#F0FDFA', border: `2px solid ${isDark ? 'rgba(13,148,136,0.28)' : '#99F6E4'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
                 <item.icon size={22} color={c.teal} />
               </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: c.teal, marginBottom: 8, letterSpacing: '0.08em' }}>LANGKAH {item.step}</div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10, letterSpacing: '-0.01em' }}>{item.title}</h3>
-              <p style={{ fontSize: 14, color: c.muted, lineHeight: 1.65, margin: 0 }}>{item.desc}</p>
+              <div style={{ fontSize: 11, fontWeight: 800, color: c.teal, marginBottom: 8, letterSpacing: '0.08em' }}>LANGKAH {item.step}</div>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 10, letterSpacing: '-0.01em', color: c.text }}>{item.title}</h3>
+              <p style={{ fontSize: 14, color: c.muted, lineHeight: 1.65, margin: 0, fontWeight: 500 }}>{item.desc}</p>
             </div>
           ))}
         </div>
@@ -742,8 +744,8 @@ export default function LandingPage() {
       <section ref={testimonialsSection.ref} style={{ padding: '88px 28px', background: c.surface, borderTop: `1px solid ${c.border}`, borderBottom: `1px solid ${c.border}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 56, opacity: testimonialsSection.inView ? 1 : 0, transform: testimonialsSection.inView ? 'translateY(0)' : 'translateY(16px)', transition: 'all 0.6s ease' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Cerita Pelanggan</div>
-            <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 400, letterSpacing: '-0.022em', margin: 0, lineHeight: 1.2 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Cerita Pelanggan</div>
+            <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 400, letterSpacing: '-0.022em', margin: 0, lineHeight: 1.2, color: c.text }}>
               Dipercaya oleh Ratusan Pemilik Kedai
             </h2>
           </div>
@@ -753,14 +755,14 @@ export default function LandingPage() {
                 <div style={{ display: 'flex', gap: 3, marginBottom: 18 }}>
                   {[...Array(5)].map((_, si) => <Star key={si} size={12} fill="#f59e0b" color="#f59e0b" />)}
                 </div>
-                <p style={{ fontSize: 14, lineHeight: 1.72, color: c.muted, margin: '0 0 24px', fontStyle: 'italic' }}>"{t.quote}"</p>
+                <p style={{ fontSize: 14, lineHeight: 1.72, color: c.muted, margin: '0 0 24px', fontStyle: 'italic', fontWeight: 500 }}>"{t.quote}"</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 38, height: 38, borderRadius: '50%', background: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{t.initials}</span>
                   </div>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{t.name}</div>
-                    <div style={{ fontSize: 12, color: c.muted, marginTop: 2 }}>{t.role}</div>
+                    <div style={{ fontSize: 12, color: c.muted, marginTop: 2, fontWeight: 500 }}>{t.role}</div>
                   </div>
                 </div>
               </div>
@@ -773,14 +775,14 @@ export default function LandingPage() {
       <section ref={benefitsSection.ref} style={{ padding: '88px 28px', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 64, alignItems: 'center' }}>
           <div style={{ opacity: benefitsSection.inView ? 1 : 0, transform: benefitsSection.inView ? 'translateX(0)' : 'translateX(-20px)', transition: 'all 0.6s ease' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>Kenapa SmartPOS</div>
-            <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 400, letterSpacing: '-0.022em', margin: '0 0 18px', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: c.teal, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>Kenapa SmartPOS</div>
+            <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 400, letterSpacing: '-0.022em', margin: '0 0 18px', lineHeight: 1.2, color: c.text }}>
               Dirancang Khusus<br />untuk F&B Indonesia
             </h2>
-            <p style={{ fontSize: 14, color: c.muted, lineHeight: 1.72, margin: '0 0 28px' }}>
+            <p style={{ fontSize: 14, color: c.muted, lineHeight: 1.72, margin: '0 0 28px', fontWeight: 500 }}>
               Bukan sekedar POS generik. SmartPOS dibangun dari pengalaman nyata pemilik kedai kopi lokal, dengan fitur yang benar-benar dibutuhkan.
             </p>
-            <Link to="/register" className="hero-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '12px 22px', borderRadius: 10, background: c.teal, color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none', boxShadow: '0 4px 14px rgba(0,128,128,0.25)', transition: 'all 0.2s' }}>
+            <Link to="/register" className="hero-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '12px 22px', borderRadius: 10, background: c.teal, color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 14px rgba(13,148,136,0.25)', transition: 'all 0.2s' }}>
               Coba Sekarang <ArrowRight size={15} />
             </Link>
           </div>
@@ -788,7 +790,7 @@ export default function LandingPage() {
             {benefits.map((b, i) => (
               <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 12, background: c.surface, border: `1px solid ${c.border}`, opacity: benefitsSection.inView ? 1 : 0, transform: benefitsSection.inView ? 'translateX(0)' : 'translateX(20px)', transition: `opacity 0.5s ease ${i * 60}ms, transform 0.5s ease ${i * 60}ms` }}>
                 <CheckCircle2 size={16} color={c.teal} style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 500, color: c.text }}>{b}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{b}</span>
               </div>
             ))}
           </div>
@@ -801,21 +803,21 @@ export default function LandingPage() {
           <div style={{ width: 50, height: 50, borderRadius: 15, background: c.brown, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px' }}>
             <Coffee size={24} color="#fff" />
           </div>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(22px, 2.8vw, 32px)', fontWeight: 400, letterSpacing: '-0.02em', margin: '0 0 14px', lineHeight: 1.25 }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(22px, 2.8vw, 32px)', fontWeight: 400, letterSpacing: '-0.02em', margin: '0 0 14px', lineHeight: 1.25, color: c.text }}>
             Siap Membawa Kedai Anda<br />ke Level Berikutnya?
           </h2>
-          <p style={{ fontSize: 14, color: c.muted, margin: '0 0 32px', lineHeight: 1.72 }}>
+          <p style={{ fontSize: 14, color: c.muted, margin: '0 0 32px', lineHeight: 1.72, fontWeight: 500 }}>
             Bergabung dengan ratusan pemilik kedai yang sudah mengelola bisnis lebih efisien setiap harinya.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/register" className="hero-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 11, background: c.teal, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none', boxShadow: '0 4px 16px rgba(0,128,128,0.28)', transition: 'all 0.2s' }}>
+            <Link to="/register" className="hero-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 11, background: c.teal, color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(13,148,136,0.28)', transition: 'all 0.2s' }}>
               Daftar Gratis <ArrowRight size={16} />
             </Link>
-            <Link to="/login" className="sec-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 28px', borderRadius: 11, border: `1px solid ${c.border}`, color: c.text, fontSize: 14, fontWeight: 500, textDecoration: 'none', background: 'transparent', transition: 'all 0.2s' }}>
+            <Link to="/login" className="sec-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '14px 28px', borderRadius: 11, border: `1px solid ${c.border}`, color: c.text, fontSize: 14, fontWeight: 600, textDecoration: 'none', background: 'transparent', transition: 'all 0.2s' }}>
               Masuk ke Akun
             </Link>
           </div>
-          <p style={{ fontSize: 12, color: c.subtle, margin: '22px 0 0' }}>Gratis selamanya untuk satu toko. Tanpa kartu kredit.</p>
+          <p style={{ fontSize: 12, color: c.subtle, margin: '22px 0 0', fontWeight: 500 }}>Gratis selamanya untuk satu toko. Tanpa kartu kredit.</p>
         </div>
       </section>
 
@@ -826,14 +828,14 @@ export default function LandingPage() {
             <div style={{ width: 26, height: 26, borderRadius: 8, background: c.brown, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Coffee size={13} color="#fff" />
             </div>
-            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em' }}>
+            <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', color: c.text }}>
               smartpos<span style={{ color: c.teal }}>.</span><span style={{ color: c.muted, fontWeight: 400 }}>cafe</span>
             </span>
           </div>
-          <p style={{ fontSize: 12, color: c.muted, margin: 0 }}>© {new Date().getFullYear()} SmartPOS. Dibuat untuk pelaku usaha Indonesia.</p>
+          <p style={{ fontSize: 12, color: c.muted, margin: 0, fontWeight: 500 }}>© {new Date().getFullYear()} SmartPOS. Dibuat untuk pelaku usaha Indonesia.</p>
           <div style={{ display: 'flex', gap: 20 }}>
             {['Privasi', 'Syarat', 'Bantuan'].map(l => (
-              <span key={l} className="footer-link" style={{ fontSize: 12, color: c.muted, cursor: 'pointer', transition: 'color 0.15s' }}>{l}</span>
+              <span key={l} className="footer-link" style={{ fontSize: 12, color: c.muted, cursor: 'pointer', transition: 'color 0.15s', fontWeight: 500 }}>{l}</span>
             ))}
           </div>
         </div>

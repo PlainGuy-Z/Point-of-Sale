@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { Plus, Package, Trophy, Lock } from 'lucide-react';
+import { useApp } from '../../contexts/AppContext';
 import type { Product } from '../../types';
 import { getEffectivePrice } from '../../utils/priceUtils';
 import { isOutOfStock as checkOutOfStock, getStockDisplay } from '../../utils/stockUtils';
@@ -18,6 +20,17 @@ export default function ProductGrid({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
+  const { transactions } = useApp();
+
+  const salesMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const transaction of transactions) {
+      for (const item of transaction.items) {
+        map.set(item.productId, (map.get(item.productId) || 0) + item.quantity);
+      }
+    }
+    return map;
+  }, [transactions]);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
@@ -27,7 +40,7 @@ export default function ProductGrid({
         const isDisabled = isUnavailable || isOutOfStock;
         const { price: priceToShow, isPromoActive, discountPercent } = getEffectivePrice(product);
         
-        const totalSold = product.recentSalesCount || 0;
+        const totalSold = salesMap.get(product.id) || product.salesCount || product.recentSalesCount || 0;
         
         // Tentukan apakah produk ini best seller (untuk styling saja)
         const isBestSeller = product.isBestSeller || false;
@@ -42,10 +55,11 @@ export default function ProductGrid({
             onClick={() => onAddToCart(product.id)}
             disabled={isDisabled}
             className={`
-              rounded-3xl border p-4 text-left transition-all group relative flex flex-col overflow-hidden
+              h-full rounded-3xl border p-4 text-left transition-all group relative flex flex-col justify-between overflow-hidden
               ${isDark
                 ? 'bg-stone-950 border-stone-800 hover:border-amber-500/40'
-                : 'bg-white border-stone-200 hover:border-amber-500/50'
+              : 'bg-white border-teal-400/40 hover:border-teal-500'
+              }
               }
               ${isDisabled ? 'opacity-60 cursor-not-allowed grayscale-[0.5]' : ''}
               animate-in
@@ -178,22 +192,20 @@ export default function ProductGrid({
                   </div>
                 )}
                 
-                {/* INFO PENJUALAN - Tampilkan hanya jika ada penjualan */}
-                {totalSold > 0 && (
-                  <div className="flex items-center gap-1 mt-1 w-full">
-                    <div className={`
-                      flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold
-                      ${isDark 
-                        ? 'bg-stone-900/50 text-stone-300' 
-                        : 'bg-gray-100 text-gray-700'
-                      }
-                    `}>
-                      <span>
-                        {totalSold} terjual 
-                      </span>
-                    </div>
+                {/* INFO PENJUALAN - selalu tampilkan total terjual */}
+                <div className="flex items-center gap-1 mt-1 w-full">
+                  <div className={`
+                    flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold
+                    ${isDark 
+                      ? 'bg-stone-900/70 text-stone-200' 
+                      : 'bg-gray-100 text-gray-700'
+                    }
+                  `}>
+                    <span>
+                      {totalSold} terjual
+                    </span>
                   </div>
-                )}
+                </div>
                 
                 {/* Info Stok */}
                 <div className="flex justify-between items-center w-full mt-1">

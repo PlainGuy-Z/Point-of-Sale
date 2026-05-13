@@ -27,7 +27,7 @@ export default function Layout() {
 
   return (
     <div className={`relative min-h-screen overflow-x-hidden transition-colors duration-300 ${
-      theme === 'dark' ? 'bg-stone-950' : 'bg-gray-50'
+      theme === 'dark' ? 'bg-stone-950' : 'bg-[#F8FAFC]'
     }`}>
       <Sidebar
         isCollapsed={isCollapsed}
@@ -41,17 +41,17 @@ export default function Layout() {
           type="button"
           aria-label="Close navigation"
           onClick={() => setIsMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
         />
       )}
 
       <main className={`relative flex-1 h-screen overflow-hidden transition-all duration-300 ${isCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'}`}>
-        <div className={`fixed inset-x-0 top-0 z-30 h-14 border-b lg:hidden ${isDark ? 'bg-[#111111] border-stone-800' : 'bg-white border-stone-200'}`}>
+        <div className={`fixed inset-x-0 top-0 z-30 h-14 border-b lg:hidden ${isDark ? 'bg-[#111111] border-stone-800' : 'bg-white border-[#E2E8F0]'}`}>
           <div className="flex h-full items-center justify-between px-4">
             <button
               type="button"
               onClick={() => setIsMobileOpen(true)}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-colors duration-200 ${isDark ? 'border-stone-800 bg-stone-950 text-stone-100 hover:bg-stone-900' : 'border-stone-200 bg-white text-stone-900 hover:bg-stone-50'}`}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-colors duration-200 ${isDark ? 'border-stone-800 bg-stone-950 text-stone-100 hover:bg-stone-900' : 'border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAFC]'}`}
               aria-label="Open navigation"
             >
               <Menu className="h-5 w-5" />
@@ -59,10 +59,10 @@ export default function Layout() {
 
             <div className="flex items-center gap-2 text-sm font-bold text-center">
               <Coffee className="h-5 w-5 text-amber-500" />
-              <span className={isDark ? 'text-white' : 'text-stone-900'}>SmartPOS</span>
+              <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>SmartPOS</span>
             </div>
 
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full border text-sm font-black ${isDark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-white text-stone-900'}`}>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full border text-sm font-black ${isDark ? 'border-stone-800 bg-stone-950 text-white' : 'border-[#E2E8F0] bg-white text-[#0F172A]'}`}>
               {user?.name?.[0] ?? 'U'}
             </div>
           </div>

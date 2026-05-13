@@ -10,6 +10,7 @@ import { useDashboardMetrics } from '../../hooks/useDashboardMetrics';
 import StatCard from '../../components/dashboard/StatCard';
 import TopProducts from '../../components/dashboard/TopProducts';
 import LowStockAlert from '../../components/dashboard/LowStockAlert';
+import StockAlertIndicator from '../../components/dashboard/StockAlertIndicator';
 import ProfitChart from '../../components/dashboard/ProfitChart';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 import { useApp } from '../../contexts/AppContext';
@@ -213,6 +214,137 @@ function PerfMetric({ label, value, isDark }: { label: string; value: string; is
   );
 }
 
+// ─── Product Panel Carousel ──────────────────────────────────────────────────
+
+interface ProductPanelCarouselProps {
+  topProducts: any;
+  lowStockProducts: any;
+  isDark: boolean;
+}
+
+function ProductPanelCarousel({ topProducts, lowStockProducts, isDark }: ProductPanelCarouselProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const GAP = 12;
+
+  const scrollTo = (index: number) => {
+    if (!scrollRef.current) return;
+    const cardPx = scrollRef.current.clientWidth * 0.85 + GAP;
+    scrollRef.current.scrollTo({ left: index * cardPx, behavior: 'smooth' });
+    setActiveIndex(index);
+  };
+
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const cardPx = scrollRef.current.clientWidth * 0.85 + GAP;
+    const newIndex = Math.round(scrollRef.current.scrollLeft / cardPx);
+    setActiveIndex(Math.max(0, Math.min(newIndex, 1)));
+  };
+
+  const panels = [
+    {
+      key: 'top',
+      label: 'Produk Terlaris',
+      content: <TopProducts products={topProducts} title="Produk Terlaris Hari Ini" limit={5} />,
+    },
+    {
+      key: 'alert',
+      label: 'Peringatan Stok',
+      content: <LowStockAlert products={lowStockProducts} />,
+    },
+  ];
+
+  return (
+    <div>
+      {/* Scroll track */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        style={{
+          display: 'flex',
+          gap: GAP,
+          alignItems: 'stretch',
+          overflowX: 'auto',
+          scrollSnapType: 'x mandatory',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          paddingBottom: 2,
+          paddingRight: 16,
+        }}
+      >
+        {panels.map((panel) => (
+          <div
+            key={panel.key}
+            style={{
+              scrollSnapAlign: 'start',
+              flexShrink: 0,
+              width: 'calc(85vw)',
+            }}
+            className="flex flex-col [&>div]:h-full [&>div]:flex-1"
+          >
+            {panel.content}
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 10, marginTop: 12,
+      }}>
+        <button
+          onClick={() => scrollTo(0)}
+          disabled={activeIndex === 0}
+          style={{
+            width: 28, height: 28, borderRadius: 999, border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: activeIndex === 0 ? 'default' : 'pointer',
+            background: isDark ? '#292524' : '#e7e5e4',
+            color: isDark ? '#d6d3d1' : '#44403c',
+            opacity: activeIndex === 0 ? 0.35 : 1,
+            transition: 'opacity 0.2s',
+          }}
+        >
+          <ChevronLeft size={14} />
+        </button>
+
+        {panels.map((panel, i) => (
+          <button
+            key={panel.key}
+            onClick={() => scrollTo(i)}
+            style={{
+              padding: '4px 12px', borderRadius: 999, border: 'none',
+              cursor: 'pointer', fontSize: 11, fontWeight: 600,
+              transition: 'all 0.2s',
+              background: i === activeIndex ? '#f59e0b' : (isDark ? '#292524' : '#e7e5e4'),
+              color: i === activeIndex ? '#fff' : (isDark ? '#78716c' : '#78716c'),
+            }}
+          >
+            {panel.label}
+          </button>
+        ))}
+
+        <button
+          onClick={() => scrollTo(1)}
+          disabled={activeIndex === 1}
+          style={{
+            width: 28, height: 28, borderRadius: 999, border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: activeIndex === 1 ? 'default' : 'pointer',
+            background: isDark ? '#292524' : '#e7e5e4',
+            color: isDark ? '#d6d3d1' : '#44403c',
+            opacity: activeIndex === 1 ? 0.35 : 1,
+            transition: 'opacity 0.2s',
+          }}
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -265,28 +397,11 @@ export default function Dashboard() {
       <StatCard title="Rata-rata Tiket" value={format(metrics.avgTicket)} icon={TrendingUp} trend={metrics.avgTicket > 30000 ? 'up' : 'stable'} gradient="from-amber-500 to-orange-500" delay="0" />,
     ];
 
-    const stockMiniCards = [
-      <StatCard title="Peringatan Stok" value={metrics.lowStockProducts.length} icon={AlertCircle} subtitle="item perlu perhatian" gradient="from-orange-500 to-amber-500" trend={metrics.lowStockProducts.length > 0 ? 'up' : 'stable'} trendValue={metrics.lowStockProducts.length > 0 ? 'Perhatian' : 'Aman'} />,
-      <StatCard title="Stok Habis" value={metrics.outOfStockProducts.length} icon={Package} subtitle="item tidak tersedia" gradient="from-red-500 to-pink-500" trend={metrics.outOfStockProducts.length > 0 ? 'up' : 'stable'} trendValue={metrics.outOfStockProducts.length > 0 ? 'Segera Restok' : 'Semua Tersedia'} />,
-      <StatCard title="Tingkat Margin" value={`${metrics.profitMargin}%`} icon={BarChart3} subtitle="margin keuntungan" gradient="from-amber-500 to-indigo-500" trend={metrics.profitMargin > 50 ? 'up' : metrics.profitMargin > 30 ? 'stable' : 'down'} trendValue={metrics.profitMargin > 50 ? 'Tinggi' : 'Normal'} />,
-    ];
-
-    const inventoryCards = [
-      <StatCard title="Total Produk" value={metrics.totalProducts} icon={Package} subtitle={`Dari ${metrics.categoriesCount} kategori`} gradient="from-gray-500 to-gray-700" trend="stable" />,
-      <StatCard title="Nilai Stok" value={format(metrics.stockValue)} icon={DollarSign} subtitle="Total nilai inventaris" gradient="from-green-500 to-teal-500" trend="stable" />,
-      <StatCard title="Tingkat Keberhasilan" value={`${metrics.successRate}%`} icon={Shield} subtitle="Penyelesaian transaksi" gradient="from-purple-500 to-violet-500" trend={metrics.successRate > 95 ? 'up' : 'stable'} trendValue={metrics.successRate > 95 ? 'Excellent' : 'Good'} />,
-    ];
-
     const perfMetrics = [
       <PerfMetric label="Rata-rata Nilai Pesanan" value={format(Math.round(metrics.avgTicket))} isDark={isDark} />,
       <PerfMetric label="Tingkat Konversi" value={`${Math.round((metrics.todayTransactionCount / Math.max(metrics.todayTransactionCount * 3, 1)) * 100)}%`} isDark={isDark} />,
       <PerfMetric label="Retensi Pelanggan" value={`${Math.min(85 + metrics.newCustomers, 99)}%`} isDark={isDark} />,
       <PerfMetric label="Perputaran Inventaris" value={`${Math.round((metrics.todayRevenue / Math.max(metrics.stockValue, 1)) * 30)} hari`} isDark={isDark} />,
-    ];
-
-    const sidebarPanels = [
-      <LowStockAlert products={metrics.lowStockProducts} />,
-      <TopProducts products={topProductsToday} title="Produk Terlaris Hari Ini" limit={5} />,
     ];
 
     return (
@@ -306,13 +421,16 @@ export default function Dashboard() {
                 {formattedDate}
               </p>
             </div>
-            <HeaderBadge isDark={isDark} type="warning">
-              <Zap className="w-3 h-3" /> Real-time
-            </HeaderBadge>
+            <div className="flex items-center gap-2">
+              <HeaderBadge isDark={isDark} type="warning">
+                <Zap className="w-3 h-3" /> Live
+              </HeaderBadge>
+            </div>
           </div>
         </div>
 
-        {/* ── 1. Stat Cards Utama — carousel 80vw ── */}
+
+        {/* ── 1. Stat Cards — carousel ── */}
         <div>
           <SectionLabel isDark={isDark}>Statistik Utama</SectionLabel>
           <SnapCarousel isDark={isDark} cardWidthVw={80} accentColor="#f59e0b">
@@ -326,31 +444,36 @@ export default function Dashboard() {
           <ProfitChart transactions={rawData.transactions} />
         </div>
 
-        {/* ── 3. Mini Stok Cards — carousel ── */}
+        {/* ── 3. Quick Stats — compact inline row ── */}
         <div>
-          <SectionLabel isDark={isDark}>Ringkasan Stok & Margin</SectionLabel>
-          <SnapCarousel isDark={isDark} cardWidthVw={75} accentColor="#f97316">
-            {stockMiniCards}
-          </SnapCarousel>
+          <SectionLabel isDark={isDark}>Ringkasan Cepat</SectionLabel>
+          <div className="grid grid-cols-3 gap-2">
+            <div className={`p-3 rounded-2xl text-center ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-sm'}`}>
+              <p className={`text-lg font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{metrics.totalProducts}</p>
+              <p className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Produk</p>
+            </div>
+            <div className={`p-3 rounded-2xl text-center ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-sm'}`}>
+              <p className={`text-lg font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{metrics.profitMargin}%</p>
+              <p className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Margin</p>
+            </div>
+            <div className={`p-3 rounded-2xl text-center ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-sm'}`}>
+              <p className={`text-lg font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{metrics.successRate}%</p>
+              <p className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Sukses</p>
+            </div>
+          </div>
         </div>
 
-        {/* ── 4. LowStockAlert + TopProducts — carousel 90vw ── */}
+        {/* ── 4. Produk & Inventaris — carousel ── */}
         <div>
-          <SectionLabel isDark={isDark}>Stok & Produk Terlaris</SectionLabel>
-          <SnapCarousel isDark={isDark} cardWidthVw={88} accentColor="#22c55e" showArrows>
-            {sidebarPanels}
-          </SnapCarousel>
+          <SectionLabel isDark={isDark}>Produk & Inventaris</SectionLabel>
+          <ProductPanelCarousel
+            topProducts={topProductsToday}
+            lowStockProducts={[...metrics.lowStockProducts, ...metrics.outOfStockProducts]}
+            isDark={isDark}
+          />
         </div>
 
-        {/* ── 5. Inventaris — carousel ── */}
-        <div>
-          <SectionLabel isDark={isDark}>Ringkasan Inventaris</SectionLabel>
-          <SnapCarousel isDark={isDark} cardWidthVw={75} accentColor="#6b7280">
-            {inventoryCards}
-          </SnapCarousel>
-        </div>
-
-        {/* ── 6. Wawasan Kinerja — carousel ── */}
+        {/* ── 5. Wawasan Kinerja — carousel ── */}
         <div className={`p-4 rounded-2xl ${isDark
           ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
           : 'bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-100'
@@ -414,7 +537,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="space-y-6">
-          <LowStockAlert products={metrics.lowStockProducts} />
+          <LowStockAlert products={[...metrics.lowStockProducts, ...metrics.outOfStockProducts]} />
           <TopProducts products={topProductsToday} title="Produk Terlaris Hari Ini" limit={5} />
         </div>
       </div>

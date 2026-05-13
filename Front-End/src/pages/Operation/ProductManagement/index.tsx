@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../../../contexts/AppContext';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Plus, Edit2, Trash2, Camera, Eye, X, Package, Tag, AlertTriangle, Check, Search, ChevronRight, TrendingUp, Filter, DollarSign, Trophy, Percent, Lock } from 'lucide-react';
+import { Plus, Edit2, Pencil, Trash2, Camera, Eye, X, Package, Tag, AlertTriangle, Check, Search, ChevronRight, TrendingUp, Filter, DollarSign, Trophy, Percent, Lock } from 'lucide-react';
 import type { Product } from '../../../types';
 import { getBestSellersByPeriod } from '../../../utils/analytics';
 import { useCurrencyFormatter } from '../../../hooks/useCurrencyFormatter';
@@ -19,6 +19,18 @@ const CATEGORY_GRADIENTS = [
     'bg-gradient-to-r from-red-500 to-rose-500',
     'bg-gradient-to-r from-indigo-500 to-purple-500',
 ];
+
+const formatPrice = (n: number) => {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}jt`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(0)}rb`;
+    return String(n);
+};
+
+const getMarginPct = (p: Product) => {
+    if (!p.cost || p.price === 0) return 0;
+    const effectivePrice = p.isPromo && p.promoPrice ? p.promoPrice : p.price;
+    return ((effectivePrice - p.cost) / effectivePrice) * 100;
+};
 
 export default function ProductManagement() {
     const createProductId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `product-${Date.now()}`);
@@ -573,85 +585,100 @@ export default function ProductManagement() {
     // ==================== RENDER FUNCTIONS ====================
     const renderProductsTab = () => (
         <div className={`rounded-3xl border ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
-            {/* Product List Header */}
+            {/* Product List Header / Toolbar */}
             <div className={`p-5 border-b ${isDark ? 'border-stone-800' : 'border-gray-100'}`}>
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    {/* Left: Search and Filter */}
-                    <div className="flex-1 max-w-lg">
-                        <div className="flex items-center gap-3">
-                            {/* New Product Button */}
-                            <button
-                                onClick={() => setModalOpen(true)}
-                                className="group flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-amber-500/25 active:scale-95 flex-shrink-0"
-                            >
-                                <Plus size={16} className="group-hover:rotate-90 transition-transform" />
-                                <span className="text-sm">New Product</span>
-                            </button>
-
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 w-4 h-4" />
-                                <input
-                                    type="text"
-                                    placeholder="Search products by name or category..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className={`w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 text-sm outline-none transition-all ${isDark
-                                            ? 'bg-stone-950 border-stone-800 text-white focus:border-amber-500'
-                                            : 'bg-gray-50 border-gray-200 focus:border-amber-500'
-                                        }`}
-                                />
-                            </div>
+                <div className="space-y-4">
+                    {/* Top Row: Search & New Product */}
+                    <div className="flex flex-col md:flex-row gap-3">
+                        <div className={`flex-1 flex items-center gap-2 px-4 py-2.5 rounded-2xl border transition-colors focus-within:border-amber-500/50 ${
+                            isDark
+                                ? 'bg-[#1a1a1a] border-[#2e2e2e]'
+                                : 'bg-white border-[#E2E8F0] shadow-sm'
+                        }`}>
+                            <Search size={16} className={isDark ? 'text-[#666]' : 'text-[#94A3B8]'} />
+                            <input
+                                type="text"
+                                placeholder="Search products by name or category..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="flex-1 bg-transparent outline-none text-sm placeholder-[#94A3B8] font-medium"
+                            />
                         </div>
-
-                        {/* Active Filters */}
-                        <div className="flex flex-wrap gap-2 mt-3">
-                            <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-stone-800 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
-                                <Filter size={10} />
-                                {activeCategory === 'all' ? 'All Categories' : activeCategory}
-                            </div>
-                            {searchTerm && (
-                                <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-stone-800 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
-                                    <Search size={10} />
-                                    Search: "{searchTerm}"
-                                </div>
-                            )}
-                            <div className={`px-3 py-1.5 rounded-xl text-xs font-bold ${isDark ? 'bg-stone-800 text-stone-400' : 'bg-gray-100 text-gray-700'}`}>
-                                {sortedProducts.length} Products
-                            </div>
-                            {promoCount > 0 && (
-                                <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-red-700 text-red-200' : 'bg-red-100 text-red-700'}`}>
-                                    <Percent size={10} />
-                                    {promoCount} Promo Active
-                                </div>
-                            )}
-                            {bestSellerCount > 0 && (
-                                <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${isDark ? 'bg-amber-700 text-amber-200' : 'bg-amber-100 text-amber-700'}`}>
-                                    <Trophy size={10} />
-                                    {bestSellerCount} Best Sellers
-                                </div>
-                            )}
-                        </div>
+                        <button
+                            onClick={() => setModalOpen(true)}
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl
+                                bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm
+                                shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-0.5 active:translate-y-0
+                                transition-all w-full md:w-auto flex-shrink-0"
+                        >
+                            <Plus size={18} /> New Product
+                        </button>
                     </div>
 
-                    {/* Right: Sales Period Filter - SAMA DENGAN POS */}
-                    <div className="flex items-center gap-3">
-                        <div className={`text-xs font-bold ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
-                            Sales Period:
+                    {/* Bottom Row: Filters & Sales Period */}
+                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
+                        {/* Filter pills */}
+                        <div className="flex flex-wrap gap-2 items-center">
+                            <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl 
+                                text-xs font-bold border transition-all flex-shrink-0 ${
+                                isDark
+                                    ? 'bg-[#1a1a1a] border-[#2e2e2e] text-[#888] hover:text-white'
+                                    : 'bg-white border-[#E2E8F0] text-[#475569] shadow-sm hover:text-gray-900'
+                            }`}>
+                                <Filter size={12} /> {activeCategory === 'all' ? 'All Categories' : activeCategory}
+                            </button>
+                            
+                            <span className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex-shrink-0 ${
+                                isDark
+                                    ? 'bg-[#1a1a1a] border-[#2e2e2e] text-[#888]'
+                                    : 'bg-white border-[#E2E8F0] text-[#475569] shadow-sm'
+                            }`}>
+                                {sortedProducts.length} Products
+                            </span>
+
+                            {promoCount > 0 && (
+                                <span className="px-3 py-1.5 rounded-xl text-xs font-bold flex-shrink-0
+                                    bg-red-500 text-white flex items-center gap-1.5">
+                                    <Percent size={12} /> {promoCount} Promo Active
+                                </span>
+                            )}
+
+                            {bestSellerCount > 0 && (
+                                <span className="px-3 py-1.5 rounded-xl text-xs font-bold flex-shrink-0
+                                    bg-gradient-to-r from-amber-500 to-orange-500 text-white
+                                    flex items-center gap-1.5">
+                                    <Trophy size={12} /> {bestSellerCount} Best Sellers
+                                </span>
+                            )}
                         </div>
-                        <div className={`flex items-center gap-1 p-1 rounded-2xl ${isDark ? 'bg-stone-800' : 'bg-gray-100'}`}>
-                            {[1, 3, 7, 30].map((days) => (
-                                <button
-                                    key={days}
-                                    onClick={() => setSalesPeriod(days)}
-                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${salesPeriod === days
-                                            ? isDark ? 'bg-amber-500 text-white' : 'bg-amber-500 text-white'
-                                            : isDark ? 'text-stone-400 hover:text-white hover:bg-stone-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+
+                        {/* Sales Period Selector */}
+                        <div className={`flex items-center gap-3 flex-wrap`}>
+                            <span className={`text-xs font-bold uppercase tracking-wider flex-shrink-0 ${
+                                isDark ? 'text-[#666]' : 'text-[#94A3B8]'
+                            }`}>Sales Period:</span>
+                            <div className={`flex gap-1 p-1 rounded-xl ${
+                                isDark ? 'bg-[#1a1a1a]' : 'bg-[#F1F5F9]'
+                            }`}>
+                                {[
+                                    { value: 1, label: 'Today' },
+                                    { value: 3, label: '3 Days' },
+                                    { value: 7, label: '7 Days' },
+                                    { value: 30, label: '30 Days' },
+                                ].map(period => (
+                                    <button
+                                        key={period.value}
+                                        onClick={() => setSalesPeriod(period.value)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                            salesPeriod === period.value
+                                                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
+                                                : isDark ? 'text-[#888] hover:text-white hover:bg-stone-800' : 'text-[#94A3B8] hover:text-[#475569] hover:bg-white'
                                         }`}
-                                    title={`Sales data for ${days} day${days > 1 ? 's' : ''}`}
-                                >
-                                    {getPeriodLabel(days)}
-                                </button>
-                            ))}
+                                    >
+                                        {period.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -659,7 +686,205 @@ export default function ProductManagement() {
 
             {/* Product Table */}
             <div className="p-5">
-                <div className="overflow-x-auto">
+                {/* Mobile card list — shown only on < lg */}
+                <div className="lg:hidden space-y-3 px-0 mb-6">
+                    {sortedProducts.map((product) => {
+                        const bestSellerData = bestSellers.find(bs => bs.product.id === product.id);
+                        const productSales = bestSellerData?.quantity || 0;
+                        const productRank = bestSellerData?.rank;
+                        const marginPct = getMarginPct(product);
+                        const status = getStockStatus(product);
+
+                        return (
+                        <div
+                            key={product.id}
+                            className={`rounded-2xl border overflow-hidden transition-all ${
+                                isDark
+                                    ? 'bg-[#1a1a1a] border-[#2e2e2e]'
+                                    : 'bg-white border-[#E2E8F0] shadow-sm'
+                            }`}
+                        >
+                            {/* Row 1: Image + Name + Status */}
+                            <div className="flex items-center gap-3 p-3">
+                                <div className={`w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 ${
+                                    isDark ? 'bg-[#222]' : 'bg-[#F8FAFC]'
+                                }`}>
+                                    {product.image ? (
+                                        <img src={product.image} alt={product.name}
+                                            className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <Package size={20} className={isDark ? 'text-[#444]' : 'text-[#CBD5E1]'} />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                    <p className={`font-bold text-sm truncate ${
+                                        isDark ? 'text-white' : 'text-[#0F172A]'
+                                    }`}>{product.name}</p>
+                                    
+                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md inline-block mt-0.5 ${
+                                        isDark ? 'bg-[#2e2e2e] text-[#888]' : 'bg-[#F1F5F9] text-[#475569]'
+                                    }`}>{product.category}</span>
+                                    
+                                    <div className="flex gap-1 mt-1 flex-wrap">
+                                        {product.isPromo && (
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-red-500 text-white uppercase">
+                                                {product.promoLabel || 'Promo'}
+                                            </span>
+                                        )}
+                                        {bestSellerData && productRank && productRank <= 10 && (
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${
+                                                isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-700'
+                                            }`}>
+                                                <Trophy size={8} />#{productRank} Best
+                                            </span>
+                                        )}
+                                        {status === 'out_of_stock' && (
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-red-600 text-white uppercase shadow-sm border border-red-500">
+                                                STOK HABIS
+                                            </span>
+                                        )}
+                                        {status === 'low_stock' && (
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-orange-500 text-white uppercase shadow-sm border border-orange-400">
+                                                STOK RENDAH
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex-shrink-0">
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${
+                                        product.isAvailable !== false
+                                            ? 'bg-emerald-500 text-white'
+                                            : isDark ? 'bg-[#2e2e2e] text-[#666]' : 'bg-[#F1F5F9] text-[#94A3B8]'
+                                    }`}>
+                                        {product.isAvailable !== false ? 'Aktif' : 'Nonaktif'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className={`h-px ${isDark ? 'bg-[#2e2e2e]' : 'bg-[#F1F5F9]'}`} />
+
+                            {/* Row 2: Price + Stock + Margin */}
+                            <div className={`grid grid-cols-3 divide-x ${
+                                isDark ? 'divide-[#2e2e2e]' : 'divide-[#F1F5F9]'
+                            }`}>
+                                <div className="p-2.5 text-center">
+                                    <p className={`text-[9px] uppercase tracking-wider font-semibold mb-1 ${
+                                        isDark ? 'text-[#888]' : 'text-[#94A3B8]'
+                                    }`}>Harga</p>
+                                    <p className={`text-sm font-black ${
+                                        product.isPromo ? 'text-red-500' : isDark ? 'text-white' : 'text-[#0F172A]'
+                                    }`}>
+                                        {product.isPromo && product.promoPrice
+                                            ? formatPrice(product.promoPrice)
+                                            : formatPrice(product.price)
+                                        }
+                                    </p>
+                                    {product.cost != null && (
+                                        <p className={`text-[9px] ${isDark ? 'text-[#666]' : 'text-[#94A3B8]'}`}>
+                                            Cost: {formatPrice(product.cost)}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="p-2.5 text-center">
+                                    <p className={`text-[9px] uppercase tracking-wider font-semibold mb-1 ${
+                                        isDark ? 'text-[#888]' : 'text-[#94A3B8]'
+                                    }`}>Stok</p>
+                                    <p className={`text-sm font-black ${
+                                        product.stock === -1
+                                            ? isDark ? 'text-[#888]' : 'text-[#94A3B8]'
+                                            : product.stock <= (product.minStock || 5)
+                                                ? 'text-red-500'
+                                                : 'text-emerald-500'
+                                    }`}>
+                                        {product.stock === -1 ? '∞' : product.stock}
+                                    </p>
+                                    {product.stock !== -1 && (
+                                        <p className={`text-[9px] ${isDark ? 'text-[#666]' : 'text-[#94A3B8]'}`}>
+                                            Min: {product.minStock || 0}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="p-2.5 text-center">
+                                    <p className={`text-[9px] uppercase tracking-wider font-semibold mb-1 ${
+                                        isDark ? 'text-[#888]' : 'text-[#94A3B8]'
+                                    }`}>Margin</p>
+                                    <p className={`text-sm font-black ${
+                                        !product.cost
+                                            ? isDark ? 'text-[#666]' : 'text-[#94A3B8]'
+                                            : marginPct >= 60
+                                                ? 'text-emerald-500'
+                                                : marginPct >= 30
+                                                    ? isDark ? 'text-amber-400' : 'text-amber-600'
+                                                    : 'text-red-500'
+                                    }`}>
+                                        {product.cost ? `${marginPct.toFixed(1)}%` : '-'}
+                                    </p>
+                                    <p className={`text-[9px] ${isDark ? 'text-[#666]' : 'text-[#94A3B8]'}`}>
+                                        {productSales} terjual
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className={`h-px ${isDark ? 'bg-[#2e2e2e]' : 'bg-[#F1F5F9]'}`} />
+
+                            {/* Row 3: Actions */}
+                            <div className={`flex items-center justify-between px-3 py-2.5 ${
+                                isDark ? 'bg-[#161616]' : 'bg-[#F8FAFC]'
+                            }`}>
+                                <p className={`text-[10px] ${isDark ? 'text-[#666]' : 'text-[#94A3B8]'}`}>
+                                    Sales {salesPeriod} hari: 
+                                    <span className={`font-bold ml-1 ${
+                                        productSales > 0
+                                            ? 'text-emerald-500'
+                                            : isDark ? 'text-[#666]' : 'text-[#94A3B8]'
+                                    }`}>
+                                        {productSales}
+                                    </span>
+                                </p>
+                                
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleOpenEditModal(product)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                            isDark
+                                                ? 'bg-amber-900/20 text-amber-400 hover:bg-amber-900/40'
+                                                : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                                        }`}
+                                    >
+                                        <Pencil size={12} /> Edit
+                                    </button>
+                                    
+                                    <button
+                                        onClick={() => { if (confirm(`Delete ${product.name}?`)) deleteProduct(product.id); }}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                            isDark
+                                                ? 'bg-red-900/20 text-red-400 hover:bg-red-900/40'
+                                                : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                                        }`}
+                                    >
+                                        <Trash2 size={12} /> Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )})}
+                    
+                    {sortedProducts.length === 0 && (
+                        <div className="text-center py-12 border rounded-2xl border-dashed border-gray-200 dark:border-stone-800">
+                            <Package className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-stone-800' : 'text-stone-300'}`} />
+                            <h3 className={`font-bold ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>No products found</h3>
+                        </div>
+                    )}
+                </div>
+
+                <div className="hidden lg:block">
+                    <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead className={`${isDark ? 'bg-stone-950/50' : 'bg-gray-50'}`}>
                             <tr className={`text-xs uppercase font-bold tracking-tight ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
@@ -714,6 +939,16 @@ export default function ProductManagement() {
                                                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white whitespace-nowrap">
                                                                 <Trophy size={8} className="inline mr-1" />
                                                                 #{productRank} Best Seller
+                                                            </span>
+                                                        )}
+                                                        {status === 'out_of_stock' && (
+                                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white shadow-sm border border-red-500 whitespace-nowrap">
+                                                                STOK HABIS
+                                                            </span>
+                                                        )}
+                                                        {status === 'low_stock' && (
+                                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500 text-white shadow-sm border border-orange-400 whitespace-nowrap">
+                                                                STOK RENDAH
                                                             </span>
                                                         )}
                                                         <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'bg-stone-800 text-stone-400' : 'bg-gray-100 text-gray-600'}`}>
@@ -855,6 +1090,7 @@ export default function ProductManagement() {
                         </div>
                     )}
                 </div>
+                </div>
             </div>
         </div>
     );
@@ -927,7 +1163,7 @@ export default function ProductManagement() {
             {/* Categories Table */}
             <div className={`rounded-2xl overflow-hidden border ${isDark ? 'border-stone-900' : 'border-gray-200'}`}>
                 {/* Table Header */}
-                <div className={`grid grid-cols-12 gap-4 p-4 ${isDark ? 'bg-stone-900' : 'bg-gray-50'} border-b ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
+                <div className={`hidden lg:grid grid-cols-12 gap-4 p-4 ${isDark ? 'bg-stone-900' : 'bg-gray-50'} border-b ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
                     <div className="col-span-4 font-semibold text-sm">CATEGORY</div>
                     <div className="col-span-2 font-semibold text-sm text-center">ITEMS</div>
                     <div className="col-span-2 font-semibold text-sm text-center">STOCK VALUE</div>
@@ -940,10 +1176,108 @@ export default function ProductManagement() {
                     {categoryStats.map((stat) => (
                         <div
                             key={stat.name}
-                            className={`grid grid-cols-12 gap-4 p-4 items-center border-b ${isDark ? 'border-stone-900 hover:bg-stone-900/50' : 'border-gray-100 hover:bg-gray-50'} transition-colors ${activeCategory === stat.name ? (isDark ? 'bg-stone-900' : 'bg-amber-50/50') : ''}`}
+                            className={`p-4 border-b ${isDark ? 'border-stone-900 hover:bg-stone-900/50' : 'border-gray-100 hover:bg-gray-50'} transition-colors ${activeCategory === stat.name ? (isDark ? 'bg-stone-900' : 'bg-amber-50/50') : ''}`}
                         >
-                            {/* Category Name - Editable */}
-                            <div className="col-span-4">
+                            {/* --- MOBILE CARD --- */}
+                            <div className="lg:hidden flex flex-col gap-4">
+                                <div className="flex items-start justify-between gap-2">
+                                    {/* Category Name - Editable */}
+                                    {stat.isEditing ? (
+                                        <div className="flex-1 flex flex-col gap-2">
+                                            <input
+                                                type="text"
+                                                value={stat.editingName || stat.name}
+                                                onChange={(e) => handleCategoryNameChange(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleSaveCategoryEdit(stat.name);
+                                                    if (e.key === 'Escape') handleCancelCategoryEdit();
+                                                }}
+                                                autoFocus
+                                                className={`w-full p-2 rounded-xl text-sm font-medium ${isDark ? 'bg-stone-800 border-stone-700 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                                            />
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleSaveCategoryEdit(stat.name)} className="flex-1 p-2 rounded-xl bg-green-500 hover:bg-green-600 text-white flex justify-center items-center gap-1 text-xs font-bold">
+                                                    <Check size={14} /> Save
+                                                </button>
+                                                <button onClick={handleCancelCategoryEdit} className="flex-1 p-2 rounded-xl bg-gray-500 hover:bg-gray-600 text-white flex justify-center items-center gap-1 text-xs font-bold">
+                                                    <X size={14} /> Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className="flex items-center gap-3 cursor-pointer flex-1"
+                                            onClick={() => {
+                                                setActiveCategory(stat.name);
+                                                setActiveTab('products');
+                                            }}
+                                        >
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${stat.gradient}`}>
+                                                <Tag size={20} className="text-white" />
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-base flex items-center gap-2 flex-wrap">
+                                                    <span className={isDark ? 'text-white' : 'text-gray-900'}>{stat.name}</span>
+                                                    {stat.lowStockItems > 0 && (
+                                                        <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] rounded-md">
+                                                            {stat.lowStockItems} low
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className={`text-xs mt-0.5 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                                                    {stat.totalItems} product{stat.totalItems !== 1 ? 's' : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Actions */}
+                                    {!stat.isEditing && (
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleEditCategory(stat.name); }}
+                                                className={`p-2.5 rounded-xl ${isDark ? 'bg-stone-800 text-amber-400' : 'bg-gray-100 text-amber-600'} transition-colors`}
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteCategory(stat.name); }}
+                                                disabled={!stat.canDelete}
+                                                className={`p-2.5 rounded-xl transition-colors ${stat.canDelete ? (isDark ? 'bg-stone-800 text-red-400' : 'bg-gray-100 text-red-600') : (isDark ? 'text-stone-700 cursor-not-allowed' : 'text-stone-400 cursor-not-allowed')}`}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Mobile Stats Grid */}
+                                <div className={`grid grid-cols-3 gap-2 p-3 rounded-xl ${isDark ? 'bg-stone-900/50' : 'bg-gray-50'}`}>
+                                    <div className="text-center">
+                                        <div className={`text-xs font-semibold ${isDark ? 'text-stone-400' : 'text-stone-500'} mb-1`}>Items</div>
+                                        <div className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stat.totalItems}</div>
+                                        <div className={`text-[10px] ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>{stat.totalStock} in stock</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className={`text-xs font-semibold ${isDark ? 'text-stone-400' : 'text-stone-500'} mb-1`}>Stock Value</div>
+                                        <div className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{format(stat.totalValue)}</div>
+                                        <div className={`text-[10px] ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>{Math.round((stat.totalStock / stat.totalItems) * 100) || 0}%</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className={`text-xs font-semibold ${isDark ? 'text-stone-400' : 'text-stone-500'} mb-1`}>Sales</div>
+                                        <div className={`text-sm font-bold flex items-center justify-center gap-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                            {stat.categorySales}
+                                            <TrendingUp size={12} className="text-green-500" />
+                                        </div>
+                                        <div className={`text-[10px] ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>{getPeriodLabel(salesPeriod)}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* --- DESKTOP ROW --- */}
+                            <div className="hidden lg:grid grid-cols-12 gap-4 items-center">
+                                {/* Category Name - Editable */}
+                                <div className="col-span-4">
                                 {stat.isEditing ? (
                                     <div className="flex items-center gap-2">
                                         <input
@@ -1089,17 +1423,18 @@ export default function ProductManagement() {
                                     )}
                                 </div>
                             </div>
+                            </div>
                         </div>
                     ))}
                 </div>
 
                 {/* Add New Category Row */}
                 <div className={`p-4 ${isDark ? 'bg-stone-950/50' : 'bg-gray-50/50'}`}>
-                    <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-stone-900' : 'bg-gray-200'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
+                        <div className={`hidden lg:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0 ${isDark ? 'bg-stone-900' : 'bg-gray-200'}`}>
                             <Plus size={20} className={isDark ? 'text-stone-400' : 'text-stone-500'} />
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 w-full">
                             <input
                                 value={newCatName}
                                 onChange={(e) => setNewCatName(e.target.value)}
@@ -1118,14 +1453,14 @@ export default function ProductManagement() {
                         <button
                             onClick={handleAddCategory}
                             disabled={!newCatName.trim()}
-                            className={`px-6 py-3 rounded-2xl font-medium transition-all ${newCatName.trim()
+                            className={`w-full lg:w-auto px-6 py-3 rounded-2xl font-medium transition-all flex-shrink-0 ${newCatName.trim()
                                 ? (isDark ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white')
                                 : (isDark ? 'bg-stone-900 text-stone-500 cursor-not-allowed' : 'bg-gray-200 text-stone-400 cursor-not-allowed')}`}
                         >
                             Add Category
                         </button>
                     </div>
-                    <div className="mt-2 flex items-center gap-2 text-xs">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] lg:text-xs">
                         <div className={`px-2 py-1 rounded ${isDark ? 'bg-stone-900 text-stone-400' : 'bg-gray-100 text-stone-500'}`}>
                             First letter auto-capitalized
                         </div>
@@ -1178,7 +1513,7 @@ export default function ProductManagement() {
             {/* Header Section with Tabs */}
             <div className={`rounded-3xl border ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
                 <div className="p-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex flex-col gap-6">
                         <div>
                             <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 Inventory <span className="text-amber-500">Hub</span>
@@ -1189,47 +1524,47 @@ export default function ProductManagement() {
                         </div>
 
                         {/* Inventory Stats */}
-                        <div className="flex flex-wrap gap-3">
-                            <div className={`px-4 py-3 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-gray-50'}`}>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 w-full">
+                            <div className={`p-3 lg:p-4 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-gray-50'}`}>
                                 <div className="flex items-center gap-2">
                                     <DollarSign className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
                                     <div>
                                         <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Total Value</p>
-                                        <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                        <p className={`font-bold text-xl lg:text-2xl ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                             {format(totalInventoryValue)}
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className={`px-4 py-3 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-gray-50'}`}>
+                            <div className={`p-3 lg:p-4 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-gray-50'}`}>
                                 <div className="flex items-center gap-2">
                                     <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
                                     <div>
                                         <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Total Items</p>
-                                        <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{totalProducts}</p>
+                                        <p className={`font-bold text-xl lg:text-2xl ${isDark ? 'text-white' : 'text-gray-900'}`}>{totalProducts}</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className={`px-4 py-3 rounded-2xl ${lowStockCount > 0 ? (isDark ? 'bg-red-900/30' : 'bg-red-50') : (isDark ? 'bg-stone-800/50' : 'bg-gray-50')}`}>
+                            <div className={`p-3 lg:p-4 rounded-2xl ${lowStockCount > 0 ? (isDark ? 'bg-red-900/30' : 'bg-red-50') : (isDark ? 'bg-stone-800/50' : 'bg-gray-50')}`}>
                                 <div className="flex items-center gap-2">
                                     <AlertTriangle className={`w-5 h-5 ${lowStockCount > 0 ? 'text-red-500' : isDark ? 'text-stone-400' : 'text-stone-500'}`} />
                                     <div>
                                         <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Low Stock</p>
-                                        <p className={`font-bold ${lowStockCount > 0 ? 'text-red-600 dark:text-red-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                                        <p className={`font-bold text-xl lg:text-2xl ${lowStockCount > 0 ? 'text-red-600 dark:text-red-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
                                             {lowStockCount}
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className={`px-4 py-3 rounded-2xl ${bestSellerCount > 0 ? (isDark ? 'bg-amber-900/30' : 'bg-amber-50') : (isDark ? 'bg-stone-800/50' : 'bg-gray-50')}`}>
+                            <div className={`p-3 lg:p-4 rounded-2xl ${bestSellerCount > 0 ? (isDark ? 'bg-amber-900/30' : 'bg-amber-50') : (isDark ? 'bg-stone-800/50' : 'bg-gray-50')}`}>
                                 <div className="flex items-center gap-2">
                                     <Trophy className={`w-5 h-5 ${bestSellerCount > 0 ? 'text-amber-500' : isDark ? 'text-stone-400' : 'text-stone-500'}`} />
                                     <div>
                                         <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Best Sellers</p>
-                                        <p className={`font-bold ${bestSellerCount > 0 ? 'text-amber-600 dark:text-amber-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                                        <p className={`font-bold text-xl lg:text-2xl ${bestSellerCount > 0 ? 'text-amber-600 dark:text-amber-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
                                             {bestSellerCount}
                                         </p>
                                     </div>

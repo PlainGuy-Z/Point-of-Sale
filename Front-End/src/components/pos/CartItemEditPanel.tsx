@@ -26,7 +26,7 @@ export default function CartItemEditPanel({
   const quickVariantPrices = [3000, 5000, 7000, 10000, 15000, 20000, 25000];
 
   const [quantity, setQuantity] = useState(item.quantity);
-  const [description, setDescription] = useState(item.description || '');
+  const [description, setDescription] = useState(item.description || (item.note && item.note !== item.name ? item.note : ''));
   const [variantName, setVariantName] = useState(item.variantName || '');
   const [variantPrice, setVariantPrice] = useState<number>(item.variantPrice || 0);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);

@@ -102,13 +102,13 @@ function UserManagementInner() {
 
     const statCard = (label: string, value: number) => (
         <div
-            className={`rounded-3xl border p-5 shadow-sm ${isDark ? 'border-stone-800 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-900'
+            className={`rounded-2xl border p-5 shadow-sm ${isDark ? 'border-stone-800 bg-stone-900 text-white' : 'border-[#E2E8F0] bg-white text-[#0F172A]'
                 }`}
         >
-            <p className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
+            <p className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>
                 {label}
             </p>
-            <p className="mt-2 text-3xl font-black text-amber-500">{value}</p>
+            <p className={`mt-2 text-2xl font-black ${isDark ? 'text-teal-500' : 'text-teal-700'}`}>{value}</p>
         </div>
     );
 
@@ -118,10 +118,10 @@ function UserManagementInner() {
             type="button"
             onClick={() => setStatusFilter(id)}
             className={`rounded-full px-4 py-2 text-sm font-bold transition ${statusFilter === id
-                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                    ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
                     : isDark
                         ? 'border border-stone-700 text-stone-300 hover:border-stone-600'
-                        : 'border border-stone-200 text-stone-700 hover:border-stone-300'
+                        : 'bg-white border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'
                 }`}
         >
             {label}
@@ -131,241 +131,243 @@ function UserManagementInner() {
     return (
         <>
             {ToastComponent}
-            <div className="mx-auto max-w-6xl animate-in fade-in duration-500 space-y-6 px-4 pb-10 pt-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div>
-                        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-stone-900'}`}>Manajemen Kasir</h1>
-                        <p className={`mt-1 text-sm ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>Kelola akun kasir toko Anda</p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setAddOpen(true)}
-                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-3xl bg-amber-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition hover:bg-amber-600 active:scale-[0.98]"
-                    >
-                        + Tambah Kasir
-                    </button>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    {statCard('Total Kasir', totals.total)}
-                    {statCard('Kasir Aktif', totals.active)}
-                    {statCard('Kasir Nonaktif', totals.inactive)}
-                </div>
-
-                <div
-                    className={`flex flex-col gap-4 rounded-3xl border p-5 md:flex-row md:items-center md:justify-between ${isDark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'
-                        }`}
-                >
-                    <div className={`relative flex-1 ${isDark ? '' : ''}`}>
-                        <Search className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${isDark ? 'text-stone-600' : 'text-stone-400'}`} />
-                        <input
-                            type="search"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Cari nama atau email..."
-                            className={`w-full rounded-3xl border py-3 pl-12 pr-4 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 ${isDark ? 'border-stone-800 bg-stone-950 text-white placeholder:text-stone-600' : 'border-stone-200 bg-stone-50 text-stone-900'
-                                }`}
-                            aria-label="Cari kasir"
-                        />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {filterBtn('all', 'Semua')}
-                        {filterBtn('active', 'Aktif')}
-                        {filterBtn('inactive', 'Nonaktif')}
-                    </div>
-                </div>
-
-                {loading ? (
-                    <div className="space-y-4">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <Skeleton key={i} className="h-16 w-full" rounded="rounded-2xl" />
-                        ))}
-                    </div>
-                ) : users.length === 0 ? (
-                    <div
-                        className={`rounded-3xl border px-8 py-16 text-center ${isDark ? 'border-stone-800 bg-stone-900/40' : 'border-stone-200 bg-white'}`}
-                    >
-                        <UserRound className={`mx-auto h-14 w-14 ${isDark ? 'text-stone-600' : 'text-stone-400'}`} />
-                        <p className={`mt-4 font-semibold ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>
-                            Belum ada kasir. Klik &quot;+ Tambah Kasir&quot; untuk memulai.
-                        </p>
-                    </div>
-                ) : filtered.length === 0 ? (
-                    <div className={`rounded-3xl border px-8 py-12 text-center ${isDark ? 'border-stone-800 bg-stone-900/40' : 'border-stone-200 bg-white'}`}>
-                        <p className={`font-semibold ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>Tidak ada kasir yang cocok dengan pencarian atau filter Anda.</p>
-                    </div>
-                ) : (
-                    <>
-                        <div className={`hidden md:block rounded-3xl border ${isDark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'}`}>
-                            <table className="w-full border-collapse">
-                                <thead>
-                                    <tr className={`text-left text-xs font-black uppercase tracking-wider ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
-                                        <th className="border-b px-5 py-4">Avatar</th>
-                                        <th className="border-b px-5 py-4">Nama & Email</th>
-                                        <th className="border-b px-5 py-4">Status</th>
-                                        <th className="border-b px-5 py-4">PIN</th>
-                                        <th className="border-b px-5 py-4">Dibuat</th>
-                                        <th className="border-b px-5 py-4 text-right">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filtered.map((row) => (
-                                        <tr key={row.id} className={`text-sm ${isDark ? 'text-stone-200' : 'text-stone-800'}`}>
-                                            <td className="align-middle border-t border-stone-200 px-5 py-4 dark:border-stone-800">
-                                                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500 font-black uppercase text-white">
-                                                    {row.name.charAt(0)}
-                                                </span>
-                                            </td>
-                                            <td className="border-t border-stone-200 px-5 py-4 dark:border-stone-800">
-                                                <p className="font-bold">{row.name}</p>
-                                                <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>{row.email}</p>
-                                            </td>
-                                            <td className="border-t border-stone-200 px-5 py-4 dark:border-stone-800">
-                                                <span
-                                                    className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${row.is_active
-                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
-                                                            : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
-                                                        }`}
-                                                >
-                                                    {row.is_active ? 'Aktif' : 'Nonaktif'}
-                                                </span>
-                                            </td>
-                                            <td className="border-t border-stone-200 px-5 py-4 dark:border-stone-800">
-                                                <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${row.pin ? 'bg-green-600/15 text-green-600 dark:text-green-400' : 'bg-stone-200 text-stone-600 dark:bg-stone-700 dark:text-stone-300'}`}>
-                                                    <Lock className="h-3.5 w-3.5" />
-                                                    {row.pin ? 'PIN Aktif' : 'Belum ada PIN'}
-                                                </span>
-                                            </td>
-                                            <td className="border-t border-stone-200 px-5 py-4 text-xs opacity-90 dark:border-stone-800">
-                                                {formatCreatedAt(row.created_at)}
-                                            </td>
-                                            <td className="relative border-t border-stone-200 px-5 py-4 text-right dark:border-stone-800">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setOpenActionsId((id) => (id === row.id ? null : row.id));
-                                                    }}
-                                                    className="inline-flex rounded-2xl border border-stone-200 p-2 dark:border-stone-700 dark:text-stone-200"
-                                                    aria-expanded={openActionsId === row.id}
-                                                    aria-haspopup="true"
-                                                >
-                                                    <MoreHorizontal className="h-5 w-5" />
-                                                </button>
-                                                {openActionsId === row.id && (
-                                                    <div
-                                                        ref={menuRef}
-                                                        className={`absolute right-6 top-[calc(100%-0.25rem)] z-[50] mt-2 w-52 overflow-hidden rounded-2xl border shadow-xl ${isDark ? 'border-stone-700 bg-stone-950' : 'border-stone-200 bg-white'}`}
-                                                    >
-                                                        <button
-                                                            type="button"
-                                                            className={`flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold hover:bg-stone-100 dark:hover:bg-stone-900`}
-                                                            onClick={() => {
-                                                                setEditTarget(row);
-                                                                setOpenActionsId(null);
-                                                            }}
-                                                        >
-                                                            <Pencil className="h-4 w-4 text-amber-500" /> Edit
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className={`flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold hover:bg-stone-100 dark:hover:bg-stone-900`}
-                                                            onClick={() => {
-                                                                setResetTarget(row);
-                                                                setOpenActionsId(null);
-                                                            }}
-                                                        >
-                                                            <KeyRound className="h-4 w-4 text-amber-500" /> Reset Password
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            disabled={toggleLoadingId === row.id}
-                                                            className={`flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold hover:bg-stone-100 disabled:opacity-50 dark:hover:bg-stone-900`}
-                                                            onClick={() => void toggleActive(row)}
-                                                        >
-                                                            {toggleLoadingId === row.id ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-                                                            ) : row.is_active ? (
-                                                                <Unlock className="h-4 w-4 text-red-400" />
-                                                            ) : (
-                                                                <Lock className="h-4 w-4 text-green-400" />
-                                                            )}
-                                                            {row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+            <div className={`min-h-screen ${isDark ? '' : 'bg-[#F8FAFC]'} -m-6 p-6 px-4 pb-10 pt-6`}>
+                <div className="mx-auto max-w-6xl animate-in fade-in duration-500 space-y-6">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Manajemen Kasir</h1>
+                            <p className={`mt-1 text-sm ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>Kelola akun kasir toko Anda</p>
                         </div>
+                        <button
+                            type="button"
+                            onClick={() => setAddOpen(true)}
+                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-3xl bg-teal-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 active:scale-[0.98]"
+                        >
+                            + Tambah Kasir
+                        </button>
+                    </div>
 
-                        <div className="flex flex-col gap-4 md:hidden">
-                            {filtered.map((row) => (
-                                <div
-                                    key={row.id}
-                                    className={`rounded-3xl border p-5 shadow-sm ${isDark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'}`}
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex items-center gap-3">
-                                            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-lg font-black uppercase text-white">
-                                                {row.name.charAt(0)}
-                                            </span>
-                                            <div>
-                                                <p className="font-bold">{row.name}</p>
-                                                <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>{row.email}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 flex flex-wrap gap-2">
-                                        <span
-                                            className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${row.is_active
-                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
-                                                    : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
-                                                }`}
-                                        >
-                                            {row.is_active ? 'Aktif' : 'Nonaktif'}
-                                        </span>
-                                        <span
-                                            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${row.pin ? 'bg-green-600/15 text-green-600' : 'bg-stone-200 text-stone-600 dark:bg-stone-700 dark:text-stone-300'}`}
-                                        >
-                                            <Lock className="h-3.5 w-3.5" />
-                                            {row.pin ? 'PIN Aktif' : 'Belum ada PIN'}
-                                        </span>
-                                    </div>
-                                    <p className={`mt-3 text-xs ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
-                                        Dibuat: {formatCreatedAt(row.created_at)}
-                                    </p>
-                                    <div className={`mt-4 flex gap-2 border-t pt-4 ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
-                                        <button
-                                            type="button"
-                                            onClick={() => setEditTarget(row)}
-                                            className="flex flex-1 items-center justify-center gap-2 rounded-3xl border border-stone-200 py-2 text-sm font-bold dark:border-stone-700 dark:text-white"
-                                        >
-                                            <Pencil className="h-4 w-4" /> Edit
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setResetTarget(row)}
-                                            className="flex flex-1 items-center justify-center gap-2 rounded-3xl border border-stone-200 py-2 text-sm font-bold dark:border-stone-700 dark:text-white"
-                                        >
-                                            <KeyRound className="h-4 w-4" /> Reset
-                                        </button>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        disabled={toggleLoadingId === row.id}
-                                        onClick={() => void toggleActive(row)}
-                                        className="mt-2 w-full rounded-3xl border border-stone-200 py-2 text-sm font-bold dark:border-stone-700 dark:text-white"
-                                    >
-                                        {toggleLoadingId === row.id ? 'Menyimpan...' : row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                                    </button>
-                                </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {statCard('Total Kasir', totals.total)}
+                        {statCard('Kasir Aktif', totals.active)}
+                        {statCard('Kasir Nonaktif', totals.inactive)}
+                    </div>
+
+                    <div
+                        className={`flex flex-col gap-4 rounded-3xl border p-5 md:flex-row md:items-center md:justify-between ${isDark ? 'border-stone-800 bg-stone-900' : 'border-[#E2E8F0] bg-white shadow-sm'
+                            }`}
+                    >
+                        <div className={`relative flex-1`}>
+                            <Search className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${isDark ? 'text-stone-600' : 'text-[#94A3B8]'}`} />
+                            <input
+                                type="search"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Cari nama atau email..."
+                                className={`w-full rounded-3xl border py-3 pl-12 pr-4 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 ${isDark ? 'border-stone-800 bg-stone-950 text-white placeholder:text-stone-600' : 'border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A]'
+                                    }`}
+                                aria-label="Cari kasir"
+                            />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {filterBtn('all', 'Semua')}
+                            {filterBtn('active', 'Aktif')}
+                            {filterBtn('inactive', 'Nonaktif')}
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="space-y-4">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Skeleton key={i} className="h-16 w-full" rounded="rounded-2xl" />
                             ))}
                         </div>
-                    </>
-                )}
+                    ) : users.length === 0 ? (
+                        <div
+                            className={`rounded-3xl border px-8 py-16 text-center ${isDark ? 'border-stone-800 bg-stone-900/40' : 'border-[#E2E8F0] bg-white shadow-sm'}`}
+                        >
+                            <UserRound className={`mx-auto h-14 w-14 ${isDark ? 'text-stone-600' : 'text-[#94A3B8]'}`} />
+                            <p className={`mt-4 font-semibold ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>
+                                Belum ada kasir. Klik &quot;+ Tambah Kasir&quot; untuk memulai.
+                            </p>
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div className={`rounded-3xl border px-8 py-12 text-center ${isDark ? 'border-stone-800 bg-stone-900/40' : 'border-[#E2E8F0] bg-white shadow-sm'}`}>
+                            <p className={`font-semibold ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>Tidak ada kasir yang cocok dengan pencarian atau filter Anda.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className={`hidden md:block rounded-3xl border overflow-hidden shadow-sm ${isDark ? 'border-stone-800 bg-stone-900' : 'border-[#E2E8F0] bg-white'}`}>
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr className={`text-left text-xs font-black uppercase tracking-wider ${isDark ? 'text-stone-500' : 'text-[#94A3B8] bg-[#F8FAFC]'}`}>
+                                            <th className="px-5 py-4">Avatar</th>
+                                            <th className="px-5 py-4">Nama & Email</th>
+                                            <th className="px-5 py-4">Status</th>
+                                            <th className="px-5 py-4">PIN</th>
+                                            <th className="px-5 py-4">Dibuat</th>
+                                            <th className="px-5 py-4 text-right">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className={`divide-y ${isDark ? 'divide-stone-800' : 'divide-[#F1F5F9]'}`}>
+                                        {filtered.map((row) => (
+                                            <tr key={row.id} className={`text-sm transition-colors ${isDark ? 'text-stone-200 hover:bg-stone-800/50' : 'text-[#475569] hover:bg-[#F8FAFC]'}`}>
+                                                <td className="align-middle px-5 py-4">
+                                                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 font-black uppercase text-white shadow-sm shadow-teal-600/20">
+                                                        {row.name.charAt(0)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <p className="font-bold text-[#0F172A] dark:text-white">{row.name}</p>
+                                                    <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>{row.email}</p>
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <span
+                                                        className={`inline-flex rounded-full px-3 py-1 text-xs font-black border ${row.is_active
+                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                                : 'bg-red-50 text-red-600 border-red-200'
+                                                            }`}
+                                                    >
+                                                        {row.is_active ? 'Aktif' : 'Nonaktif'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold border ${row.pin ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-[#F1F5F9] text-[#94A3B8] border-transparent dark:bg-stone-700 dark:text-stone-300'}`}>
+                                                        <Lock className="h-3.5 w-3.5" />
+                                                        {row.pin ? 'PIN Aktif' : 'Belum ada PIN'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-4 text-xs opacity-90">
+                                                    {formatCreatedAt(row.created_at)}
+                                                </td>
+                                                <td className="relative px-5 py-4 text-right">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenActionsId((id) => (id === row.id ? null : row.id));
+                                                        }}
+                                                        className={`inline-flex rounded-2xl border p-2 transition-colors ${isDark ? 'border-stone-700 text-stone-200 hover:bg-stone-800' : 'border-[#E2E8F0] text-[#475569] hover:bg-[#F1F5F9]'}`}
+                                                        aria-expanded={openActionsId === row.id}
+                                                        aria-haspopup="true"
+                                                    >
+                                                        <MoreHorizontal className="h-5 w-5" />
+                                                    </button>
+                                                    {openActionsId === row.id && (
+                                                        <div
+                                                            ref={menuRef}
+                                                            className={`absolute right-6 top-[calc(100%-0.25rem)] z-[50] mt-2 w-52 overflow-hidden rounded-2xl border shadow-xl animate-in fade-in zoom-in-95 duration-200 ${isDark ? 'border-stone-700 bg-stone-950' : 'border-[#E2E8F0] bg-white'}`}
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                className={`flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold transition-colors ${isDark ? 'hover:bg-stone-900' : 'hover:bg-amber-50 text-amber-600'}`}
+                                                                onClick={() => {
+                                                                    setEditTarget(row);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <Pencil className="h-4 w-4" /> Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className={`flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold transition-colors ${isDark ? 'hover:bg-stone-900' : 'hover:bg-teal-50 text-teal-700'}`}
+                                                                onClick={() => {
+                                                                    setResetTarget(row);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <KeyRound className="h-4 w-4" /> Reset Password
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={toggleLoadingId === row.id}
+                                                                className={`flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold transition-colors disabled:opacity-50 ${isDark ? 'hover:bg-stone-900' : 'hover:bg-red-50 text-red-500'}`}
+                                                                onClick={() => void toggleActive(row)}
+                                                            >
+                                                                {toggleLoadingId === row.id ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin text-teal-500" />
+                                                                ) : row.is_active ? (
+                                                                    <Unlock className="h-4 w-4" />
+                                                                ) : (
+                                                                    <Lock className="h-4 w-4" />
+                                                                )}
+                                                                {row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="flex flex-col gap-4 md:hidden">
+                                {filtered.map((row) => (
+                                    <div
+                                        key={row.id}
+                                        className={`rounded-3xl border p-5 shadow-sm ${isDark ? 'border-stone-800 bg-stone-900' : 'border-[#E2E8F0] bg-white'}`}
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-center gap-3">
+                                                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-600 text-lg font-black uppercase text-white">
+                                                    {row.name.charAt(0)}
+                                                </span>
+                                                <div>
+                                                    <p className="font-bold text-[#0F172A] dark:text-white">{row.name}</p>
+                                                    <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>{row.email}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            <span
+                                                className={`inline-flex rounded-full px-3 py-1 text-xs font-black border ${row.is_active
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                        : 'bg-red-50 text-red-600 border-red-200'
+                                                    }`}
+                                            >
+                                                {row.is_active ? 'Aktif' : 'Nonaktif'}
+                                            </span>
+                                            <span
+                                                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold border ${row.pin ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-[#F1F5F9] text-[#94A3B8] border-transparent dark:bg-stone-700 dark:text-stone-300'}`}
+                                            >
+                                                <Lock className="h-3.5 w-3.5" />
+                                                {row.pin ? 'PIN Aktif' : 'Belum ada PIN'}
+                                            </span>
+                                        </div>
+                                        <p className={`mt-3 text-xs ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
+                                            Dibuat: {formatCreatedAt(row.created_at)}
+                                        </p>
+                                        <div className={`mt-4 flex gap-2 border-t pt-4 ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditTarget(row)}
+                                                className={`flex flex-1 items-center justify-center gap-2 rounded-3xl py-2 text-sm font-bold transition-colors ${isDark ? 'border border-stone-700 dark:text-white hover:bg-stone-800' : 'bg-amber-50 text-amber-600 border border-transparent hover:bg-amber-100'}`}
+                                            >
+                                                <Pencil className="h-4 w-4" /> Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setResetTarget(row)}
+                                                className={`flex flex-1 items-center justify-center gap-2 rounded-3xl py-2 text-sm font-bold transition-colors ${isDark ? 'border border-stone-700 dark:text-white hover:bg-stone-800' : 'bg-teal-50 text-teal-700 border border-transparent hover:bg-teal-100'}`}
+                                            >
+                                                <KeyRound className="h-4 w-4" /> Reset
+                                            </button>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={toggleLoadingId === row.id}
+                                            onClick={() => void toggleActive(row)}
+                                            className={`mt-2 w-full rounded-3xl py-2 text-sm font-bold transition-colors ${isDark ? 'border border-stone-700 dark:text-white hover:bg-stone-800' : 'bg-red-50 text-red-500 border border-transparent hover:bg-red-100'}`}
+                                        >
+                                            {toggleLoadingId === row.id ? 'Menyimpan...' : row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
 
             {addOpen && (

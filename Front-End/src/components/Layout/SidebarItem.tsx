@@ -38,10 +38,10 @@ export default function SidebarItem({
           <Icon
             className={`w-[18px] h-[18px] transition-colors duration-200 ${
               isActive
-                ? 'text-amber-500'
+                ? 'text-teal-600'
                 : isDark
                   ? 'text-stone-500'
-                  : 'text-stone-400'
+                  : 'text-[#94A3B8]'
             }`}
           />
         )}
@@ -54,10 +54,10 @@ export default function SidebarItem({
             isActive
               ? isDark
                 ? 'text-amber-200'
-                : 'text-amber-900'
+                : 'text-teal-700'
               : isDark
                 ? 'text-stone-300'
-                : 'text-stone-700'
+                : 'text-[#475569]'
           }`}
         >
           {item.label}
@@ -66,14 +66,16 @@ export default function SidebarItem({
 
       {/* Badge */}
       {!isCollapsed && badge != null && badge > 0 && (
-        <span className="ml-auto flex min-h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-stone-900 leading-none">
+        <span className={`ml-auto flex min-h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none ${
+          isDark ? 'bg-amber-500 text-stone-900' : 'bg-teal-100 text-teal-700'
+        }`}>
           {badge > 99 ? '99+' : badge}
         </span>
       )}
 
       {/* Active dot (only when no badge) */}
       {!isCollapsed && isActive && !(badge != null && badge > 0) && (
-        <div className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-hidden="true" />
+        <div className={`ml-auto h-1.5 w-1.5 shrink-0 rounded-full ${isDark ? 'bg-amber-500' : 'bg-teal-600'}`} aria-hidden="true" />
       )}
     </>
   );
@@ -86,10 +88,10 @@ export default function SidebarItem({
   const stateClasses = isActive
     ? isDark
       ? 'bg-amber-500/10 border-l-[3px] border-l-amber-500'
-      : 'bg-amber-500/8 border-l-[3px] border-l-amber-500'
+      : 'bg-teal-50 border-l-2 border-teal-600 font-semibold'
     : isDark
       ? `hover:bg-stone-900 border-l-[3px] border-l-transparent`
-      : `hover:bg-stone-100 border-l-[3px] border-l-transparent`;
+      : `hover:bg-[#F8FAFC] hover:text-[#0F172A] border-l-2 border-transparent`;
 
   // If onClick is provided, render as a button (for logout)
   if (onClick) {
@@ -130,7 +132,9 @@ export default function SidebarItem({
         >
           {item.label}
           {badge != null && badge > 0 && (
-            <span className="ml-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-stone-900 leading-none">
+            <span className={`ml-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none ${
+              isDark ? 'bg-amber-500 text-stone-900' : 'bg-teal-100 text-teal-700'
+            }`}>
               {badge > 99 ? '99+' : badge}
             </span>
           )}

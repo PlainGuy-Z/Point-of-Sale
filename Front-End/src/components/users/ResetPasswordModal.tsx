@@ -19,7 +19,7 @@ export default function ResetPasswordModal({ cashier, onClose }: ResetPasswordMo
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const panelCls = `${isDark ? 'bg-stone-900 border-stone-700' : 'bg-white border-stone-200'} border`;
+  const panelCls = `${isDark ? 'bg-stone-900 border-stone-700' : 'bg-white border-[#E2E8F0]'} border rounded-2xl shadow-2xl overflow-hidden`;
 
   const runReset = async () => {
     setError(null);
@@ -56,41 +56,39 @@ export default function ResetPasswordModal({ cashier, onClose }: ResetPasswordMo
         if (e.target === e.currentTarget && !loading && phase === 'confirm') onClose();
       }}
     >
-      <div className={`${panelCls} w-full rounded-3xl shadow-2xl ${phase === 'result' ? 'max-w-md' : 'max-w-sm'}`} role="dialog">
+      <div className={`${panelCls} w-full ${phase === 'result' ? 'max-w-md' : 'max-w-sm'}`} role="dialog">
         {phase === 'confirm' ? (
           <>
-            <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
-              <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-stone-900'}`}>Reset Password Kasir</h2>
-              <button type="button" disabled={loading} onClick={() => !loading && onClose()} className="rounded-xl p-2 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800">
+            <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}>
+              <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Reset Password</h2>
+              <button type="button" disabled={loading} onClick={() => !loading && onClose()} className={`rounded-lg p-2 transition-colors ${isDark ? 'text-stone-500 hover:bg-stone-800' : 'text-[#94A3B8] hover:text-[#475569] hover:bg-[#F1F5F9]'}`}>
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="space-y-4 p-6">
               {error && (
-                <p className="rounded-3xl border border-red-300 bg-red-50 px-4 py-3 text-sm dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
+                <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
                   {error}
                 </p>
               )}
               <div
-                className={`rounded-3xl border px-4 py-3 text-sm leading-relaxed ${
-                  isDark ? 'border-amber-900/40 bg-amber-950/20 text-amber-100' : 'border-amber-200 bg-amber-50 text-amber-950'
+                className={`rounded-xl border px-4 py-3 text-sm leading-relaxed font-medium ${
+                  isDark ? 'border-amber-900/40 bg-amber-950/20 text-amber-100' : 'border-amber-200 bg-amber-50 text-amber-800'
                 }`}
               >
-                <p className="font-semibold">
-                  ⚠️ Tindakan ini akan mengganti password <span className="font-black">{cashier.name}</span> dengan password sementara yang harus segera diubah oleh kasir setelah login.
-                </p>
+                ⚠️ Tindakan ini akan mengganti password <span className="font-bold underline decoration-2">{cashier.name}</span> dengan password sementara.
               </div>
 
               <div className="flex gap-3 pt-1">
-                <button type="button" disabled={loading} onClick={() => !loading && onClose()} className="flex-1 rounded-3xl border border-stone-300 py-3 text-sm font-bold dark:border-stone-700 dark:text-stone-200">
+                <button type="button" disabled={loading} onClick={() => !loading && onClose()} className={`flex-1 rounded-xl border py-3 text-sm font-bold transition-all ${isDark ? 'border-stone-700 text-stone-200' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}>
                   Batal
                 </button>
                 <button
                   type="button"
                   disabled={loading}
                   onClick={() => void runReset()}
-                  className={`flex-1 rounded-3xl py-3 text-sm font-bold text-white shadow-lg ${loading ? 'bg-stone-400' : 'bg-red-600 hover:bg-red-700'}`}
+                  className={`flex-1 rounded-xl py-3 text-sm font-bold text-white shadow-lg transition-all ${loading ? 'bg-stone-400 opacity-60' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20 active:scale-[0.98]'}`}
                 >
                   {loading ? 'Memproses...' : 'Reset Password'}
                 </button>
@@ -99,29 +97,29 @@ export default function ResetPasswordModal({ cashier, onClose }: ResetPasswordMo
           </>
         ) : (
           <>
-            <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
-              <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-stone-900'}`}>Password Berhasil Direset</h2>
-              <button type="button" onClick={onClose} className="rounded-xl p-2 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800">
+            <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}>
+              <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Password Direset</h2>
+              <button type="button" onClick={onClose} className={`rounded-lg p-2 transition-colors ${isDark ? 'text-stone-500 hover:bg-stone-800' : 'text-[#94A3B8] hover:text-[#475569] hover:bg-[#F1F5F9]'}`}>
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="space-y-4 p-6">
               <div>
-                <p className={`mb-2 text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
+                <p className={`mb-2 text-xs font-bold uppercase tracking-wider ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>
                   Password Sementara
                 </p>
-                <div className="flex items-center gap-2 rounded-3xl border border-stone-200 bg-stone-50 px-4 py-3 dark:border-stone-700 dark:bg-stone-950">
-                  <span className="flex-1 break-all font-mono text-lg font-bold tracking-wide text-stone-900 dark:text-white">
+                <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${isDark ? 'border-stone-700 bg-stone-950' : 'border-[#E2E8F0] bg-[#F8FAFC]'}`}>
+                  <span className="flex-1 break-all font-mono text-xl font-black tracking-wider text-teal-600">
                     {temporaryPassword}
                   </span>
                   <button
                     type="button"
                     onClick={() => void copyPw()}
-                    className={`flex shrink-0 items-center gap-1 rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-wider ${
+                    className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold transition-all ${
                       copied
-                        ? 'border-green-500 bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300'
-                        : 'border-stone-300 dark:border-stone-600 dark:text-stone-200'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : isDark ? 'border-stone-600 text-stone-200' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'
                     }`}
                   >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -130,11 +128,11 @@ export default function ResetPasswordModal({ cashier, onClose }: ResetPasswordMo
                 </div>
               </div>
 
-              <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
-                Berikan password ini kepada kasir secara langsung. Password ini hanya ditampilkan sekali.
+              <p className={`text-sm font-medium ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>
+                ℹ️ Berikan password ini kepada kasir. Password ini hanya ditampilkan sekali.
               </p>
 
-              <button type="button" onClick={onClose} className="w-full rounded-3xl bg-amber-500 py-3 text-sm font-bold text-white hover:bg-amber-600">
+              <button type="button" onClick={onClose} className="w-full rounded-xl bg-teal-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-teal-600/25 hover:bg-teal-700 transition-all active:scale-[0.98]">
                 Selesai
               </button>
             </div>

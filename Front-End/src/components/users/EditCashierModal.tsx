@@ -28,9 +28,9 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const panelCls = `${isDark ? 'bg-stone-900 border-stone-700' : 'bg-white border-stone-200'} border`;
-  const inputCls = `w-full rounded-3xl border px-4 py-3 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 ${
-    isDark ? 'border-stone-800 bg-stone-950 text-white placeholder:text-stone-600' : 'border-stone-200 bg-white text-stone-900 placeholder:text-stone-400'
+  const panelCls = `${isDark ? 'bg-stone-900 border-stone-700' : 'bg-white border-[#E2E8F0]'} border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden`;
+  const inputCls = `w-full rounded-xl border px-4 py-3 outline-none transition-all focus:border-teal-400 focus:bg-white ${
+    isDark ? 'border-stone-800 bg-stone-950 text-white placeholder:text-stone-600 focus:ring-1 focus:ring-teal-500' : 'border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]'
   }`;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,46 +73,46 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
         if (e.target === e.currentTarget && !loading) onClose();
       }}
     >
-      <div className={`${panelCls} max-w-md w-full rounded-3xl shadow-2xl`} role="dialog" aria-labelledby="edit-cashier-title">
-        <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
-          <h2 id="edit-cashier-title" className={`text-lg font-bold ${isDark ? 'text-white' : 'text-stone-900'}`}>
+      <div className={panelCls} role="dialog" aria-labelledby="edit-cashier-title">
+        <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}>
+          <h2 id="edit-cashier-title" className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
             Edit Akun Kasir
           </h2>
-          <button type="button" onClick={() => !loading && onClose()} className="rounded-xl p-2 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800">
+          <button type="button" onClick={() => !loading && onClose()} className={`rounded-lg p-2 transition-colors ${isDark ? 'text-stone-500 hover:bg-stone-800' : 'text-[#94A3B8] hover:text-[#475569] hover:bg-[#F1F5F9]'}`}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 p-6">
           {error && (
-            <p className="rounded-3xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
+            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
               {error}
             </p>
           )}
 
           <div>
-            <label className={`mb-1.5 block text-sm font-semibold ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>Nama Lengkap</label>
+            <label className={`mb-1.5 block text-xs font-bold uppercase tracking-wider ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>Nama Lengkap</label>
             <input required minLength={3} className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
           <div>
-            <label className={`mb-1.5 block text-sm font-semibold ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>Email</label>
+            <label className={`mb-1.5 block text-xs font-bold uppercase tracking-wider ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>Email</label>
             <input required type="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
 
-          <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
-            Password tidak dapat diubah di sini. Gunakan Reset Password jika diperlukan.
+          <p className={`text-xs font-medium ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>
+            ℹ️ Password tidak dapat diubah di sini. Gunakan Reset Password jika diperlukan.
           </p>
 
           <div className="flex gap-3 pt-2">
-            <button type="button" disabled={loading} onClick={() => !loading && onClose()} className="flex-1 rounded-3xl border border-stone-300 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800">
+            <button type="button" disabled={loading} onClick={() => !loading && onClose()} className={`flex-1 rounded-xl py-3 text-sm font-bold border transition-all ${isDark ? 'border-stone-700 text-stone-200' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}>
               Batal
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`flex-1 rounded-3xl py-3 text-sm font-bold text-white shadow-lg transition disabled:opacity-60 ${
-                loading ? 'bg-stone-400' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25'
+              className={`flex-1 rounded-xl py-3 text-sm font-bold text-white shadow-lg transition-all ${
+                loading ? 'bg-stone-400 opacity-60' : 'bg-teal-600 hover:bg-teal-700 shadow-teal-600/20 active:scale-[0.98]'
               }`}
             >
               {loading ? 'Menyimpan...' : 'Simpan Perubahan'}

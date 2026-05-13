@@ -47,7 +47,7 @@ export default function Login() {
         padding: 16,
         background: isDark
           ? 'linear-gradient(135deg, #0c0a09 0%, #1c1917 50%, #0c0a09 100%)'
-          : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #f9fafb 100%)',
+          : 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
         transition: 'background 0.3s',
         position: 'relative',
       }}
@@ -62,26 +62,27 @@ export default function Login() {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          color: isDark ? '#a8a29e' : '#78716c',
+          color: isDark ? '#a8a29e' : '#475569',
           textDecoration: 'none',
           fontSize: 14,
           fontWeight: 600,
           padding: '8px 16px',
           borderRadius: 9999,
-          backgroundColor: isDark ? 'rgba(28, 25, 23, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+          backgroundColor: isDark ? 'rgba(28, 25, 23, 0.5)' : '#FFFFFF',
           backdropFilter: 'blur(8px)',
-          border: `1px solid ${isDark ? '#292524' : '#e5e7eb'}`,
+          border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
+          boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.05)',
           transition: 'all 0.2s',
           zIndex: 10,
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = isDark ? '#fafaf9' : '#0c0a09';
-          e.currentTarget.style.backgroundColor = isDark ? '#292524' : '#ffffff';
+          e.currentTarget.style.color = isDark ? '#fafaf9' : '#0D9488';
+          e.currentTarget.style.borderColor = isDark ? '#292524' : '#99F6E4';
           e.currentTarget.style.transform = 'translateX(-4px)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = isDark ? '#a8a29e' : '#78716c';
-          e.currentTarget.style.backgroundColor = isDark ? 'rgba(28, 25, 23, 0.5)' : 'rgba(255, 255, 255, 0.5)';
+          e.currentTarget.style.color = isDark ? '#a8a29e' : '#475569';
+          e.currentTarget.style.borderColor = isDark ? '#292524' : '#E2E8F0';
           e.currentTarget.style.transform = 'translateX(0)';
         }}
       >
@@ -96,10 +97,10 @@ export default function Login() {
           borderRadius: 24,
           padding: 40,
           backgroundColor: isDark ? '#1c1917' : '#ffffff',
-          border: `1px solid ${isDark ? '#292524' : '#e5e7eb'}`,
+          border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
           boxShadow: isDark
             ? '0 25px 50px -12px rgba(0,0,0,0.5)'
-            : '0 25px 50px -12px rgba(0,0,0,0.1)',
+            : '0 10px 40px -10px rgba(0,0,0,0.08)',
         }}
       >
         {/* Logo */}
@@ -110,12 +111,12 @@ export default function Login() {
                 width: 64,
                 height: 64,
                 borderRadius: 20,
-                background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+                background: 'linear-gradient(135deg, #0D9488, #0f766e)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px',
-                boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)',
+                boxShadow: '0 8px 24px rgba(13, 148, 136, 0.2)',
                 transition: 'transform 0.2s',
               }}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
@@ -126,15 +127,16 @@ export default function Login() {
             <h1
               style={{
                 fontSize: 28,
-                fontWeight: 800,
-                color: isDark ? '#fafaf9' : '#0c0a09',
+                fontWeight: 900,
+                color: isDark ? '#fafaf9' : '#0F172A',
                 marginBottom: 4,
+                letterSpacing: '-0.02em'
               }}
             >
-              Coffee<span style={{ color: '#f59e0b' }}>Pos</span>
+              Coffee<span style={{ color: '#0D9488' }}>Pos</span>
             </h1>
           </Link>
-          <p style={{ color: isDark ? '#a8a29e' : '#78716c', fontSize: 14 }}>
+          <p style={{ color: isDark ? '#a8a29e' : '#475569', fontSize: 14, fontWeight: 500 }}>
             Masuk ke dashboard toko Anda
           </p>
         </div>
@@ -151,8 +153,9 @@ export default function Login() {
               marginBottom: 20,
               backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
               border: `1px solid ${isDark ? 'rgba(239,68,68,0.3)' : '#fecaca'}`,
-              color: '#ef4444',
+              color: '#b91c1c',
               fontSize: 14,
+              fontWeight: 500
             }}
           >
             <AlertCircle style={{ width: 18, height: 18, flexShrink: 0 }} />
@@ -169,7 +172,7 @@ export default function Login() {
                 display: 'block',
                 fontSize: 13,
                 fontWeight: 600,
-                color: isDark ? '#d6d3d1' : '#44403c',
+                color: isDark ? '#d6d3d1' : '#475569',
                 marginBottom: 6,
               }}
             >
@@ -184,7 +187,7 @@ export default function Login() {
                   transform: 'translateY(-50%)',
                   width: 18,
                   height: 18,
-                  color: isDark ? '#78716c' : '#a8a29e',
+                  color: isDark ? '#78716c' : '#94A3B8',
                 }}
               />
               <input
@@ -197,20 +200,20 @@ export default function Login() {
                   width: '100%',
                   padding: '12px 14px 12px 44px',
                   borderRadius: 12,
-                  border: `1px solid ${isDark ? '#292524' : '#d6d3d1'}`,
-                  backgroundColor: isDark ? '#0c0a09' : '#fafaf9',
-                  color: isDark ? '#fafaf9' : '#0c0a09',
+                  border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
+                  backgroundColor: isDark ? '#0c0a09' : '#ffffff',
+                  color: isDark ? '#fafaf9' : '#0F172A',
                   fontSize: 14,
                   outline: 'none',
                   transition: 'border-color 0.2s, box-shadow 0.2s',
                   boxSizing: 'border-box',
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#f59e0b';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.15)';
+                  e.target.style.borderColor = '#0D9488';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = isDark ? '#292524' : '#d6d3d1';
+                  e.target.style.borderColor = isDark ? '#292524' : '#E2E8F0';
                   e.target.style.boxShadow = 'none';
                 }}
               />
@@ -224,7 +227,7 @@ export default function Login() {
                 display: 'block',
                 fontSize: 13,
                 fontWeight: 600,
-                color: isDark ? '#d6d3d1' : '#44403c',
+                color: isDark ? '#d6d3d1' : '#475569',
                 marginBottom: 6,
               }}
             >
@@ -239,7 +242,7 @@ export default function Login() {
                   transform: 'translateY(-50%)',
                   width: 18,
                   height: 18,
-                  color: isDark ? '#78716c' : '#a8a29e',
+                  color: isDark ? '#78716c' : '#94A3B8',
                 }}
               />
               <input
@@ -252,20 +255,20 @@ export default function Login() {
                   width: '100%',
                   padding: '12px 44px 12px 44px',
                   borderRadius: 12,
-                  border: `1px solid ${isDark ? '#292524' : '#d6d3d1'}`,
-                  backgroundColor: isDark ? '#0c0a09' : '#fafaf9',
-                  color: isDark ? '#fafaf9' : '#0c0a09',
+                  border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
+                  backgroundColor: isDark ? '#0c0a09' : '#ffffff',
+                  color: isDark ? '#fafaf9' : '#0F172A',
                   fontSize: 14,
                   outline: 'none',
                   transition: 'border-color 0.2s, box-shadow 0.2s',
                   boxSizing: 'border-box',
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#f59e0b';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.15)';
+                  e.target.style.borderColor = '#0D9488';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = isDark ? '#292524' : '#d6d3d1';
+                  e.target.style.borderColor = isDark ? '#292524' : '#E2E8F0';
                   e.target.style.boxShadow = 'none';
                 }}
               />
@@ -281,7 +284,7 @@ export default function Login() {
                   border: 'none',
                   cursor: 'pointer',
                   padding: 0,
-                  color: isDark ? '#78716c' : '#a8a29e',
+                  color: isDark ? '#78716c' : '#94A3B8',
                 }}
               >
                 {showPassword ? (
@@ -304,7 +307,7 @@ export default function Login() {
               border: 'none',
               background: isLoading
                 ? (isDark ? '#44403c' : '#d6d3d1')
-                : 'linear-gradient(135deg, #f59e0b, #ea580c)',
+                : '#0D9488',
               color: '#ffffff',
               fontSize: 16,
               fontWeight: 700,
@@ -313,8 +316,14 @@ export default function Login() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              transition: 'opacity 0.2s, transform 0.1s',
-              boxShadow: isLoading ? 'none' : '0 4px 14px rgba(245,158,11,0.3)',
+              transition: 'all 0.2s',
+              boxShadow: isLoading ? 'none' : '0 4px 14px rgba(13,148,136,0.25)',
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading) e.currentTarget.style.background = '#0f766e';
+            }}
+            onMouseLeave={(e) => {
+              if (!isLoading) e.currentTarget.style.background = '#0D9488';
             }}
           >
             {isLoading ? (
@@ -334,17 +343,20 @@ export default function Login() {
             textAlign: 'center',
             marginTop: 24,
             fontSize: 14,
-            color: isDark ? '#a8a29e' : '#78716c',
+            color: isDark ? '#a8a29e' : '#475569',
+            fontWeight: 500
           }}
         >
           Belum punya akun?{' '}
           <Link
             to="/register"
             style={{
-              color: '#f59e0b',
-              fontWeight: 600,
+              color: '#0D9488',
+              fontWeight: 700,
               textDecoration: 'none',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+            onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
           >
             Daftar toko baru
           </Link>

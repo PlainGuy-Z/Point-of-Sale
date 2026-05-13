@@ -50,30 +50,36 @@ export default function SidebarCollapse({
           ${isActive
             ? theme === 'dark'
               ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-              : 'bg-amber-500/10 text-stone-900 border-amber-500/40'
+              : 'bg-teal-50 text-[#0F172A] border-teal-200'
             : theme === 'dark'
               ? 'hover:bg-[#1a1614] text-stone-200 border-transparent hover:border-stone-800'
-              : 'hover:bg-stone-100 text-stone-800 border-transparent hover:border-stone-200'
+              : 'hover:bg-[#F8FAFC] text-[#475569] border-transparent hover:border-[#E2E8F0]'
           }
         `}
       >
         <div className={`flex items-center ${isCollapsed ? '' : 'gap-3'} overflow-hidden`}>
           <div className={`${isCollapsed ? 'w-5 h-5' : 'w-9 h-9'} flex-shrink-0 rounded-3xl flex items-center justify-center border transition-all duration-300 ${
             isActive
-              ? 'border-amber-500/40'
+              ? theme === 'dark'
+                ? 'border-amber-500/40'
+                : 'border-teal-200'
               : theme === 'dark'
                 ? 'border-stone-800'
-                : 'border-stone-200'
+                : 'border-[#E2E8F0]'
           } ${isCollapsed ? 'border-none' : ''}`}>
-            {Icon && <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-amber-500' : theme === 'dark' ? 'text-stone-400' : 'text-stone-500'}`} />}
+            {Icon && <Icon className={`w-5 h-5 flex-shrink-0 ${
+              isActive 
+                ? theme === 'dark' ? 'text-amber-500' : 'text-teal-600' 
+                : theme === 'dark' ? 'text-stone-400' : 'text-[#94A3B8]'
+            }`} />}
           </div>
           {!isCollapsed && <span className="font-semibold truncate">{item.title}</span>}
         </div>
         {!isCollapsed && (
           isOpen ? (
-            <ChevronDown className="w-4 h-4 flex-shrink-0" />
+            <ChevronDown className={`w-4 h-4 flex-shrink-0 ${theme === 'dark' ? '' : 'text-[#94A3B8]'}`} />
           ) : (
-            <ChevronRight className="w-4 h-4 flex-shrink-0" />
+            <ChevronRight className={`w-4 h-4 flex-shrink-0 ${theme === 'dark' ? '' : 'text-[#94A3B8]'}`} />
           )
         )}
       </button>
@@ -84,11 +90,11 @@ export default function SidebarCollapse({
             min-w-48 rounded-2xl border shadow-xl py-2
             ${theme === 'dark'
               ? 'bg-stone-900 border-stone-700'
-              : 'bg-white border-stone-200'}
+              : 'bg-white border-[#E2E8F0]'}
           `}>
             {/* Group label */}
             <p className={`px-4 py-2 text-xs font-bold uppercase tracking-wider ${
-              theme === 'dark' ? 'text-stone-500' : 'text-stone-400'
+              theme === 'dark' ? 'text-stone-500' : 'text-[#94A3B8]'
             }`}>
               {item.title}
             </p>
@@ -112,22 +118,23 @@ export default function SidebarCollapse({
                     ${isSubActive
                       ? theme === 'dark'
                         ? 'bg-amber-500/10 text-amber-300'
-                        : 'bg-amber-500/10 text-stone-900'
+                        : 'bg-teal-50 text-teal-700 font-semibold'
                       : theme === 'dark'
                         ? 'hover:bg-stone-800 text-stone-300'
-                        : 'hover:bg-stone-100 text-stone-700'
+                        : 'bg-transparent hover:bg-[#F8FAFC] text-[#475569]'
                     }
                   `}
                 >
                   {SubIcon && (
                     <SubIcon className={`w-4 h-4 flex-shrink-0 ${
-                      isSubActive ? 'text-amber-500'
-                      : theme === 'dark' ? 'text-stone-400' : 'text-stone-500'
+                      isSubActive 
+                        ? theme === 'dark' ? 'text-amber-500' : 'text-teal-600'
+                        : theme === 'dark' ? 'text-stone-400' : 'text-[#94A3B8]'
                     }`} />
                   )}
                   <span className="text-sm font-semibold">{subItem.title}</span>
                   {isSubActive && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <div className={`ml-auto w-1.5 h-1.5 rounded-full ${theme === 'dark' ? 'bg-amber-500' : 'bg-teal-600'}`} />
                   )}
                 </Link>
               );
@@ -156,14 +163,18 @@ export default function SidebarCollapse({
                   ${isSubActive
                     ? theme === 'dark'
                       ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                      : 'bg-amber-500/10 text-stone-900 border-amber-500/40'
+                      : 'bg-teal-50 text-teal-700 border-teal-200 font-semibold'
                     : theme === 'dark'
                       ? 'hover:bg-[#1a1614] text-stone-200 border-transparent hover:border-stone-800'
-                      : 'hover:bg-stone-100 text-stone-800 border-transparent hover:border-stone-200'
+                      : 'bg-transparent hover:bg-[#F8FAFC] text-[#475569] border-transparent hover:border-[#E2E8F0]'
                   }
                 `}
               >
-                {SubIcon && <SubIcon className={`w-4 h-4 ${isSubActive ? 'text-amber-500' : theme === 'dark' ? 'text-stone-400' : 'text-stone-500'}`} />}
+                {SubIcon && <SubIcon className={`w-4 h-4 ${
+                  isSubActive 
+                    ? theme === 'dark' ? 'text-amber-500' : 'text-teal-600' 
+                    : theme === 'dark' ? 'text-stone-400' : 'text-[#94A3B8]'
+                }`} />}
                 <span className="text-sm font-semibold">{subItem.title}</span>
               </Link>
             );

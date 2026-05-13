@@ -1,88 +1,148 @@
-# Sprint 3: Shift Management Implementation
+# Mobile UI/UX Total Refactor — SmartPOS
 
-This plan outlines the implementation of Shift Management for the CoffeePOS system. This connects the cashier workflow with transaction tracking to ensure accurate daily financial reconciliation.
+Refaktor menyeluruh tampilan mobile untuk Dashboard, Sales Report, Transaction History, dan POS View. Semua perubahan hanya pada layer presentational — zero logic/route/state changes.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **POS View sudah banyak dioptimasi** dalam sesi ini (MobileCart floating bar, swipe-to-delete, quantity stepper, checkout/edit panel overlay). Rencana di bawah ini **tidak akan mengulang** pekerjaan POS yang sudah dilakukan — hanya minor polish (touch target sizing, sticky search).
+
+> [!WARNING]
+> **react-window** (virtualized list) membutuhkan `npm install react-window @types/react-window`. Apakah Anda ingin menambah dependency ini, atau cukup gunakan pagination yang sudah ada di OwnerHistory? OwnerHistory sudah paging 20 item/page dari API, jadi virtualization mungkin tidak diperlukan.
 
 ## Open Questions
 
-> [!NOTE]
-> Database Migration: I will create a `Back-End/migration-sprint3.sql` file. Please confirm if you will run this manually in your Supabase dashboard or if you have an automated migration tool.
-> Note about `pos.ts` API: When inserting a transaction, we need to associate it with the `shift_id`. The backend will use `req.user.id` to look up the active shift, so the frontend doesn't need to manually send `shift_id`. Please confirm this approach.
+1. **StockAlertIndicator placement**: Apakah icon bell + badge diletakkan di header Dashboard, atau di navbar/sidebar? Plan ini menempatkannya di header Dashboard.
+2. **CashierDashboard**: File ini sudah cukup clean untuk mobile (2-col grid, tombol besar). Apakah perlu diubah juga, atau fokus pada Owner Dashboard saja?
+3. **Lazy loading**: `React.lazy` biasanya diimplementasikan di router (`App.tsx`). Apakah saya boleh menyentuh file routing untuk menambah lazy import, atau harus di-skip karena constraint "jangan ubah routing"?
+
+---
 
 ## Proposed Changes
 
----
+### Component Baru: StockAlertIndicator
 
-### Backend: Database & API
+#### [NEW] [StockAlertIndicator.tsx](file:///c:/Users/Azlan/OneDrive/Documents/Point-of-Sale/Front-End/src/components/dashboard/StockAlertIndicator.tsx)
 
-#### [NEW] `Back-End/migration-sprint3.sql`
-- Creates `coffeepos.shifts` table.
-- Alters `coffeepos.transactions` to add `shift_id` and `cashier_id`.
-- Creates necessary indexes for performance.
-
-#### [NEW] `Back-End/src/routes/shifts.ts`
-- **POST `/shifts/open`**: Validates no active shift exists, then creates a new shift.
-- **POST `/shifts/close`**: Calculates expected cash from transactions, compares with actual cash, updates shift status, and calculates totals.
-- **GET `/shifts/active`**: Fetches the current active shift for the logged-in cashier.
-- **GET `/shifts`**: (Owner only) Paginated list of all shifts with filters.
-- **GET `/shifts/:id`**: (Owner only) Details of a specific shift including its transactions.
-
-#### [MODIFY] `Back-End/src/app.ts`
-- Register the new `/shifts` router with `authenticateToken` middleware.
-
-#### [MODIFY] `Back-End/src/routes/pos.ts`
-- Update the `/pos/checkout` endpoint to automatically attach the `shift_id` to new transactions if the user is a cashier and has an active shift.
+Komponen ringkas menggantikan `LowStockAlert` card yang dominan di mobile:
+- Icon bell (`Bell` dari lucide-react) dengan badge merah jika ada produk stok ≤ 5
+- Klik icon → dropdown/popover kecil menampilkan daftar produk low-stock dan out-of-stock
+- Menutup saat klik di luar (click-outside handler)
+- Props: `lowStockProducts`, `outOfStockProducts` (sama seperti yang sudah ada di `useDashboardMetrics`)
+- Dark mode aware via `useTheme`
 
 ---
 
-### Frontend: Context & UI Components
+### Dashboard (Owner)
 
-#### [NEW] `Front-End/src/contexts/ShiftContext.tsx`
-- Creates `ShiftContext` to manage `activeShift`, `isLoading`, `openShift`, `closeShift`, and `refreshShift`.
-- Automatically fetches active shift on mount if the user is a cashier.
+#### [MODIFY] [index.tsx](file:///c:/Users/Azlan/OneDrive/Documents/Point-of-Sale/Front-End/src/pages/Dashboard/index.tsx)
 
-#### [MODIFY] `Front-End/src/main.tsx`
-- Wraps the `<App />` component with `<ShiftProvider>` inside the `<AuthContext>` so it has access to the user token.
+**Perubahan pada mobile layout saja (lines 260-370), desktop tidak diubah:**
 
-#### [NEW] `Front-End/src/components/shift/ShiftOpenModal.tsx`
-- Modal that forces the cashier to enter the opening cash amount before starting their shift.
+| Sebelum | Sesudah |
+|---------|---------|
+| Section "Ringkasan Stok & Margin" — 3 full-size StatCard dalam carousel | **Dihapus** dari flow utama. Data margin dipindah ke carousel "Statistik Utama" (card ke-5) |
+| Section "Stok & Produk Terlaris" — carousel dengan `LowStockAlert` (full component) + `TopProducts` | **Diganti**: `LowStockAlert` dihapus dari carousel, diganti `StockAlertIndicator` icon di header. `TopProducts` tetap ditampilkan sebagai section sendiri (full-width) |
+| Section "Ringkasan Inventaris" — 3 StatCard carousel | **Digabung** menjadi compact horizontal row (3 mini stat inline) alih-alih carousel terpisah |
+| 6 section carousel berturut-turut → terlalu panjang | **Dikurangi** menjadi 4 section: Header + Stats carousel + Chart + Performance |
 
-#### [NEW] `Front-End/src/components/shift/ShiftCloseModal.tsx`
-- Modal to close the shift, displaying total sales, expected cash, and allowing the cashier to input actual cash. Displays the variance (selisih) in real-time.
-
----
-
-### Frontend: Integration & Gates
-
-#### [MODIFY] `Front-End/src/components/Layout/Sidebar.tsx`
-- Adds a "Tutup Shift" button and a "Shift Aktif" / "Belum Buka Shift" status badge for cashiers.
-
-#### [MODIFY] `Front-End/src/pages/Dashboard/CashierDashboard.tsx`
-- Implements the shift gate. Triggers `ShiftOpenModal` if there is no active shift.
-
-#### [MODIFY] `Front-End/src/pages/PointOfSale/index.tsx` & `Front-End/src/pages/Operation/WasteLog/index.tsx`
-- Adds a check to prevent cashiers from accessing POS or Waste Log if they don't have an active shift.
-
-#### [MODIFY] `Front-End/src/components/operation/WasteLogTable.tsx`
-- Restricts editing and deleting waste logs for cashiers (hides the buttons).
+**Hasil akhir mobile layout:**
+1. **Header** — dengan `StockAlertIndicator` bell icon di kanan (menggantikan badge "Real-time")
+2. **Stat Cards** — carousel 4 card utama (pendapatan, transaksi, pelanggan, tiket)
+3. **Grafik Pendapatan** — full width (unchanged)
+4. **Top Products** — full width list (unchanged)
+5. **Wawasan Kinerja** — carousel compact (unchanged)
 
 ---
 
-### Frontend: Owner Reporting
+### Sales Report
 
-#### [NEW] `Front-End/src/pages/Shifts/index.tsx`
-- Owner dashboard for shift reports. Displays summary metrics and a paginated data table.
+#### [MODIFY] [SummaryCards.tsx](file:///c:/Users/Azlan/OneDrive/Documents/Point-of-Sale/Front-End/src/pages/SalesReport/components/SummaryCards.tsx)
 
-#### [NEW] `Front-End/src/pages/Shifts/detail.tsx`
-- Detailed view of a specific shift, including a breakdown of all transactions that occurred during that shift.
+- Ubah `grid grid-cols-2 lg:grid-cols-4` → horizontal snap carousel pada mobile (`< 768px`)
+- Setiap card: `min-w-[260px]`, `scroll-snap-align: start`
+- Gunakan `useIsMobile` hook yang sudah ada
+- Desktop layout tetap grid 4-col (tidak berubah)
+- Value text: `text-3xl` → `text-2xl` on mobile agar tidak overflow
 
-#### [MODIFY] `Front-End/src/data/navigation.ts` & `Front-End/src/App.tsx`
-- Adds the new Shift Laporan routes for owners.
+#### [MODIFY] [DetailTabs.tsx](file:///c:/Users/Azlan/OneDrive/Documents/Point-of-Sale/Front-End/src/pages/SalesReport/components/DetailTabs.tsx)
+
+- Tab bar: tambah `overflow-x-auto` + `scrollbar-hide` agar tab bisa scroll horizontal di mobile
+- **Products tab**: Ubah table → vertical card list pada mobile
+  - Setiap card: rank medal + nama produk + qty + revenue + margin
+  - Desktop tetap table
+- **Cashier tab**: Sama — table → card list pada mobile
+- **Payment tab**: Sudah card-based, tidak berubah
+
+#### [MODIFY] [index.tsx](file:///c:/Users/Azlan/OneDrive/Documents/Point-of-Sale/Front-End/src/pages/SalesReport/index.tsx)
+
+- **Cost Breakdown section** (line 150-188): `grid-cols-2 md:grid-cols-4` → horizontal scroll snap pada mobile
+- **Transaction List table** (line 213-257): Tambah mobile card view (hidden on md+), hide table on mobile
+  - Setiap card: waktu + items + total + payment badge
+  - Klik card → expand detail (sudah ada logic `expandedTx`)
+- **Date filter pills**: Tambah `overflow-x-auto` + snap scroll saat layar sempit
+- **Pagination buttons**: Perbesar touch target ke `min-h-[44px]`
+
+---
+
+### Transaction History
+
+#### [MODIFY] [OwnerHistory.tsx](file:///c:/Users/Azlan/OneDrive/Documents/Point-of-Sale/Front-End/src/pages/TransactionHistory/OwnerHistory.tsx)
+
+- **Summary cards** (line 196-236): Ubah ke horizontal snap carousel pada mobile (sudah grid, tapi 4 card bisa overflow)
+- **Filter section** (line 264-328): 
+  - Wrap dalam collapsible accordion pada mobile (default collapsed, tombol "Filter" untuk buka)
+  - Ini mengurangi visual noise drastis — filter panjang menyulitkan mobile
+  - Status pills + payment select: `overflow-x-auto` horizontal scroll
+  - Export CSV button: pindah ke header row (sejajar dengan judul)
+- **Pending void banner** (line 239-262): Compact — hide detail list by default, show count + "Lihat" button
+- **Mobile card list** (line 387-410): Sudah ada! Polish:
+  - Tambah border-t color fix (line 404: `dark:border-stone-800` → use conditional class)
+  - Perbesar touch area tombol "Lihat Detail"  
+  - Tambah payment method icon (Cash/QRIS/Card)
+- **Pagination** (line 414-433): Perbesar button touch target
+
+#### [MODIFY] [CashierHistory.tsx](file:///c:/Users/Azlan/OneDrive/Documents/Point-of-Sale/Front-End/src/pages/TransactionHistory/CashierHistory.tsx)
+
+- **Filter bar**: Wrap dalam collapsible on mobile (sama seperti OwnerHistory)
+- **Card list**: Sudah card-based — polish touch targets & spacing
+- **Pagination**: Perbesar touch target
+- Minor: Header text `text-3xl` → `text-2xl` on mobile
+
+---
+
+### POS View (Minor Polish Only)
+
+#### [MODIFY] [index.tsx](file:///c:/Users/Azlan/OneDrive/Documents/Point-of-Sale/Front-End/src/pages/PointOfSale/index.tsx)
+
+> [!NOTE]
+> POS sudah extensively refactored dalam sesi ini. Hanya minor polish:
+
+- **Search input**: Tambah `sticky top-0 z-10` agar tetap terlihat saat scroll product grid
+- **Category pills**: Tambah `overflow-x-auto scrollbar-hide` jika belum
+- **Product cards**: Pastikan tombol "+" memiliki `min-h-[44px] min-w-[44px]` touch target
+- Tidak ada perubahan pada MobileCart (sudah selesai)
+
+---
 
 ## Verification Plan
 
-### Automated/Manual Verification
-- Run the SQL migration in the database.
-- Start backend and frontend servers.
-- **Cashier Flow**: Login as cashier -> Verify `ShiftOpenModal` appears -> Open shift -> Verify POS is accessible -> Close shift -> Verify logout.
-- **Owner Flow**: Login as owner -> Go to Shift Report -> Verify shift details are recorded correctly.
-- **Waste Log Flow**: Login as cashier -> Verify Edit/Delete buttons are hidden.
+### Automated Tests
+```bash
+# TypeScript compile check — must pass with zero errors
+npx tsc --noEmit --pretty
+
+# Dev server — visual verification
+npm run dev
+```
+
+### Manual Verification (Browser DevTools Mobile Mode)
+- [ ] **Dashboard**: Stock alert icon muncul, klik → dropdown. Carousel stats smooth. Chart renders. Desktop layout untouched.
+- [ ] **Sales Report**: Summary cards scroll horizontal. DetailTabs products show as cards on mobile. Cost breakdown scrollable. Transaction list expandable.
+- [ ] **Owner History**: Filter collapsible. Summary carousel. Mobile cards tappable. Pagination buttons ≥ 44px.
+- [ ] **Cashier History**: Filter collapsible. Cards tappable. Sort buttons work.
+- [ ] **POS**: Search sticky. Product add buttons ≥ 44px. MobileCart works (existing).
+- [ ] **Dark mode**: Semua komponen baru konsisten `#111111` bg + `#f59e0b` accent.
+- [ ] **No horizontal scroll** pada body (kecuali carousel yang disengaja).
+- [ ] **Navigasi**: Semua route tetap berfungsi.
+- [ ] **Cart flow**: Tambah/hapus/edit item, checkout, quick pay — semua tetap jalan.

@@ -51,53 +51,63 @@ export default function AIChatPanel() {
     el.style.height = Math.min(el.scrollHeight, 72) + 'px';
   };
 
-  const bg = isDark ? '#1c1917' : '#fff';
-  const border = isDark ? '#292524' : '#e7e5e4';
-
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', borderRadius:16, border:`1px solid ${border}`, background:bg, overflow:'hidden' }}>
+    <div className={`flex flex-col h-full rounded-2xl border overflow-hidden shadow-sm transition-all ${
+      isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-[#E2E8F0]'
+    }`}>
       {/* Header */}
-      <div style={{ background:'linear-gradient(135deg, #7c3aed, #0d9488)', padding:'16px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Bot size={20} color="#fff" />
+      <div className={`px-5 py-4 flex justify-between items-center shrink-0 ${
+        isDark ? 'bg-gradient-to-r from-stone-800 to-stone-900 border-b border-stone-700' : 'bg-gradient-to-r from-teal-600 to-teal-700 text-white'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+            isDark ? 'bg-stone-800 border border-stone-700' : 'bg-white/20 border border-white/30 backdrop-blur-md'
+          }`}>
+            <Bot size={20} className={isDark ? 'text-teal-400' : 'text-white'} />
           </div>
           <div>
-            <div style={{ fontWeight:700, color:'#fff', fontSize:14 }}>AI Business Advisor</div>
-            <div style={{ fontSize:11, color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:4 }}>
-              <span style={{ width:6, height:6, borderRadius:3, background:'#22c55e', display:'inline-block' }} />
-              Online · Data real-time
+            <div className="text-sm font-bold">AI Business Advisor</div>
+            <div className={`text-[10px] flex items-center gap-1.5 ${isDark ? 'text-stone-500' : 'text-white/70'}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Online · Real-time
             </div>
           </div>
         </div>
         {messages.length > 0 && (
-          <button onClick={clearChat} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:8, padding:8, cursor:'pointer', color:'#fff', display:'flex' }}
-            title="Hapus semua chat">
+          <button 
+            onClick={clearChat} 
+            className={`p-2 rounded-lg transition-all ${isDark ? 'bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-white' : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'}`}
+            title="Hapus semua chat"
+          >
             <Trash2 size={16} />
           </button>
         )}
       </div>
 
       {/* Chat Area */}
-      <div className="horizontal-scrollbar-thin" style={{ flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:12 }}>
+      <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-4 no-scrollbar">
         {messages.length === 0 ? (
-          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
-            <div style={{ width:56, height:56, borderRadius:16, background:'linear-gradient(135deg, #7c3aed20, #0d948820)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Sparkles size={24} color="#7c3aed" />
+          <div className="flex-1 flex flex-col items-center justify-center gap-5">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
+              isDark ? 'bg-stone-800 border border-stone-700' : 'bg-teal-50 border border-teal-100'
+            }`}>
+              <Sparkles size={24} className={isDark ? 'text-teal-400' : 'text-teal-600'} />
             </div>
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontWeight:700, fontSize:15, color:isDark?'#fafaf9':'#1c1917', marginBottom:4 }}>Mulai Percakapan</div>
-              <div style={{ fontSize:12, color:isDark?'#78716c':'#a8a29e', maxWidth:240 }}>Tanyakan apapun tentang bisnis, stok, atau strategi penjualan.</div>
+            <div className="text-center">
+              <div className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Halo! Saya Advisor Bisnis Anda.</div>
+              <div className={`text-xs font-medium max-w-[240px] leading-relaxed ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
+                Tanyakan tentang omzet, stok rendah, atau strategi produk terlaris hari ini.
+              </div>
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8, width:'100%', maxWidth:280 }}>
+            <div className="flex flex-col gap-2 w-full max-w-[280px]">
               {SUGGESTED.map(q=>(
-                <button key={q} onClick={()=>sendMessage(q)} style={{
-                  fontSize:12, fontWeight:500, padding:'10px 14px', borderRadius:12, border:`1px solid ${isDark?'#292524':'#e7e5e4'}`,
-                  background:isDark?'#292524':'#fafaf9', color:isDark?'#d6d3d1':'#44403c', cursor:'pointer', textAlign:'left',
-                  transition:'background 0.15s, border-color 0.15s',
-                }}
-                onMouseEnter={e=>{e.currentTarget.style.background=isDark?'#44403c':'#f5f5f4';e.currentTarget.style.borderColor=isDark?'#44403c':'#d6d3d1';}}
-                onMouseLeave={e=>{e.currentTarget.style.background=isDark?'#292524':'#fafaf9';e.currentTarget.style.borderColor=isDark?'#292524':'#e7e5e4';}}>
+                <button key={q} onClick={()=>sendMessage(q)} className={`
+                  text-left text-xs font-bold px-4 py-3 rounded-xl border transition-all duration-200
+                  ${isDark 
+                    ? 'bg-stone-800 border-stone-700 text-stone-300 hover:bg-stone-700 hover:border-stone-600' 
+                    : 'bg-white border-[#E2E8F0] text-[#475569] hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 hover:shadow-sm'
+                  }
+                `}>
                   {q}
                 </button>
               ))}
@@ -106,44 +116,40 @@ export default function AIChatPanel() {
         ) : (
           <>
             {messages.map(msg => (
-              <div key={msg.id} style={{ display:'flex', justifyContent:msg.role==='user'?'flex-end':'flex-start' }}>
-                <div style={{ display:'flex', gap:8, maxWidth:'85%', flexDirection:msg.role==='user'?'row-reverse':'row' }}>
+              <div key={msg.id} className={`flex ${msg.role==='user'?'justify-end':'justify-start'}`}>
+                <div className={`flex gap-3 max-w-[85%] ${msg.role==='user'?'flex-row-reverse':''}`}>
                   {/* Avatar */}
-                  <div style={{
-                    width:28, height:28, borderRadius:14, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-                    background: msg.role==='user' ? '#f59e0b25' : 'linear-gradient(135deg, #7c3aed, #0d9488)',
-                  }}>
-                    {msg.role==='user'
-                      ? <User size={14} color="#f59e0b" />
-                      : <Bot size={14} color="#fff" />}
+                  <div className={`
+                    w-8 h-8 rounded-lg shrink-0 flex items-center justify-center shadow-md
+                    ${msg.role==='user' 
+                      ? 'bg-amber-100 border border-amber-200 text-amber-600' 
+                      : (isDark ? 'bg-stone-800 border border-stone-700' : 'bg-gradient-to-br from-teal-500 to-teal-700 text-white')
+                    }
+                  `}>
+                    {msg.role==='user' ? <User size={14} /> : <Bot size={14} />}
                   </div>
                   <div>
                     {/* Bubble */}
-                    <div style={{
-                      padding:'10px 14px', borderRadius:12, fontSize:13, lineHeight:1.5, whiteSpace:'pre-wrap',
-                      ...(msg.role==='user' ? {
-                        background: 'rgba(245,158,11,0.1)',
-                        border: '1px solid rgba(245,158,11,0.2)',
-                        color: isDark?'#fef3c7':'#92400e',
-                      } : {
-                        background: isDark?'#292524':'#fff',
-                        border: `1px solid ${isDark?'#44403c':'#e7e5e4'}`,
-                        color: isDark?'#d6d3d1':'#1c1917',
-                      }),
-                    }}>{msg.content}</div>
+                    <div className={`
+                      px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all
+                      ${msg.role==='user' 
+                        ? (isDark ? 'bg-amber-900/20 border border-amber-900/30 text-amber-200' : 'bg-teal-600 text-white rounded-tr-none')
+                        : (isDark ? 'bg-stone-800 border border-stone-700 text-stone-200' : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] rounded-tl-none font-medium')
+                      }
+                    `}>{msg.content}</div>
                     {/* Context snapshot */}
                     {msg.role==='ai' && msg.contextSnapshot && (
-                      <div style={{ display:'flex', gap:8, marginTop:4, flexWrap:'wrap' }}>
-                        <span style={{ fontSize:10, padding:'2px 8px', borderRadius:999, background:isDark?'#292524':'#f5f5f4', color:isDark?'#78716c':'#a8a29e' }}>
-                          Today: {fmtRp(msg.contextSnapshot.today_revenue ?? 0)}
+                      <div className="flex gap-2 mt-2 flex-wrap">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isDark ? 'bg-stone-800 text-stone-500' : 'bg-teal-50 text-teal-700 border border-teal-100'}`}>
+                          Revenue: {fmtRp(msg.contextSnapshot.today_revenue ?? 0)}
                         </span>
-                        <span style={{ fontSize:10, padding:'2px 8px', borderRadius:999, background:isDark?'#292524':'#f5f5f4', color:isDark?'#78716c':'#a8a29e' }}>
-                          Week: {fmtRp(msg.contextSnapshot.this_week_revenue ?? 0)}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isDark ? 'bg-stone-800 text-stone-500' : 'bg-teal-50 text-teal-700 border border-teal-100'}`}>
+                          Trx: {msg.contextSnapshot.total_transactions ?? 0}
                         </span>
                       </div>
                     )}
                     {/* Timestamp */}
-                    <div style={{ fontSize:10, color:isDark?'#57534e':'#a8a29e', marginTop:3, textAlign:msg.role==='user'?'right':'left' }}>
+                    <div className={`text-[9px] mt-1 ${msg.role==='user'?'text-right':''} ${isDark ? 'text-stone-600' : 'text-[#94A3B8]'}`}>
                       {msg.timestamp.toLocaleTimeString('id-ID',{ hour:'2-digit', minute:'2-digit' })}
                     </div>
                   </div>
@@ -153,48 +159,40 @@ export default function AIChatPanel() {
 
             {/* Typing indicator */}
             {isLoading && (
-              <div style={{ display:'flex', gap:8 }}>
-                <div style={{ width:28, height:28, borderRadius:14, background:'linear-gradient(135deg, #7c3aed, #0d9488)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <Bot size={14} color="#fff" />
+              <div className="flex gap-3">
+                <div className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center ${isDark ? 'bg-stone-800 text-stone-600' : 'bg-teal-100 text-teal-600'}`}>
+                  <Bot size={14} />
                 </div>
-                <div style={{ padding:'10px 14px', borderRadius:12, background:isDark?'#292524':'#f5f5f4', display:'flex', alignItems:'center', gap:4 }}>
-                  <span style={{ width:6, height:6, borderRadius:3, background:isDark?'#78716c':'#a8a29e', animation:'bounce 1s ease-in-out infinite' }} />
-                  <span style={{ width:6, height:6, borderRadius:3, background:isDark?'#78716c':'#a8a29e', animation:'bounce 1s ease-in-out 0.15s infinite' }} />
-                  <span style={{ width:6, height:6, borderRadius:3, background:isDark?'#78716c':'#a8a29e', animation:'bounce 1s ease-in-out 0.3s infinite' }} />
+                <div className={`px-4 py-3 rounded-2xl flex items-center gap-1.5 ${isDark ? 'bg-stone-800 border border-stone-700' : 'bg-[#F8FAFC] border border-[#E2E8F0]'}`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce" />
                 </div>
               </div>
             )}
 
             {/* Quick follow-up chips */}
             {messages.length > 0 && !isLoading && (
-              <div style={{ display:'flex', gap:6, flexWrap:'wrap', paddingTop:4 }}>
+              <div className="flex gap-2 flex-wrap pt-2">
                 {FOLLOWUP.map(q=>(
-                  <button key={q} onClick={()=>sendMessage(q)} style={{
-                    fontSize:11, padding:'5px 12px', borderRadius:999, border:`1px solid ${isDark?'#292524':'#e7e5e4'}`,
-                    background:isDark?'#292524':'#fff', color:isDark?'#a8a29e':'#78716c', cursor:'pointer',
-                  }}>{q}</button>
+                  <button key={q} onClick={()=>sendMessage(q)} className={`
+                    text-[11px] font-medium px-3 py-1.5 rounded-full border transition-all
+                    ${isDark 
+                      ? 'bg-stone-800 border-stone-700 text-stone-400 hover:text-white hover:border-stone-500' 
+                      : 'bg-white border-[#E2E8F0] text-[#475569] hover:border-teal-400 hover:text-teal-700 hover:bg-teal-50 shadow-sm'
+                    }
+                  `}>{q}</button>
                 ))}
               </div>
             )}
           </>
         )}
-
-        {/* Error */}
-        {error && (
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderRadius:10, background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.2)', fontSize:12, color:'#ef4444' }}>
-            <span>{error}</span>
-            <button onClick={()=>{}} style={{ background:'none', border:'none', cursor:'pointer', color:'#ef4444', padding:4 }}>
-              <X size={14} />
-            </button>
-          </div>
-        )}
-
         <div ref={endRef} />
       </div>
 
       {/* Input */}
-      <div style={{ padding:12, borderTop:`1px solid transparent`, borderImage:'linear-gradient(135deg, #7c3aed, #0d9488) 1', flexShrink:0 }}>
-        <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+      <div className={`p-4 shrink-0 border-t ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-[#F1F5F9]'}`}>
+        <div className="flex gap-3 items-end">
           <textarea
             ref={textareaRef}
             value={input}
@@ -203,35 +201,32 @@ export default function AIChatPanel() {
             disabled={isLoading}
             rows={1}
             placeholder="Tanya AI advisor..."
-            className="horizontal-scrollbar-thin"
-            style={{
-              flex:1, resize:'none', fontSize:13, padding:'10px 14px', borderRadius:12,
-              border:`1px solid ${isDark?'#292524':'#e7e5e4'}`,
-              background:isDark?'#292524':'#fafaf9',
-              color:isDark?'#fafaf9':'#1c1917',
-              outline:'none', fontFamily:'inherit', lineHeight:1.5,
-              maxHeight:72, opacity:isLoading?0.5:1,
-            }}
+            className={`
+              flex-1 resize-none text-sm px-4 py-2.5 rounded-xl outline-none transition-all no-scrollbar max-h-24 leading-relaxed
+              ${isDark 
+                ? 'bg-stone-800 border border-stone-700 text-white placeholder:text-stone-600 focus:border-teal-500 focus:ring-1 focus:ring-teal-500' 
+                : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] placeholder:text-[#94A3B8] focus:border-teal-400 focus:bg-white'
+              }
+              ${isLoading ? 'opacity-50' : ''}
+            `}
           />
 
-          <button onClick={handleSend} disabled={!input.trim()||isLoading}
-            style={{
-              width:40, height:40, borderRadius:10, border:'none', cursor:!input.trim()||isLoading?'default':'pointer',
-              background:!input.trim()||isLoading?(isDark?'#292524':'#e7e5e4'):'linear-gradient(135deg, #7c3aed, #0d9488)',
-              display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-              opacity:!input.trim()||isLoading?0.5:1, transition:'opacity 0.15s',
-            }}>
-            <Send size={16} color={!input.trim()||isLoading?(isDark?'#78716c':'#a8a29e'):'#fff'} />
+          <button 
+            onClick={handleSend} 
+            disabled={!input.trim()||isLoading}
+            className={`
+              w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all shadow-md active:scale-95
+              ${!input.trim()||isLoading
+                ? (isDark ? 'bg-stone-800 text-stone-600 border border-stone-700' : 'bg-[#E2E8F0] text-[#94A3B8]')
+                : 'bg-teal-600 hover:bg-teal-700 text-white'
+              }
+            `}
+          >
+            <Send size={18} />
           </button>
         </div>
       </div>
-
-      <style>{`
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-4px); }
-        }
-      `}</style>
+      <style>{`.no-scrollbar::-webkit-scrollbar{display:none}`}</style>
     </div>
   );
 }

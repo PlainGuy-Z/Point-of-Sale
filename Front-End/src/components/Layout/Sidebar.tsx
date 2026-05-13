@@ -67,7 +67,7 @@ function CollapsedGroup({
               : 'bg-amber-500/8 border-l-[3px] border-l-amber-500'
             : isDark
               ? 'hover:bg-stone-900 border-l-[3px] border-l-transparent'
-              : 'hover:bg-stone-100 border-l-[3px] border-l-transparent'
+              : 'hover:bg-[#F1F5F9] border-l-[3px] border-l-transparent'
           }
         `}
       >
@@ -78,7 +78,7 @@ function CollapsedGroup({
                 ? 'text-amber-500'
                 : isDark
                   ? 'text-stone-500'
-                  : 'text-stone-400'
+                  : 'text-[#94A3B8]'
             }`}
           />
         )}
@@ -97,14 +97,14 @@ function CollapsedGroup({
               min-w-[200px] rounded-2xl border shadow-2xl py-2
               ${isDark
                 ? 'bg-stone-900 border-stone-700/80 shadow-black/40'
-                : 'bg-white border-stone-200 shadow-stone-200/60'
+                : 'bg-white border-[#E2E8F0] shadow-stone-200/60'
               }
             `}
           >
             {/* Group label */}
             <p
               className={`px-4 py-2 text-[10px] font-bold uppercase tracking-wider ${
-                isDark ? 'text-stone-500' : 'text-stone-400'
+                isDark ? 'text-stone-500' : 'text-[#94A3B8]'
               }`}
             >
               {section.label}
@@ -133,7 +133,7 @@ function CollapsedGroup({
                         : 'bg-amber-500/10 text-amber-900'
                       : isDark
                         ? 'hover:bg-stone-800 text-stone-300'
-                        : 'hover:bg-stone-100 text-stone-700'
+                        : 'hover:bg-[#F1F5F9] text-[#475569]'
                     }
                   `}
                 >
@@ -143,14 +143,14 @@ function CollapsedGroup({
                         isItemActive
                           ? 'text-amber-500'
                           : isDark
-                            ? 'text-stone-400'
-                            : 'text-stone-500'
+                            ? 'text-[#94A3B8]'
+                            : 'text-[#94A3B8]'
                       }`}
                     />
                   )}
                   <span className="text-[13px] font-semibold">{item.label}</span>
                   {badge != null && badge > 0 && (
-                    <span className="ml-auto flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-stone-900 leading-none">
+                    <span className="ml-auto flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-[#0F172A] leading-none">
                       {badge > 99 ? '99+' : badge}
                     </span>
                   )}
@@ -227,7 +227,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
     <>
       <div
         className={`
-          ${isDark ? 'bg-stone-950 text-stone-100 border-stone-800' : 'bg-white text-stone-900 border-stone-200'}
+          ${isDark ? 'bg-stone-950 text-stone-100 border-stone-800' : 'bg-white text-[#0F172A] border-[#E2E8F0]'}
           ${isCollapsed && !isMobileOpen ? 'w-[68px] overflow-visible' : 'w-[240px] overflow-hidden'}
           h-screen fixed left-0 top-0 z-50 flex flex-col border-r transition-all duration-300
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -239,7 +239,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
         <div
           className={`
             ${isCollapsed ? 'p-3' : 'px-5 py-5'}
-            border-b ${isDark ? 'border-stone-800/60' : 'border-stone-200'}
+            border-b ${isDark ? 'border-stone-800/60' : 'border-[#E2E8F0]'}
             transition-all duration-300
           `}
         >
@@ -258,11 +258,11 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
 
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <h1 className={`text-base font-bold truncate ${isDark ? 'text-white' : 'text-stone-900'}`}>
+                <h1 className={`text-base font-bold truncate ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
                   {user?.shop?.name || 'Coffee Shop'}
                 </h1>
                 <div className="flex items-center gap-1.5">
-                  <p className={`text-xs truncate ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                  <p className={`text-xs truncate ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
                     POS System
                   </p>
                   {user?.role === 'cashier' && (
@@ -289,7 +289,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                   p-1.5 rounded-xl border transition-all duration-200
                   ${isDark
                     ? 'border-stone-800 hover:bg-stone-900 text-stone-500 hover:text-stone-300'
-                    : 'border-stone-200 hover:bg-stone-100 text-stone-400 hover:text-stone-700'
+                    : 'border-[#E2E8F0] hover:bg-[#F1F5F9] text-[#94A3B8] hover:text-[#475569]'
                   }
                 `}
               >
@@ -305,7 +305,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
           {/* Shift counter for cashier */}
           {user?.role === 'cashier' && activeShift && !isCollapsed && (
             <div className="mt-2 flex items-center justify-between px-1">
-              <span className={`text-xs ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+              <span className={`text-xs ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
                 Transaksi shift ini:
               </span>
               <span className="text-xs font-bold text-amber-500">
@@ -334,7 +334,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                     className={`
                       ${isCollapsed ? 'mx-2 my-2' : 'mx-1 my-2'}
                       h-px
-                      ${isDark ? 'bg-stone-800/60' : 'bg-stone-200/80'}
+                      ${isDark ? 'bg-stone-800/60' : 'bg-[#E2E8F0]/80'}
                     `}
                   />
                 )}
@@ -344,7 +344,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                   <div className="px-3 pt-2 pb-1.5">
                     <span
                       className={`text-[10px] font-bold uppercase tracking-[0.08em] ${
-                        isDark ? 'text-stone-600' : 'text-stone-400'
+                        isDark ? 'text-stone-600' : 'text-[#94A3B8]'
                       }`}
                     >
                       {section.label}
@@ -388,7 +388,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                 className={`
                   ${isCollapsed ? 'mx-2 my-2' : 'mx-1 my-2'}
                   h-px
-                  ${isDark ? 'bg-stone-800/60' : 'bg-stone-200/80'}
+                  ${isDark ? 'bg-stone-800/60' : 'bg-[#E2E8F0]/80'}
                 `}
               />
               <SidebarItem
@@ -408,7 +408,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
         <div
           className={`
             ${isCollapsed ? 'p-2' : 'p-3'}
-            border-t ${isDark ? 'border-stone-800/60' : 'border-stone-200'}
+            border-t ${isDark ? 'border-stone-800/60' : 'border-[#E2E8F0]'}
             transition-all duration-300
           `}
         >
@@ -440,20 +440,20 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
               rounded-xl border
               ${isDark
                 ? 'bg-stone-900/50 border-stone-800/60'
-                : 'bg-stone-50 border-stone-200'
+                : 'bg-[#F8FAFC] border-[#E2E8F0]'
               }
             `}
           >
             <div
               className={`
                 w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0
-                ${isDark ? 'bg-stone-950 border-stone-800' : 'bg-white border-stone-200'}
+                ${isDark ? 'bg-stone-950 border-stone-800' : 'bg-teal-50 border-teal-200'}
               `}
             >
               {!isCollapsed ? (
                 <span
                   className={`font-black text-sm uppercase ${
-                    isDark ? 'text-stone-200' : 'text-stone-900'
+                    isDark ? 'text-stone-200' : 'text-[#0F172A]'
                   }`}
                 >
                   {user?.name?.[0] || 'U'}
@@ -465,12 +465,12 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
 
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-semibold truncate ${isDark ? 'text-stone-200' : 'text-stone-900'}`}>
+                <p className={`text-sm font-semibold truncate ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>
                   {user?.name || 'User'}
                 </p>
                 <p
                   className={`text-[10px] truncate uppercase tracking-wider font-semibold mt-0.5 ${
-                    isDark ? 'text-amber-500/80' : 'text-amber-600'
+                    isDark ? 'text-amber-500/80' : 'text-[#94A3B8]'
                   }`}
                 >
                   {user?.role || 'operator'}
@@ -487,7 +487,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                 rounded-xl border text-xs font-bold transition-all duration-200
                 ${isDark
                   ? 'bg-stone-950 border-stone-800 text-stone-300 hover:bg-stone-900'
-                  : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
+                  : 'bg-[#F1F5F9] border-[#E2E8F0] text-[#475569] hover:bg-[#E2E8F0]'
                 }
               `}
               aria-label="Toggle theme"

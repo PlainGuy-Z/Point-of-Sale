@@ -88,26 +88,12 @@ function PanelCarousel({ waste, summary, onRetry, isDark }: PanelCarouselProps) 
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        style={{
-          display: 'flex',
-          gap: GAP,
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          paddingBottom: 2,
-          paddingRight: 16,
-        }}
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 pr-4 no-scrollbar"
       >
         {panels.map((panel) => (
           <div
             key={panel.key}
-            style={{
-              scrollSnapAlign: 'start',
-              flexShrink: 0,
-              width: 'calc(85vw)',
-            }}
+            className="snap-start shrink-0 w-[85vw]"
           >
             {panel.content}
           </div>
@@ -115,22 +101,13 @@ function PanelCarousel({ waste, summary, onRetry, isDark }: PanelCarouselProps) 
       </div>
 
       {/* Controls */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 10, marginTop: 12,
-      }}>
+      <div className="flex items-center justify-center gap-2 mt-3">
         <button
           onClick={() => scrollTo(0)}
           disabled={activeIndex === 0}
-          style={{
-            width: 28, height: 28, borderRadius: 999, border: 'none',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: activeIndex === 0 ? 'default' : 'pointer',
-            background: isDark ? '#292524' : '#e7e5e4',
-            color: isDark ? '#d6d3d1' : '#44403c',
-            opacity: activeIndex === 0 ? 0.35 : 1,
-            transition: 'opacity 0.2s',
-          }}
+          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+            isDark ? 'bg-stone-800 text-stone-300' : 'bg-stone-100 text-stone-700'
+          } ${activeIndex === 0 ? 'opacity-30' : 'hover:bg-teal-600 hover:text-white'}`}
         >
           <ChevronLeft size={14} />
         </button>
@@ -139,13 +116,11 @@ function PanelCarousel({ waste, summary, onRetry, isDark }: PanelCarouselProps) 
           <button
             key={panel.key}
             onClick={() => scrollTo(i)}
-            style={{
-              padding: '4px 12px', borderRadius: 999, border: 'none',
-              cursor: 'pointer', fontSize: 11, fontWeight: 600,
-              transition: 'all 0.2s',
-              background: i === activeIndex ? '#f59e0b' : (isDark ? '#292524' : '#e7e5e4'),
-              color: i === activeIndex ? '#fff' : (isDark ? '#78716c' : '#78716c'),
-            }}
+            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
+              i === activeIndex 
+                ? (isDark ? 'bg-amber-500 text-white' : 'bg-teal-600 text-white shadow-md') 
+                : (isDark ? 'bg-stone-800 text-stone-500' : 'bg-stone-200 text-stone-500')
+            }`}
           >
             {panel.label}
           </button>
@@ -154,15 +129,9 @@ function PanelCarousel({ waste, summary, onRetry, isDark }: PanelCarouselProps) 
         <button
           onClick={() => scrollTo(1)}
           disabled={activeIndex === 1}
-          style={{
-            width: 28, height: 28, borderRadius: 999, border: 'none',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: activeIndex === 1 ? 'default' : 'pointer',
-            background: isDark ? '#292524' : '#e7e5e4',
-            color: isDark ? '#d6d3d1' : '#44403c',
-            opacity: activeIndex === 1 ? 0.35 : 1,
-            transition: 'opacity 0.2s',
-          }}
+          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+            isDark ? 'bg-stone-800 text-stone-300' : 'bg-stone-100 text-stone-700'
+          } ${activeIndex === 1 ? 'opacity-30' : 'hover:bg-teal-600 hover:text-white'}`}
         >
           <ChevronRight size={14} />
         </button>
@@ -203,52 +172,33 @@ export default function BusinessInsights() {
 
   useEffect(() => { fetchAll(true); }, [fetchAll]);
 
-  const bg = isDark ? '#0a0908' : '#f0f4f8';
+  const bgClass = isDark ? 'bg-[#0a0908]' : 'bg-[#F8FAFC]';
 
   // ─── Header ──────────────────────────────────────────────────────────────
   const renderHeader = () => (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      marginBottom: isMobile ? 16 : 24,
-      padding: isMobile ? '12px 16px' : '16px 20px',
-      borderRadius: 16,
-      border: `1px solid ${isDark ? '#292524' : '#e2e8f0'}`,
-      background: isDark ? '#1c1917' : '#fff',
-    }}>
+    <div className={`flex justify-between items-center mb-4 md:mb-6 px-4 py-3 md:px-5 md:py-4 rounded-2xl border ${
+      isDark ? 'border-stone-800 bg-stone-900' : 'border-[#E2E8F0] bg-white shadow-sm'
+    }`}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <BarChart3 size={isMobile ? 18 : 22} color="#0d9488" />
-          <h1 style={{
-            fontSize: isMobile ? 18 : 22, fontWeight: 800,
-            color: isDark ? '#fafaf9' : '#1c1917',
-            margin: 0, letterSpacing: '-0.02em',
-          }}>
-            Business <span style={{ color: '#f59e0b' }}>Intelligence</span>
+        <div className="flex items-center gap-2">
+          <BarChart3 size={isMobile ? 18 : 22} className={isDark ? 'text-teal-400' : 'text-teal-600'} />
+          <h1 className={`text-lg md:text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
+            Business <span className="text-amber-500">Intelligence</span>
           </h1>
         </div>
-        <p style={{
-          fontSize: 11, color: isDark ? '#78716c' : '#94a3b8',
-          marginTop: 3, display: 'flex', alignItems: 'center', gap: 6,
-        }}>
+        <p className={`text-[10px] md:text-xs font-medium mt-1 flex items-center gap-2 ${isDark ? 'text-stone-500' : 'text-[#64748B]'}`}>
           Command center AI
-          <span style={{ width: 3, height: 3, borderRadius: 2, background: isDark ? '#44403c' : '#cbd5e1' }} />
+          <span className="w-1 h-1 rounded-full bg-stone-300 dark:bg-stone-600" />
           {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
       <button
         onClick={() => fetchAll()}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: isMobile ? '6px 12px' : '8px 16px',
-          borderRadius: 10, fontSize: isMobile ? 12 : 13, fontWeight: 600,
-          border: `1px solid ${isDark ? '#292524' : '#e2e8f0'}`, cursor: 'pointer',
-          background: isDark ? '#292524' : '#fff', color: isDark ? '#d6d3d1' : '#475569',
-          transition: 'background 0.15s', whiteSpace: 'nowrap',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? '#44403c' : '#f1f5f9'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? '#292524' : '#fff'; }}
+        className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-bold border transition-all ${
+          isDark ? 'border-stone-800 bg-stone-800 text-stone-300 hover:bg-stone-700' : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
+        }`}
       >
-        <RefreshCw size={13} />
+        <RefreshCw size={13} className={summary.loading ? 'animate-spin' : ''} />
         {!isMobile && 'Refresh'}
       </button>
     </div>
@@ -263,44 +213,30 @@ export default function BusinessInsights() {
     ];
 
     return (
-      <div style={{
-        background: bg, minHeight: '100vh',
-        display: 'flex', flexDirection: 'column',
-        fontFamily: 'Inter, system-ui, sans-serif',
-      }}>
-        <style>{`div::-webkit-scrollbar{display:none}`}</style>
+      <div className={`${bgClass} min-h-screen flex flex-col font-sans`}>
+        <style>{`.no-scrollbar::-webkit-scrollbar{display:none}`}</style>
 
         {/* Header */}
-        <div style={{ padding: '16px 16px 0' }}>
+        <div className="px-4 pt-4">
           {renderHeader()}
         </div>
 
         {/* Tab bar */}
-        <div style={{
-          position: 'sticky', top: 0, zIndex: 10,
-          padding: '0 16px 12px', background: bg,
-        }}>
-          <div style={{
-            display: 'flex', gap: 6, padding: 4, borderRadius: 14,
-            background: isDark ? '#1c1917' : '#e2e8f0',
-            border: `1px solid ${isDark ? '#292524' : '#cbd5e1'}`,
-          }}>
+        <div className={`sticky top-0 z-10 px-4 pb-3 ${bgClass}`}>
+          <div className={`flex gap-1 p-1 rounded-2xl border ${
+            isDark ? 'bg-stone-900 border-stone-800' : 'bg-[#E2E8F0] border-[#cbd5e1]'
+          }`}>
             {tabs.map(tab => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    flex: 1, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', gap: 6,
-                    padding: '8px 4px', borderRadius: 10, border: 'none',
-                    cursor: 'pointer', fontSize: 12,
-                    fontWeight: isActive ? 700 : 500, transition: 'all 0.2s',
-                    background: isActive ? (isDark ? '#292524' : '#ffffff') : 'transparent',
-                    color: isActive ? (isDark ? '#f59e0b' : '#d97706') : (isDark ? '#78716c' : '#64748b'),
-                    boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
-                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
+                    isActive 
+                      ? (isDark ? 'bg-stone-800 text-amber-500 shadow-lg' : 'bg-white text-teal-700 shadow-sm') 
+                      : (isDark ? 'text-stone-500 hover:text-stone-300' : 'text-[#64748B] hover:text-[#0F172A]')
+                  }`}
                 >
                   {tab.icon}
                   {tab.label}
@@ -311,11 +247,11 @@ export default function BusinessInsights() {
         </div>
 
         {/* Tab content */}
-        <div style={{ flex: 1, padding: '0 16px 32px', overflowY: 'auto' }}>
+        <div className="flex-1 px-4 pb-8 overflow-y-auto no-scrollbar">
 
           {/* ── METRICS TAB ── */}
           {activeTab === 'metrics' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="flex flex-col gap-4">
               {/* StatCards — snap carousel handled inside the component */}
               {summary.error
                 ? <ErrorBlock onRetry={fetchAll} isDark={isDark} />
@@ -340,14 +276,14 @@ export default function BusinessInsights() {
 
           {/* ── AI TAB ── */}
           {activeTab === 'ai' && (
-            <div style={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
+            <div className="h-[calc(100vh-220px)] flex flex-col">
               <AIChatPanel />
             </div>
           )}
 
           {/* ── CHARTS TAB ── */}
           {activeTab === 'charts' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="flex flex-col gap-4">
               <MenuMatrix />
             </div>
           )}
@@ -356,14 +292,14 @@ export default function BusinessInsights() {
     );
   }
 
-  // ─── DESKTOP LAYOUT (unchanged) ──────────────────────────────────────────
+  // ─── DESKTOP LAYOUT ──────────────────────────────────────────────────────────
   return (
-    <div style={{ background: bg, minHeight: '100vh', padding: 24, fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className={`${bgClass} min-h-screen p-6 font-sans`}>
       {renderHeader()}
 
-      <div style={{ display: 'flex', gap: 24, height: 'calc(100vh - 160px)' }}>
+      <div className="flex gap-6 h-[calc(100vh-160px)]">
         {/* LEFT — scrollable */}
-        <div className="horizontal-scrollbar-thin" style={{ flex: '0 0 65%', overflowY: 'auto', paddingRight: 4 }}>
+        <div className="flex-[0_0_65%] overflow-y-auto pr-1 no-scrollbar space-y-6">
           {summary.error
             ? <ErrorBlock onRetry={fetchAll} isDark={isDark} />
             : <StatCards summary={summary.data} isLoading={summary.loading} />
@@ -372,7 +308,7 @@ export default function BusinessInsights() {
             ? <ErrorBlock onRetry={fetchAll} isDark={isDark} />
             : <RevenueChart forecast={forecast.data} summary={summary.data} isLoading={forecast.loading} />
           }
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="grid grid-cols-2 gap-4">
             {waste.error
               ? <ErrorBlock onRetry={fetchAll} isDark={isDark} />
               : <WastePanel waste={waste.data} isLoading={waste.loading} />
@@ -383,7 +319,7 @@ export default function BusinessInsights() {
         </div>
 
         {/* RIGHT — fixed chat */}
-        <div style={{ flex: '0 0 35%', position: 'sticky', top: 0, height: '100%', minWidth: 0 }}>
+        <div className="flex-[0_0_35%] sticky top-0 h-full min-w-0">
           <AIChatPanel />
         </div>
       </div>
@@ -403,30 +339,21 @@ function ErrorBlock({
   compact?: boolean;
 }) {
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: compact ? 16 : 24, borderRadius: 16,
-      border: `2px dashed ${isDark ? '#292524' : '#e2e8f0'}`,
-      marginBottom: compact ? 0 : 20, textAlign: 'center',
-    }}>
-      <AlertCircle size={compact ? 20 : 28} color={isDark ? '#f87171' : '#ef4444'} style={{ marginBottom: 8 }} />
-      <p style={{ fontWeight: 700, color: isDark ? '#d6d3d1' : '#475569', marginBottom: 4, fontSize: compact ? 13 : 14 }}>
+    <div className={`flex flex-col items-center justify-center text-center rounded-2xl border-2 border-dashed ${
+      compact ? 'p-4 mb-0' : 'p-6 mb-5'
+    } ${isDark ? 'border-stone-800' : 'border-[#E2E8F0]'}`}>
+      <AlertCircle size={compact ? 20 : 28} className="text-red-500 mb-2" />
+      <p className={`font-bold mb-1 ${compact ? 'text-sm' : 'text-base'} ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>
         Gagal Memuat Data
       </p>
       {!compact && (
-        <p style={{ fontSize: 12, color: isDark ? '#78716c' : '#94a3b8', marginBottom: 12 }}>
+        <p className={`text-xs mb-3 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
           Terjadi kesalahan saat mengambil data.
         </p>
       )}
-      <button onClick={onRetry} style={{
-        display: 'flex', alignItems: 'center', gap: 6,
-        padding: compact ? '4px 12px' : '6px 16px',
-        borderRadius: 999, fontSize: 12, fontWeight: 600,
-        border: 'none', cursor: 'pointer',
-        background: isDark ? '#292524' : '#f1f5f9',
-        color: isDark ? '#d6d3d1' : '#475569',
-        marginTop: compact ? 4 : 0,
-      }}>
+      <button onClick={onRetry} className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all border-none cursor-pointer ${
+        isDark ? 'bg-stone-800 text-stone-300' : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'
+      }`}>
         <RefreshCw size={13} /> Coba Lagi
       </button>
     </div>

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { ShoppingCart, Trash2, Zap, ReceiptText, X, ChevronUp } from 'lucide-react';
+import { ShoppingCart, Trash2, Zap, ReceiptText, X, ChevronUp, PlusCircle } from 'lucide-react';
 import type { CartItemWithInput } from '../../types';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
@@ -26,6 +26,8 @@ export interface MobileCartProps {
   onRemoveItem: (index: number) => void;
   onClearCart: () => void;
   onUpdateQuantity: (index: number, delta: number) => void;
+  onManualItem?: () => void;
+  showManualButton?: boolean;
 }
 
 export default function MobileCart({
@@ -42,6 +44,8 @@ export default function MobileCart({
   onRemoveItem,
   onClearCart,
   onUpdateQuantity,
+  onManualItem,
+  showManualButton,
 }: MobileCartProps) {
   const { format } = useCurrencyFormatter();
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -49,6 +53,7 @@ export default function MobileCart({
 
   // ── Swipe-to-delete state ──────────────────────────────────────────────────
   const [revealedIndex, setRevealedIndex] = useState<number | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0); // Current interactive offset
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const intentLocked = useRef<'none' | 'horizontal' | 'vertical'>('none');
@@ -58,9 +63,13 @@ export default function MobileCart({
     touchStartX.current = touch.clientX;
     touchStartY.current = touch.clientY;
     intentLocked.current = 'none';
-    // Close any previously revealed item
-    if (revealedIndex !== null && revealedIndex !== index) {
+    // If tapping a revealed item, close it
+    if (revealedIndex === index) {
       setRevealedIndex(null);
+      setSwipeOffset(0);
+    } else if (revealedIndex !== null) {
+      setRevealedIndex(null);
+      setSwipeOffset(0);
     }
   }, [revealedIndex]);
 
@@ -69,8 +78,15 @@ export default function MobileCart({
     const dx = touch.clientX - touchStartX.current;
     const dy = touch.clientY - touchStartY.current;
 
-    if (intentLocked.current === 'none' && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    if (intentLocked.current === 'none' && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
       intentLocked.current = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical';
+    }
+
+    if (intentLocked.current === 'horizontal') {
+      // Fluid swipe: only allow left swipe (negative dx)
+      // Limit to -80px for the delete button
+      const offset = Math.min(0, Math.max(-100, dx));
+      setSwipeOffset(offset);
     }
   }, []);
 
@@ -79,15 +95,17 @@ export default function MobileCart({
     const diffX = touchStartX.current - touchEndX;
 
     if (intentLocked.current === 'horizontal') {
-      // Left swipe > 50px → reveal delete
+      // If swiped more than half way, lock open
       if (diffX > 50) {
         setRevealedIndex(index);
-      }
-      // Right swipe or small movement → close
-      else if (diffX < -30 || Math.abs(diffX) <= 50) {
+        setSwipeOffset(-80);
+      } else {
         setRevealedIndex(null);
+        setSwipeOffset(0);
       }
     }
+
+    intentLocked.current = 'none';
   }, []);
 
   const handleItemTap = useCallback((index: number) => {
@@ -95,10 +113,12 @@ export default function MobileCart({
     if (intentLocked.current === 'none' || intentLocked.current === 'vertical') {
       if (revealedIndex === index) {
         setRevealedIndex(null);
+        setSwipeOffset(0);
       } else if (revealedIndex === null) {
         onEditItem(index);
       } else {
         setRevealedIndex(null);
+        setSwipeOffset(0);
       }
     }
   }, [revealedIndex, onEditItem]);
@@ -157,27 +177,30 @@ export default function MobileCart({
                   <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Keranjang</p>
                   <p className={`mt-1 text-lg font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{itemCount} item • {format(quote.grandTotal)}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className={`rounded-2xl border p-2 transition ${isDark ? 'border-stone-700/70 bg-stone-900/90 text-stone-300 hover:bg-stone-800' : 'border-gray-200 bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                  aria-label="Tutup keranjang"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-              {/* Kosongkan button */}
-              {hasItems && (
-                <div className="mt-3 flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {showManualButton !== false && onManualItem && (
+                    <button
+                      type="button"
+                      onClick={onManualItem}
+                      className={`rounded-2xl border p-2 transition flex items-center gap-1.5 ${isDark ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20' : 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100'}`}
+                      aria-label="Tambah item manual"
+                    >
+                      <PlusCircle size={18} />
+                      <span className="text-[10px] font-black uppercase tracking-wider pr-1">Manual</span>
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={onClearCart}
-                    className={`rounded-2xl border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] transition ${isDark ? 'border-stone-700/70 bg-stone-900/90 text-stone-300 hover:bg-stone-800' : 'border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    onClick={onClose}
+                    className={`rounded-2xl border p-2 transition ${isDark ? 'border-stone-700/70 bg-stone-900/90 text-stone-300 hover:bg-stone-800' : 'border-gray-200 bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    aria-label="Tutup keranjang"
                   >
-                    Kosongkan
+                    <X size={18} />
                   </button>
                 </div>
-              )}
+              </div>
+              {/* Header space below date/total — removed redundant Kosongkan button as it's now a large footer button */}
+              <div className="mt-1" />
               {/* Divider */}
               <div className={`mt-3 h-px ${isDark ? 'bg-stone-800' : 'bg-gray-200'}`} />
             </div>
@@ -211,9 +234,11 @@ export default function MobileCart({
 
                   {cart.map((item, index) => {
                     const isPromoItem = item.isPromo && item.originalPrice;
-                    const basePrice = item.price + (item.variantPrice || 0);
+                    const variantPrice = Number(item.variantPrice ?? 0);
+                    const basePrice = item.price + variantPrice;
                     const lineTotal = basePrice * item.quantity;
                     const isRevealed = revealedIndex === index;
+                    const transformX = isRevealed ? -80 : (revealedIndex === null ? swipeOffset : 0);
 
                     return (
                       <div
@@ -223,8 +248,8 @@ export default function MobileCart({
                         <div
                           className="flex"
                           style={{
-                            transform: isRevealed ? 'translateX(-80px)' : 'translateX(0)',
-                            transition: 'transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                            transform: `translateX(${transformX}px)`,
+                            transition: intentLocked.current === 'horizontal' ? 'none' : 'transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                           }}
                           onTouchStart={(e) => handleTouchStart(e, index)}
                           onTouchMove={handleTouchMove}
@@ -250,9 +275,22 @@ export default function MobileCart({
                                     </span>
                                   )}
                                 </div>
-                                <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                  {item.name}
-                                </p>
+                                {(() => {
+                                  const descriptionText = item.description || (item.productId.startsWith('manual-') && item.note && item.note !== item.name ? item.note : undefined);
+                                  return (
+                                    <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                      {item.name}
+                                      {descriptionText ? (
+                                        <span className="font-normal italic opacity-70"> — {descriptionText}</span>
+                                      ) : null}
+                                    </p>
+                                  );
+                                })()}
+                                {item.variantName && (
+                                  <p className={`text-[10px] font-medium mt-1 ${isDark ? 'text-amber-400/80' : 'text-amber-600/80'}`}>
+                                    + {item.variantName} ({format(variantPrice)})
+                                  </p>
+                                )}
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   {isPromoItem && (
                                     <span className={`text-[10px] line-through ${isDark ? 'text-stone-600' : 'text-stone-400'}`}>
@@ -325,6 +363,7 @@ export default function MobileCart({
                               e.stopPropagation();
                               onRemoveItem(index);
                               setRevealedIndex(null);
+                              setSwipeOffset(0);
                             }}
                           >
                             <div className="flex flex-col items-center gap-0.5">
@@ -351,36 +390,34 @@ export default function MobileCart({
                   {itemCount} item
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 mt-1">
                 <button
                   type="button"
-                  onClick={onQuickPay}
-                  disabled={!canPay}
-                  className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-black uppercase tracking-wide transition-all active:scale-[0.97] ${
-                    canPay
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 hover:opacity-95'
+                  onClick={onClearCart}
+                  disabled={!hasItems}
+                  className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-black uppercase tracking-wide transition-all active:scale-[0.97] ${
+                    hasItems
+                      ? 'bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-600'
                       : isDark
                         ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  <Zap size={15} /> Pay
+                  <Trash2 size={16} /> Void
                 </button>
                 <button
                   type="button"
                   onClick={onCheckout}
                   disabled={!canPay}
-                  className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-black uppercase tracking-wide transition-all active:scale-[0.97] ${
+                  className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-black uppercase tracking-wide transition-all active:scale-[0.97] ${
                     canPay
-                      ? isDark
-                        ? 'border-amber-500 text-amber-300 hover:bg-amber-500/10'
-                        : 'border-amber-500 text-amber-600 hover:bg-amber-50'
+                      ? 'bg-[#f59e0b] text-white shadow-lg shadow-amber-500/20 hover:opacity-95'
                       : isDark
-                        ? 'border-stone-800 text-stone-600 cursor-not-allowed'
-                        : 'border-gray-200 text-gray-400 cursor-not-allowed'
+                        ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  <ReceiptText size={15} /> Checkout
+                  <ReceiptText size={16} /> Checkout
                 </button>
               </div>
             </div>

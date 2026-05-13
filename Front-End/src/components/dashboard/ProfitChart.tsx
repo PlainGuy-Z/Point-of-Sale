@@ -32,12 +32,11 @@ const useIsMobile = () => {
 interface ChartData {
   day: number;
   dayLabel: string;
-  shortLabel: string; // e.g. "1", "8", "15" — only ticked on mobile
+  shortLabel: string;
   revenue: number;
 }
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
-// On mobile we use a tap-friendly tooltip (larger, no hover dependency)
 
 function CustomTooltip({
   active,
@@ -54,17 +53,17 @@ function CustomTooltip({
     <div
       style={{
         background: isDark ? 'rgba(12,10,9,0.97)' : '#ffffff',
-        border: `1px solid ${isDark ? '#44403c' : '#e5e7eb'}`,
+        border: `1px solid ${isDark ? '#44403c' : '#E2E8F0'}`,
         borderRadius: 14,
         padding: '10px 14px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.1)',
         minWidth: 140,
       }}
     >
-      <p style={{ fontSize: 11, color: isDark ? '#78716c' : '#94a3b8', marginBottom: 4 }}>
+      <p style={{ fontSize: 11, color: isDark ? '#78716c' : '#94A3B8', marginBottom: 4, fontWeight: 600 }}>
         {label} {monthLabel}
       </p>
-      <p style={{ fontSize: 16, fontWeight: 800, color: '#f59e0b', margin: 0 }}>
+      <p style={{ fontSize: 16, fontWeight: 800, color: '#0D9488', margin: 0 }}>
         {format(value)}
       </p>
     </div>
@@ -92,32 +91,33 @@ function SummaryCard({
         accent
           ? isDark
             ? 'bg-amber-900/20 border-amber-800/40'
-            : 'bg-amber-50 border-amber-100'
+            : 'bg-teal-50 border-teal-100'
           : isDark
           ? 'bg-stone-900/50 border-stone-800'
-          : 'bg-gray-50 border-gray-100'
+          : 'bg-[#F8FAFC] border-[#E2E8F0]'
       }`}
     >
       <p
-        className={`text-[10px] font-semibold mb-1 leading-tight ${
+        className={`text-[10px] font-bold uppercase tracking-wider mb-1 leading-tight ${
           accent
             ? isDark
               ? 'text-amber-400'
-              : 'text-amber-700'
+              : 'text-teal-700'
             : isDark
             ? 'text-stone-400'
-            : 'text-stone-500'
+            : 'text-[#94A3B8]'
         }`}
       >
         {label}
       </p>
       <p
-        className={`font-bold leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
+        className={`font-black leading-tight truncate ${isDark ? 'text-white' : 'text-[#0F172A]'}`}
         style={{ fontSize: 'clamp(13px, 3.5vw, 18px)' }}
+        title={value}
       >
         {value}
       </p>
-      <p className={`text-[10px] mt-0.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+      <p className={`text-[10px] mt-0.5 truncate ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
         {sub}
       </p>
     </div>
@@ -154,7 +154,6 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
 
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
-      // On mobile show only every ~7 days as tick label to avoid crowding
       const showTick = day === 1 || day % 7 === 0 || day === daysInMonth;
       return {
         day,
@@ -176,8 +175,6 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
   const maxRevenue = Math.max(...data.map((d) => d.revenue), 0);
   const activeDays = data.filter((d) => d.revenue > 0).length;
 
-  // On mobile: YAxis is hidden, we rely on the tooltip for values.
-  // This frees ~88px of width so the chart can breathe.
   const yAxisWidth = isMobile ? 0 : 88;
   const chartHeight = isMobile ? 200 : 288;
   const chartMargin = isMobile
@@ -189,7 +186,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       className={`rounded-2xl border transition-all duration-300 ${
         isDark
           ? 'bg-gradient-to-br from-stone-900 to-stone-900 border-stone-800'
-          : 'bg-white border-gray-100 shadow-sm'
+          : 'bg-white border-[#E2E8F0] shadow-sm hover:shadow-md'
       }`}
       style={{ padding: isMobile ? '16px 16px 12px' : '24px' }}
     >
@@ -205,13 +202,13 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       >
         <div>
           <h3
-            className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}
+            className={`font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}
             style={{ fontSize: isMobile ? 14 : 18 }}
           >
             Tren Pendapatan Harian
           </h3>
           <p
-            className={`mt-0.5 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}
+            className={`mt-0.5 font-medium ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}
             style={{ fontSize: isMobile ? 11 : 13 }}
           >
             {monthLabel}
@@ -221,11 +218,11 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
         {/* Month picker */}
         <div
           className={`flex items-center gap-1.5 rounded-xl px-2 py-1.5 ${
-            isDark ? 'bg-stone-800 border border-stone-700' : 'bg-gray-50 border border-gray-200'
+            isDark ? 'bg-stone-800 border border-stone-700' : 'bg-[#F1F5F9] border border-[#E2E8F0]'
           }`}
         >
           <label
-            className={`text-[10px] font-bold ${isDark ? 'text-stone-400' : 'text-gray-600'}`}
+            className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}
           >
             Bulan
           </label>
@@ -236,7 +233,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
             className={`text-[10px] font-bold rounded-lg px-1.5 py-0.5 outline-none ${
               isDark
                 ? 'bg-stone-950 text-stone-200 border border-stone-800'
-                : 'bg-white text-gray-800 border border-gray-200'
+                : 'bg-white text-[#0F172A] border border-[#E2E8F0]'
             }`}
             aria-label="Pilih bulan"
           />
@@ -278,7 +275,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
         <div
           style={{ height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <p className={isDark ? 'text-stone-400' : 'text-stone-500'} style={{ fontSize: 13 }}>
+          <p className={isDark ? 'text-stone-400' : 'text-[#94A3B8]'} style={{ fontSize: 13 }}>
             Tidak ada data untuk periode ini
           </p>
         </div>
@@ -288,38 +285,37 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
             <RechartsLineChart data={data} margin={chartMargin}>
               <defs>
                 <linearGradient id="profit-gradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.22} />
-                  <stop offset="80%" stopColor="#f59e0b" stopOpacity={0.03} />
-                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#0D9488" stopOpacity={0.15} />
+                  <stop offset="80%" stopColor="#0D9488" stopOpacity={0.02} />
+                  <stop offset="100%" stopColor="#0D9488" stopOpacity={0} />
                 </linearGradient>
               </defs>
 
               <CartesianGrid
-                stroke={isDark ? '#292524' : '#f0f0f0'}
+                stroke={isDark ? '#292524' : '#E2E8F0'}
                 strokeDasharray="3 3"
-                vertical={false} // cleaner on mobile — only horizontal grid lines
+                vertical={false}
               />
 
               <XAxis
-                dataKey={isMobile ? 'shortLabel' : 'dayLabel'}
+                dataKey="dayLabel"
                 tick={{
-                  fill: isDark ? '#78716c' : '#9ca3af',
+                  fill: isDark ? '#78716c' : '#94A3B8',
                   fontSize: isMobile ? 10 : 12,
+                  fontWeight: 600
                 }}
-                axisLine={{ stroke: isDark ? '#44403c' : '#e5e7eb' }}
+                axisLine={{ stroke: isDark ? '#44403c' : '#E2E8F0' }}
                 tickLine={false}
-                interval={isMobile ? 0 : 'preserveStartEnd'}
+                interval={isMobile ? 6 : 'preserveStartEnd'}
                 minTickGap={isMobile ? 0 : 8}
                 height={isMobile ? 20 : 28}
               />
 
-              {/* On mobile: hide YAxis completely to reclaim width.
-                  Values are still readable in tooltip on tap. */}
               {!isMobile && (
                 <YAxis
-                  tick={{ fill: isDark ? '#9ca3af' : '#6b7280', fontSize: 12 }}
-                  axisLine={{ stroke: isDark ? '#4b5563' : '#e5e7eb' }}
-                  tickLine={{ stroke: isDark ? '#4b5563' : '#e5e7eb' }}
+                  tick={{ fill: isDark ? '#9ca3af' : '#94A3B8', fontSize: 11, fontWeight: 600 }}
+                  axisLine={{ stroke: isDark ? '#4b5563' : '#E2E8F0' }}
+                  tickLine={{ stroke: isDark ? '#4b5563' : '#E2E8F0' }}
                   tickFormatter={(v) => format(Number(v))}
                   width={yAxisWidth}
                 />
@@ -334,8 +330,8 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
                   />
                 }
                 cursor={{
-                  stroke: isDark ? '#f59e0b' : '#f59e0b',
-                  strokeWidth: 1,
+                  stroke: '#0D9488',
+                  strokeWidth: 2,
                   strokeDasharray: '4 3',
                   opacity: 0.5,
                 }}
@@ -354,16 +350,16 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
                 type="monotone"
                 dataKey="revenue"
                 name="Pendapatan"
-                stroke="#f59e0b"
+                stroke="#0D9488"
                 strokeWidth={isMobile ? 2.5 : 3}
                 dot={
                   isMobile
-                    ? false // hide dots on mobile — too many, too small
-                    : { r: 4, strokeWidth: 2, fill: isDark ? '#111827' : '#ffffff' }
+                    ? { r: 3, strokeWidth: 1.5, fill: isDark ? '#111827' : '#ffffff', stroke: '#0D9488' }
+                    : { r: 4, strokeWidth: 2, fill: isDark ? '#111827' : '#ffffff', stroke: '#0D9488' }
                 }
                 activeDot={{
                   r: isMobile ? 5 : 6,
-                  fill: '#f59e0b',
+                  fill: '#0D9488',
                   stroke: isDark ? '#1c1917' : '#fff',
                   strokeWidth: 2,
                 }}
@@ -375,7 +371,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
 
       {/* Tip */}
       <p
-        className={`mt-3 text-center ${isDark ? 'text-stone-600' : 'text-stone-400'}`}
+        className={`mt-3 text-center ${isDark ? 'text-stone-600' : 'text-[#94A3B8] font-medium'}`}
         style={{ fontSize: 10 }}
       >
         {isMobile ? 'Tap titik untuk melihat detail pendapatan' : 'Hover titik untuk melihat pendapatan per tanggal'}

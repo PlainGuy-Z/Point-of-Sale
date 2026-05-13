@@ -92,40 +92,40 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div
         className={`w-full max-w-sm rounded-2xl shadow-2xl border ${
           isDark
             ? 'bg-stone-950/80 text-stone-100 border-stone-800'
-            : 'bg-white/80 text-stone-900 border-stone-200'
+            : 'bg-white text-[#0F172A] border-[#E2E8F0]'
         }`}
       >
         {/* Header */}
-        <div className={`p-5 border-b flex justify-between items-center ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
+        <div className={`p-5 border-b flex justify-between items-center ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}>
           <div>
-            <h2 className="text-sm font-black">Receipt</h2>
-            <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>#{transaction.id}</p>
+            <h2 className="text-sm font-bold">Receipt</h2>
+            <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>#{transaction.id}</p>
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-3xl border ${isDark ? 'border-stone-800 hover:bg-[#1a1614]' : 'border-stone-200 hover:bg-stone-50'}`}
+            className={`p-2 rounded-lg transition-colors ${isDark ? 'border-stone-800 hover:bg-[#1a1614]' : 'text-[#94A3B8] hover:text-[#475569] hover:bg-[#F1F5F9]'}`}
             aria-label="Close receipt"
           >
-            <X className="w-4 h-4 text-stone-400" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
         <div className="p-5 space-y-4 text-sm max-h-[60vh] overflow-y-auto horizontal-scrollbar-thin">
           {/* Info - DENGAN ORDER TYPE */}
-          <div className={`space-y-1 text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+          <div className={`space-y-1 text-xs ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>
             <div>{formatDate(transaction.date)}</div>
             
             {/* ✅ TAMBAH: Order Type */}
             {transaction.orderType && (
               <div className="flex items-center gap-1">
                 <span>Tipe:</span>
-                <span className={`px-2 py-0.5 rounded-3xl text-[10px] font-black border ${
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
                   transaction.orderType === 'take-away'
                     ? isDark ? 'bg-amber-900/20 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'
                     : isDark ? 'bg-amber-900/20 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'
@@ -152,17 +152,17 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
             {transaction.items.map((item, i) => (
               <div
                 key={i}
-                className={`flex justify-between border-b pb-2 ${isDark ? 'border-stone-800' : 'border-stone-200'}`}
+                className={`flex justify-between border-b pb-2 ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}
               >
                 <div className="flex-1">
-                  <div className="font-medium">
+                  <div className="font-medium text-[#0F172A] dark:text-stone-100">
                     {item.note || 'Product'} {item.description && <span className="font-normal italic text-xs opacity-75">- {item.description}</span>}
                   </div>
-                  <div className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+                  <div className={`text-xs ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>
                     {item.quantity} × {format(item.price)}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right font-semibold text-[#0F172A] dark:text-stone-100">
                   {format(item.price * item.quantity)}
                 </div>
               </div>
@@ -170,45 +170,45 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
           </div>
 
           {/* Totals */}
-          <div className={`pt-3 space-y-1 border-t ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
-            <div className="flex justify-between text-xs">
+          <div className={`pt-3 space-y-1 border-t ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}>
+            <div className="flex justify-between text-xs text-[#475569] dark:text-stone-400">
               <span>Subtotal</span>
               <span>{format(transaction.subtotal || transaction.total)}</span>
             </div>
 
             {(transaction.tax !== undefined && transaction.tax > 0) && (
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between text-xs text-[#475569] dark:text-stone-400">
                 <span>{settings?.tax_label || 'Pajak'} ({transaction.taxRate || 0}%)</span>
                 <span>{format(transaction.tax)}</span>
               </div>
             )}
 
             {(transaction.service_charge !== undefined && transaction.service_charge > 0) && (
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between text-xs text-[#475569] dark:text-stone-400">
                 <span>{settings?.service_charge_label || 'Service'}</span>
                 <span>{format(transaction.service_charge)}</span>
               </div>
             )}
 
-            <div className="flex justify-between font-black pt-1 text-base border-t border-dashed mt-1 dark:border-stone-800">
+            <div className="flex justify-between font-black pt-1 text-base border-t border-dashed mt-1 border-[#E2E8F0] dark:border-stone-800 text-[#0F172A] dark:text-white">
               <span>Total</span>
               <span>{format(transaction.total)}</span>
             </div>
 
-            <div className={`pt-2 text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+            <div className={`pt-2 text-xs ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>
               Pembayaran: {transaction.paymentMethod?.toUpperCase()}
             </div>
 
             {transaction.paymentMethod === 'cash' &&
               transaction.cashReceived && (
                 <>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-xs text-[#475569] dark:text-stone-400">
                     <span>Tunai</span>
                     <span>
                       {format(transaction.cashReceived)}
                     </span>
                   </div>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-xs text-[#475569] dark:text-stone-400">
                     <span>Kembali</span>
                     <span>
                       {format(transaction.change || 0)}
@@ -220,7 +220,7 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
             {/* Footer */}
             {settings?.receipt_footer && (
               <div className="pt-6 text-center">
-                <p className={`text-[10px] italic leading-relaxed ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                <p className={`text-[10px] italic leading-relaxed ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
                   {settings.receipt_footer}
                 </p>
               </div>
@@ -229,16 +229,16 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}${notesText}
         </div>
 
         {/* Actions */}
-        <div className={`p-4 border-t flex gap-2 ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
+        <div className={`p-4 border-t flex gap-2 ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}>
           <button
             onClick={copyReceipt}
-            className={`flex-1 py-3 text-xs rounded-3xl border font-black ${isDark ? 'border-stone-800 hover:bg-[#1a1614]' : 'border-stone-200 hover:bg-stone-50'}`}
+            className={`flex-1 py-3 text-xs rounded-xl border font-bold transition-all ${isDark ? 'border-stone-800 hover:bg-[#1a1614]' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
           >
             Copy
           </button>
           <button
             onClick={onPrint}
-            className={`flex-1 py-3 text-xs rounded-3xl border font-black ${isDark ? 'border-stone-800 hover:bg-[#1a1614]' : 'border-stone-200 hover:bg-stone-50'}`}
+            className={`flex-1 py-3 text-xs rounded-xl border font-bold transition-all ${isDark ? 'border-stone-800 hover:bg-[#1a1614]' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
           >
             Print
           </button>

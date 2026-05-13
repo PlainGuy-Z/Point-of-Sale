@@ -9,7 +9,7 @@ import VoidReviewModal from '../../components/transactions/VoidReviewModal';
 import type { HistoryTransaction, TransactionsListResponse, TxSummaryMonth, TxSummaryToday } from '../../types/historyTransaction';
 import type { CreatedCashier } from '../../components/users/AddCashierModal';
 import { appApi, ApiError } from '../../services/appApi';
-import { Loader2, Search, Download, AlertTriangle } from 'lucide-react';
+import { Loader2, Search, Download, AlertTriangle, ChevronDown, Filter } from 'lucide-react';
 import { Skeleton } from '../../components/common/Skeleton';
 
 function itemSummary(t: HistoryTransaction): string {
@@ -82,6 +82,7 @@ function Inner() {
 
   const [detail, setDetail] = useState<HistoryTransaction | null>(null);
   const [review, setReview] = useState<{ t: HistoryTransaction; action: 'approve' | 'reject' } | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const loadSummaries = useCallback(async () => {
     setSummLoading(true);
@@ -183,9 +184,20 @@ function Inner() {
     <>
       {ToastComponent}
       <div className={`mx-auto max-w-[1200px] animate-in fade-in pb-20 ${dark ? 'text-white' : 'text-stone-900'}`}>
-        <header className="mb-8">
-          <h1 className="text-3xl font-black">Riwayat Transaksi</h1>
-          <p className={`mt-1 text-sm ${dark ? 'text-stone-400' : 'text-stone-600'}`}>Filter lengkap untuk semua transaksi di toko Anda</p>
+        <header className="mb-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black">Riwayat Transaksi</h1>
+              <p className={`mt-1 text-sm ${dark ? 'text-stone-400' : 'text-stone-600'}`}>Filter lengkap untuk semua transaksi di toko Anda</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void exportCsv()}
+              className={`hidden md:flex items-center gap-2 rounded-3xl border border-amber-500 px-5 py-2 text-sm font-bold shrink-0 ${dark ? 'text-amber-400' : 'text-amber-600'} hover:bg-amber-500 hover:text-white transition-all`}
+            >
+              <Download className="h-4 w-4" /> Export
+            </button>
+          </div>
         </header>
 
         {summLoading ? (
@@ -193,7 +205,7 @@ function Inner() {
             <LoadingSpinner />
           </div>
         ) : (
-          <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-6 flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {(
               [
                 { k: 'Total Transaksi Hari Ini', v: todaySumm?.today_count ?? 0, num: true as const },
@@ -212,12 +224,12 @@ function Inner() {
                 { k: 'Total Transaksi Bulan Ini', v: monthSumm?.month_count ?? 0, num: true as const },
               ] as const
             ).map((c) => {
-              const cls = `rounded-3xl border px-6 py-5 text-left shadow-sm transition ${dark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'
+              const cls = `rounded-3xl border px-5 py-4 text-left shadow-sm transition min-w-[200px] flex-shrink-0 md:min-w-0 md:flex-shrink ${dark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'
                 } ${'onClick' in c && c.onClick ? 'cursor-pointer hover:border-amber-500/60' : ''} ${'amber' in c && c.amber ? 'ring-2 ring-amber-500/50' : ''}`;
               const inner = (
                 <>
-                  <p className={`text-xs font-black uppercase tracking-wider ${dark ? 'text-stone-500' : 'text-stone-500'}`}>{c.k}</p>
-                  <p className="mt-2 text-2xl font-black text-amber-500">{c.num ? (c.v as number).toLocaleString('id-ID') : String(c.v)}</p>
+                  <p className={`text-[10px] font-black uppercase tracking-wider ${dark ? 'text-stone-500' : 'text-stone-500'}`}>{c.k}</p>
+                  <p className="mt-2 text-xl font-black text-amber-500">{c.num ? (c.v as number).toLocaleString('id-ID') : String(c.v)}</p>
                 </>
               );
               if ('onClick' in c && c.onClick) {
@@ -262,68 +274,85 @@ function Inner() {
         ) : null}
 
         <div
-          className={`mb-8 space-y-4 rounded-3xl border p-6 ${dark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'}`}
+          className={`mb-6 rounded-3xl border ${dark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'}`}
         >
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <label className="text-xs font-black uppercase opacity-70">
-              Dari
-              <input type="date" value={df} onChange={(e) => setDf(e.target.value)} className={`mt-1 w-full rounded-3xl border px-4 py-2 ${dark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-white'}`} />
-            </label>
-            <label className="text-xs font-black uppercase opacity-70">
-              Sampai
-              <input type="date" value={dt} onChange={(e) => setDt(e.target.value)} className={`mt-1 w-full rounded-3xl border px-4 py-2 ${dark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-white'}`} />
-            </label>
-            <label className="text-xs font-black uppercase opacity-70 md:col-span-2">
-              Kasir
-              <select value={cashierId} onChange={(e) => setCashierId(e.target.value)} className={`mt-1 w-full rounded-3xl border px-4 py-2 ${dark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-white'}`}>
-                <option value="">Semua kasir</option>
-                {cashiers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="relative">
-            <Search className={`absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${dark ? 'text-stone-600' : 'text-stone-400'}`} />
-            <input
-              placeholder="Pelanggan atau ID transaksi"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={`w-full rounded-3xl border py-3 pl-12 pr-4 outline-none focus:ring-2 focus:ring-amber-500/40 ${dark ? 'border-stone-800 bg-stone-950' : 'border-stone-200 bg-stone-50'}`}
-            />
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {(['all', 'completed', 'pending_void', 'voided'] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setStatus(k === 'all' ? 'all' : k)}
-                className={`rounded-full border px-4 py-2 text-xs font-black uppercase ${k === 'all' ? status === 'all' : status === k
-                    ? 'border-amber-500 bg-amber-500 text-white'
-                    : dark
-                      ? 'border-stone-700 text-stone-300'
-                      : 'border-stone-200 text-stone-700'
-                  }`}
+          {/* Collapsible header */}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(o => !o)}
+            className={`w-full flex items-center justify-between p-4 md:hidden ${dark ? 'text-stone-300' : 'text-stone-700'}`}
+          >
+            <div className="flex items-center gap-2">
+              <Filter size={16} className="text-amber-500" />
+              <span className="text-sm font-bold">Filter & Pencarian</span>
+            </div>
+            <ChevronDown size={16} className={`transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          <div className={`space-y-4 p-4 md:p-6 ${filtersOpen ? 'block' : 'hidden md:block'} ${filtersOpen ? 'pt-0 md:pt-6' : ''}`}>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <label className="text-xs font-black uppercase opacity-70">
+                Dari
+                <input type="date" value={df} onChange={(e) => setDf(e.target.value)} className={`mt-1 w-full rounded-3xl border px-4 py-2.5 min-h-[44px] ${dark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-white'}`} />
+              </label>
+              <label className="text-xs font-black uppercase opacity-70">
+                Sampai
+                <input type="date" value={dt} onChange={(e) => setDt(e.target.value)} className={`mt-1 w-full rounded-3xl border px-4 py-2.5 min-h-[44px] ${dark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-white'}`} />
+              </label>
+              <label className="text-xs font-black uppercase opacity-70 md:col-span-2">
+                Kasir
+                <select value={cashierId} onChange={(e) => setCashierId(e.target.value)} className={`mt-1 w-full rounded-3xl border px-4 py-2.5 min-h-[44px] ${dark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-white'}`}>
+                  <option value="">Semua kasir</option>
+                  {cashiers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="relative">
+              <Search className={`absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${dark ? 'text-stone-600' : 'text-stone-400'}`} />
+              <input
+                placeholder="Pelanggan atau ID transaksi"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={`w-full rounded-3xl border py-3 min-h-[44px] pl-12 pr-4 outline-none focus:ring-2 focus:ring-amber-500/40 ${dark ? 'border-stone-800 bg-stone-950' : 'border-stone-200 bg-stone-50'}`}
+              />
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {(['all', 'completed', 'pending_void', 'voided'] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setStatus(k === 'all' ? 'all' : k)}
+                  className={`rounded-full border px-4 py-2.5 min-h-[44px] text-xs font-black uppercase whitespace-nowrap flex-shrink-0 ${k === 'all' ? status === 'all' : status === k
+                      ? 'border-amber-500 bg-amber-500 text-white'
+                      : dark
+                        ? 'border-stone-700 text-stone-300'
+                        : 'border-stone-200 text-stone-700'
+                    }`}
+                >
+                  {k === 'all' ? 'Semua' : k === 'completed' ? 'Selesai' : k === 'pending_void' ? 'Menunggu Void' : 'Dibatalkan'}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={pay}
+                onChange={(e) => setPay(e.target.value)}
+                className={`rounded-3xl border px-4 py-2.5 min-h-[44px] text-sm font-semibold ${dark ? 'border-stone-800 bg-stone-950' : 'border-stone-200 bg-white'}`}
               >
-                {k === 'all' ? 'Semua' : k === 'completed' ? 'Selesai' : k === 'pending_void' ? 'Menunggu Void' : 'Dibatalkan'}
+                <option value="">Semua pembayaran</option>
+                <option value="cash">Cash</option>
+                <option value="qris">QRIS</option>
+                <option value="card">Card</option>
+                <option value="transfer">Transfer</option>
+              </select>
+              <button type="button" onClick={() => void exportCsv()} className={`md:hidden ml-auto rounded-3xl border border-amber-500 px-5 py-2.5 min-h-[44px] text-sm font-bold ${dark ? 'text-amber-400' : 'text-amber-600'} hover:bg-amber-500 hover:text-white`}>
+                <Download className="mr-1.5 inline h-4 w-4 -translate-y-px" /> Export
               </button>
-            ))}
-            <select
-              value={pay}
-              onChange={(e) => setPay(e.target.value)}
-              className={`rounded-3xl border px-4 py-2 text-sm font-semibold ${dark ? 'border-stone-800 bg-stone-950' : 'border-stone-200 bg-white'}`}
-            >
-              <option value="">Semua pembayaran</option>
-              <option value="cash">Cash</option>
-              <option value="qris">QRIS</option>
-              <option value="card">Card</option>
-              <option value="transfer">Transfer</option>
-            </select>
-            <button type="button" onClick={() => void exportCsv()} className="ml-auto rounded-3xl border border-amber-500 px-6 py-2 text-sm font-bold text-amber-600 hover:bg-amber-500 hover:text-white dark:text-amber-400">
-              <Download className="mr-2 inline h-4 w-4 -translate-y-px" /> Export CSV
-            </button>
+            </div>
           </div>
         </div>
 
@@ -401,7 +430,7 @@ function Inner() {
                     <span className={`rounded-full px-3 py-1 text-[10px] font-black ${statusChip(t.status, dark)}`}>{statusLabel(t.status)}</span>
                   </div>
                   <p className="my-3 text-xs opacity-80">{itemSummary(t)}</p>
-                  <div className="flex items-center justify-between border-t pt-3 dark:border-stone-800">
+                  <div className={`flex items-center justify-between border-t pt-3 ${dark ? 'border-stone-800' : 'border-stone-200'}`}>
                     <span className="text-xs font-bold">{String(t.payment_method)}</span>
                     <span className="font-mono font-black text-amber-500">Rp{t.total_amount.toLocaleString('id-ID')}</span>
                   </div>
@@ -417,7 +446,7 @@ function Inner() {
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               type="button"
-              className="rounded-3xl border px-6 py-2 text-sm font-bold disabled:opacity-40 dark:border-stone-700"
+              className={`rounded-3xl border px-6 py-2.5 min-h-[44px] text-sm font-bold disabled:opacity-40 ${dark ? 'border-stone-700' : 'border-stone-200'}`}
             >
               Sebelumnya
             </button>
@@ -425,7 +454,7 @@ function Inner() {
               disabled={page * limit >= total}
               onClick={() => setPage((p) => p + 1)}
               type="button"
-              className="rounded-3xl border px-6 py-2 text-sm font-bold disabled:opacity-40 dark:border-stone-700"
+              className={`rounded-3xl border px-6 py-2.5 min-h-[44px] text-sm font-bold disabled:opacity-40 ${dark ? 'border-stone-700' : 'border-stone-200'}`}
             >
               Berikutnya
             </button>

@@ -19,10 +19,10 @@ export default function LoadingSpinner({
   
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white/80 dark:bg-stone-950/80 backdrop-blur-sm z-50">
+      <div className="fixed inset-0 flex items-center justify-center bg-[#F8FAFC]/80 dark:bg-stone-950/80 backdrop-blur-sm z-50">
         <div className="text-center">
-          <Loader2 className={`${sizeClasses[size]} animate-spin text-amber-500 mx-auto mb-3`} />
-          <p className="text-gray-600 dark:text-stone-400">{text}</p>
+          <Loader2 className={`${sizeClasses[size]} animate-spin text-teal-600 mx-auto mb-3`} />
+          <p className="text-[#475569] dark:text-stone-400 font-medium">{text}</p>
         </div>
       </div>
     );
@@ -30,8 +30,8 @@ export default function LoadingSpinner({
   
   return (
     <div className="flex items-center justify-center p-4">
-      <Loader2 className={`${sizeClasses[size]} animate-spin text-amber-500 mr-3`} />
-      <span className="text-gray-600 dark:text-stone-400">{text}</span>
+      <Loader2 className={`${sizeClasses[size]} animate-spin text-teal-600 mr-3`} />
+      <span className="text-[#475569] dark:text-stone-400 font-medium">{text}</span>
     </div>
   );
 }
