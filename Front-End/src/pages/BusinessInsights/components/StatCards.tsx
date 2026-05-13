@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { TrendingUp, TrendingDown, Package, Star, DollarSign, Calendar, BarChart3 } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import type { SummaryResponse } from '../../../services/aiApi';
@@ -44,7 +44,7 @@ function TrendBadge({ value, isDark }: { value: number; isDark: boolean }) {
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
-function SkeletonCard({ isDark }: { isDark: boolean }) {
+function SkeletonCard({ isDark, isMobile }: { isDark: boolean; isMobile: boolean }) {
   return (
     <div
       style={{
@@ -53,37 +53,135 @@ function SkeletonCard({ isDark }: { isDark: boolean }) {
         background: isDark ? '#1c1917' : '#fff',
         padding: 20,
         minHeight: 120,
+        // On mobile, fixed width card
+        ...(isMobile ? { width: 'calc(75vw)', flexShrink: 0, scrollSnapAlign: 'start' } : {}),
       }}
     >
+      {[80, 120, 100].map((w, i) => (
+        <div
+          key={i}
+          style={{
+            width: w,
+            height: i === 1 ? 28 : 12,
+            borderRadius: i === 1 ? 8 : 6,
+            background: isDark ? '#292524' : '#e7e5e4',
+            marginBottom: i < 2 ? (i === 0 ? 12 : 8) : 0,
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Single Card ─────────────────────────────────────────────────────────────
+
+interface CardDef {
+  label: string;
+  value: string;
+  sub: string;
+  trend: number | null;
+  accent: string;
+  icon: React.ElementType;
+}
+
+function StatCard({
+  card,
+  isDark,
+  isMobile,
+}: {
+  card: CardDef;
+  isDark: boolean;
+  isMobile: boolean;
+}) {
+  const IconComp = card.icon;
+  return (
+    <div
+      style={{
+        borderRadius: 16,
+        border: `1px solid ${isDark ? '#292524' : '#e7e5e4'}`,
+        background: isDark ? '#1c1917' : '#fff',
+        padding: 20,
+        transition: 'box-shadow 0.2s, border-color 0.2s',
+        cursor: 'default',
+        position: 'relative',
+        overflow: 'hidden',
+        // Mobile: fixed width for carousel
+        ...(isMobile
+          ? { width: 'calc(75vw)', flexShrink: 0, scrollSnapAlign: 'start' }
+          : {}),
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = `0 0 0 1px ${card.accent}40, 0 4px 12px ${card.accent}15`;
+        e.currentTarget.style.borderColor = `${card.accent}60`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.borderColor = isDark ? '#292524' : '#e7e5e4';
+      }}
+    >
+      {/* Accent top line */}
       <div
         style={{
-          width: 80,
-          height: 12,
-          borderRadius: 6,
-          background: isDark ? '#292524' : '#e7e5e4',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          background: card.accent,
+          borderRadius: '16px 16px 0 0',
+        }}
+      />
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           marginBottom: 12,
-          animation: 'pulse 1.5s ease-in-out infinite',
         }}
-      />
+      >
+        <span style={{ fontSize: 13, fontWeight: 500, color: isDark ? '#a8a29e' : '#78716c' }}>
+          {card.label}
+        </span>
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: `${card.accent}15`,
+          }}
+        >
+          <IconComp size={16} color={card.accent} />
+        </div>
+      </div>
+
       <div
         style={{
-          width: 120,
-          height: 28,
-          borderRadius: 8,
-          background: isDark ? '#292524' : '#e7e5e4',
-          marginBottom: 8,
-          animation: 'pulse 1.5s ease-in-out infinite',
+          fontSize: card.label === 'Produk Terlaris' ? 16 : 24,
+          fontWeight: 700,
+          fontFamily:
+            card.label === 'Produk Terlaris'
+              ? 'inherit'
+              : 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+          color: isDark ? '#fafaf9' : '#1c1917',
+          marginBottom: 6,
+          lineHeight: 1.2,
         }}
-      />
-      <div
-        style={{
-          width: 100,
-          height: 12,
-          borderRadius: 6,
-          background: isDark ? '#292524' : '#e7e5e4',
-          animation: 'pulse 1.5s ease-in-out infinite',
-        }}
-      />
+      >
+        {card.value}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {card.trend !== null ? (
+          <TrendBadge value={card.trend} isDark={isDark} />
+        ) : (
+          <span style={{ fontSize: 12, color: isDark ? '#78716c' : '#a8a29e' }}>{card.sub}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -94,12 +192,51 @@ export default function StatCards({ summary, isLoading }: StatCardsProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
+  // Simple mobile detection inside component
+  const [isMobile] = React.useState(
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
+  );
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const CARD_COUNT = 5;
+
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const scrollLeft = scrollRef.current.scrollLeft;
+    const cardWidth = scrollRef.current.scrollWidth / CARD_COUNT;
+    setActiveIndex(Math.round(scrollLeft / cardWidth));
+  };
+
+  // ── Loading state ──
   if (isLoading) {
+    if (isMobile) {
+      return (
+        <div style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 12,
+              overflowX: 'auto',
+              scrollSnapType: 'x mandatory',
+              scrollbarWidth: 'none',
+              paddingBottom: 4,
+            }}
+          >
+            {[1, 2, 3, 4, 5].map((i) => (
+              <SkeletonCard key={i} isDark={isDark} isMobile />
+            ))}
+          </div>
+          <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+        </div>
+      );
+    }
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 20 }}>
         {[1, 2, 3, 4, 5].map((i) => (
-          <SkeletonCard key={i} isDark={isDark} />
+          <SkeletonCard key={i} isDark={isDark} isMobile={false} />
         ))}
+        <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
       </div>
     );
   }
@@ -108,7 +245,7 @@ export default function StatCards({ summary, isLoading }: StatCardsProps) {
 
   const lowStockColor = summary.low_stock_count > 0 ? '#ef4444' : '#22c55e';
 
-  const cards = [
+  const cards: CardDef[] = [
     {
       label: 'Omzet Hari Ini',
       value: formatRupiah(summary.today_revenue),
@@ -128,7 +265,7 @@ export default function StatCards({ summary, isLoading }: StatCardsProps) {
     {
       label: 'Omzet Minggu Lalu',
       value: formatRupiah(summary.last_week_revenue),
-      sub: `total minggu lalu`,
+      sub: 'total minggu lalu',
       trend: null,
       accent: '#6b7280',
       icon: BarChart3,
@@ -143,9 +280,10 @@ export default function StatCards({ summary, isLoading }: StatCardsProps) {
     },
     {
       label: 'Produk Terlaris',
-      value: summary.top_products_today.length > 20
-        ? summary.top_products_today.slice(0, 20) + '…'
-        : summary.top_products_today,
+      value:
+        summary.top_products_today.length > 20
+          ? summary.top_products_today.slice(0, 20) + '…'
+          : summary.top_products_today,
       sub: 'Hari ini',
       trend: null,
       accent: '#7c3aed',
@@ -153,94 +291,81 @@ export default function StatCards({ summary, isLoading }: StatCardsProps) {
     },
   ];
 
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 20 }}>
-      {cards.map((card) => {
-        const IconComp = card.icon;
-        return (
-          <div
-            key={card.label}
-            style={{
-              borderRadius: 16,
-              border: `1px solid ${isDark ? '#292524' : '#e7e5e4'}`,
-              background: isDark ? '#1c1917' : '#fff',
-              padding: 20,
-              transition: 'box-shadow 0.2s, border-color 0.2s',
-              cursor: 'default',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = `0 0 0 1px ${card.accent}40, 0 4px 12px ${card.accent}15`;
-              e.currentTarget.style.borderColor = `${card.accent}60`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = 'none';
-              e.currentTarget.style.borderColor = isDark ? '#292524' : '#e7e5e4';
-            }}
-          >
-            {/* Accent top line */}
-            <div
+  // ── MOBILE: snap carousel ──
+  if (isMobile) {
+    return (
+      <div style={{ marginBottom: 16 }}>
+        {/* Track */}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          style={{
+            display: 'flex',
+            gap: 12,
+            overflowX: 'auto',
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            paddingBottom: 4,
+          }}
+        >
+          {cards.map((card) => (
+            <StatCard key={card.label} card={card} isDark={isDark} isMobile />
+          ))}
+          {/* Trailing spacer so last card snaps cleanly */}
+          <div style={{ flexShrink: 0, width: 4 }} />
+        </div>
+
+        {/* Dot indicators */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 6,
+            marginTop: 10,
+          }}
+        >
+          {cards.map((card, i) => (
+            <button
+              key={card.label}
+              onClick={() => {
+                if (!scrollRef.current) return;
+                const cardWidth = scrollRef.current.scrollWidth / CARD_COUNT;
+                scrollRef.current.scrollTo({ left: i * cardWidth, behavior: 'smooth' });
+                setActiveIndex(i);
+              }}
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 3,
-                background: card.accent,
-                borderRadius: '16px 16px 0 0',
+                width: i === activeIndex ? 20 : 6,
+                height: 6,
+                borderRadius: 999,
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                transition: 'all 0.25s',
+                background: i === activeIndex
+                  ? cards[activeIndex].accent
+                  : (isDark ? '#44403c' : '#cbd5e1'),
               }}
             />
+          ))}
+        </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 500, color: isDark ? '#a8a29e' : '#78716c' }}>
-                {card.label}
-              </span>
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: `${card.accent}15`,
-                }}
-              >
-                <IconComp size={16} color={card.accent} />
-              </div>
-            </div>
+        <style>{`
+          div::-webkit-scrollbar { display: none; }
+          @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        `}</style>
+      </div>
+    );
+  }
 
-            <div
-              style={{
-                fontSize: card.label === 'Produk Terlaris' ? 16 : 24,
-                fontWeight: 700,
-                fontFamily: card.label === 'Produk Terlaris' ? 'inherit' : 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-                color: isDark ? '#fafaf9' : '#1c1917',
-                marginBottom: 6,
-                lineHeight: 1.2,
-              }}
-            >
-              {card.value}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {card.trend !== null && <TrendBadge value={card.trend} isDark={isDark} />}
-              {card.trend === null && (
-                <span style={{ fontSize: 12, color: isDark ? '#78716c' : '#a8a29e' }}>{card.sub}</span>
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Pulse animation keyframes */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
+  // ── DESKTOP: grid (unchanged) ──
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 20 }}>
+      {cards.map((card) => (
+        <StatCard key={card.label} card={card} isDark={isDark} isMobile={false} />
+      ))}
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
     </div>
   );
 }

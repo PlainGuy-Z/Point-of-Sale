@@ -2,7 +2,7 @@
 
 import React from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
@@ -70,12 +70,20 @@ export default function RevenueChart({ forecast, isLoading }: Props) {
     </div>
   );
 
-  const weekends = forecast.map((f,i) => { const l=f.day_name.toLowerCase(); return (l.startsWith('sab')||l.startsWith('min')||l==='saturday'||l==='sunday')?i:-1; }).filter(i=>i>=0);
+  const weekends = forecast.map((f,i) => { const l = f.day_name.toLowerCase(); return (l.startsWith('sab')||l.startsWith('min')||l==='saturday'||l==='sunday') ? i : -1; }).filter(i => i >= 0);
 
   return (
-    <div style={{ borderRadius:16, border:`1px solid ${isDark?'#292524':'#e7e5e4'}`, background:isDark?'#1c1917':'#fff', padding:24, marginBottom:20, transition:'box-shadow 0.2s' }}
-      onMouseEnter={e=>{e.currentTarget.style.boxShadow=`0 0 0 1px #0d948840, 0 4px 12px rgba(13,148,136,0.08)`;}}
-      onMouseLeave={e=>{e.currentTarget.style.boxShadow='none';}}>
+    <div style={{
+      borderRadius:16,
+      border:`1px solid ${isDark?'#292524':'#e7e5e4'}`,
+      background:isDark?'#1c1917':'#fff',
+      padding:24,
+      marginBottom:20,
+      transition:'box-shadow 0.2s ease, transform 0.2s ease',
+      boxShadow:isDark ? '0 18px 54px rgba(0,0,0,0.18)' : '0 18px 54px rgba(15,23,42,0.08)',
+    }}
+      onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 24px 64px rgba(15,23,42,0.16)';}}
+      onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow=isDark ? '0 18px 54px rgba(0,0,0,0.18)' : '0 18px 54px rgba(15,23,42,0.08)';}}>
       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
         <div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -91,14 +99,26 @@ export default function RevenueChart({ forecast, isLoading }: Props) {
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <LineChart data={forecast} margin={{ top:5, right:10, left:0, bottom:5 }}>
+          <defs>
+            <linearGradient id="revenue-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.22} />
+              <stop offset="75%" stopColor="#f59e0b" stopOpacity={0.04} />
+              <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="txn-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#0d9488" stopOpacity={0.16} />
+              <stop offset="100%" stopColor="#0d9488" stopOpacity={0} />
+            </linearGradient>
+          </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={isDark?'#292524':'#f5f5f4'} vertical={false} />
-          {weekends.map(idx=><ReferenceLine key={idx} x={forecast[idx].day_name} stroke={isDark?'#292524':'#fef3c7'} strokeWidth={40} strokeOpacity={0.4} />)}
+          {weekends.map(idx => <ReferenceLine key={idx} x={forecast[idx].day_name} stroke={isDark?'#292524':'#fef3c7'} strokeWidth={40} strokeOpacity={0.4} />)}
           <XAxis dataKey="day_name" tick={{ fontSize:12, fill:isDark?'#78716c':'#a8a29e' }} axisLine={{ stroke:isDark?'#292524':'#e7e5e4' }} tickLine={false} />
           <YAxis yAxisId="revenue" tickFormatter={fmtRp} tick={{ fontSize:11, fill:isDark?'#78716c':'#a8a29e' }} axisLine={false} tickLine={false} width={56} />
           <YAxis yAxisId="txn" orientation="right" tick={{ fontSize:11, fill:isDark?'#78716c':'#a8a29e' }} axisLine={false} tickLine={false} width={36} />
           <Tooltip content={<ChartTooltip isDark={isDark} />} />
-          <Line yAxisId="revenue" type="monotone" dataKey="predicted_revenue" stroke="#f59e0b" strokeWidth={2.5} dot={<ConfDot stroke="#f59e0b" />} activeDot={{ r:6, fill:'#f59e0b', stroke:'#fff', strokeWidth:2 }} />
-          <Line yAxisId="txn" type="monotone" dataKey="predicted_transactions" stroke="#0d9488" strokeWidth={2} strokeDasharray="4 4" dot={<ConfDot stroke="#0d9488" />} activeDot={{ r:6, fill:'#0d9488', stroke:'#fff', strokeWidth:2 }} />
+          <Area yAxisId="revenue" type="monotone" dataKey="predicted_revenue" stroke="transparent" fill="url(#revenue-fill)" />
+          <Line yAxisId="revenue" type="monotone" dataKey="predicted_revenue" stroke="#f59e0b" strokeWidth={3} dot={<ConfDot stroke="#f59e0b" />} activeDot={{ r:6, fill:'#f59e0b', stroke:'#fff', strokeWidth:2 }} />
+          <Line yAxisId="txn" type="monotone" dataKey="predicted_transactions" stroke="#0d9488" strokeWidth={2.2} strokeDasharray="4 4" dot={<ConfDot stroke="#0d9488" />} activeDot={{ r:6, fill:'#0d9488', stroke:'#fff', strokeWidth:2 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

@@ -1,14 +1,9 @@
 // src/pages/Dashboard/index.tsx
+import React, { useRef, useState, useEffect } from 'react';
 import {
-    DollarSign,
-    ShoppingCart,
-    Users,
-    TrendingUp,
-    Package,
-    AlertCircle,
-    BarChart3,
-    Zap,
-    Shield
+  DollarSign, ShoppingCart, Users, TrendingUp,
+  Package, AlertCircle, BarChart3, Zap, Shield,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useDashboardMetrics } from '../../hooks/useDashboardMetrics';
@@ -20,338 +15,433 @@ import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 import { useApp } from '../../contexts/AppContext';
 import { Skeleton, SkeletonCard } from '../../components/common/Skeleton';
 
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 
-
-// Helper component untuk header badges
-const HeaderBadge = ({ children, isDark, type = 'info' }: {
-    children: React.ReactNode;
-    isDark: boolean;
-    type?: 'info' | 'success' | 'warning';
-}) => {
-    const baseClasses = "px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1";
-
-    const typeClasses = {
-        info: isDark
-            ? 'bg-stone-800 text-amber-400'
-            : 'bg-amber-100 text-amber-700',
-        success: isDark
-            ? 'bg-stone-800 text-green-400'
-            : 'bg-green-100 text-green-700',
-        warning: isDark
-            ? 'bg-stone-800 text-orange-400'
-            : 'bg-orange-100 text-orange-700'
-    };
-
-    return (
-        <div className={`${baseClasses} ${typeClasses[type]}`}>
-            {children}
-        </div>
-    );
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
+  );
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return isMobile;
 };
 
+// ─── Snap Carousel ────────────────────────────────────────────────────────────
+// Generic horizontal snap carousel with dot indicators.
 
-export default function Dashboard() {
-    const { theme } = useTheme();
-    const { isServiceLoading, transactions } = useApp();
-    const { metrics, topProductsToday, rawData } = useDashboardMetrics();
-    const isDark = theme === 'dark';
-
-    const { format } = useCurrencyFormatter();
-
-    const formattedDate = new Date().toLocaleDateString('id-ID', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-
-    // ── Full-page Skeleton ──────────────────────────────────────────────
-    if (isServiceLoading && transactions.length === 0) {
-        return (
-            <div className="space-y-6 animate-in fade-in duration-500">
-                {/* Header skeleton */}
-                <SkeletonCard>
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <Skeleton className="h-8 w-56 mb-2" rounded="rounded-lg" />
-                            <Skeleton className="h-4 w-40" rounded="rounded-lg" />
-                        </div>
-                        <Skeleton className="h-8 w-24" rounded="rounded-full" />
-                    </div>
-                </SkeletonCard>
-
-                {/* 4 stat cards skeleton */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                        <SkeletonCard key={i}>
-                            <div className="flex items-center justify-between mb-3">
-                                <Skeleton className="h-4 w-24" rounded="rounded-lg" />
-                                <Skeleton className="h-10 w-10" rounded="rounded-full" />
-                            </div>
-                            <Skeleton className="h-8 w-32 mb-2" rounded="rounded-lg" />
-                            <Skeleton className="h-3 w-16" rounded="rounded-full" />
-                        </SkeletonCard>
-                    ))}
-                </div>
-
-                {/* Main grid: chart (2/3) + sidebar (1/3) */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Chart skeleton */}
-                        <SkeletonCard>
-                            <Skeleton className="h-5 w-40 mb-4" rounded="rounded-lg" />
-                            <Skeleton className="h-52 w-full" rounded="rounded-xl" />
-                        </SkeletonCard>
-
-                        {/* 3 mini stat cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {Array.from({ length: 3 }).map((_, i) => (
-                                <SkeletonCard key={i}>
-                                    <Skeleton className="h-4 w-24 mb-2" rounded="rounded-lg" />
-                                    <Skeleton className="h-7 w-16 mb-1" rounded="rounded-lg" />
-                                    <Skeleton className="h-3 w-20" rounded="rounded-lg" />
-                                </SkeletonCard>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Sidebar skeleton */}
-                    <div className="space-y-6">
-                        <SkeletonCard>
-                            <Skeleton className="h-5 w-32 mb-4" rounded="rounded-lg" />
-                            {Array.from({ length: 3 }).map((_, i) => (
-                                <div key={i} className="flex items-center gap-3 mb-3">
-                                    <Skeleton className="h-8 w-8" rounded="rounded-lg" />
-                                    <div className="flex-1">
-                                        <Skeleton className="h-4 w-full mb-1" rounded="rounded-lg" />
-                                        <Skeleton className="h-3 w-20" rounded="rounded-lg" />
-                                    </div>
-                                </div>
-                            ))}
-                        </SkeletonCard>
-                        <SkeletonCard>
-                            <Skeleton className="h-5 w-40 mb-4" rounded="rounded-lg" />
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <div key={i} className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <Skeleton className="h-5 w-5" rounded="rounded-full" />
-                                        <Skeleton className="h-4 w-24" rounded="rounded-lg" />
-                                    </div>
-                                    <Skeleton className="h-4 w-10" rounded="rounded-lg" />
-                                </div>
-                            ))}
-                        </SkeletonCard>
-                    </div>
-                </div>
-
-                {/* Inventory row skeleton */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                        <SkeletonCard key={i}>
-                            <Skeleton className="h-4 w-28 mb-2" rounded="rounded-lg" />
-                            <Skeleton className="h-7 w-20 mb-1" rounded="rounded-lg" />
-                            <Skeleton className="h-3 w-32" rounded="rounded-lg" />
-                        </SkeletonCard>
-                    ))}
-                </div>
-
-                {/* Performance insights skeleton */}
-                <SkeletonCard>
-                    <Skeleton className="h-5 w-40 mb-4" rounded="rounded-lg" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className={`p-4 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-gray-50'}`}>
-                                <Skeleton className="h-4 w-28 mb-2" rounded="rounded-lg" />
-                                <Skeleton className="h-6 w-20" rounded="rounded-lg" />
-                            </div>
-                        ))}
-                    </div>
-                </SkeletonCard>
-            </div>
-        );
-    }
-
-    return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Bagian Header */}
-            <div className={`rounded-2xl p-6 ${isDark
-                ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
-                : 'bg-gradient-to-r from-white to-gray-50 border border-gray-100'
-                } shadow-sm`}>
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                            Dashboard <span className={isDark ? 'text-white' : 'text-gray-900'}>Bisnis</span>
-                        </h1>
-                        <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
-                            {formattedDate}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <HeaderBadge isDark={isDark} type="warning">
-                            <Zap className="w-3 h-3" />
-                            Real-time
-                        </HeaderBadge>
-                    </div>
-                </div>
-            </div>
-
-            {/* Grid Statistik */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    title="Pendapatan Hari Ini"
-                    value={format(metrics.todayRevenue)}
-                    icon={DollarSign}
-                    trend={metrics.revenueChange >= 0 ? "up" : "down"}
-
-                    gradient="from-green-500 to-emerald-500"
-                    delay="100"
-                />
-
-                <StatCard
-                    title="Transaksi"
-                    value={metrics.todayTransactionCount}
-                    icon={ShoppingCart}
-                    trend={metrics.transactionChange >= 0 ? "up" : "down"}
-                    gradient="from-amber-500 to-cyan-500"
-                    delay="200"
-                />
-
-                <StatCard
-                    title="Pelanggan Baru"
-                    value={metrics.newCustomers}
-                    icon={Users}
-                    trend={metrics.newCustomers > 0 ? "up" : "stable"}
-                    gradient="from-purple-500 to-violet-500"
-                    delay="300"
-                />
-
-                <StatCard
-                    title="Rata-rata Tiket"
-                    value={format(metrics.avgTicket)}
-                    icon={TrendingUp}
-                    trend={metrics.avgTicket > 30000 ? "up" : "stable"}
-                    gradient="from-amber-500 to-orange-500"
-                    delay="400"
-                />
-            </div>
-
-            {/* Grid Konten Utama */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Kolom Kiri - Grafik */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Grafik Keuntungan */}
-                    <ProfitChart transactions={rawData.transactions} />
-
-                    {/* Baris Statistik Cepat - GUNAKAN StatCard untuk konsistensi */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <StatCard
-                            title="Peringatan Stok"
-                            value={metrics.lowStockProducts.length}
-                            icon={AlertCircle}
-                            subtitle="item perlu perhatian"
-                            gradient="from-orange-500 to-amber-500"
-                            trend={metrics.lowStockProducts.length > 0 ? "up" : "stable"}
-                            trendValue={metrics.lowStockProducts.length > 0 ? "Perhatian" : "Aman"}
-                        />
-
-                        <StatCard
-                            title="Stok Habis"
-                            value={metrics.outOfStockProducts.length}
-                            icon={Package}
-                            subtitle="item tidak tersedia"
-                            gradient="from-red-500 to-pink-500"
-                            trend={metrics.outOfStockProducts.length > 0 ? "up" : "stable"}
-                            trendValue={metrics.outOfStockProducts.length > 0 ? "Segera Restok" : "Semua Tersedia"}
-                        />
-
-                        <StatCard
-                            title="Tingkat Margin"
-                            value={`${metrics.profitMargin}%`}
-                            icon={BarChart3}
-                            subtitle="margin keuntungan"
-                            gradient="from-amber-500 to-indigo-500"
-                            trend={metrics.profitMargin > 50 ? "up" : metrics.profitMargin > 30 ? "stable" : "down"}
-                            trendValue={metrics.profitMargin > 50 ? "Tinggi" : "Normal"}
-                        />
-                    </div>
-                </div>
-
-                {/* Kolom Kanan */}
-                <div className="space-y-6">
-                    <LowStockAlert products={metrics.lowStockProducts} />
-
-                    {/* TopProducts - GUNAKAN data yang sudah dihitung */}
-                    <TopProducts
-                        products={topProductsToday} // ✅ Data sudah dihitung di dashboardMetrics
-                        title="Produk Terlaris Hari Ini"
-                        limit={5}
-                    />
-                </div>
-            </div>
-
-
-            {/* Ringkasan Inventaris - GUNAKAN StatCard */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard
-                    title="Total Produk"
-                    value={metrics.totalProducts}
-                    icon={Package}
-                    subtitle={`Dari ${metrics.categoriesCount} kategori`}
-                    gradient="from-gray-500 to-gray-700"
-                    trend="stable"
-                />
-
-                <StatCard
-                    title="Nilai Stok"
-                    value={format(metrics.stockValue)}
-                    icon={DollarSign}
-                    subtitle="Total nilai inventaris"
-                    gradient="from-green-500 to-teal-500"
-                    trend="stable"
-                />
-
-                <StatCard
-                    title="Tingkat Keberhasilan"
-                    value={`${metrics.successRate}%`}
-                    icon={Shield}
-                    subtitle="Penyelesaian transaksi"
-                    gradient="from-purple-500 to-violet-500"
-                    trend={metrics.successRate > 95 ? "up" : "stable"}
-                    trendValue={metrics.successRate > 95 ? "Excellent" : "Good"}
-                />
-            </div>
-
-            {/* Wawasan Kinerja - GUNAKAN Grid sederhana */}
-            <div className={`p-6 rounded-2xl ${isDark
-                ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
-                : 'bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-100'
-                }`}>
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        Wawasan Kinerja
-                    </h3>
-                    <TrendingUp className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {renderPerformanceMetric("Rata-rata Nilai Pesanan", format(Math.round(metrics.avgTicket)), isDark)}
-                    {renderPerformanceMetric("Tingkat Konversi", `${Math.round((metrics.todayTransactionCount / Math.max(metrics.todayTransactionCount * 3, 1)) * 100)}%`, isDark)}
-                    {renderPerformanceMetric("Retensi Pelanggan", `${Math.min(85 + metrics.newCustomers, 99)}%`, isDark)}
-                    {renderPerformanceMetric("Perputaran Inventaris", `${Math.round((metrics.todayRevenue / Math.max(metrics.stockValue, 1)) * 30)} hari`, isDark)}
-                </div>
-            </div>
-        </div>
-    );
+interface SnapCarouselProps {
+  children: React.ReactNode[];
+  cardWidthVw?: number; // e.g. 80 → "80vw"
+  gap?: number;         // px
+  isDark: boolean;
+  /** accent color for active dot (defaults to amber) */
+  accentColor?: string;
+  /** show prev/next arrow buttons */
+  showArrows?: boolean;
+  /** compact dots (no label) */
+  className?: string;
 }
 
-// Helper untuk render metric sederhana
-function renderPerformanceMetric(label: string, value: string, isDark: boolean) {
-    return (
-        <div className={`p-4 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-white shadow-sm'}`}>
-            <p className={`text-sm ${isDark ? 'text-stone-300' : 'text-gray-600'}`}>{label}</p>
-            <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {value}
-            </p>
+function SnapCarousel({
+  children,
+  cardWidthVw = 80,
+  gap = 12,
+  isDark,
+  accentColor = '#f59e0b',
+  showArrows = false,
+  className = '',
+}: SnapCarouselProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const count = children.length;
+
+  const scrollTo = (index: number) => {
+    if (!trackRef.current) return;
+    const vw = trackRef.current.clientWidth;
+    const cardPx = (vw * cardWidthVw) / 100 + gap;
+    trackRef.current.scrollTo({ left: index * cardPx, behavior: 'smooth' });
+    setActiveIndex(index);
+  };
+
+  const handleScroll = () => {
+    if (!trackRef.current) return;
+    const vw = trackRef.current.clientWidth;
+    const cardPx = (vw * cardWidthVw) / 100 + gap;
+    const idx = Math.round(trackRef.current.scrollLeft / cardPx);
+    setActiveIndex(Math.max(0, Math.min(idx, count - 1)));
+  };
+
+  return (
+    <div className={className}>
+      {/* Track */}
+      <div
+        ref={trackRef}
+        onScroll={handleScroll}
+        style={{
+          display: 'flex',
+          gap,
+          overflowX: 'auto',
+          scrollSnapType: 'x mandatory',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          paddingBottom: 4,
+        }}
+      >
+        {children.map((child, i) => (
+          <div
+            key={i}
+            style={{
+              flexShrink: 0,
+              width: `${cardWidthVw}vw`,
+              scrollSnapAlign: 'start',
+            }}
+          >
+            {child}
+          </div>
+        ))}
+        {/* trailing spacer */}
+        <div style={{ flexShrink: 0, width: gap }} />
+      </div>
+
+      {/* Controls */}
+      {count > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 }}>
+          {showArrows && (
+            <button
+              onClick={() => scrollTo(Math.max(0, activeIndex - 1))}
+              disabled={activeIndex === 0}
+              style={{
+                width: 26, height: 26, borderRadius: 999, border: 'none', padding: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: activeIndex === 0 ? 'default' : 'pointer',
+                background: isDark ? '#292524' : '#e7e5e4',
+                color: isDark ? '#d6d3d1' : '#44403c',
+                opacity: activeIndex === 0 ? 0.3 : 1,
+                transition: 'opacity 0.2s',
+              }}
+            >
+              <ChevronLeft size={13} />
+            </button>
+          )}
+
+          {children.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => scrollTo(i)}
+              style={{
+                width: i === activeIndex ? 20 : 6,
+                height: 6,
+                borderRadius: 999,
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                transition: 'all 0.25s',
+                background: i === activeIndex ? accentColor : (isDark ? '#44403c' : '#cbd5e1'),
+              }}
+            />
+          ))}
+
+          {showArrows && (
+            <button
+              onClick={() => scrollTo(Math.min(count - 1, activeIndex + 1))}
+              disabled={activeIndex === count - 1}
+              style={{
+                width: 26, height: 26, borderRadius: 999, border: 'none', padding: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: activeIndex === count - 1 ? 'default' : 'pointer',
+                background: isDark ? '#292524' : '#e7e5e4',
+                color: isDark ? '#d6d3d1' : '#44403c',
+                opacity: activeIndex === count - 1 ? 0.3 : 1,
+                transition: 'opacity 0.2s',
+              }}
+            >
+              <ChevronRight size={13} />
+            </button>
+          )}
         </div>
+      )}
+
+      <style>{`div::-webkit-scrollbar{display:none}`}</style>
+    </div>
+  );
+}
+
+// ─── Section Label ────────────────────────────────────────────────────────────
+
+function SectionLabel({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
+  return (
+    <p style={{
+      fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+      color: isDark ? '#78716c' : '#94a3b8',
+      marginBottom: 8,
+    }}>
+      {children}
+    </p>
+  );
+}
+
+// ─── Header Badge ─────────────────────────────────────────────────────────────
+
+const HeaderBadge = ({ children, isDark, type = 'info' }: {
+  children: React.ReactNode; isDark: boolean; type?: 'info' | 'success' | 'warning';
+}) => {
+  const typeClasses = {
+    info: isDark ? 'bg-stone-800 text-amber-400' : 'bg-amber-100 text-amber-700',
+    success: isDark ? 'bg-stone-800 text-green-400' : 'bg-green-100 text-green-700',
+    warning: isDark ? 'bg-stone-800 text-orange-400' : 'bg-orange-100 text-orange-700',
+  };
+  return (
+    <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 ${typeClasses[type]}`}>
+      {children}
+    </div>
+  );
+};
+
+// ─── Performance metric helper ────────────────────────────────────────────────
+
+function PerfMetric({ label, value, isDark }: { label: string; value: string; isDark: boolean }) {
+  return (
+    <div className={`p-4 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-white shadow-sm'}`}>
+      <p className={`text-sm ${isDark ? 'text-stone-300' : 'text-gray-600'}`}>{label}</p>
+      <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value}</p>
+    </div>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+export default function Dashboard() {
+  const { theme } = useTheme();
+  const { isServiceLoading, transactions } = useApp();
+  const { metrics, topProductsToday, rawData } = useDashboardMetrics();
+  const isDark = theme === 'dark';
+  const isMobile = useIsMobile();
+  const { format } = useCurrencyFormatter();
+
+  const formattedDate = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  // ── Full-page Skeleton ────────────────────────────────────────────────────
+  if (isServiceLoading && transactions.length === 0) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <SkeletonCard>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <Skeleton className="h-8 w-56 mb-2" rounded="rounded-lg" />
+              <Skeleton className="h-4 w-40" rounded="rounded-lg" />
+            </div>
+            <Skeleton className="h-8 w-24" rounded="rounded-full" />
+          </div>
+        </SkeletonCard>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i}>
+              <div className="flex items-center justify-between mb-3">
+                <Skeleton className="h-4 w-24" rounded="rounded-lg" />
+                <Skeleton className="h-10 w-10" rounded="rounded-full" />
+              </div>
+              <Skeleton className="h-8 w-32 mb-2" rounded="rounded-lg" />
+              <Skeleton className="h-3 w-16" rounded="rounded-full" />
+            </SkeletonCard>
+          ))}
+        </div>
+      </div>
     );
+  }
+
+  // ── MOBILE LAYOUT ─────────────────────────────────────────────────────────
+  if (isMobile) {
+    const mainStatCards = [
+      <StatCard title="Pendapatan Hari Ini" value={format(metrics.todayRevenue)} icon={DollarSign} trend={metrics.revenueChange >= 0 ? 'up' : 'down'} gradient="from-green-500 to-emerald-500" delay="0" />,
+      <StatCard title="Transaksi" value={metrics.todayTransactionCount} icon={ShoppingCart} trend={metrics.transactionChange >= 0 ? 'up' : 'down'} gradient="from-amber-500 to-cyan-500" delay="0" />,
+      <StatCard title="Pelanggan Baru" value={metrics.newCustomers} icon={Users} trend={metrics.newCustomers > 0 ? 'up' : 'stable'} gradient="from-purple-500 to-violet-500" delay="0" />,
+      <StatCard title="Rata-rata Tiket" value={format(metrics.avgTicket)} icon={TrendingUp} trend={metrics.avgTicket > 30000 ? 'up' : 'stable'} gradient="from-amber-500 to-orange-500" delay="0" />,
+    ];
+
+    const stockMiniCards = [
+      <StatCard title="Peringatan Stok" value={metrics.lowStockProducts.length} icon={AlertCircle} subtitle="item perlu perhatian" gradient="from-orange-500 to-amber-500" trend={metrics.lowStockProducts.length > 0 ? 'up' : 'stable'} trendValue={metrics.lowStockProducts.length > 0 ? 'Perhatian' : 'Aman'} />,
+      <StatCard title="Stok Habis" value={metrics.outOfStockProducts.length} icon={Package} subtitle="item tidak tersedia" gradient="from-red-500 to-pink-500" trend={metrics.outOfStockProducts.length > 0 ? 'up' : 'stable'} trendValue={metrics.outOfStockProducts.length > 0 ? 'Segera Restok' : 'Semua Tersedia'} />,
+      <StatCard title="Tingkat Margin" value={`${metrics.profitMargin}%`} icon={BarChart3} subtitle="margin keuntungan" gradient="from-amber-500 to-indigo-500" trend={metrics.profitMargin > 50 ? 'up' : metrics.profitMargin > 30 ? 'stable' : 'down'} trendValue={metrics.profitMargin > 50 ? 'Tinggi' : 'Normal'} />,
+    ];
+
+    const inventoryCards = [
+      <StatCard title="Total Produk" value={metrics.totalProducts} icon={Package} subtitle={`Dari ${metrics.categoriesCount} kategori`} gradient="from-gray-500 to-gray-700" trend="stable" />,
+      <StatCard title="Nilai Stok" value={format(metrics.stockValue)} icon={DollarSign} subtitle="Total nilai inventaris" gradient="from-green-500 to-teal-500" trend="stable" />,
+      <StatCard title="Tingkat Keberhasilan" value={`${metrics.successRate}%`} icon={Shield} subtitle="Penyelesaian transaksi" gradient="from-purple-500 to-violet-500" trend={metrics.successRate > 95 ? 'up' : 'stable'} trendValue={metrics.successRate > 95 ? 'Excellent' : 'Good'} />,
+    ];
+
+    const perfMetrics = [
+      <PerfMetric label="Rata-rata Nilai Pesanan" value={format(Math.round(metrics.avgTicket))} isDark={isDark} />,
+      <PerfMetric label="Tingkat Konversi" value={`${Math.round((metrics.todayTransactionCount / Math.max(metrics.todayTransactionCount * 3, 1)) * 100)}%`} isDark={isDark} />,
+      <PerfMetric label="Retensi Pelanggan" value={`${Math.min(85 + metrics.newCustomers, 99)}%`} isDark={isDark} />,
+      <PerfMetric label="Perputaran Inventaris" value={`${Math.round((metrics.todayRevenue / Math.max(metrics.stockValue, 1)) * 30)} hari`} isDark={isDark} />,
+    ];
+
+    const sidebarPanels = [
+      <LowStockAlert products={metrics.lowStockProducts} />,
+      <TopProducts products={topProductsToday} title="Produk Terlaris Hari Ini" limit={5} />,
+    ];
+
+    return (
+      <div className="space-y-5 animate-in fade-in duration-500 pb-8">
+
+        {/* ── Header ── */}
+        <div className={`rounded-2xl p-5 ${isDark
+          ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
+          : 'bg-gradient-to-r from-white to-gray-50 border border-gray-100'
+        } shadow-sm`}>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+                Dashboard <span className={isDark ? 'text-white' : 'text-gray-900'}>Bisnis</span>
+              </h1>
+              <p className={`text-xs mt-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
+                {formattedDate}
+              </p>
+            </div>
+            <HeaderBadge isDark={isDark} type="warning">
+              <Zap className="w-3 h-3" /> Real-time
+            </HeaderBadge>
+          </div>
+        </div>
+
+        {/* ── 1. Stat Cards Utama — carousel 80vw ── */}
+        <div>
+          <SectionLabel isDark={isDark}>Statistik Utama</SectionLabel>
+          <SnapCarousel isDark={isDark} cardWidthVw={80} accentColor="#f59e0b">
+            {mainStatCards}
+          </SnapCarousel>
+        </div>
+
+        {/* ── 2. Grafik — full width ── */}
+        <div>
+          <SectionLabel isDark={isDark}>Tren Pendapatan</SectionLabel>
+          <ProfitChart transactions={rawData.transactions} />
+        </div>
+
+        {/* ── 3. Mini Stok Cards — carousel ── */}
+        <div>
+          <SectionLabel isDark={isDark}>Ringkasan Stok & Margin</SectionLabel>
+          <SnapCarousel isDark={isDark} cardWidthVw={75} accentColor="#f97316">
+            {stockMiniCards}
+          </SnapCarousel>
+        </div>
+
+        {/* ── 4. LowStockAlert + TopProducts — carousel 90vw ── */}
+        <div>
+          <SectionLabel isDark={isDark}>Stok & Produk Terlaris</SectionLabel>
+          <SnapCarousel isDark={isDark} cardWidthVw={88} accentColor="#22c55e" showArrows>
+            {sidebarPanels}
+          </SnapCarousel>
+        </div>
+
+        {/* ── 5. Inventaris — carousel ── */}
+        <div>
+          <SectionLabel isDark={isDark}>Ringkasan Inventaris</SectionLabel>
+          <SnapCarousel isDark={isDark} cardWidthVw={75} accentColor="#6b7280">
+            {inventoryCards}
+          </SnapCarousel>
+        </div>
+
+        {/* ── 6. Wawasan Kinerja — carousel ── */}
+        <div className={`p-4 rounded-2xl ${isDark
+          ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
+          : 'bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-100'
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Wawasan Kinerja
+            </h3>
+            <TrendingUp className={`w-4 h-4 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+          </div>
+          <SnapCarousel isDark={isDark} cardWidthVw={60} accentColor="#7c3aed">
+            {perfMetrics}
+          </SnapCarousel>
+        </div>
+
+      </div>
+    );
+  }
+
+  // ── DESKTOP LAYOUT (unchanged) ────────────────────────────────────────────
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className={`rounded-2xl p-6 ${isDark
+        ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
+        : 'bg-gradient-to-r from-white to-gray-50 border border-gray-100'
+      } shadow-sm`}>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+              Dashboard <span className={isDark ? 'text-white' : 'text-gray-900'}>Bisnis</span>
+            </h1>
+            <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
+              {formattedDate}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <HeaderBadge isDark={isDark} type="warning">
+              <Zap className="w-3 h-3" /> Real-time
+            </HeaderBadge>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid Statistik */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard title="Pendapatan Hari Ini" value={format(metrics.todayRevenue)} icon={DollarSign} trend={metrics.revenueChange >= 0 ? 'up' : 'down'} gradient="from-green-500 to-emerald-500" delay="100" />
+        <StatCard title="Transaksi" value={metrics.todayTransactionCount} icon={ShoppingCart} trend={metrics.transactionChange >= 0 ? 'up' : 'down'} gradient="from-amber-500 to-cyan-500" delay="200" />
+        <StatCard title="Pelanggan Baru" value={metrics.newCustomers} icon={Users} trend={metrics.newCustomers > 0 ? 'up' : 'stable'} gradient="from-purple-500 to-violet-500" delay="300" />
+        <StatCard title="Rata-rata Tiket" value={format(metrics.avgTicket)} icon={TrendingUp} trend={metrics.avgTicket > 30000 ? 'up' : 'stable'} gradient="from-amber-500 to-orange-500" delay="400" />
+      </div>
+
+      {/* Grid Konten Utama */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <ProfitChart transactions={rawData.transactions} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatCard title="Peringatan Stok" value={metrics.lowStockProducts.length} icon={AlertCircle} subtitle="item perlu perhatian" gradient="from-orange-500 to-amber-500" trend={metrics.lowStockProducts.length > 0 ? 'up' : 'stable'} trendValue={metrics.lowStockProducts.length > 0 ? 'Perhatian' : 'Aman'} />
+            <StatCard title="Stok Habis" value={metrics.outOfStockProducts.length} icon={Package} subtitle="item tidak tersedia" gradient="from-red-500 to-pink-500" trend={metrics.outOfStockProducts.length > 0 ? 'up' : 'stable'} trendValue={metrics.outOfStockProducts.length > 0 ? 'Segera Restok' : 'Semua Tersedia'} />
+            <StatCard title="Tingkat Margin" value={`${metrics.profitMargin}%`} icon={BarChart3} subtitle="margin keuntungan" gradient="from-amber-500 to-indigo-500" trend={metrics.profitMargin > 50 ? 'up' : metrics.profitMargin > 30 ? 'stable' : 'down'} trendValue={metrics.profitMargin > 50 ? 'Tinggi' : 'Normal'} />
+          </div>
+        </div>
+        <div className="space-y-6">
+          <LowStockAlert products={metrics.lowStockProducts} />
+          <TopProducts products={topProductsToday} title="Produk Terlaris Hari Ini" limit={5} />
+        </div>
+      </div>
+
+      {/* Inventaris */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard title="Total Produk" value={metrics.totalProducts} icon={Package} subtitle={`Dari ${metrics.categoriesCount} kategori`} gradient="from-gray-500 to-gray-700" trend="stable" />
+        <StatCard title="Nilai Stok" value={format(metrics.stockValue)} icon={DollarSign} subtitle="Total nilai inventaris" gradient="from-green-500 to-teal-500" trend="stable" />
+        <StatCard title="Tingkat Keberhasilan" value={`${metrics.successRate}%`} icon={Shield} subtitle="Penyelesaian transaksi" gradient="from-purple-500 to-violet-500" trend={metrics.successRate > 95 ? 'up' : 'stable'} trendValue={metrics.successRate > 95 ? 'Excellent' : 'Good'} />
+      </div>
+
+      {/* Wawasan Kinerja */}
+      <div className={`p-6 rounded-2xl ${isDark
+        ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
+        : 'bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-100'
+      }`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Wawasan Kinerja</h3>
+          <TrendingUp className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <PerfMetric label="Rata-rata Nilai Pesanan" value={format(Math.round(metrics.avgTicket))} isDark={isDark} />
+          <PerfMetric label="Tingkat Konversi" value={`${Math.round((metrics.todayTransactionCount / Math.max(metrics.todayTransactionCount * 3, 1)) * 100)}%`} isDark={isDark} />
+          <PerfMetric label="Retensi Pelanggan" value={`${Math.min(85 + metrics.newCustomers, 99)}%`} isDark={isDark} />
+          <PerfMetric label="Perputaran Inventaris" value={`${Math.round((metrics.todayRevenue / Math.max(metrics.stockValue, 1)) * 30)} hari`} isDark={isDark} />
+        </div>
+      </div>
+    </div>
+  );
 }

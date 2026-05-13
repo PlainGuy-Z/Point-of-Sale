@@ -4,7 +4,7 @@ import {
   Search, ShoppingCart, Trash2, User, Plus, PlusCircle,
   Flame, Trophy, TrendingUp, Zap, ChevronRight,
   Package, CreditCard, ReceiptText, Pencil, Hash,
-  MessageSquare, ArrowLeft
+  MessageSquare, ArrowLeft, ChevronUp, X
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -12,12 +12,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useProductCatalog } from '../../hooks/useProductCatalog';
+import { useToast } from '../../hooks/useToast';
 import ProductGrid from '../../components/pos/ProductGrid';
 import CategoryPills from '../../components/pos/CategoryPills';
 import PaymentModal from '../../components/pos/PaymentModal';
 import CheckoutDetailsForm from '../../components/pos/CheckoutDetailsForm';
 import ReceiptModal from '../../components/pos/ReceiptModal';
 import CartItemEditPanel from '../../components/pos/CartItemEditPanel';
+import MobileCart from '../../components/pos/MobileCart';
 import type { Transaction, TransactionItem, CartItemWithInput, Product } from '../../types';
 import { ApiError } from '../../services/appApi';
 import { posApi } from '../../services/posApi';
@@ -26,8 +28,33 @@ import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 import ShiftOpenModal from '../../components/shift/ShiftOpenModal';
 import PointOfSaleSkeleton from '../../components/pos/PointOfSaleSkeleton';
 
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
+  );
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return isMobile;
+};
+
 // ─── Panel view type ──────────────────────────────────────────────────────────
 type CartPanel = 'cart' | 'checkout' | 'manual' | 'edit';
+
+// ─── Bottom Sheet height states ───────────────────────────────────────────────
+type SheetState = 'collapsed' | 'peek' | 'expanded';
+
+// ─── Swipe state per item ─────────────────────────────────────────────────────
+interface SwipeState {
+  activeIndex: number | null;
+  startX: number;
+  currentX: number;
+  isConfirmedSwipe: boolean; // true once horizontal intent is confirmed
+}
 
 export default function PointOfSale() {
   const createManualItemId = () =>
@@ -43,6 +70,8 @@ export default function PointOfSale() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
+  const { showToast, ToastComponent } = useToast();
+  const isMobile = useIsMobile();
 
   // ── Catalog ─────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
@@ -57,10 +86,106 @@ export default function PointOfSale() {
   const [selectedCustomer, setSelectedCustomer] = useState<string>();
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
   const [isCheckoutDetailsFormOpen, setCheckoutDetailsFormOpen] = useState(false);
-  const [isCartExpanded, setCartExpanded] = useState(false);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [receiptTransaction, setReceiptTransaction] = useState<Transaction | null>(null);
   const [shiftGateOpen, setShiftGateOpen] = useState(false);
+
+  // ── Swipe-to-delete (mobile) ─────────────────────────────────────────────────
+  // FIX: Completely rewritten swipe logic.
+  // - Uses a per-item "revealed" state (index → boolean) so delete button sits
+  //   INSIDE the item row (not behind it), preventing bleed-through.
+  // - Tracks vertical vs horizontal intent to not interfere with scroll.
+  const [revealedDeleteIndex, setRevealedDeleteIndex] = useState<number | null>(null);
+  const swipeRef = useRef<SwipeState>({
+    activeIndex: null,
+    startX: 0,
+    currentX: 0,
+    isConfirmedSwipe: false,
+  });
+  const swipeStartYRef = useRef<number>(0);
+  const swipeIntentLockedRef = useRef<'none' | 'horizontal' | 'vertical'>('none');
+
+  const resetSwipe = useCallback(() => {
+    setRevealedDeleteIndex(null);
+    swipeRef.current = { activeIndex: null, startX: 0, currentX: 0, isConfirmedSwipe: false };
+    swipeIntentLockedRef.current = 'none';
+  }, []);
+
+  const handleCartItemTouchStart = useCallback((index: number, e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    swipeRef.current = {
+      activeIndex: index,
+      startX: touch.clientX,
+      currentX: touch.clientX,
+      isConfirmedSwipe: false,
+    };
+    swipeStartYRef.current = touch.clientY;
+    swipeIntentLockedRef.current = 'none';
+    // Close other revealed items
+    if (revealedDeleteIndex !== null && revealedDeleteIndex !== index) {
+      setRevealedDeleteIndex(null);
+    }
+  }, [revealedDeleteIndex]);
+
+  const handleCartItemTouchMove = useCallback((index: number, e: React.TouchEvent) => {
+    const s = swipeRef.current;
+    if (s.activeIndex !== index) return;
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - s.startX;
+    const deltaY = touch.clientY - swipeStartYRef.current;
+
+    // Lock intent after 8px of movement
+    if (swipeIntentLockedRef.current === 'none') {
+      if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
+        swipeIntentLockedRef.current = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
+      }
+    }
+
+    if (swipeIntentLockedRef.current !== 'horizontal') return;
+
+    // Prevent page scroll while swiping horizontally
+    e.preventDefault();
+
+    swipeRef.current.currentX = touch.clientX;
+
+    // Only allow left swipe; clamp between 0 and -88px
+    const clampedDelta = Math.max(-88, Math.min(0, deltaX));
+
+    // Reveal delete if swiped past threshold
+    if (clampedDelta <= -44) {
+      setRevealedDeleteIndex(index);
+    } else {
+      setRevealedDeleteIndex(null);
+    }
+  }, []);
+
+  const handleCartItemTouchEnd = useCallback((index: number) => {
+    const s = swipeRef.current;
+    if (s.activeIndex !== index) return;
+
+    const deltaX = s.currentX - s.startX;
+
+    if (swipeIntentLockedRef.current === 'horizontal') {
+      if (deltaX <= -44) {
+        setRevealedDeleteIndex(index);
+      } else {
+        setRevealedDeleteIndex(null);
+      }
+    }
+
+    swipeRef.current = { ...s, activeIndex: null, isConfirmedSwipe: false };
+  }, []);
+
+  // ── Mobile Bottom Sheet ───────────────────────────────────────────────────────
+  const [sheetState, setSheetState] = useState<SheetState>('collapsed');
+
+  // Close sheet completely when the cart is emptied on mobile
+  useEffect(() => {
+    if (cart.length === 0 && sheetState !== 'collapsed') {
+      setSheetState('collapsed');
+    }
+  }, [cart.length, sheetState]);
 
   // ── Panel ────────────────────────────────────────────────────────────────────
   const [panel, setPanel] = useState<CartPanel>('cart');
@@ -82,20 +207,20 @@ export default function PointOfSale() {
     localStorage.setItem('pos_tax_enabled', String(taxEnabled));
   }, [taxEnabled]);
 
-  const [quote, setQuote] = useState<{ 
-    subtotal: number; 
-    tax: number; 
+  const [quote, setQuote] = useState<{
+    subtotal: number;
+    tax: number;
     serviceCharge: number;
-    grandTotal: number; 
+    grandTotal: number;
     taxRate?: number;
     taxLabel?: string;
     serviceChargeRate?: number;
     serviceChargeLabel?: string;
   }>({
-    subtotal: 0, 
-    tax: 0, 
+    subtotal: 0,
+    tax: 0,
     serviceCharge: 0,
-    grandTotal: 0, 
+    grandTotal: 0,
     taxRate: settings?.tax_rate || 0,
   });
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
@@ -116,7 +241,6 @@ export default function PointOfSale() {
     localStorage.setItem('posBestSellerPeriod', bestSellerPeriod.toString());
   }, [bestSellerPeriod]);
 
-  // Focus manual name input when panel switches to manual
   useEffect(() => {
     if (panel === 'manual') {
       setTimeout(() => manualNameRef.current?.focus(), 150);
@@ -181,6 +305,7 @@ export default function PointOfSale() {
     if (product.isAvailable === false) return;
     if (product.stock !== -1 && product.stock <= 0) return;
     const { price: priceToUse, isPromoActive } = getEffectivePrice(product);
+    let itemAdded = false;
     setCart(prev => {
       const existingIndex = prev.findIndex(item =>
         item.productId === productId && !item.note && !item.variantName && (!item.modifiers || item.modifiers.length === 0)
@@ -189,6 +314,7 @@ export default function PointOfSale() {
         const newCart = [...prev];
         if (product.stock === -1 || newCart[existingIndex].quantity + 1 <= product.stock) {
           newCart[existingIndex].quantity += 1;
+          itemAdded = true;
         }
         return newCart;
       }
@@ -206,8 +332,12 @@ export default function PointOfSale() {
         newItem.promoPrice = priceToUse;
         newItem.promoLabel = product.promoLabel;
       }
+      itemAdded = true;
       return [...prev, newItem];
     });
+    if (itemAdded) {
+      showToast(`${product.name} ditambahkan ke keranjang`, 'success');
+    }
   };
 
   const updateQuantity = (index: number, delta: number) => {
@@ -221,7 +351,10 @@ export default function PointOfSale() {
     });
   };
 
-  const removeFromCart = (index: number) => setCart(prev => prev.filter((_, i) => i !== index));
+  const removeFromCart = (index: number) => {
+    resetSwipe();
+    setCart(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleUpdateCartItem = (updatedItem: TransactionItem) => {
     if (editingItemIndex !== null) {
@@ -236,12 +369,12 @@ export default function PointOfSale() {
     let cancelled = false;
     const run = async () => {
       if (!cart.length) {
-        setQuote({ 
-          subtotal: 0, 
-          tax: 0, 
+        setQuote({
+          subtotal: 0,
+          tax: 0,
           serviceCharge: 0,
-          grandTotal: 0, 
-          taxRate: settings?.tax_rate || 0 
+          grandTotal: 0,
+          taxRate: settings?.tax_rate || 0
         });
         return;
       }
@@ -249,9 +382,9 @@ export default function PointOfSale() {
       try {
         const res = await posApi.quote({
           cart: cart.map(i => ({
-            productId: i.productId, 
-            quantity: i.quantity, 
-            note: i.note, 
+            productId: i.productId,
+            quantity: i.quantity,
+            note: i.note,
             modifiers: i.modifiers,
             variantName: i.variantName,
             variantPrice: i.variantPrice,
@@ -304,7 +437,7 @@ export default function PointOfSale() {
         cashReceived,
         change,
         orderNote,
-        notes: orderNote, // ✅ Pass order notes (order_description)
+        notes: orderNote,
         applyTax: taxEnabled
       }),
     [checkout, cart, selectedCustomer, customCustomerName, orderType, tableNumber, orderNote, taxEnabled],
@@ -323,6 +456,7 @@ export default function PointOfSale() {
       setPaymentModalOpen(false);
       setCheckoutDetailsFormOpen(false);
       setReceiptTransaction(transaction);
+      setSheetState('collapsed');
       await refreshShift();
     } catch (error) {
       const err = error as unknown;
@@ -338,7 +472,6 @@ export default function PointOfSale() {
     }
   };
 
-  // ✅ Handler untuk checkout details form
   const handleCheckoutDetailsSubmit = () => {
     if (blockCheckoutForShift()) return;
     setCheckoutDetailsFormOpen(false);
@@ -380,8 +513,671 @@ export default function PointOfSale() {
     e.preventDefault();
   };
 
-  // ── Quick price buttons ───────────────────────────────────────────────────────
   const quickPrices = [5000, 10000, 25000, 50000, 75000, 100000, 150000, 200000];
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CART ITEM — extracted for clarity
+  // FIX: Delete button is now rendered INSIDE the row flex layout (rightmost),
+  //      not as an absolutely-positioned overlay behind. This prevents bleed-through.
+  //      On mobile: swipe-left reveals the delete zone with a red background that
+  //      slides in from the right using a clip/width approach rather than absolute.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const renderCartItem = (item: CartItemWithInput, idx: number) => {
+    const product = products.find(p => p.id === item.productId);
+    const itemName = product ? product.name : (item.note || 'Custom Item');
+    const isPromoItem = item.isPromo && item.originalPrice;
+    const basePrice = item.price + (item.variantPrice || 0);
+    const lineTotal = basePrice * item.quantity;
+    const isManual = item.productId.startsWith('manual-');
+    const isRevealed = revealedDeleteIndex === idx;
+
+    const cardBg = isPromoItem
+      ? isDark ? 'bg-red-900/15 border-red-800/30' : 'bg-red-50 border-red-200'
+      : isManual
+        ? isDark ? 'bg-amber-900/10 border-amber-800/20' : 'bg-amber-50 border-amber-100'
+        : isDark ? 'bg-stone-900/60 border-stone-800' : 'bg-gray-50 border-gray-200';
+
+    return (
+      <div
+        key={`${item.productId}-${idx}`}
+        className="relative"
+        // Close this reveal if user taps elsewhere
+        onClick={() => {
+          if (isRevealed) resetSwipe();
+        }}
+      >
+        {/*
+          MOBILE SWIPE-TO-DELETE — NEW APPROACH
+          The delete zone is a sibling div that slides in from the right.
+          The card slides left via CSS transform.
+          Both sit inside a clipping container (overflow-hidden on this outer div).
+          This way the red zone NEVER bleeds through neighbouring rows.
+        */}
+        <div className="overflow-hidden rounded-2xl">
+          <div
+            className="flex"
+            style={{
+              transform: isRevealed ? 'translateX(-80px)' : 'translateX(0)',
+              transition: 'transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            }}
+            onTouchStart={e => handleCartItemTouchStart(idx, e)}
+            onTouchMove={e => handleCartItemTouchMove(idx, e)}
+            onTouchEnd={() => handleCartItemTouchEnd(idx)}
+          >
+            {/* ── Card ── */}
+            <div className={`flex-shrink-0 w-full rounded-2xl border transition-colors ${cardBg}`}>
+              <div className="flex items-center gap-2 p-3">
+                {/* Info — tappable to edit */}
+                <div
+                  className="flex-1 min-w-0 cursor-pointer active:opacity-70"
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (isRevealed) { resetSwipe(); return; }
+                    setEditingItemIndex(idx);
+                    setPanel('edit');
+                  }}
+                >
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {isManual && (
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide ${isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
+                        Custom
+                      </span>
+                    )}
+                    {isPromoItem && (
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide ${isDark ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600'}`}>
+                        {item.promoLabel || 'Promo'}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    {itemName}
+                    {item.description && (
+                      <span className="font-normal italic opacity-60"> — {item.description}</span>
+                    )}
+                  </p>
+                  {item.variantName && (
+                    <p className={`text-[10px] font-medium mt-0.5 ${isDark ? 'text-amber-400/80' : 'text-amber-600/80'}`}>
+                      + {item.variantName} ({format(item.variantPrice || 0)})
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {isPromoItem && (
+                      <span className={`text-[10px] line-through ${isDark ? 'text-stone-600' : 'text-stone-400'}`}>
+                        {format(item.originalPrice!)}
+                      </span>
+                    )}
+                    <span className={`text-xs font-black ${isPromoItem
+                      ? isDark ? 'text-red-400' : 'text-red-600'
+                      : isDark ? 'text-amber-400' : 'text-amber-600'
+                      }`}>
+                      {format(basePrice)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Qty stepper */}
+                <div
+                  className="flex items-center gap-1"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {/*
+                    FIX: Touch targets are now 36×36px (≥44 with padding area).
+                    Using padding trick: the visual button is smaller but tap area is full.
+                  */}
+                  <button
+                    onClick={() => updateQuantity(idx, -1)}
+                    disabled={item.quantity <= 1}
+                    className={`
+                      w-8 h-8 flex items-center justify-center rounded-xl text-base font-black
+                      transition-all active:scale-90 disabled:opacity-30 select-none
+                      ${isDark
+                        ? 'bg-stone-800 hover:bg-amber-500 hover:text-white text-stone-300'
+                        : 'bg-gray-200 hover:bg-amber-500 hover:text-white text-gray-600'}
+                    `}
+                    style={{ minWidth: 32, minHeight: 32 }}
+                  >
+                    −
+                  </button>
+                  <span className={`w-7 text-center text-sm font-black tabular-nums select-none ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                    {item.quantity}
+                  </span>
+                  <button
+                    onClick={() => updateQuantity(idx, 1)}
+                    disabled={!!product && product.stock !== -1 && item.quantity >= product.stock}
+                    className={`
+                      w-8 h-8 flex items-center justify-center rounded-xl text-base font-black
+                      transition-all active:scale-90 disabled:opacity-30 select-none
+                      ${isDark
+                        ? 'bg-stone-800 hover:bg-amber-500 hover:text-white text-stone-300'
+                        : 'bg-gray-200 hover:bg-amber-500 hover:text-white text-gray-600'}
+                    `}
+                    style={{ minWidth: 32, minHeight: 32 }}
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Line total */}
+                <div className="text-right" style={{ minWidth: 56 }}>
+                  <p className={`text-sm font-black tabular-nums ${isPromoItem
+                    ? isDark ? 'text-red-400' : 'text-red-600'
+                    : isDark ? 'text-amber-400' : 'text-amber-600'
+                    }`}>
+                    {format(lineTotal)}
+                  </p>
+                </div>
+
+                {/* Desktop-only inline delete */}
+                <button
+                  onClick={e => { e.stopPropagation(); removeFromCart(idx); }}
+                  className={`
+                    hidden lg:flex items-center justify-center w-7 h-7 rounded-xl
+                    transition-all active:scale-90
+                    ${isDark
+                      ? 'text-stone-700 hover:text-red-400 hover:bg-red-400/10'
+                      : 'text-stone-300 hover:text-red-500 hover:bg-red-50'}
+                  `}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/*
+              MOBILE DELETE ZONE — slides in from right as card slides left.
+              Width matches the translateX offset (80px).
+              This sits NEXT to (not behind) the card in the flex row,
+              so it can never bleed through other items.
+            */}
+            <div
+              className="lg:hidden flex-shrink-0 flex items-center justify-center bg-red-500 rounded-2xl ml-2"
+              style={{ width: 68 }}
+              onClick={e => {
+                e.stopPropagation();
+                removeFromCart(idx);
+              }}
+            >
+              <div className="flex flex-col items-center gap-0.5">
+                <Trash2 size={18} className="text-white" />
+                <span className="text-[9px] font-black text-white uppercase tracking-wide">Hapus</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CART CONTENT (shared between desktop panel & mobile sheet)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const renderCartContent = () => (
+    <>
+      {/* ── Panel: CART ──────────────────────────────────────────────────── */}
+      {panel === 'cart' && (
+        <>
+          {/* Cart header — hidden on mobile (sheet handle shows title instead) */}
+          <div className={`flex-shrink-0 px-5 py-4 border-b flex items-center justify-between lg:flex ${isMobile ? 'hidden' : 'flex'} ${isDark ? 'border-stone-900 bg-stone-950/40' : 'border-gray-100 bg-white'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDark ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
+                <ShoppingCart size={16} />
+              </div>
+              <div>
+                <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  Shopping Cart
+                </h3>
+                {!cartIsEmpty && (
+                  <p className={`text-[10px] font-bold ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                    {cart.reduce((sum, item) => sum + item.quantity, 0)} item dipilih
+                  </p>
+                )}
+              </div>
+            </div>
+            {!cartIsEmpty && (
+              <button
+                onClick={() => setCart([])}
+                className={`p-2 rounded-xl transition-all ${isDark ? 'text-stone-700 hover:text-red-400 hover:bg-red-400/10' : 'text-stone-300 hover:text-red-500 hover:bg-red-50'}`}
+                title="Kosongkan keranjang"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Cart items */}
+          <div
+            className="flex-1 overflow-y-auto horizontal-scrollbar-thin"
+            // Clicking empty space in scroll area closes any revealed swipe
+            onClick={() => { if (revealedDeleteIndex !== null) resetSwipe(); }}
+          >
+            {cartIsEmpty ? (
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full blur-[80px] opacity-20 ${isDark ? 'bg-amber-500' : 'bg-amber-300'}`} />
+                <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-500">
+                  <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-amber-500/5'}`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
+                      <ShoppingCart size={24} />
+                    </div>
+                  </div>
+                  <h4 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    Keranjang kosong
+                  </h4>
+                  <p className={`text-sm mt-2 max-w-[200px] leading-relaxed ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                    Pilih menu untuk memulai transaksi
+                  </p>
+                  <button
+                    onClick={() => setPanel('manual')}
+                    className={`mt-8 flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 ${isDark
+                      ? 'bg-amber-500 text-black hover:bg-amber-400 shadow-lg shadow-amber-500/20'
+                      : 'bg-black text-white hover:bg-[#1a1614] shadow-lg shadow-black/10'
+                      }`}
+                  >
+                    <Plus size={14} />
+                    Item Custom
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 space-y-2">
+                {/* Add manual item shortcut */}
+                <button
+                  onClick={() => setPanel('manual')}
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-bold border border-dashed transition-all active:scale-[0.98] ${isDark
+                    ? 'border-stone-800 text-stone-500 hover:border-amber-500/50 hover:text-amber-400'
+                    : 'border-gray-200 text-stone-400 hover:border-amber-300 hover:text-amber-600'
+                    }`}
+                >
+                  <PlusCircle size={13} /> Tambah Item Manual
+                </button>
+
+                {/* Swipe hint — only shown when cart has items and user hasn't swiped yet */}
+                {isMobile && cart.length > 0 && revealedDeleteIndex === null && (
+                  <p className={`text-center text-[10px] font-medium pb-0.5 ${isDark ? 'text-stone-700' : 'text-stone-300'}`}>
+                    ← geser untuk hapus
+                  </p>
+                )}
+
+                {cart.map((item, idx) => renderCartItem(item, idx))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer: summary + action buttons */}
+          <div className={`flex-shrink-0 border-t p-4 space-y-3 ${isDark ? 'border-stone-900 bg-stone-950/80' : 'border-gray-100 bg-white/90'}`}>
+            {!cartIsEmpty && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>Subtotal</span>
+                  <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>{format(quote.subtotal)}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                      Pajak ({quote.taxRate || 0}%)
+                    </span>
+                    <button
+                      onClick={() => setTaxEnabled(t => !t)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${taxEnabled ? 'bg-amber-500' : isDark ? 'bg-stone-800' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
+                    </button>
+                  </div>
+                  <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-gray-700') : (isDark ? 'text-stone-700 line-through' : 'text-stone-300 line-through')}`}>
+                    {format(quote.tax)}
+                  </span>
+                </div>
+                {quote.serviceCharge > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                      {quote.serviceChargeLabel || 'Service'} ({quote.serviceChargeRate || 0}%)
+                    </span>
+                    <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>{format(quote.serviceCharge)}</span>
+                  </div>
+                )}
+                <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+                  <span className={`font-black text-sm uppercase ${isDark ? 'text-white' : 'text-gray-800'}`}>Total</span>
+                  <span className="font-black text-lg text-amber-500 tabular-nums">{format(quote.grandTotal)}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={quickPayCart}
+                disabled={!canPay}
+                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wide transition-all duration-200 active:scale-[0.97] ${canPay
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:opacity-90'
+                  : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
+                  }`}
+              >
+                <Zap size={15} />
+                Quick Pay
+              </button>
+              <button
+                onClick={() => { if (!cartIsEmpty) { resetSwipe(); setPanel('checkout'); } }}
+                disabled={cartIsEmpty}
+                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wide border transition-all active:scale-[0.97] ${cartIsEmpty
+                  ? isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
+                  : isDark
+                    ? 'border-stone-800 text-stone-200 hover:border-amber-500/40 hover:text-amber-400'
+                    : 'border-gray-200 text-gray-700 hover:border-amber-400 hover:text-amber-700'
+                  }`}
+              >
+                <ReceiptText size={15} />
+                Checkout
+                {!cartIsEmpty && <ChevronRight size={13} />}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Panel: CHECKOUT DETAIL ────────────────────────────────────────── */}
+      {panel === 'checkout' && (
+        <>
+          <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+            <button
+              onClick={() => setPanel('cart')}
+              className={`p-2 rounded-xl transition-colors active:scale-90 ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-gray-100 text-stone-500'}`}
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
+              Checkout Detail
+            </h3>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 horizontal-scrollbar-thin">
+            <div>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Tipe Order</label>
+              <div className={`flex gap-1 p-1 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
+                {(['dine-in', 'take-away'] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => handleOrderType(type)}
+                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all active:scale-[0.97] ${orderType === type
+                      ? isDark ? 'bg-stone-800 text-amber-400' : 'bg-white text-amber-600 shadow-sm'
+                      : isDark ? 'text-stone-400' : 'text-stone-500'
+                      }`}
+                  >
+                    {type === 'dine-in' ? 'Dine In' : 'Take Away'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Info Customer</label>
+              <div className="space-y-2">
+                <div className="relative">
+                  <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder="Nama customer (opsional)"
+                    value={selectedCustomerData ? selectedCustomerData.name : customCustomerName}
+                    onChange={e => { if (selectedCustomer) setSelectedCustomer(undefined); setCustomCustomerName(e.target.value); }}
+                    className={`w-full pl-8 pr-3 py-3 text-sm rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+                  />
+                </div>
+                {orderType === 'dine-in' && (
+                  <div className="relative">
+                    <Hash size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Nomor meja"
+                      value={tableNumber}
+                      onChange={e => { if (e.target.value === '' || /^\d+$/.test(e.target.value)) setTableNumber(e.target.value); }}
+                      onKeyDown={handleTableNumberKeyDown}
+                      className={`w-full pl-8 pr-3 py-3 text-sm rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+                <span className="flex items-center gap-1.5"><MessageSquare size={10} /> Catatan (opsional)</span>
+              </label>
+              <textarea
+                rows={2}
+                placeholder="e.g. No sugar, extra hot..."
+                value={orderNote}
+                onChange={e => setOrderNote(e.target.value)}
+                className={`w-full p-3 text-sm rounded-2xl border outline-none resize-none transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+              />
+            </div>
+
+            <div className={`rounded-2xl border p-3 space-y-1.5 ${isDark ? 'border-stone-900 bg-stone-900/40' : 'border-gray-100 bg-gray-50'}`}>
+              <p className={`text-[10px] font-black uppercase mb-2 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Ringkasan</p>
+              {cart.map((item, idx) => {
+                const product = products.find(p => p.id === item.productId);
+                const name = product?.name ?? item.note ?? 'Item';
+                return (
+                  <div key={idx} className="flex justify-between text-xs">
+                    <span className={`truncate flex-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
+                      {item.quantity}× {name}
+                    </span>
+                    <span className={`font-bold ml-2 tabular-nums ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>
+                      {format(item.price * item.quantity)}
+                    </span>
+                  </div>
+                );
+              })}
+              <div className={`pt-1.5 mt-1.5 border-t space-y-1 ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
+                <div className="flex justify-between text-xs">
+                  <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>Subtotal</span>
+                  <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-gray-600'}`}>{format(quote.subtotal)}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                      {quote.taxLabel || 'Pajak'} ({quote.taxRate || 0}%)
+                    </span>
+                    <button
+                      onClick={() => setTaxEnabled(t => !t)}
+                      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${taxEnabled ? 'bg-amber-500' : isDark ? 'bg-stone-800' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
+                    </button>
+                  </div>
+                  <span className={`tabular-nums ${taxEnabled ? (isDark ? 'text-stone-300' : 'text-gray-600') : (isDark ? 'text-stone-800 line-through' : 'text-stone-300 line-through')}`}>
+                    {format(quote.tax)}
+                  </span>
+                </div>
+                {quote.serviceCharge > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
+                      {quote.serviceChargeLabel || 'Service'} ({quote.serviceChargeRate || 0}%)
+                    </span>
+                    <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-gray-600'}`}>{format(quote.serviceCharge)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-black text-sm pt-1 border-t border-dashed mt-1 dark:border-stone-800">
+                  <span className={isDark ? 'text-white' : 'text-gray-800'}>Total</span>
+                  <span className="text-amber-500 tabular-nums">{format(quote.grandTotal)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+            <button
+              onClick={() => setPanel('cart')}
+              className={`flex-1 py-3.5 rounded-2xl font-black text-sm border transition-all active:scale-[0.97] ${isDark ? 'border-stone-800 text-stone-300 hover:bg-stone-900' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => { if (blockCheckoutForShift()) return; setPaymentModalOpen(true); }}
+              disabled={!canPay}
+              className={`flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm text-white uppercase tracking-wide transition-all duration-200 active:scale-[0.97] ${canPay
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20 hover:opacity-90'
+                : 'bg-gray-400 cursor-not-allowed'
+                }`}
+            >
+              {isServiceLoading ? 'Memproses...' : isQuoteLoading ? 'Menghitung...' : (
+                <><CreditCard size={15} /> Proses Pembayaran</>
+              )}
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── Panel: MANUAL ITEM ────────────────────────────────────────────── */}
+      {panel === 'manual' && (
+        <>
+          <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+            <button
+              onClick={() => { resetManualForm(); setPanel('cart'); }}
+              className={`p-2 rounded-xl transition-colors active:scale-90 ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-gray-100 text-stone-500'}`}
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
+              Item Manual
+            </h3>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 horizontal-scrollbar-thin">
+            <div>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                <span className="flex items-center gap-1"><Pencil size={9} /> Nama Item *</span>
+              </label>
+              <input
+                ref={manualNameRef}
+                type="text"
+                placeholder="Nama item..."
+                value={manualItemName}
+                onChange={e => setManualItemName(e.target.value)}
+                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+              />
+            </div>
+            <div>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Kategori (opsional)</label>
+              <input
+                type="text"
+                placeholder="e.g. Service, Custom..."
+                value={manualItemCategory}
+                onChange={e => setManualItemCategory(e.target.value)}
+                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'}`}
+              />
+            </div>
+            <div>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>Harga (Rp) *</label>
+              <div className="relative">
+                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? 'text-stone-400' : 'text-stone-400'}`}>Rp</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={manualItemPrice ? Number(manualItemPrice).toLocaleString('id-ID') : ''}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setManualItemPrice(raw);
+                  }}
+                  className={`w-full pl-10 pr-3 py-3 rounded-2xl border outline-none text-sm font-black text-right transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800'}`}
+                />
+              </div>
+              <div className="flex gap-2 mt-2 overflow-x-auto horizontal-scrollbar-thin pb-1">
+                {quickPrices.map(p => {
+                  const isSelected = manualItemPrice === p.toString();
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setManualItemPrice(p.toString())}
+                      className={`flex-shrink-0 px-4 py-2 rounded-2xl text-[10px] font-black transition-all active:scale-95 ${isSelected
+                        ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                        : isDark
+                          ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
+                          : 'bg-gray-100 border border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700'
+                        }`}
+                    >
+                      {p >= 1000000 ? `${p / 1000000}jt` : `${p / 1000}k`}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Jumlah</label>
+              <div className={`flex items-center gap-3 p-1 rounded-2xl w-fit ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
+                <button
+                  onClick={() => setManualItemQuantity(q => Math.max(1, q - 1))}
+                  className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-gray-700 hover:bg-amber-500 hover:text-white shadow-sm'}`}
+                >−</button>
+                <span className={`w-10 text-center font-black text-base ${isDark ? 'text-white' : 'text-gray-800'}`}>{manualItemQuantity}</span>
+                <button
+                  onClick={() => setManualItemQuantity(q => q + 1)}
+                  className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-gray-700 hover:bg-amber-500 hover:text-white shadow-sm'}`}
+                >+</button>
+              </div>
+            </div>
+            {manualItemPrice && Number(manualItemPrice) > 0 && (
+              <div className={`flex items-center justify-between p-3 rounded-2xl ${isDark ? 'bg-amber-900/20 border border-amber-800/30' : 'bg-amber-50 border border-amber-100'}`}>
+                <span className={`text-xs font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>Total ({manualItemQuantity}×)</span>
+                <span className={`text-base font-black tabular-nums ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
+                  {format(Number(manualItemPrice) * manualItemQuantity)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+            <button
+              onClick={quickPayManualItem}
+              disabled={!manualItemName.trim() || !manualItemPrice || isPaymentModalOpen}
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all duration-200 active:scale-[0.97] ${manualItemName.trim() && manualItemPrice
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 hover:opacity-90'
+                : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
+                }`}
+            >
+              <Zap size={14} /> Quick Pay
+            </button>
+            <button
+              onClick={addManualItemToCart}
+              disabled={!manualItemName.trim() || !manualItemPrice}
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm border transition-all duration-200 active:scale-[0.97] ${manualItemName.trim() && manualItemPrice
+                ? isDark
+                  ? 'border-stone-700 text-stone-200 hover:border-amber-500/50 hover:text-amber-400'
+                  : 'border-gray-300 text-gray-700 hover:border-amber-400 hover:text-amber-700'
+                : isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
+                }`}
+            >
+              <Package size={14} /> Ke Cart
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── Panel: EDIT ITEM ───────────────────────────────────────────── */}
+      {panel === 'edit' && editingItemIndex !== null && cart[editingItemIndex] && (
+        <CartItemEditPanel
+          item={cart[editingItemIndex]}
+          itemIndex={editingItemIndex}
+          onSave={(updatedItem) => {
+            setCart(prev => {
+              const newCart = [...prev];
+              newCart[editingItemIndex] = updatedItem;
+              return newCart;
+            });
+            setEditingItemIndex(null);
+            setPanel('cart');
+          }}
+          onRemove={() => {
+            setCart(prev => prev.filter((_, i) => i !== editingItemIndex));
+            setEditingItemIndex(null);
+            setPanel('cart');
+          }}
+          onClose={() => {
+            setEditingItemIndex(null);
+            setPanel('cart');
+          }}
+        />
+      )}
+    </>
+  );
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -400,11 +1196,7 @@ export default function PointOfSale() {
         {/* Header */}
         <div className="flex-shrink-0 space-y-3 mb-4">
           {cashierNeedsShift && (
-            <div
-              className={`rounded-2xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 ${
-                isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'
-              }`}
-            >
+            <div className={`rounded-2xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 ${isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'}`}>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-bold ${isDark ? 'text-amber-200' : 'text-amber-900'}`}>Shift belum dibuka</p>
                 <p className={`text-xs mt-0.5 ${isDark ? 'text-stone-400' : 'text-amber-900/80'}`}>
@@ -414,7 +1206,7 @@ export default function PointOfSale() {
               <button
                 type="button"
                 onClick={() => navigate('/cashier/shift')}
-                className="shrink-0 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500"
+                className="shrink-0 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 active:scale-95"
               >
                 Buka halaman shift
               </button>
@@ -441,10 +1233,8 @@ export default function PointOfSale() {
 
           <CategoryPills selected={selectedCategory} onSelect={setSelectedCategory} />
 
-          {/* Trending bar */}
           <div className="flex items-center justify-between">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl text-xs font-bold ${isDark ? 'bg-stone-800 text-amber-400 border border-amber-800/30' : 'bg-amber-50 text-amber-700 border border-amber-200'
-              }`}>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl text-xs font-bold ${isDark ? 'bg-stone-800 text-amber-400 border border-amber-800/30' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
               <TrendingUp size={12} />
               <span>Trending:</span>
               <select
@@ -461,14 +1251,12 @@ export default function PointOfSale() {
             </div>
             <div className="flex items-center gap-2">
               {promoProductsCount > 0 && (
-                <div className={`px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 ${isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-600'
-                  }`}>
+                <div className={`px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 ${isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-600'}`}>
                   <Flame size={10} /><span>{promoProductsCount} PROMO</span>
                 </div>
               )}
               {topBestSellers.length > 0 && (
-                <div className={`px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-600'
-                  }`}>
+                <div className={`px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
                   <Trophy size={10} /><span>{topBestSellers.length} BEST</span>
                 </div>
               )}
@@ -476,661 +1264,49 @@ export default function PointOfSale() {
           </div>
         </div>
 
-        {/* Grid */}
-        <div className="flex-1 overflow-y-auto pb-24 lg:pb-0 pr-1 horizontal-scrollbar-thin">
+        {/* Product grid — bottom padding clears sticky bottom sheet on mobile */}
+        <div className={`flex-1 overflow-y-auto horizontal-scrollbar-thin pr-1 ${isMobile ? 'pb-24' : ''}`}>
           <ProductGrid products={sortedProducts} onAddToCart={addToCart} />
         </div>
+
+        {isMobile && (
+          <MobileCart
+            cart={cart}
+            quote={quote}
+            sheetState={sheetState}
+            isDark={isDark}
+            canPay={canPay}
+            onOpen={() => setSheetState('peek')}
+            onClose={() => setSheetState('collapsed')}
+            onQuickPay={quickPayCart}
+            onCheckout={() => { if (!cartIsEmpty) { resetSwipe(); setPanel('checkout'); } }}
+            onEditItem={(index) => {
+              setEditingItemIndex(index);
+              setPanel('edit');
+            }}
+            onRemoveItem={removeFromCart}
+            onClearCart={() => setCart([])}
+            onUpdateQuantity={(index, delta) => updateQuantity(index, delta)}
+          />
+        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          RIGHT — Cart Panel
+          DESKTOP — Right Cart Panel
       ══════════════════════════════════════════════════════════════════════════ */}
-      <div className={`
-        flex flex-col
-        fixed bottom-0 left-0 right-0 z-30
-        lg:static lg:w-[380px] xl:w-[420px] lg:flex-shrink-0
-        rounded-t-3xl lg:rounded-2xl
-        border shadow-2xl
-        transition-all duration-500
-        ${isDark ? 'bg-stone-950 border-stone-800' : 'bg-white border-gray-100'}
-        ${isCartExpanded ? 'h-[88vh]' : 'h-20 lg:h-full lg:overflow-hidden'}
-      `}>
-
-        {/* Mobile drag handle */}
-        <button
-          className="lg:hidden w-full flex flex-col items-center min-h-14 pt-3 pb-2 cursor-pointer"
-          onClick={() => setCartExpanded(!isCartExpanded)}
-          aria-label={isCartExpanded ? 'Collapse cart' : 'Expand cart'}
-        >
-          <div className={`w-10 h-1 rounded-full mb-2 ${isDark ? 'bg-stone-800' : 'bg-gray-300'}`} />
-          {!isCartExpanded && (
-            <div className="flex justify-between w-full px-5">
-              <span className={`font-black text-sm ${isDark ? 'text-amber-400' : 'text-amber-500'}`}>
-                {cart.length} Item{cart.length !== 1 ? 's' : ''}
-              </span>
-              <span className={`font-black text-sm ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                {format(quote.grandTotal)}
-              </span>
-            </div>
-          )}
-        </button>
-
-        <div className={`flex flex-col h-full ${!isCartExpanded ? 'hidden lg:flex' : 'flex'}`}>
-
-          {/* ── Panel: CART ──────────────────────────────────────────────────── */}
-          {panel === 'cart' && (
-            <>
-              {/* Cart header */}
-              <div className={`flex-shrink-0 px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-stone-900 bg-stone-950/40' : 'border-gray-100 bg-white'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDark ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
-                    <ShoppingCart size={16} />
-                  </div>
-                  <div>
-                    <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                      Shopping Cart
-                    </h3>
-                    {!cartIsEmpty && (
-                      <p className={`text-[10px] font-bold ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
-                        {cart.reduce((sum, item) => sum + item.quantity, 0)} Items Selected
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {!cartIsEmpty && (
-                  <button
-                    onClick={() => setCart([])}
-                    className={`p-2 rounded-xl transition-all ${isDark ? 'text-stone-700 hover:text-red-400 hover:bg-red-400/10' : 'text-stone-300 hover:text-red-500 hover:bg-red-50'}`}
-                    title="Kosongkan keranjang"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-
-              {/* Cart items */}
-              <div className="flex-1 overflow-y-auto horizontal-scrollbar-thin">
-                {cartIsEmpty ? (
-                  <div className="h-full flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
-                    {/* Background decoration */}
-                    <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full blur-[80px] opacity-20 ${isDark ? 'bg-amber-500' : 'bg-amber-300'}`} />
-
-                    <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-500">
-                      <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-amber-500/5'}`}>
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
-                          <ShoppingCart size={24} />
-                        </div>
-                      </div>
-                      <h4 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        Your cart is empty
-                      </h4>
-                      <p className={`text-sm mt-2 max-w-[200px] leading-relaxed ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
-                        Add some delicious coffee to start your transaction
-                      </p>
-
-                      <div className="flex flex-col w-full gap-2 mt-8">
-                        <button
-                          onClick={() => setPanel('manual')}
-                          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${isDark
-                              ? 'bg-amber-500 text-black hover:bg-amber-400 active:scale-95 shadow-lg shadow-amber-500/20'
-                              : 'bg-black text-white hover:bg-[#1a1614] active:scale-95 shadow-lg shadow-black/10'
-                            }`}
-                        >
-                          <Plus size={14} />
-                          Custom Item
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 space-y-2">
-                    {/* Add manual button at top of filled cart */}
-                    <button
-                      onClick={() => setPanel('manual')}
-                      className={`w-full flex items-center justify-center gap-2 py-2 rounded-2xl text-xs font-bold border border-dashed transition-all ${isDark
-                        ? 'border-stone-800 text-stone-500 hover:border-amber-500/50 hover:text-amber-400'
-                        : 'border-gray-200 text-stone-400 hover:border-amber-300 hover:text-amber-600'
-                        }`}
-                    >
-                      <PlusCircle size={13} /> Tambah Item Manual
-                    </button>
-
-                    {cart.map((item, idx) => {
-                      const product = products.find(p => p.id === item.productId);
-                      const itemName = product ? product.name : (item.note || 'Custom Item');
-                      const isPromoItem = item.isPromo && item.originalPrice;
-                      const basePrice = item.price + (item.variantPrice || 0);
-                      const lineTotal = basePrice * item.quantity;
-                      const isManual = item.productId.startsWith('manual-');
-
-                      return (
-                        <div
-                          key={`${item.productId}-${idx}`}
-                          className={`rounded-2xl border transition-all ${isPromoItem
-                            ? isDark ? 'bg-red-900/15 border-red-800/30' : 'bg-red-50 border-red-200'
-                            : isManual
-                              ? isDark ? 'bg-amber-900/10 border-amber-800/20' : 'bg-amber-50 border-amber-100'
-                              : isDark ? 'bg-stone-900/60 border-stone-800' : 'bg-gray-50 border-gray-200'
-                            }`}
-                        >
-                          <div className="flex items-center gap-3 p-3">
-                            {/* Item info */}
-                            <div
-                              className="flex-1 min-w-0 cursor-pointer"
-                              onClick={() => {
-                                setEditingItemIndex(idx);
-                                setPanel('edit');
-                              }}
-                            >
-                              <div className="flex items-center gap-1.5">
-                                {isManual && (
-                                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-600'
-                                    }`}>Custom</span>
-                                )}
-                                {isPromoItem && (
-                                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${isDark ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600'
-                                    }`}>{item.promoLabel || 'Promo'}</span>
-                                )}
-                              </div>
-                              <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                {itemName} {item.description && <span className="font-normal italic opacity-75">- {item.description}</span>}
-                              </p>
-                              {item.variantName && (
-                                <p className={`text-[10px] font-medium ${isDark ? 'text-amber-400/80' : 'text-amber-600/80'}`}>
-                                  + {item.variantName} ({format(item.variantPrice || 0)})
-                                </p>
-                              )}
-                              <div className="flex items-center gap-2 mt-0.5">
-                                {isPromoItem && (
-                                  <span className={`text-[10px] line-through ${isDark ? 'text-stone-700' : 'text-stone-400'}`}>
-                                    {format(item.originalPrice!)}
-                                  </span>
-                                )}
-                                <span className={`text-xs font-black ${isPromoItem
-                                  ? isDark ? 'text-red-400' : 'text-red-600'
-                                  : isDark ? 'text-amber-400' : 'text-amber-600'
-                                  }`}>
-                                  {format(item.price + (item.variantPrice || 0))}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Qty controls */}
-                            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                              <button
-                                onClick={() => updateQuantity(idx, -1)}
-                                disabled={item.quantity <= 1}
-                                className={`w-7 h-7 flex items-center justify-center rounded-xl text-sm font-black transition-all disabled:opacity-30 ${isDark ? 'bg-stone-800 hover:bg-amber-500 hover:text-white text-stone-300' : 'bg-gray-200 hover:bg-amber-500 hover:text-white text-gray-600'
-                                  }`}
-                              >−</button>
-                              <span className={`w-7 text-center text-sm font-black ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => updateQuantity(idx, 1)}
-                                disabled={!!product && product.stock !== -1 && item.quantity >= product.stock}
-                                className={`w-7 h-7 flex items-center justify-center rounded-xl text-sm font-black transition-all disabled:opacity-30 ${isDark ? 'bg-stone-800 hover:bg-amber-500 hover:text-white text-stone-300' : 'bg-gray-200 hover:bg-amber-500 hover:text-white text-gray-600'
-                                  }`}
-                              >+</button>
-                            </div>
-
-                            {/* Line total */}
-                            <div className="text-right min-w-[60px]">
-                              <p className={`text-sm font-black ${isPromoItem
-                                ? isDark ? 'text-red-400' : 'text-red-600'
-                                : isDark ? 'text-amber-400' : 'text-amber-600'
-                                }`}>
-                                {format(lineTotal)}
-                              </p>
-                            </div>
-
-                            {/* Remove */}
-                            <button
-                              onClick={() => removeFromCart(idx)}
-                              className="text-stone-400 hover:text-red-500 transition-colors p-1"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* ── Footer: summary + action buttons ── */}
-              <div className={`flex-shrink-0 border-t p-4 space-y-3 ${isDark ? 'border-stone-900 bg-stone-950/80' : 'border-gray-100 bg-white/90'}`}>
-                {!cartIsEmpty && (
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>Subtotal</span>
-                      <span className={`font-bold ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>{format(quote.subtotal)}</span>
-                    </div>
-
-                    {/* Tax toggle row */}
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
-                          Pajak ({quote.taxRate || 0}%)
-                        </span>
-                        <button
-                          onClick={() => setTaxEnabled(t => !t)}
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${taxEnabled ? 'bg-amber-500' : isDark ? 'bg-stone-800' : 'bg-gray-300'}`}
-                          title={taxEnabled ? 'Nonaktifkan pajak' : 'Aktifkan pajak'}
-                        >
-                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
-                        </button>
-                      </div>
-                      <span className={`font-bold ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-gray-700') : (isDark ? 'text-stone-700 line-through' : 'text-stone-300 line-through')}`}>
-                        {format(quote.tax)}
-                      </span>
-                    </div>
-
-                    <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
-                      <span className={`font-black text-sm uppercase ${isDark ? 'text-white' : 'text-gray-800'}`}>Total</span>
-                      <span className="font-black text-lg text-amber-500">{format(quote.grandTotal)}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action buttons */}
-                <div className="flex gap-2">
-                  {/* Quick Pay */}
-                  <button
-                    onClick={quickPayCart}
-                    disabled={!canPay}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm uppercase tracking-wide transition-opacity transform duration-200 ${canPay
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:opacity-90 active:scale-[0.98]'
-                      : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
-                      }`}
-                  >
-                    <Zap size={15} />
-                    Quick Pay
-                  </button>
-
-                  {/* Checkout detail */}
-                  <button
-                    onClick={() => {
-                      if (!cartIsEmpty) {
-                        setPanel('checkout');
-                      }
-                    }}
-                    disabled={cartIsEmpty}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm uppercase tracking-wide border transition-all ${cartIsEmpty
-                      ? isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
-                      : isDark
-                        ? 'border-stone-800 text-stone-200 hover:border-amber-500/40 hover:text-amber-400'
-                        : 'border-gray-200 text-gray-700 hover:border-amber-400 hover:text-amber-700'
-                      }`}
-                  >
-                    <ReceiptText size={15} />
-                    Checkout
-                    {!cartIsEmpty && <ChevronRight size={13} />}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* ── Panel: CHECKOUT DETAIL ────────────────────────────────────────── */}
-          {panel === 'checkout' && (
-            <>
-              {/* Header */}
-              <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
-                <button
-                  onClick={() => setPanel('cart')}
-                  className={`p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-gray-100 text-stone-500'}`}
-                >
-                  <ArrowLeft size={16} />
-                </button>
-                <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  Checkout Detail
-                </h3>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 horizontal-scrollbar-thin">
-                {/* Order type */}
-                <div>
-                  <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
-                    Tipe Order
-                  </label>
-                  <div className={`flex gap-1 p-1 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
-                    {(['dine-in', 'take-away'] as const).map(type => (
-                      <button
-                        key={type}
-                        onClick={() => handleOrderType(type)}
-                        className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${orderType === type
-                          ? isDark ? 'bg-stone-800 text-amber-400' : 'bg-white text-amber-600 shadow-sm'
-                          : isDark ? 'text-stone-400' : 'text-stone-500'
-                          }`}
-                      >
-                        {type === 'dine-in' ? 'Dine In' : 'Take Away'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Customer info */}
-                <div>
-                  <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
-                    Info Customer
-                  </label>
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-                      <input
-                        type="text"
-                        placeholder="Nama customer (opsional)"
-                        value={selectedCustomerData ? selectedCustomerData.name : customCustomerName}
-                        onChange={e => { if (selectedCustomer) setSelectedCustomer(undefined); setCustomCustomerName(e.target.value); }}
-                        className={`w-full pl-8 pr-3 py-2.5 text-xs rounded-2xl border outline-none transition-all ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'
-                          }`}
-                      />
-                    </div>
-                    {orderType === 'dine-in' && (
-                      <div className="relative">
-                        <Hash size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          placeholder="Nomor meja"
-                          value={tableNumber}
-                          onChange={e => { if (e.target.value === '' || /^\d+$/.test(e.target.value)) setTableNumber(e.target.value); }}
-                          onKeyDown={handleTableNumberKeyDown}
-                          className={`w-full pl-8 pr-3 py-2.5 text-xs rounded-2xl border outline-none transition-all ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'
-                            }`}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Order note */}
-                <div>
-                  <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
-                    <span className="flex items-center gap-1.5"><MessageSquare size={10} /> Catatan (opsional)</span>
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="e.g. No sugar, extra hot, allergy info..."
-                    value={orderNote}
-                    onChange={e => setOrderNote(e.target.value)}
-                    className={`w-full p-3 text-xs rounded-2xl border outline-none resize-none transition-all ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'
-                      }`}
-                  />
-                </div>
-
-                {/* Order summary */}
-                <div className={`rounded-2xl border p-3 space-y-1.5 ${isDark ? 'border-stone-900 bg-stone-900/40' : 'border-gray-100 bg-gray-50'}`}>
-                  <p className={`text-[10px] font-black uppercase mb-2 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Ringkasan</p>
-                  {cart.map((item, idx) => {
-                    const product = products.find(p => p.id === item.productId);
-                    const name = product?.name ?? item.note ?? 'Item';
-                    return (
-                      <div key={idx} className="flex justify-between text-xs">
-                        <span className={`truncate flex-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
-                          {item.quantity}× {name}
-                          {item.note && !!product && <span className={isDark ? 'text-stone-700' : 'text-stone-400'}> ({item.note})</span>}
-                        </span>
-                        <span className={`font-bold ml-2 ${isDark ? 'text-stone-200' : 'text-gray-700'}`}>
-                          {format(item.price * item.quantity)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <div className={`pt-1.5 mt-1.5 border-t space-y-1 ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
-                    <div className="flex justify-between text-xs">
-                      <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>Subtotal</span>
-                      <span className={isDark ? 'text-stone-300' : 'text-gray-600'}>{format(quote.subtotal)}</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
-                          {quote.taxLabel || 'Pajak'} ({quote.taxRate || 0}%)
-                        </span>
-                        <button
-                          onClick={() => setTaxEnabled(t => !t)}
-                          className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${taxEnabled ? 'bg-amber-500' : isDark ? 'bg-stone-800' : 'bg-gray-300'}`}
-                        >
-                          <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
-                        </button>
-                      </div>
-                      <span className={taxEnabled ? (isDark ? 'text-stone-300' : 'text-gray-600') : (isDark ? 'text-stone-800 line-through' : 'text-stone-300 line-through')}>
-                        {format(quote.tax)}
-                      </span>
-                    </div>
-
-                    {quote.serviceCharge > 0 && (
-                      <div className="flex justify-between text-xs">
-                        <span className={isDark ? 'text-stone-500' : 'text-stone-400'}>
-                          {quote.serviceChargeLabel || 'Service'} ({quote.serviceChargeRate || 0}%)
-                        </span>
-                        <span className={isDark ? 'text-stone-300' : 'text-gray-600'}>{format(quote.serviceCharge)}</span>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between font-black text-sm pt-1 border-t border-dashed mt-1 dark:border-stone-800">
-                      <span className={isDark ? 'text-white' : 'text-gray-800'}>Total</span>
-                      <span className="text-amber-500">{format(quote.grandTotal)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Checkout footer buttons */}
-              <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
-                <button
-                  onClick={() => setPanel('cart')}
-                  className={`flex-1 py-3 rounded-2xl font-black text-sm border transition-all ${isDark ? 'border-stone-800 text-stone-300 hover:bg-stone-900' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={() => {
-                    if (blockCheckoutForShift()) return;
-                    setPaymentModalOpen(true);
-                  }}
-                  disabled={!canPay}
-                  className={`flex-2 flex-[2] flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm text-white uppercase tracking-wide transition-opacity transform duration-200 ${canPay
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20 hover:opacity-90 active:scale-[0.98]'
-                    : 'bg-gray-400 cursor-not-allowed'
-                    }`}
-                >
-                  {isServiceLoading ? 'Memproses...' : isQuoteLoading ? 'Menghitung...' : (
-                    <><CreditCard size={15} /> Proses Pembayaran</>
-                  )}
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* ── Panel: MANUAL ITEM ────────────────────────────────────────────── */}
-          {panel === 'manual' && (
-            <>
-              {/* Header */}
-              <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
-                <button
-                  onClick={() => { resetManualForm(); setPanel('cart'); }}
-                  className={`p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-gray-100 text-stone-500'}`}
-                >
-                  <ArrowLeft size={16} />
-                </button>
-                <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  Item Manual
-                </h3>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 horizontal-scrollbar-thin">
-                {/* Nama */}
-                <div>
-                  <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                    <span className="flex items-center gap-1"><Pencil size={9} /> Nama Item</span>
-                  </label>
-                  <input
-                    ref={manualNameRef}
-                    type="text"
-                    placeholder="Nama item..."
-                    value={manualItemName}
-                    onChange={e => setManualItemName(e.target.value)}
-                    className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'
-                      }`}
-                  />
-                </div>
-
-                {/* Kategori */}
-                <div>
-                  <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
-                    Kategori (opsional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Service, Custom..."
-                    value={manualItemCategory}
-                    onChange={e => setManualItemCategory(e.target.value)}
-                    className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'
-                      }`}
-                  />
-                </div>
-
-                {/* Harga */}
-                <div>
-                  <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                    Harga (Rp)
-                  </label>
-                  <div className="relative">
-                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? 'text-stone-400' : 'text-stone-400'}`}>Rp</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="0"
-                      value={manualItemPrice ? Number(manualItemPrice).toLocaleString('id-ID') : ''}
-                      onChange={e => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        setManualItemPrice(raw);
-                      }}
-                      className={`w-full pl-10 pr-3 py-3 rounded-2xl border outline-none text-sm font-black text-right transition-all focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-gray-200 text-gray-800'
-                        }`}
-                    />
-                  </div>
-                  {/* Quick price buttons */}
-                  <div className="flex gap-2 mt-2 overflow-x-auto horizontal-scrollbar-thin pb-2">
-                    {quickPrices.map(p => {
-                      const isSelected = manualItemPrice === p.toString();
-                      return (
-                        <button
-                          key={p}
-                          onClick={() => setManualItemPrice(p.toString())}
-                          className={`flex-shrink-0 px-4 py-2 rounded-2xl text-[10px] font-black transition-all ${isSelected
-                            ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
-                            : isDark
-                              ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
-                              : 'bg-gray-100 border border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700'
-                            }`}
-                        >
-                          {p >= 1000000 ? `${p / 1000000}jt` : `${p / 1000}k`}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Jumlah */}
-                <div>
-                  <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
-                    Jumlah
-                  </label>
-                  <div className={`flex items-center gap-3 p-1 rounded-2xl w-fit ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
-                    <button
-                      onClick={() => setManualItemQuantity(q => Math.max(1, q - 1))}
-                      className={`w-9 h-9 flex items-center justify-center rounded-xl font-black text-base transition-all ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-gray-700 hover:bg-amber-500 hover:text-white shadow-sm'
-                        }`}
-                    >−</button>
-                    <span className={`w-8 text-center font-black text-base ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                      {manualItemQuantity}
-                    </span>
-                    <button
-                      onClick={() => setManualItemQuantity(q => q + 1)}
-                      className={`w-9 h-9 flex items-center justify-center rounded-xl font-black text-base transition-all ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-gray-700 hover:bg-amber-500 hover:text-white shadow-sm'
-                        }`}
-                    >+</button>
-                  </div>
-                </div>
-
-                {/* Preview total */}
-                {manualItemPrice && Number(manualItemPrice) > 0 && (
-                  <div className={`flex items-center justify-between p-3 rounded-2xl ${isDark ? 'bg-amber-900/20 border border-amber-800/30' : 'bg-amber-50 border border-amber-100'}`}>
-                    <span className={`text-xs font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
-                      Total ({manualItemQuantity}×)
-                    </span>
-                    <span className={`text-base font-black ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
-                      {format(Number(manualItemPrice) * manualItemQuantity)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Manual item footer */}
-              <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
-                <button
-                  onClick={quickPayManualItem}
-                  disabled={!manualItemName.trim() || !manualItemPrice || isPaymentModalOpen}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm transition-opacity duration-200 transform ${manualItemName.trim() && manualItemPrice
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 hover:opacity-90 active:scale-[0.98]'
-                    : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-gray-100 text-stone-300 cursor-not-allowed'
-                    }`}
-                >
-                  <Zap size={14} /> Quick Pay
-                </button>
-                <button
-                  onClick={addManualItemToCart}
-                  disabled={!manualItemName.trim() || !manualItemPrice}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm border transition-colors duration-200 ${manualItemName.trim() && manualItemPrice
-                    ? isDark
-                      ? 'border-stone-700 text-stone-200 hover:border-amber-500/50 hover:text-amber-400'
-                      : 'border-gray-300 text-gray-700 hover:border-amber-400 hover:text-amber-700'
-                    : isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-gray-100 text-stone-300 cursor-not-allowed'
-                    }`}
-                >
-                  <Package size={14} /> Ke Cart
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* ── Panel: EDIT ITEM ───────────────────────────────────────────── */}
-          {panel === 'edit' && editingItemIndex !== null && cart[editingItemIndex] && (
-            <CartItemEditPanel
-              item={cart[editingItemIndex]}
-              itemIndex={editingItemIndex}
-              onSave={(updatedItem) => {
-                setCart(prev => {
-                  const newCart = [...prev];
-                  newCart[editingItemIndex] = updatedItem;
-                  return newCart;
-                });
-                setEditingItemIndex(null);
-                setPanel('cart');
-              }}
-              onRemove={() => {
-                setCart(prev => prev.filter((_, i) => i !== editingItemIndex));
-                setEditingItemIndex(null);
-                setPanel('cart');
-              }}
-              onClose={() => {
-                setEditingItemIndex(null);
-                setPanel('cart');
-              }}
-            />
-          )}
+      {!isMobile && (
+        <div className={`
+          hidden lg:flex flex-col
+          lg:w-[380px] xl:w-[420px] lg:flex-shrink-0
+          rounded-2xl border shadow-2xl overflow-hidden
+          ${isDark ? 'bg-stone-950 border-stone-800' : 'bg-white border-gray-100'}
+        `}>
+          {renderCartContent()}
         </div>
-      </div>
+      )}
 
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
-
-      {/* Checkout Details Form */}
+      {ToastComponent}
       {isCheckoutDetailsFormOpen && (
         <CheckoutDetailsForm
           customerName={customCustomerName}
@@ -1165,6 +1341,7 @@ export default function PointOfSale() {
         />
       )}
 
+      {ToastComponent}
       {receiptTransaction && (
         <ReceiptModal
           transaction={receiptTransaction}
