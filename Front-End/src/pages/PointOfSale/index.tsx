@@ -32,16 +32,31 @@ import PointOfSaleSkeleton from '../../components/pos/PointOfSaleSkeleton';
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
-  );
+const useResponsive = () => {
+  const [responsive, setResponsive] = useState({
+    isMobile: typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
+    isLandscape: typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false,
+  });
+
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 1024);
+    const handler = () => {
+      setResponsive({
+        isMobile: window.innerWidth < 1024,
+        isLandscape: window.innerWidth > window.innerHeight,
+      });
+    };
+    
+    handler(); // Init
+    
     window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
+    window.addEventListener('orientationchange', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('orientationchange', handler);
+    };
   }, []);
-  return isMobile;
+
+  return responsive;
 };
 
 interface CategoryCarousel {
@@ -142,7 +157,10 @@ export default function PointOfSale() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
-  const isMobile = useIsMobile();
+  const { isMobile, isLandscape } = useResponsive();
+  const isMobileLandscape = isMobile && isLandscape;
+  const showMobilePortrait = isMobile && !isLandscape;
+  const showDesktopLayout = !isMobile || isLandscape;
 
   // ── Catalog ─────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
@@ -1258,7 +1276,7 @@ export default function PointOfSale() {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col lg:flex-row gap-4 relative animate-in fade-in duration-300 overflow-hidden">
+    <div className={`h-full min-h-0 flex ${showDesktopLayout ? 'flex-row' : 'flex-col'} gap-4 relative animate-in fade-in duration-300 overflow-hidden`}>
 
       {/* ══════════════════════════════════════════════════════════════════════════
           LEFT — Product Catalog
@@ -1286,7 +1304,7 @@ export default function PointOfSale() {
           {/* ── Catalog Header ── */}
           <div className={`${isMobile ? 'sticky top-0 z-20 pt-2 pb-1 -mx-4 px-4 bg-inherit' : 'mb-4'}`}>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
-              <h1 className={`text-xl md:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'} ${isMobile ? 'hidden' : ''}`}>
+              <h1 className={`text-xl md:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'} ${showDesktopLayout ? 'block' : 'hidden'}`}>
                 Menu <span className="text-amber-500">Explorer</span>
               </h1>
               <div className="relative w-full sm:w-72">
@@ -1309,7 +1327,7 @@ export default function PointOfSale() {
               </div>
             </div>
 
-            <div className="hidden lg:block">
+            <div className={showDesktopLayout ? 'block' : 'hidden'}>
               <CategoryPills selected={selectedCategory} onSelect={setSelectedCategory} />
             </div>
 
@@ -1342,40 +1360,44 @@ export default function PointOfSale() {
         </div>
 
         {/* Product grid */}
-        <div className={`flex-1 overflow-y-auto horizontal-scrollbar-thin pr-1 ${isMobile ? 'pb-24' : ''}`}>
-          {isMobile ? (
+        <div className={`flex-1 overflow-y-auto horizontal-scrollbar-thin pr-1 ${showMobilePortrait ? 'pb-24' : ''}`}>
+          {showMobilePortrait && (
             <div className="py-2">
-              {categoryCarousels.length === 0 || categoryCarousels.every(c => c.products.length === 0) ? (
-                <div className={`flex flex-col items-center justify-center min-h-[300px] text-center px-4 ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>
-                  <Package size={48} className={`mb-4 ${isDark ? 'text-stone-700' : 'text-[#CBD5E1]'}`} />
-                  <p className="font-semibold text-sm mb-1">
-                    {search ? 'Tidak ada hasil pencarian' : 'Tidak ada produk'}
-                  </p>
-                  <p className="text-xs">
-                    {search ? `Coba cari dengan kata kunci lain "${search}"` : 'Produk akan muncul di sini'}
-                  </p>
-                </div>
-              ) : (
-                categoryCarousels
-                  .filter(carousel => carousel.products.length > 0)
-                  .map(carousel => (
-                    <MobileCategoryCarousel
-                      key={carousel.categoryName}
-                      carousel={carousel}
-                      isDark={isDark}
-                      onAddToCart={addToCart}
-                      onViewAll={(catName) => navigate(`/pos/category/${encodeURIComponent(catName)}`)}
-                    />
-                  ))
+            {categoryCarousels.length === 0 || categoryCarousels.every(c => c.products.length === 0) ? (
+              <div className={`flex flex-col items-center justify-center min-h-[300px] text-center px-4 ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>
+                <Package size={48} className={`mb-4 ${isDark ? 'text-stone-700' : 'text-[#CBD5E1]'}`} />
+                <p className="font-semibold text-sm mb-1">
+                  {search ? 'Tidak ada hasil pencarian' : 'Tidak ada produk'}
+                </p>
+                <p className="text-xs">
+                  {search ? `Coba cari dengan kata kunci lain "${search}"` : 'Produk akan muncul di sini'}
+                </p>
+              </div>
+            ) : (
+              categoryCarousels
+                .filter(carousel => carousel.products.length > 0)
+                .map(carousel => (
+                  <MobileCategoryCarousel
+                    key={carousel.categoryName}
+                    carousel={carousel}
+                    isDark={isDark}
+                    onAddToCart={addToCart}
+                    onViewAll={(catName) => navigate(`/pos/category/${encodeURIComponent(catName)}`)}
+                  />
+                ))
               )}
             </div>
-          ) : (
-            <ProductGrid products={sortedProducts} onAddToCart={addToCart} />
+          )}
+          {showDesktopLayout && (
+            <div className="h-full">
+              <ProductGrid products={sortedProducts} onAddToCart={addToCart} isMobileLandscape={isMobileLandscape} />
+            </div>
           )}
         </div>
 
-        {isMobile && (
-          <MobileCart
+        {showMobilePortrait && (
+          <div>
+            <MobileCart
             cart={cart}
             quote={quote}
             sheetState={sheetState}
@@ -1401,11 +1423,12 @@ export default function PointOfSale() {
             onUpdateQuantity={(index, delta) => updateQuantity(index, delta)}
             onManualItem={() => setPanel('manual')}
           />
-        )}
+        </div>
+      )}
 
         {/* ── Mobile Panel Overlay ── */}
-        {isMobile && panel !== 'cart' && (
-          <>
+        {showMobilePortrait && panel !== 'cart' && (
+          <div>
             <div
               className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
               onClick={() => { setPanel('cart'); setEditingItemIndex(null); }}
@@ -1416,17 +1439,17 @@ export default function PointOfSale() {
             >
               {renderCartContent()}
             </div>
-          </>
+          </div>
         )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          DESKTOP — Right Cart Panel
+          DESKTOP & LANDSCAPE — Right Cart Panel
       ══════════════════════════════════════════════════════════════════════════ */}
-      {!isMobile && (
+      {showDesktopLayout && (
         <div className={`
-          hidden lg:flex flex-col
-          lg:w-[380px] xl:w-[420px] lg:flex-shrink-0
+          flex flex-col flex-shrink-0
+          w-[380px] xl:w-[420px]
           rounded-2xl border shadow-xl overflow-hidden
           ${isDark ? 'bg-stone-950 border-stone-800' : 'bg-white border-[#E2E8F0] shadow-xl'}
         `}>

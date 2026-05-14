@@ -15,6 +15,7 @@ interface SidebarProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   isMobileOpen?: boolean;
+  isMobileLandscape?: boolean;
   onNavigate?: () => void;
 }
 
@@ -167,7 +168,7 @@ function CollapsedGroup({
   );
 }
 
-export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobileOpen = false, onNavigate }: SidebarProps) {
+export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobileOpen = false, isMobileLandscape = false, onNavigate }: SidebarProps) {
   const [showCloseModal, setShowCloseModal] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
@@ -229,8 +230,9 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
         className={`
           ${isDark ? 'bg-stone-950 text-stone-100 border-stone-800' : 'bg-white text-[#0F172A] border-[#E2E8F0]'}
           ${isCollapsed && !isMobileOpen ? 'w-[68px] overflow-visible' : 'w-[240px] overflow-hidden'}
-          h-screen fixed left-0 top-0 z-50 flex flex-col border-r transition-all duration-300
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isMobileLandscape ? 'h-full' : 'h-screen'} fixed left-0 top-0 z-50 flex flex-col border-r transition-all duration-300
+          ${isMobileLandscape ? 'flex' : 'hidden lg:flex'}
+          ${isMobileOpen ? 'translate-x-0 !flex' : (isMobileLandscape ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}
         `}
       >
         {/* ═══════════════════════════════════════════════════════════════════════

@@ -11,11 +11,13 @@ import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 interface ProductGridProps {
   products: Product[]; // Produk sudah terurut dari parent
   onAddToCart: (productId: string) => void;
+  isMobileLandscape?: boolean;
 }
 
 export default function ProductGrid({ 
   products, 
-  onAddToCart
+  onAddToCart,
+  isMobileLandscape = false
 }: ProductGridProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -33,7 +35,7 @@ export default function ProductGrid({
   }, [transactions]);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+    <div className={`grid ${isMobileLandscape ? 'grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4'}`}>
       {products.map((product, index) => {
         const isUnavailable = product.isAvailable === false;
         const isOutOfStock = checkOutOfStock(product);
