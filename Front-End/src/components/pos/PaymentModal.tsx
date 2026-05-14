@@ -199,7 +199,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
             isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-[#F8FAFC] border-[#E2E8F0]'
           }`}>
             <span className={`text-sm font-bold ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>Total</span>
-            <div className="text-xl font-black text-amber-500">
+            <div className={`text-xl font-black ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>
               {format(total)}
             </div>
           </div>
@@ -294,7 +294,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
               {method === 'qris' ? (
                 <QrCode className="w-20 h-20 text-purple-500 mb-3" />
               ) : (
-                <CreditCard className="w-20 h-20 text-amber-500 mb-3" />
+                <CreditCard className={`w-20 h-20 mb-3 ${isDark ? 'text-amber-500' : 'text-teal-500'}`} />
               )}
               <p className="font-bold text-sm uppercase tracking-wide">Waiting for Payment</p>
               <p className="text-xs text-stone-500 mt-2">
@@ -307,9 +307,11 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
           <button
             onClick={handleSubmit}
             disabled={!canProcessPayment}
-            className={`w-full mt-5 py-4 text-white font-black rounded-xl flex items-center justify-center gap-2 bg-gradient-to-r ${
+            className={`w-full mt-5 py-4 text-white font-black rounded-xl flex items-center justify-center gap-2 bg-gradient-to-r transition-all ${
               canProcessPayment
-                ? 'from-amber-500 via-orange-500 to-amber-600 shadow-md hover:shadow-lg active:scale-[0.98] transition-all'
+                ? isDark 
+                  ? 'from-amber-500 via-orange-500 to-amber-600 shadow-md hover:shadow-lg active:scale-[0.98]' 
+                  : 'from-teal-500 via-teal-600 to-emerald-600 shadow-md hover:shadow-lg active:scale-[0.98]'
                 : 'from-gray-400 to-gray-500 cursor-not-allowed'
             }`}
           >

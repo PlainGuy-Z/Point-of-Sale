@@ -65,7 +65,7 @@ function CollapsedGroup({
           ${isAnyActive
             ? isDark
               ? 'bg-amber-500/10 border-l-[3px] border-l-amber-500'
-              : 'bg-amber-500/8 border-l-[3px] border-l-amber-500'
+              : 'bg-teal-500/8 border-l-[3px] border-l-teal-500'
             : isDark
               ? 'hover:bg-stone-900 border-l-[3px] border-l-transparent'
               : 'hover:bg-[#F1F5F9] border-l-[3px] border-l-transparent'
@@ -76,7 +76,7 @@ function CollapsedGroup({
           <GroupIcon
             className={`w-[18px] h-[18px] transition-colors duration-200 ${
               isAnyActive
-                ? 'text-amber-500'
+                ? isDark ? 'text-amber-500' : 'text-teal-500'
                 : isDark
                   ? 'text-stone-500'
                   : 'text-[#94A3B8]'
@@ -86,7 +86,7 @@ function CollapsedGroup({
 
         {/* Badge dot */}
         {totalBadge > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-500" />
+          <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${isDark ? 'bg-amber-500' : 'bg-teal-500'}`} />
         )}
       </button>
 
@@ -131,7 +131,7 @@ function CollapsedGroup({
                     ${isItemActive
                       ? isDark
                         ? 'bg-amber-500/10 text-amber-200'
-                        : 'bg-amber-500/10 text-amber-900'
+                        : 'bg-teal-500/10 text-teal-900'
                       : isDark
                         ? 'hover:bg-stone-800 text-stone-300'
                         : 'hover:bg-[#F1F5F9] text-[#475569]'
@@ -142,7 +142,7 @@ function CollapsedGroup({
                     <ItemIcon
                       className={`w-4 h-4 flex-shrink-0 ${
                         isItemActive
-                          ? 'text-amber-500'
+                          ? isDark ? 'text-amber-500' : 'text-teal-500'
                           : isDark
                             ? 'text-[#94A3B8]'
                             : 'text-[#94A3B8]'
@@ -151,12 +151,12 @@ function CollapsedGroup({
                   )}
                   <span className="text-[13px] font-semibold">{item.label}</span>
                   {badge != null && badge > 0 && (
-                    <span className="ml-auto flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-[#0F172A] leading-none">
+                    <span className={`ml-auto flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full ${isDark ? 'bg-amber-500' : 'bg-teal-500'} px-1 text-[9px] font-bold ${isDark ? 'text-[#0F172A]' : 'text-white'} leading-none`}>
                       {badge > 99 ? '99+' : badge}
                     </span>
                   )}
                   {isItemActive && !(badge != null && badge > 0) && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <div className={`ml-auto w-1.5 h-1.5 rounded-full ${isDark ? 'bg-amber-500' : 'bg-teal-500'}`} />
                   )}
                 </Link>
               );
@@ -249,13 +249,12 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
             <div
               className={`
                 ${isCollapsed ? 'w-10 h-10' : 'w-10 h-10'}
-                rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10
-                border border-amber-500/20
+                rounded-2xl ${isDark ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-amber-500/20' : 'bg-teal-50 border-teal-200'}
                 flex items-center justify-center flex-shrink-0
                 transition-all duration-300
               `}
             >
-              <Coffee className={`${isCollapsed ? 'h-5 w-5' : 'h-5 w-5'} text-amber-500`} />
+              <Coffee className={`${isCollapsed ? 'h-5 w-5' : 'h-5 w-5'} ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
             </div>
 
             {!isCollapsed && (
@@ -310,7 +309,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
               <span className={`text-xs ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
                 Transaksi shift ini:
               </span>
-              <span className="text-xs font-bold text-amber-500">
+              <span className={`text-xs font-bold ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>
                 {activeShift.current_total_transactions ?? activeShift.total_transactions ?? 0}
               </span>
             </div>
@@ -461,7 +460,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                   {user?.name?.[0] || 'U'}
                 </span>
               ) : (
-                <Coffee className="w-4 h-4 text-amber-500" />
+                <Coffee className={`w-4 h-4 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
               )}
             </div>
 
@@ -472,7 +471,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                 </p>
                 <p
                   className={`text-[10px] truncate uppercase tracking-wider font-semibold mt-0.5 ${
-                    isDark ? 'text-amber-500/80' : 'text-[#94A3B8]'
+                    isDark ? 'text-amber-500/80' : 'text-teal-600/80'
                   }`}
                 >
                   {user?.role || 'operator'}

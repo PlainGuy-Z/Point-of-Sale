@@ -24,7 +24,7 @@ export default function InsightCard({ data, isLoading }: InsightCardProps) {
       case 'critical':
         return isDark ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-red-50 text-red-600 border-red-100';
       case 'warning':
-        return isDark ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-amber-50 text-amber-600 border-amber-100';
+        return isDark ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-teal-50 text-teal-700 border-teal-100';
       case 'watch':
       default:
         return isDark ? 'bg-stone-800 text-stone-400 border-stone-700' : 'bg-gray-50 text-gray-500 border-gray-200';
@@ -35,7 +35,7 @@ export default function InsightCard({ data, isLoading }: InsightCardProps) {
     <div className={`rounded-3xl border flex flex-col h-full ${isDark ? 'bg-stone-900/50 border-stone-800' : 'bg-white border-gray-100 shadow-sm'}`}>
       <div className={`px-6 py-5 border-b ${isDark ? 'border-stone-800' : 'border-gray-100'} flex items-center justify-between`}>
         <div className="flex items-center gap-2">
-          <AlertTriangle className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
+          <AlertTriangle className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-teal-600'}`} />
           <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Peringatan Stok</h2>
         </div>
         {!isLoading && data && data.length > 0 && (
@@ -46,7 +46,7 @@ export default function InsightCard({ data, isLoading }: InsightCardProps) {
               </span>
             )}
             {warning.length > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-teal-100 text-teal-700'}`}>
                 {warning.length} Warning
               </span>
             )}

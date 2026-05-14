@@ -26,7 +26,7 @@ function CustomTooltip({ active, payload }: any) {
       }}
     >
       <p style={{ color: isDark ? '#ffffff' : '#111827', fontWeight: 'bold', marginBottom: 4 }}>{d.label}</p>
-      <p style={{ color: '#f59e0b' }}>Revenue: Rp {fmt(d.revenue)}</p>
+      <p style={{ color: isDark ? '#f59e0b' : '#0d9488' }}>Revenue: Rp {fmt(d.revenue)}</p>
       <p style={{ color: isDark ? '#888888' : '#6b7280' }}>Transaksi: {d.count}</p>
     </div>
   );
@@ -64,9 +64,9 @@ export default function SalesChart({ isSingleDay, hourlyData, dailyData, peakHou
           </p>
         </div>
         {isSingleDay && peakHour && (
-          <div className={`${isDark ? 'bg-amber-500/15 border-amber-500/20' : 'bg-amber-50 border-amber-100'} border rounded-xl px-3 py-1.5 flex items-center gap-2`}>
-            <Flame size={14} className="text-amber-400" />
-            <span className="text-amber-400 text-xs font-bold">
+          <div className={`${isDark ? 'bg-amber-500/15 border-amber-500/20' : 'bg-teal-500/15 border-teal-200'} border rounded-xl px-3 py-1.5 flex items-center gap-2`}>
+            <Flame size={14} className={isDark ? 'text-amber-400' : 'text-teal-600'} />
+            <span className={`${isDark ? 'text-amber-400' : 'text-teal-600'} text-xs font-bold`}>
               Jam tersibuk: {peakHour.label} — Rp {fmt(peakHour.revenue)}
             </span>
           </div>
@@ -76,8 +76,8 @@ export default function SalesChart({ isSingleDay, hourlyData, dailyData, peakHou
         <BarChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f59e0b" />
-              <stop offset="100%" stopColor="#ea580c" />
+              <stop offset="0%" stopColor={isDark ? '#f59e0b' : '#0d9488'} />
+              <stop offset="100%" stopColor={isDark ? '#ea580c' : '#14b8a6'} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#2e2e2e' : '#f1f5f9'} vertical={false} />

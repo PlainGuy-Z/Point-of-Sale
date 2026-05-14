@@ -14,6 +14,7 @@ export interface AIMessage {
   contextSnapshot?: {
     today_revenue: number;
     this_week_revenue: number;
+    total_transactions: number;
   };
 }
 
@@ -119,6 +120,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             ? {
                 today_revenue: response.context_snapshot.today_revenue,
                 this_week_revenue: response.context_snapshot.this_week_revenue,
+                total_transactions: response.context_snapshot.total_transactions,
               }
             : undefined,
         };

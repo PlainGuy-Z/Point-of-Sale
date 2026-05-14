@@ -31,8 +31,8 @@ export default function CustomerSelector({
     }`}>
       {/* Header - Tombol New dihapus sesuai permintaan */}
       <div className="flex items-center gap-2 mb-4">
-        <div className={`p-1.5 rounded-xl bg-gradient-to-br ${isDark ? 'from-amber-500/10 to-orange-500/5' : 'from-amber-50 to-orange-50'}`}>
-           <User className="w-4 h-4 text-amber-500" />
+        <div className={`p-1.5 rounded-xl bg-gradient-to-br ${isDark ? 'from-amber-500/10 to-orange-500/5' : 'from-teal-50 to-emerald-50'}`}>
+           <User className={`w-4 h-4 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
         </div>
         <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-gray-800'}`}>
           Select Customer
@@ -48,7 +48,7 @@ export default function CustomerSelector({
           className={`w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 text-sm outline-none transition-all bg-gradient-to-br ${
             isDark 
               ? 'from-stone-900 to-stone-900 border-stone-800 text-white focus:border-amber-500' 
-              : 'from-gray-50 to-white border-gray-200 text-gray-800 focus:border-amber-500 focus:from-white focus:to-gray-50'
+              : 'from-gray-50 to-white border-gray-200 text-gray-800 focus:border-teal-500 focus:from-white focus:to-gray-50'
           }`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -76,7 +76,7 @@ export default function CustomerSelector({
                   isSelected
                     ? isDark 
                       ? 'from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20' 
-                      : 'from-amber-500 to-orange-500 text-white shadow-sm'
+                      : 'from-teal-500 to-emerald-500 text-white shadow-sm shadow-teal-500/10'
                     : isDark 
                       ? 'from-stone-900/50 via-stone-900/40 to-stone-900/30 hover:from-stone-800/50 hover:via-stone-800/40 hover:to-stone-900/30 text-stone-300 border border-transparent' 
                       : 'from-gray-50/50 via-gray-50/40 to-white/30 hover:from-gray-100/50 hover:via-gray-100/40 hover:to-gray-50/30 text-gray-600 border border-transparent hover:border-gray-200'
@@ -87,7 +87,7 @@ export default function CustomerSelector({
                     <p className={`font-bold text-sm truncate ${isSelected ? 'text-white' : isDark ? 'text-stone-200' : 'text-gray-800'}`}>
                       {customer.name}
                     </p>
-                    <p className={`text-[10px] font-medium uppercase tracking-tight ${isSelected ? 'text-amber-100' : 'text-stone-500'}`}>
+                    <p className={`text-[10px] font-medium uppercase tracking-tight ${isSelected ? (isDark ? 'text-amber-100' : 'text-teal-50') : 'text-stone-500'}`}>
                       {customer.phone || 'No Phone'} • {customer.totalVisits} Visits
                     </p>
                   </div>

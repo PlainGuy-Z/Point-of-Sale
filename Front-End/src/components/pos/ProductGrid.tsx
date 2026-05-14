@@ -60,8 +60,7 @@ export default function ProductGrid({
               h-full rounded-3xl border p-4 text-left transition-all group relative flex flex-col justify-between overflow-hidden
               ${isDark
                 ? 'bg-stone-950 border-stone-800 hover:border-amber-500/40'
-              : 'bg-white border-teal-400/40 hover:border-teal-500'
-              }
+                : 'bg-white border-teal-400/40 hover:border-teal-500'
               }
               ${isDisabled ? 'opacity-60 cursor-not-allowed grayscale-[0.5]' : ''}
               animate-in
@@ -129,7 +128,7 @@ export default function ProductGrid({
                         ? 'bg-gradient-to-br from-amber-500 to-orange-500'
                         : 'bg-gradient-to-br from-amber-700 to-amber-800'
                     ) :
-                    'bg-gradient-to-br from-amber-500 to-cyan-500'}
+                    'bg-gradient-to-br from-teal-500 to-cyan-500'}
                 `}>
                   <span className="text-white font-bold text-base md:text-lg">
                     {product.category.charAt(0)}
@@ -152,7 +151,7 @@ export default function ProductGrid({
             <div className="flex-1 flex flex-col">
               <h3 className={`
                 font-semibold text-sm md:text-base line-clamp-1 transition-colors
-                ${isDark ? 'text-white group-hover:text-amber-400' : 'text-gray-800 group-hover:text-amber-700'}
+                ${isDark ? 'text-white group-hover:text-amber-400' : 'text-gray-800 group-hover:text-teal-700'}
               `}>
                 {product.name}
               </h3>
@@ -170,7 +169,7 @@ export default function ProductGrid({
                 <div className="flex items-baseline gap-1 w-full">
                   <span className={`
                     font-bold text-sm md:text-base
-                      ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : 'text-amber-500'}
+                      ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-amber-500' : 'text-teal-600')}
                   `}>
                     {format(priceToShow)}
                   </span>
@@ -225,7 +224,7 @@ export default function ProductGrid({
                         : product.stock > 0
                           ? isDark 
                             ? 'from-amber-900/30 to-amber-800/20 text-amber-400'
-                            : 'from-amber-50 to-amber-100 text-amber-600'
+                            : 'from-teal-50 to-teal-100 text-teal-600'
                           : isDark 
                             ? 'from-red-900/30 to-red-800/20 text-red-400'
                             : 'from-red-50 to-red-100 text-red-600'
@@ -251,7 +250,7 @@ export default function ProductGrid({
                             ? 'bg-gradient-to-br from-amber-500 to-orange-500'
                             : 'bg-gradient-to-br from-amber-700 to-amber-800'
                         )
-                      : 'bg-gradient-to-br from-amber-500 to-orange-500'
+                      : isDark ? 'bg-gradient-to-br from-amber-500 to-orange-500' : 'bg-gradient-to-br from-teal-500 to-teal-600'
                 }
               `}>
                 <Plus className="w-6 h-6 text-white" />

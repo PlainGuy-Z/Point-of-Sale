@@ -133,7 +133,7 @@ export default function MobileCart({
           className={`fixed bottom-4 left-4 right-4 z-40 rounded-2xl shadow-2xl border px-4 py-3 flex items-center justify-between gap-3 transition-transform duration-200 ${isDark ? 'bg-stone-950 border-stone-800 text-white' : 'bg-white border-gray-200 text-gray-900'} hover:-translate-y-0.5`}
         >
           <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${isDark ? 'bg-amber-500/15 text-amber-300' : 'bg-amber-50 text-amber-600'}`}>
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${isDark ? 'bg-amber-500/15 text-amber-300' : 'bg-teal-50 text-teal-600'}`}>
               <ShoppingCart size={20} />
             </div>
             <div className="text-left min-w-0">
@@ -144,7 +144,7 @@ export default function MobileCart({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-amber-500 px-3 py-2 text-[11px] font-black uppercase text-white shadow-sm">
+            <span className={`inline-flex items-center rounded-full ${isDark ? 'bg-amber-500' : 'bg-teal-500'} px-3 py-2 text-[11px] font-black uppercase text-white shadow-sm`}>
               Buka
             </span>
             <ChevronUp size={18} className={isDark ? 'text-stone-200' : 'text-gray-600'} />
@@ -182,7 +182,7 @@ export default function MobileCart({
                     <button
                       type="button"
                       onClick={onManualItem}
-                      className={`rounded-2xl border p-2 transition flex items-center gap-1.5 ${isDark ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20' : 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100'}`}
+                      className={`rounded-2xl border p-2 transition flex items-center gap-1.5 ${isDark ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20' : 'border-teal-200 bg-teal-50 text-teal-600 hover:bg-teal-100'}`}
                       aria-label="Tambah item manual"
                     >
                       <PlusCircle size={18} />
@@ -270,7 +270,7 @@ export default function MobileCart({
                                     </span>
                                   )}
                                   {item.productId.startsWith('manual-') && (
-                                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
+                                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isDark ? 'bg-amber-900/40 text-amber-400' : 'bg-teal-100 text-teal-600'}`}>
                                       Custom
                                     </span>
                                   )}
@@ -287,7 +287,7 @@ export default function MobileCart({
                                   );
                                 })()}
                                 {item.variantName && (
-                                  <p className={`text-[10px] font-medium mt-1 ${isDark ? 'text-amber-400/80' : 'text-amber-600/80'}`}>
+                                  <p className={`text-[10px] font-medium mt-1 ${isDark ? 'text-amber-400/80' : 'text-teal-600/80'}`}>
                                     + {item.variantName} ({format(variantPrice)})
                                   </p>
                                 )}
@@ -300,7 +300,7 @@ export default function MobileCart({
                                   <span className={`text-xs font-bold ${
                                     isPromoItem
                                       ? isDark ? 'text-red-400' : 'text-red-600'
-                                      : isDark ? 'text-amber-400' : 'text-amber-600'
+                                      : isDark ? 'text-amber-400' : 'text-teal-600'
                                   }`}>
                                     {format(basePrice)}
                                   </span>
@@ -334,7 +334,7 @@ export default function MobileCart({
                                   className={`w-8 h-8 flex items-center justify-center rounded-xl font-black text-base transition-all active:scale-90 select-none ${
                                     isDark
                                       ? 'bg-stone-800 text-stone-300 hover:bg-amber-500 hover:text-white'
-                                      : 'bg-gray-200 text-gray-600 hover:bg-amber-500 hover:text-white'
+                                      : 'bg-gray-200 text-gray-600 hover:bg-teal-500 hover:text-white'
                                   }`}
                                   style={{ minWidth: 32, minHeight: 32 }}
                                 >
@@ -347,7 +347,7 @@ export default function MobileCart({
                                 <p className={`text-sm font-black tabular-nums ${
                                   isPromoItem
                                     ? isDark ? 'text-red-400' : 'text-red-600'
-                                    : isDark ? 'text-amber-400' : 'text-amber-600'
+                                    : isDark ? 'text-amber-400' : 'text-teal-600'
                                 }`}>
                                   {format(lineTotal)}
                                 </p>
@@ -386,7 +386,7 @@ export default function MobileCart({
                   <p className={`text-[11px] uppercase tracking-[0.24em] ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Total pesanan</p>
                   <p className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{format(quote.grandTotal)}</p>
                 </div>
-                <div className={`rounded-3xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow-sm ${isDark ? 'bg-stone-900 text-amber-400 shadow-amber-500/10' : 'bg-amber-50 text-amber-600 shadow-amber-500/5'}`}>
+                <div className={`rounded-3xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow-sm ${isDark ? 'bg-stone-900 text-amber-400 shadow-amber-500/10' : 'bg-teal-50 text-teal-600 shadow-teal-500/5'}`}>
                   {itemCount} item
                 </div>
               </div>
@@ -411,7 +411,7 @@ export default function MobileCart({
                   disabled={!canPay}
                   className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-black uppercase tracking-wide transition-all active:scale-[0.97] ${
                     canPay
-                      ? 'bg-[#f59e0b] text-white shadow-lg shadow-amber-500/20 hover:opacity-95'
+                      ? isDark ? 'bg-[#f59e0b] text-white shadow-lg shadow-amber-500/20 hover:opacity-95' : 'bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:opacity-95'
                       : isDark
                         ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'

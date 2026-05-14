@@ -86,7 +86,7 @@ export default function SalesReport() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
-            Laporan <span className="text-amber-500">Penjualan</span>
+            Laporan <span className={isDark ? 'text-amber-500' : 'text-teal-600'}>Penjualan</span>
           </h1>
           <p className={`text-xs ${isDark ? 'text-[#888]' : 'text-[#94A3B8]'} flex items-center gap-1 mt-1`}>
             <Clock size={12} /> Terakhir diperbarui: {new Date().toLocaleString('id-ID')}
@@ -109,7 +109,7 @@ export default function SalesReport() {
               onClick={() => { setPreset(p.key); setTxPage(1); }}
               className={`px-4 py-2 rounded-xl text-sm transition-all whitespace-nowrap flex-shrink-0 ${
                 preset === p.key
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-lg shadow-amber-500/20'
+                  ? `bg-gradient-to-r ${isDark ? 'from-amber-500 to-orange-500 shadow-amber-500/20' : 'from-teal-500 to-teal-600 shadow-teal-500/20'} text-white font-bold shadow-lg`
                   : `bg-transparent ${isDark ? 'text-[#888] hover:text-white hover:bg-[#222]' : 'text-[#94A3B8] hover:text-[#0F172A] hover:bg-[#F1F5F9]'} font-medium`
               }`}
             >
@@ -150,12 +150,12 @@ export default function SalesReport() {
       {costBreakdown && (
         <div className={`${isDark ? 'bg-[#1a1a1a] border-[#2e2e2e]' : 'bg-white border-[#E2E8F0] shadow-sm'} border rounded-2xl p-6`}>
           <div className="flex items-center gap-2 mb-5">
-            <PieChart size={16} className="text-amber-400" />
+            <PieChart size={16} className={isDark ? 'text-amber-400' : 'text-teal-600'} />
             <h3 className={`font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Breakdown Biaya</h3>
           </div>
           <div className="flex gap-3 overflow-x-auto md:grid md:grid-cols-4 md:overflow-visible mb-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
             {[
-              { label: 'Gross Revenue', value: costBreakdown.grossRevenue, color: isDark ? 'text-amber-400' : 'text-teal-700' },
+              { label: 'Gross Revenue', value: costBreakdown.grossRevenue, color: isDark ? 'text-amber-400' : 'text-teal-600' },
               { label: 'COGS (est.)', value: costBreakdown.cogs, color: 'text-red-400' },
               { label: 'Net Profit', value: costBreakdown.netProfit, color: isDark ? 'text-green-400' : 'text-emerald-600' },
               { label: 'Margin', value: null, color: isDark ? 'text-teal-400' : 'text-teal-600' },
@@ -245,7 +245,7 @@ export default function SalesReport() {
                                 </div>
                               )}
                             </td>
-                            <td className={`py-4 px-6 text-right font-mono font-black ${isDark ? 'text-amber-400' : 'text-teal-700'} whitespace-nowrap`}>Rp {fmt(t.total)}</td>
+                            <td className={`py-4 px-6 text-right font-mono font-black ${isDark ? 'text-amber-400' : 'text-teal-600'} whitespace-nowrap`}>Rp {fmt(t.total)}</td>
                             <td className="py-4 px-6 text-right">
                               <span className={`text-[10px] px-2.5 py-1 rounded-lg font-black uppercase tracking-wider ${payMethodBadge(t.paymentMethod)}`}>
                                 {t.paymentMethod?.toUpperCase()}
@@ -280,7 +280,7 @@ export default function SalesReport() {
                             </p>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <p className={`text-sm font-black font-mono ${isDark ? 'text-amber-400' : 'text-teal-700'}`}>Rp {fmt(t.total)}</p>
+                            <p className={`text-sm font-black font-mono ${isDark ? 'text-amber-400' : 'text-teal-600'}`}>Rp {fmt(t.total)}</p>
                             <span className={`text-[10px] px-2 py-0.5 rounded-lg font-black uppercase tracking-wider inline-block mt-1 ${payMethodBadge(t.paymentMethod)}`}>
                               {t.paymentMethod?.toUpperCase()}
                             </span>

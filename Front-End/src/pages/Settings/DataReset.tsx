@@ -117,7 +117,9 @@ export default function DataResetPage() {
         
         <Link 
           to="/dashboard"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-all"
+          className={`inline-flex items-center gap-2 px-6 py-3 font-medium rounded-xl transition-all ${
+            isDark ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white'
+          }`}
         >
           Go to Dashboard Now
         </Link>
@@ -156,7 +158,7 @@ export default function DataResetPage() {
         isDark ? 'bg-stone-900' : 'bg-gray-50'
       }`}>
         <h2 className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white mb-6">
-          <HardDrive className="w-6 h-6 text-amber-500" />
+          <HardDrive className={`w-6 h-6 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
           Current Data Overview
         </h2>
         
@@ -278,15 +280,15 @@ export default function DataResetPage() {
       <div className={`mt-10 p-6 rounded-2xl border ${
         isDark 
           ? 'bg-gradient-to-r from-amber-900/20 to-cyan-900/20 border-amber-800' 
-          : 'bg-gradient-to-r from-amber-50 to-cyan-50 border-amber-200'
+          : 'bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200'
       }`}>
         <div className="flex items-center gap-3">
-          <Database className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+          <Database className={isDark ? 'w-6 h-6 text-amber-400' : 'w-6 h-6 text-teal-600'} />
           <div>
             <h4 className="font-bold text-amber-700 dark:text-amber-300 mb-1">
               Create Backup First
             </h4>
-            <p className="text-sm text-amber-600 dark:text-amber-400/90">
+            <p className={isDark ? 'text-sm text-amber-400/90' : 'text-sm text-teal-600'}>
               Before resetting, consider creating a backup of your current data from the{' '}
               <Link 
                 to="/settings" 

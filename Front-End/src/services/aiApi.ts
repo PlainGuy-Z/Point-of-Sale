@@ -48,6 +48,7 @@ export type ChatResponse = {
   context_snapshot: {
     today_revenue: number;
     this_week_revenue: number;
+    total_transactions: number;
   };
 };
 

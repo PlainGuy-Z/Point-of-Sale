@@ -10,13 +10,15 @@ function fmt(n: number): string {
 }
 
 function Change({ value }: { value: number }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const pos = value >= 0;
   const isNeutral = value === 100;
   const Icon = pos ? TrendingUp : TrendingDown;
 
   if (isNeutral) {
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-400">
+      <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg ${isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-teal-500/15 text-teal-600'}`}>
         <Icon size={10} />
         {Math.abs(value).toFixed(1)}%
       </span>
@@ -45,16 +47,16 @@ const useIsMobile = () => {
 
 interface Props { summary: SummaryData }
 
-const cardConfigs = [
-  { label: 'Total Omzet', icon: DollarSign, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-500' },
-  { label: 'Jumlah Transaksi', icon: ShoppingCart, iconBg: 'bg-teal-500/15', iconColor: 'text-teal-400' },
-  { label: 'Rata-rata Tiket', icon: Receipt, iconBg: 'bg-blue-500/15', iconColor: 'text-blue-400' },
-  { label: 'Net Profit', icon: Wallet, iconBg: 'bg-green-500/15', iconColor: 'text-green-400' },
-];
-
 export default function SummaryCards({ summary }: Props) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+  const cardConfigs = [
+    { label: 'Total Omzet', icon: DollarSign, iconBg: isDark ? 'bg-amber-500/15' : 'bg-teal-500/15', iconColor: isDark ? 'text-amber-500' : 'text-teal-600' },
+    { label: 'Jumlah Transaksi', icon: ShoppingCart, iconBg: 'bg-teal-500/15', iconColor: 'text-teal-400' },
+    { label: 'Rata-rata Tiket', icon: Receipt, iconBg: 'bg-blue-500/15', iconColor: 'text-blue-400' },
+    { label: 'Net Profit', icon: Wallet, iconBg: 'bg-green-500/15', iconColor: 'text-green-400' },
+  ];
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -117,7 +119,7 @@ export default function SummaryCards({ summary }: Props) {
               style={{
                 width: i === activeIdx ? 18 : 6,
                 height: 6,
-                background: i === activeIdx ? '#f59e0b' : (isDark ? '#44403c' : '#cbd5e1'),
+                background: i === activeIdx ? (isDark ? '#f59e0b' : '#0d9488') : (isDark ? '#44403c' : '#cbd5e1'),
               }}
             />
           ))}

@@ -75,11 +75,11 @@ export default function HelpCenter() {
         
         {/* ─── Hero Section ─────────────────────────────────────────────────── */}
         <section className="text-center mb-16">
-          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-6">
-            <HelpCircle className="w-8 h-8 text-amber-500" />
+          <div className={`inline-flex items-center justify-center p-3 rounded-2xl ${isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-teal-500/10 border-teal-500/20'} mb-6 border`}>
+            <HelpCircle className={`w-8 h-8 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
           </div>
           <h1 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
-            Pusat <span className="text-amber-500">Bantuan</span>
+            Pusat <span className={isDark ? 'text-amber-500' : 'text-teal-600'}>Bantuan</span>
           </h1>
           <p className={`text-lg max-w-2xl mx-auto mb-10 ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
             Temukan jawaban, panduan penggunaan, dan dukungan teknis untuk mengoptimalkan operasional kedai kopi Anda.
@@ -92,11 +92,11 @@ export default function HelpCenter() {
               placeholder="Cari bantuan..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 rounded-2xl border transition-all outline-none focus:ring-2 focus:ring-amber-500/50 ${
+              className={`w-full pl-12 pr-4 py-4 rounded-2xl border transition-all outline-none ${
                 isDark 
-                  ? 'bg-stone-900 border-stone-800 text-white placeholder:text-stone-600' 
-                  : 'bg-white border-stone-200 text-stone-900 placeholder:text-stone-400'
-              } shadow-xl shadow-amber-500/5`}
+                  ? 'bg-stone-900 border-stone-800 text-white placeholder:text-stone-600 focus:ring-amber-500/50' 
+                  : 'bg-white border-stone-200 text-stone-900 placeholder:text-stone-400 focus:ring-teal-500/50'
+              } focus:ring-2 shadow-xl ${isDark ? 'shadow-amber-500/5' : 'shadow-teal-500/5'}`}
             />
           </div>
         </section>
@@ -106,7 +106,7 @@ export default function HelpCenter() {
           {/* ─── Left Column: FAQs ─────────────────────────────────────────── */}
           <div className="lg:col-span-2">
             <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
-              <Zap className="w-6 h-6 text-amber-500" />
+              <Zap className={`w-6 h-6 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
               Pertanyaan Populer
             </h2>
             
@@ -118,7 +118,7 @@ export default function HelpCenter() {
                     isDark 
                       ? 'bg-stone-900/50 border-stone-800 hover:border-stone-700' 
                       : 'bg-white border-stone-200 hover:border-stone-300'
-                  } ${expandedFAQ === index ? 'ring-1 ring-amber-500/30' : ''}`}
+                  } ${expandedFAQ === index ? (isDark ? 'ring-1 ring-amber-500/30' : 'ring-1 ring-teal-500/30') : ''}`}
                 >
                   <button
                     onClick={() => toggleFAQ(index)}
@@ -136,7 +136,7 @@ export default function HelpCenter() {
                     </div>
                     <div className={`p-2 rounded-xl transition-colors ${
                       expandedFAQ === index 
-                        ? 'bg-amber-500 text-white' 
+                        ? (isDark ? 'bg-amber-500 text-white' : 'bg-teal-500 text-white')
                         : isDark ? 'bg-stone-800 text-stone-500' : 'bg-stone-100 text-stone-400'
                     }`}>
                       {expandedFAQ === index ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -200,8 +200,8 @@ export default function HelpCenter() {
                 <div className={`flex items-center gap-4 p-4 rounded-2xl ${
                   isDark ? 'text-stone-300' : 'text-stone-700'
                 }`}>
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-amber-500" />
+                  <div className={`w-10 h-10 rounded-xl ${isDark ? 'bg-amber-500/10' : 'bg-teal-500/10'} flex items-center justify-center`}>
+                    <Clock className={`w-5 h-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-stone-500 uppercase tracking-tighter">Jam Operasional</p>
@@ -254,7 +254,7 @@ export default function HelpCenter() {
             <p className={`text-lg mb-8 max-w-xl mx-auto ${isDark ? 'text-stone-400' : 'text-stone-300'}`}>
               Tim kami siap membantu Anda menyelesaikan kendala teknis atau pertanyaan seputar penggunaan aplikasi.
             </p>
-            <button className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-stone-900 font-bold px-8 py-4 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-amber-500/20">
+            <button className={`inline-flex items-center gap-2 ${isDark ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-teal-500 hover:bg-teal-600 shadow-teal-500/20'} text-stone-900 font-bold px-8 py-4 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg`}>
               <MessageSquare className="w-5 h-5" />
               Chat Support Sekarang
               <ArrowRight className="w-5 h-5" />

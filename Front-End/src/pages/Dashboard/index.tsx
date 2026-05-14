@@ -51,7 +51,7 @@ function SnapCarousel({
   cardWidthVw = 80,
   gap = 12,
   isDark,
-  accentColor = '#f59e0b',
+  accentColor = isDark ? '#f59e0b' : '#0d9488',
   showArrows = false,
   className = '',
 }: SnapCarouselProps) {
@@ -192,7 +192,7 @@ const HeaderBadge = ({ children, isDark, type = 'info' }: {
   children: React.ReactNode; isDark: boolean; type?: 'info' | 'success' | 'warning';
 }) => {
   const typeClasses = {
-    info: isDark ? 'bg-stone-800 text-amber-400' : 'bg-amber-100 text-amber-700',
+    info: isDark ? 'bg-stone-800 text-amber-400' : 'bg-teal-50 text-teal-700',
     success: isDark ? 'bg-stone-800 text-green-400' : 'bg-green-100 text-green-700',
     warning: isDark ? 'bg-stone-800 text-orange-400' : 'bg-orange-100 text-orange-700',
   };
@@ -317,7 +317,7 @@ function ProductPanelCarousel({ topProducts, lowStockProducts, isDark }: Product
               padding: '4px 12px', borderRadius: 999, border: 'none',
               cursor: 'pointer', fontSize: 11, fontWeight: 600,
               transition: 'all 0.2s',
-              background: i === activeIndex ? '#f59e0b' : (isDark ? '#292524' : '#e7e5e4'),
+              background: i === activeIndex ? (isDark ? '#f59e0b' : '#0d9488') : (isDark ? '#292524' : '#e7e5e4'),
               color: i === activeIndex ? '#fff' : (isDark ? '#78716c' : '#78716c'),
             }}
           >
@@ -392,9 +392,9 @@ export default function Dashboard() {
   if (isMobile) {
     const mainStatCards = [
       <StatCard title="Pendapatan Hari Ini" value={format(metrics.todayRevenue)} icon={DollarSign} trend={metrics.revenueChange >= 0 ? 'up' : 'down'} gradient="from-green-500 to-emerald-500" delay="0" />,
-      <StatCard title="Transaksi" value={metrics.todayTransactionCount} icon={ShoppingCart} trend={metrics.transactionChange >= 0 ? 'up' : 'down'} gradient="from-amber-500 to-cyan-500" delay="0" />,
+      <StatCard title="Transaksi" value={metrics.todayTransactionCount} icon={ShoppingCart} trend={metrics.transactionChange >= 0 ? 'up' : 'down'} gradient={isDark ? "from-amber-500 to-cyan-500" : "from-teal-500 to-cyan-500"} delay="0" />,
       <StatCard title="Pelanggan Baru" value={metrics.newCustomers} icon={Users} trend={metrics.newCustomers > 0 ? 'up' : 'stable'} gradient="from-purple-500 to-violet-500" delay="0" />,
-      <StatCard title="Rata-rata Tiket" value={format(metrics.avgTicket)} icon={TrendingUp} trend={metrics.avgTicket > 30000 ? 'up' : 'stable'} gradient="from-amber-500 to-orange-500" delay="0" />,
+      <StatCard title="Rata-rata Tiket" value={format(metrics.avgTicket)} icon={TrendingUp} trend={metrics.avgTicket > 30000 ? 'up' : 'stable'} gradient={isDark ? "from-amber-500 to-orange-500" : "from-teal-500 to-emerald-500"} delay="0" />,
     ];
 
     const perfMetrics = [
@@ -414,7 +414,7 @@ export default function Dashboard() {
         } shadow-sm`}>
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+              <h1 className={`text-2xl font-black tracking-tight bg-gradient-to-r ${isDark ? 'from-amber-500 to-orange-500' : 'from-teal-600 to-emerald-600'} bg-clip-text text-transparent`}>
                 Dashboard <span className={isDark ? 'text-white' : 'text-gray-900'}>Bisnis</span>
               </h1>
               <p className={`text-xs mt-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
@@ -433,7 +433,7 @@ export default function Dashboard() {
         {/* ── 1. Stat Cards — carousel ── */}
         <div>
           <SectionLabel isDark={isDark}>Statistik Utama</SectionLabel>
-          <SnapCarousel isDark={isDark} cardWidthVw={80} accentColor="#f59e0b">
+          <SnapCarousel isDark={isDark} cardWidthVw={80} accentColor={isDark ? "#f59e0b" : "#0d9488"}>
             {mainStatCards}
           </SnapCarousel>
         </div>
@@ -476,7 +476,7 @@ export default function Dashboard() {
         {/* ── 5. Wawasan Kinerja — carousel ── */}
         <div className={`p-4 rounded-2xl ${isDark
           ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
-          : 'bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-100'
+          : `bg-gradient-to-r ${isDark ? 'from-stone-900 to-stone-900' : 'from-teal-50 to-indigo-50'} border ${isDark ? 'border-stone-800' : 'border-teal-100'}`
         }`}>
           <div className="flex items-center justify-between mb-3">
             <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -521,9 +521,9 @@ export default function Dashboard() {
       {/* Grid Statistik */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Pendapatan Hari Ini" value={format(metrics.todayRevenue)} icon={DollarSign} trend={metrics.revenueChange >= 0 ? 'up' : 'down'} gradient="from-green-500 to-emerald-500" delay="100" />
-        <StatCard title="Transaksi" value={metrics.todayTransactionCount} icon={ShoppingCart} trend={metrics.transactionChange >= 0 ? 'up' : 'down'} gradient="from-amber-500 to-cyan-500" delay="200" />
+        <StatCard title="Transaksi" value={metrics.todayTransactionCount} icon={ShoppingCart} trend={metrics.transactionChange >= 0 ? 'up' : 'down'} gradient={isDark ? "from-amber-500 to-cyan-500" : "from-teal-500 to-cyan-500"} delay="200" />
         <StatCard title="Pelanggan Baru" value={metrics.newCustomers} icon={Users} trend={metrics.newCustomers > 0 ? 'up' : 'stable'} gradient="from-purple-500 to-violet-500" delay="300" />
-        <StatCard title="Rata-rata Tiket" value={format(metrics.avgTicket)} icon={TrendingUp} trend={metrics.avgTicket > 30000 ? 'up' : 'stable'} gradient="from-amber-500 to-orange-500" delay="400" />
+        <StatCard title="Rata-rata Tiket" value={format(metrics.avgTicket)} icon={TrendingUp} trend={metrics.avgTicket > 30000 ? 'up' : 'stable'} gradient={isDark ? "from-amber-500 to-orange-500" : "from-teal-500 to-emerald-500"} delay="400" />
       </div>
 
       {/* Grid Konten Utama */}
@@ -531,9 +531,9 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-6">
           <ProfitChart transactions={rawData.transactions} />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard title="Peringatan Stok" value={metrics.lowStockProducts.length} icon={AlertCircle} subtitle="item perlu perhatian" gradient="from-orange-500 to-amber-500" trend={metrics.lowStockProducts.length > 0 ? 'up' : 'stable'} trendValue={metrics.lowStockProducts.length > 0 ? 'Perhatian' : 'Aman'} />
+            <StatCard title="Peringatan Stok" value={metrics.lowStockProducts.length} icon={AlertCircle} subtitle="item perlu perhatian" gradient={isDark ? "from-orange-500 to-amber-500" : "from-orange-500 to-teal-500"} trend={metrics.lowStockProducts.length > 0 ? 'up' : 'stable'} trendValue={metrics.lowStockProducts.length > 0 ? 'Perhatian' : 'Aman'} />
             <StatCard title="Stok Habis" value={metrics.outOfStockProducts.length} icon={Package} subtitle="item tidak tersedia" gradient="from-red-500 to-pink-500" trend={metrics.outOfStockProducts.length > 0 ? 'up' : 'stable'} trendValue={metrics.outOfStockProducts.length > 0 ? 'Segera Restok' : 'Semua Tersedia'} />
-            <StatCard title="Tingkat Margin" value={`${metrics.profitMargin}%`} icon={BarChart3} subtitle="margin keuntungan" gradient="from-amber-500 to-indigo-500" trend={metrics.profitMargin > 50 ? 'up' : metrics.profitMargin > 30 ? 'stable' : 'down'} trendValue={metrics.profitMargin > 50 ? 'Tinggi' : 'Normal'} />
+            <StatCard title="Tingkat Margin" value={`${metrics.profitMargin}%`} icon={BarChart3} subtitle="margin keuntungan" gradient={isDark ? "from-amber-500 to-indigo-500" : "from-teal-500 to-indigo-500"} trend={metrics.profitMargin > 50 ? 'up' : metrics.profitMargin > 30 ? 'stable' : 'down'} trendValue={metrics.profitMargin > 50 ? 'Tinggi' : 'Normal'} />
           </div>
         </div>
         <div className="space-y-6">

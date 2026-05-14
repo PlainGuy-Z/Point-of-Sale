@@ -83,7 +83,7 @@ export default function CheckoutDetailsForm({
                   className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${orderType === type
                     ? isDark
                       ? 'bg-stone-800 text-amber-400'
-                      : 'bg-white text-amber-600 shadow-sm'
+                      : 'bg-white text-teal-700 shadow-sm'
                     : isDark
                       ? 'text-stone-400 hover:text-stone-200'
                       : 'text-stone-500 hover:text-gray-700'
@@ -107,7 +107,7 @@ export default function CheckoutDetailsForm({
               onChange={(e) => onCustomerNameChange(e.target.value)}
               placeholder="e.g., Budi Santoso"
               maxLength={50}
-              className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition ${
+              className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} transition ${
                 isDark
                   ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
                   : 'bg-white border-stone-200 text-stone-900 placeholder-stone-400'
@@ -133,7 +133,7 @@ export default function CheckoutDetailsForm({
                 onChange={(e) => onTableNumberChange(e.target.value)}
                 placeholder="e.g., 5, A1, Window-3"
                 maxLength={20}
-                className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition ${
+                className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} transition ${
                   isDark
                     ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
                     : 'bg-white border-stone-200 text-stone-900 placeholder-stone-400'
@@ -159,7 +159,7 @@ export default function CheckoutDetailsForm({
               onChange={(e) => onOrderDescriptionChange(e.target.value)}
               placeholder="e.g., 'ASAP', 'Birthday order', 'Special setup for event', etc."
               maxLength={200}
-              className={`w-full px-4 py-2.5 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 transition ${
+              className={`w-full px-4 py-2.5 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} transition ${
                 isDark
                   ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
                   : 'bg-white border-stone-200 text-stone-900 placeholder-stone-400'
@@ -178,7 +178,7 @@ export default function CheckoutDetailsForm({
             }`}
           >
             <p className="text-xs font-semibold mb-1">Order Type</p>
-            <p className={`text-sm font-bold text-amber-500`}>
+            <p className={`text-sm font-bold ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>
               {orderType === 'dine-in' ? '🪑 Dine In' : '📦 Take Away'}
             </p>
           </div>
@@ -204,7 +204,7 @@ export default function CheckoutDetailsForm({
             disabled={!isFormValid}
             className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition ${
               isFormValid
-                ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                ? isDark ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white'
                 : isDark
                 ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
                 : 'bg-stone-200 text-stone-400 cursor-not-allowed'

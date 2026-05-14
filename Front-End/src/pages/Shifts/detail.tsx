@@ -41,7 +41,7 @@ export default function ShiftDetail() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-100px)]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className={`w-12 h-12 border-4 ${isDark ? 'border-amber-500' : 'border-teal-500'} border-t-transparent rounded-full animate-spin mx-auto mb-4`} />
           <p className={isDark ? 'text-stone-400' : 'text-gray-500'}>Memuat detail shift...</p>
         </div>
       </div>
@@ -57,7 +57,9 @@ export default function ShiftDetail() {
           <p className={isDark ? 'text-stone-400' : 'text-gray-500'}>{error}</p>
           <button 
             onClick={() => navigate('/shifts')}
-            className="mt-6 px-4 py-2 bg-amber-500 text-white rounded-xl font-bold"
+            className={`mt-6 px-4 py-2 text-white rounded-xl font-bold transition-all ${
+              isDark ? 'bg-amber-500 hover:bg-amber-600' : 'bg-teal-600 hover:bg-teal-700'
+            }`}
           >
             Kembali ke Laporan
           </button>
@@ -79,7 +81,7 @@ export default function ShiftDetail() {
           className={`p-2.5 rounded-xl border transition-colors ${
             isDark 
               ? 'border-stone-800 text-stone-400 hover:bg-stone-800 hover:text-white' 
-              : 'border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+              : 'border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-teal-600'
           }`}
         >
           <ArrowLeft className="w-5 h-5" />
@@ -108,7 +110,7 @@ export default function ShiftDetail() {
         <div className="lg:col-span-1 space-y-6">
           <div className={`rounded-2xl border p-6 ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
             <h2 className={`font-bold text-lg mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              <User className="w-5 h-5 text-amber-500" />
+              <User className={`w-5 h-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
               Informasi Kasir
             </h2>
             <div className="space-y-4">
@@ -135,7 +137,7 @@ export default function ShiftDetail() {
 
           <div className={`rounded-2xl border p-6 ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
             <h2 className={`font-bold text-lg mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              <DollarSign className="w-5 h-5 text-amber-500" />
+              <DollarSign className={`w-5 h-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
               Rekonsiliasi Kas
             </h2>
             <div className="space-y-4">
@@ -189,12 +191,12 @@ export default function ShiftDetail() {
           <div className={`rounded-2xl border h-full flex flex-col ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
             <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
               <h2 className={`font-bold text-lg flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                <ReceiptText className="w-5 h-5 text-amber-500" />
+                <ReceiptText className={`w-5 h-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
                 Transaksi dalam Shift ({shift.total_transactions})
               </h2>
               <div className="text-right">
                 <p className={`text-xs font-medium uppercase tracking-wider mb-1 ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>Total Penjualan</p>
-                <p className="font-bold text-amber-500">{format(shift.total_sales || 0)}</p>
+                <p className={`font-bold ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>{format(shift.total_sales || 0)}</p>
               </div>
             </div>
             

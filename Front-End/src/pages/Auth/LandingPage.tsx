@@ -124,7 +124,7 @@ function POSMockup({ isDark }: { isDark: boolean }) {
         <div style={{ flex: 1, padding: '18px 16px', minWidth: 0, borderRight: `1px solid ${border}` }}>
 
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h2 style={{ fontSize: 18, fontWeight: 900, color: text, margin: 0, letterSpacing: '-0.01em' }}>
               Menu <span style={{ color: teal_acc }}>Explorer</span>
             </h2>

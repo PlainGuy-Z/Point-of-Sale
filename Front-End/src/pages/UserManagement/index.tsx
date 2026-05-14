@@ -260,7 +260,7 @@ function UserManagementInner() {
                                                         >
                                                             <button
                                                                 type="button"
-                                                                className={`flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold transition-colors ${isDark ? 'hover:bg-stone-900' : 'hover:bg-amber-50 text-amber-600'}`}
+                                                                className={`flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold transition-colors ${isDark ? 'hover:bg-stone-900' : 'hover:bg-teal-50 text-teal-600'}`}
                                                                 onClick={() => {
                                                                     setEditTarget(row);
                                                                     setOpenActionsId(null);
@@ -342,7 +342,7 @@ function UserManagementInner() {
                                             <button
                                                 type="button"
                                                 onClick={() => setEditTarget(row)}
-                                                className={`flex flex-1 items-center justify-center gap-2 rounded-3xl py-2 text-sm font-bold transition-colors ${isDark ? 'border border-stone-700 dark:text-white hover:bg-stone-800' : 'bg-amber-50 text-amber-600 border border-transparent hover:bg-amber-100'}`}
+                                                className={`flex flex-1 items-center justify-center gap-2 rounded-3xl py-2 text-sm font-bold transition-colors ${isDark ? 'border border-stone-700 dark:text-white hover:bg-stone-800' : 'bg-teal-50 text-teal-700 border border-transparent hover:bg-teal-100'}`}
                                             >
                                                 <Pencil className="h-4 w-4" /> Edit
                                             </button>

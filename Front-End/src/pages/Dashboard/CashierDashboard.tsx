@@ -101,12 +101,12 @@ export default function CashierDashboard() {
             <div className="space-y-6 animate-in fade-in duration-500">
                 {!shiftLoading && !activeShift && (
                     <div
-                        className={`rounded-3xl border p-4 md:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${isDark ? 'bg-amber-500/10 border-amber-500/25' : 'bg-amber-50 border-amber-200'
+                        className={`rounded-3xl border p-4 md:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${isDark ? 'bg-amber-500/10 border-amber-500/25' : 'bg-teal-50 border-teal-200'
                             }`}
                     >
                         <div>
-                            <p className={`font-bold ${isDark ? 'text-amber-200' : 'text-amber-900'}`}>Shift belum dibuka</p>
-                            <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-amber-800/90'}`}>
+                            <p className={`font-bold ${isDark ? 'text-amber-200' : 'text-teal-900'}`}>Shift belum dibuka</p>
+                            <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-teal-800/90'}`}>
                                 Buka shift untuk mencatat kas dan menggunakan POS. Anda bisa menunda — gunakan halaman Shift kapan saja.
                             </p>
                         </div>
@@ -114,14 +114,14 @@ export default function CashierDashboard() {
                             <button
                                 type="button"
                                 onClick={() => setShowOpenModal(true)}
-                                className="px-4 py-2.5 rounded-3xl font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 text-sm shadow-md"
+                                className={`px-4 py-2.5 rounded-3xl font-bold text-white bg-gradient-to-r ${isDark ? 'from-amber-500 to-orange-500' : 'from-teal-500 to-teal-600'} text-sm shadow-md transition-all active:scale-95`}
                             >
                                 Mulai shift
                             </button>
                             <button
                                 type="button"
                                 onClick={() => navigate('/cashier/shift')}
-                                className={`px-4 py-2.5 rounded-3xl font-bold text-sm border ${isDark ? 'border-stone-600 text-stone-200 hover:bg-stone-900' : 'border-amber-300 text-amber-900 hover:bg-white'
+                                className={`px-4 py-2.5 rounded-3xl font-bold text-sm border transition-all ${isDark ? 'border-stone-600 text-stone-200 hover:bg-stone-900' : 'border-teal-300 text-teal-900 hover:bg-teal-50'
                                     }`}
                             >
                                 Halaman shift
@@ -138,12 +138,12 @@ export default function CashierDashboard() {
                         <div>
                             <h1 className="text-2xl md:text-3xl font-black tracking-tight">
                                 Selamat datang,{' '}
-                                <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">{user?.name || 'Kasir'}</span>
+                                <span className={`bg-gradient-to-r ${isDark ? 'from-amber-500 to-orange-500' : 'from-teal-600 to-emerald-600'} bg-clip-text text-transparent`}>{user?.name || 'Kasir'}</span>
                             </h1>
                             <div className="flex items-center gap-3 mt-2 flex-wrap">
                                 <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>{formattedDate}</p>
                                 <span
-                                    className={`font-mono text-sm font-bold px-3 py-1 rounded-3xl ${isDark ? 'bg-stone-800 text-amber-400' : 'bg-amber-50 text-amber-700'
+                                    className={`font-mono text-sm font-bold px-3 py-1 rounded-3xl ${isDark ? 'bg-stone-800 text-amber-400' : 'bg-teal-50 text-teal-700'
                                         }`}
                                 >
                                     {formattedTime} WIB
@@ -200,8 +200,8 @@ export default function CashierDashboard() {
                             >
                                 <div className="flex items-center justify-between mb-3">
                                     <p className={`text-sm font-semibold ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>{card.title}</p>
-                                    <div className="p-2 rounded-3xl border border-amber-500/30 bg-amber-500/10">
-                                        <card.icon className="w-4 h-4 text-amber-500" />
+                                    <div className={`p-2 rounded-3xl border ${isDark ? 'border-amber-500/30 bg-amber-500/10' : 'border-teal-500/30 bg-teal-500/10'}`}>
+                                        <card.icon className={`w-4 h-4 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
                                     </div>
                                 </div>
                                 <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{card.value}</p>
@@ -218,10 +218,10 @@ export default function CashierDashboard() {
                             onClick={() => navigate('/pos')}
                             className={`flex items-center gap-4 p-4 rounded-3xl border transition-all hover:shadow-lg active:scale-[0.98] ${isDark
                                     ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20 hover:border-amber-500/40'
-                                    : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 hover:border-amber-400'
+                                    : 'bg-gradient-to-r from-teal-50 to-emerald-50 border-teal-200 hover:border-teal-400'
                                 }`}
                         >
-                            <div className="p-3 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500">
+                            <div className={`p-3 rounded-3xl bg-gradient-to-br ${isDark ? 'from-amber-500 to-orange-500' : 'from-teal-500 to-teal-600'}`}>
                                 <ShoppingCart className="w-6 h-6 text-white" />
                             </div>
                             <div className="text-left flex-1">

@@ -84,7 +84,11 @@ export default function CartItemEditPanel({
             <button
               onClick={() => handleQuantityChange(-1)}
               disabled={quantity <= 1}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-gray-700 hover:bg-amber-500 hover:text-white shadow-sm'}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                isDark 
+                  ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' 
+                  : 'bg-white text-gray-700 hover:bg-teal-500 hover:text-white shadow-sm'
+              }`}
             >
               <Minus size={16} />
             </button>
@@ -93,7 +97,11 @@ export default function CartItemEditPanel({
             </span>
             <button
               onClick={() => handleQuantityChange(1)}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-base transition-all ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-gray-700 hover:bg-amber-500 hover:text-white shadow-sm'}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-base transition-all ${
+                isDark 
+                  ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' 
+                  : 'bg-white text-gray-700 hover:bg-teal-500 hover:text-white shadow-sm'
+              }`}
             >
               <Plus size={16} />
             </button>
@@ -111,10 +119,10 @@ export default function CartItemEditPanel({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g., 'Pedas sekali', 'Tanpa bawang'"
-            className={`w-full px-4 py-3 rounded-2xl border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-all ${
+            className={`w-full px-4 py-3 rounded-2xl border text-sm resize-none focus:outline-none transition-all ${
               isDark
-                ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
-                : 'bg-white border-gray-200 text-gray-800 placeholder-stone-400'
+                ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500 focus:ring-2 focus:ring-amber-500/40'
+                : 'bg-white border-gray-200 text-gray-800 placeholder-stone-400 focus:ring-2 focus:ring-teal-500/40'
             }`}
             rows={3}
           />
@@ -132,10 +140,10 @@ export default function CartItemEditPanel({
                 value={variantName}
                 onChange={(e) => setVariantName(e.target.value)}
                 placeholder="e.g. Extra Keju"
-                className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-all ${
+                className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none transition-all ${
                   isDark
-                    ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
-                    : 'bg-white border-gray-200 text-gray-800 placeholder-stone-400'
+                    ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500 focus:ring-2 focus:ring-amber-500/40'
+                    : 'bg-white border-gray-200 text-gray-800 placeholder-stone-400 focus:ring-2 focus:ring-teal-500/40'
                 }`}
               />
             </div>
@@ -152,10 +160,10 @@ export default function CartItemEditPanel({
                   setVariantPrice(parseInt(raw) || 0);
                 }}
                 placeholder="0"
-                className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-all ${
+                className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none transition-all ${
                   isDark
-                    ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
-                    : 'bg-white border-gray-200 text-gray-800 placeholder-stone-400'
+                    ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500 focus:ring-2 focus:ring-amber-500/40'
+                    : 'bg-white border-gray-200 text-gray-800 placeholder-stone-400 focus:ring-2 focus:ring-teal-500/40'
                 }`}
               />
             </div>
@@ -170,10 +178,12 @@ export default function CartItemEditPanel({
                   key={p}
                   onClick={() => setVariantPrice(p)}
                   className={`flex-shrink-0 px-4 py-2 rounded-2xl text-[10px] font-black transition-all ${isSelected
-                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                    ? isDark 
+                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20' 
+                      : 'bg-teal-500 text-white shadow-md shadow-teal-500/20'
                     : isDark
                       ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
-                      : 'bg-gray-100 border border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700'
+                      : 'bg-gray-100 border border-gray-200 text-gray-600 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700'
                     }`}
                 >
                   +{p >= 1000 ? `${p / 1000}k` : p}
@@ -184,14 +194,14 @@ export default function CartItemEditPanel({
         </div>
 
         {/* Price Info Preview */}
-        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-amber-900/10 border-amber-800/30' : 'bg-amber-50/50 border-amber-100'}`}>
+        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-amber-900/10 border-amber-800/30' : 'bg-teal-50/50 border-teal-100'}`}>
           <div className="flex justify-between text-xs mb-1">
             <span className={isDark ? 'text-stone-400' : 'text-stone-500'}>Unit Price:</span>
             <span className={`font-bold ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>{format(item.price + variantPrice)}</span>
           </div>
           <div className="flex justify-between text-sm mt-2">
             <span className={`font-black ${isDark ? 'text-stone-300' : 'text-stone-700'}`}>Subtotal:</span>
-            <span className={`font-black text-lg ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+            <span className={`font-black text-lg ${isDark ? 'text-amber-400' : 'text-teal-600'}`}>
               {format((item.price + variantPrice) * quantity)}
             </span>
           </div>
@@ -214,7 +224,7 @@ export default function CartItemEditPanel({
 
         <button
           onClick={handleSave}
-          className="flex-1 py-3 px-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-wider text-sm transition-all shadow-lg shadow-amber-500/20"
+          className={`flex-1 py-3 px-4 rounded-2xl ${isDark ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-teal-500 hover:bg-teal-600 shadow-teal-500/20'} text-white font-black uppercase tracking-wider text-sm transition-all shadow-lg`}
         >
           Save Changes
         </button>

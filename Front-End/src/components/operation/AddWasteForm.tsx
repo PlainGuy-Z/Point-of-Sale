@@ -41,7 +41,7 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
   const inputClass = `w-full rounded-xl px-4 py-2 border outline-none transition-all ${
     isDark 
       ? 'bg-stone-950 border-stone-800 text-white focus:border-amber-500/50' 
-      : 'bg-white border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20'
+      : 'bg-white border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20'
   }`;
 
   const labelClass = `block text-sm font-medium mb-2 ${isDark ? 'text-stone-300' : 'text-gray-700'}`;

@@ -191,7 +191,7 @@ export default function VerifyEmail() {
     await sendOtp();
   };
 
-  const countdownClass = timeLeft > 30 ? 'text-amber-500' : 'text-rose-400';
+  const countdownClass = timeLeft > 30 ? (isDark ? 'text-amber-500' : 'text-teal-600') : 'text-rose-400';
   const cardBg = isDark ? 'bg-stone-900 border-stone-800 text-stone-100' : 'bg-white border-stone-200 text-stone-900';
   const subtextColor = isDark ? 'text-stone-400' : 'text-stone-500';
 
@@ -199,10 +199,10 @@ export default function VerifyEmail() {
     <div className={isDark ? 'min-h-screen flex items-center justify-center bg-stone-950 px-4' : 'min-h-screen flex items-center justify-center bg-gray-50 px-4'}>
       <div className={`max-w-md w-full mx-auto rounded-3xl border p-8 ${cardBg}`}>
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500 text-white">
+          <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl ${isDark ? 'bg-amber-500' : 'bg-teal-500'} text-white`}>
             <Coffee className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold text-stone-100">Verifikasi Email Anda</h1>
+          <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Verifikasi Email Anda</h1>
           <p className={`mt-2 text-sm ${subtextColor}`}>
             Kami mengirim kode 6 digit ke {user?.email ?? 'email Anda'}
           </p>
@@ -234,7 +234,7 @@ export default function VerifyEmail() {
                   className={
                     `w-12 h-14 rounded-2xl border text-center text-2xl font-bold outline-none transition ` +
                     `${isDark ? 'bg-stone-800 border-stone-700' : 'bg-white border-stone-300'} ` +
-                    'focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20'
+                    `${isDark ? 'focus:border-amber-500 focus:ring-amber-500/20' : 'focus:border-teal-500 focus:ring-teal-500/20'} focus:ring-2`
                   }
                 />
               ))}
@@ -259,7 +259,7 @@ export default function VerifyEmail() {
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting || otp.some((digit) => digit === '')}
-              className="mb-4 w-full rounded-3xl bg-amber-500 px-4 py-3 text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+              className={`mb-4 w-full rounded-3xl ${isDark ? 'bg-amber-500' : 'bg-teal-600'} px-4 py-3 text-white transition disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {isSubmitting ? 'Memverifikasi...' : 'Verifikasi'}
             </button>
@@ -268,7 +268,13 @@ export default function VerifyEmail() {
               type="button"
               onClick={handleResend}
               disabled={cooldown > 0 || isLoading}
-              className={`w-full rounded-3xl border px-4 py-3 text-sm font-semibold transition ${cooldown > 0 || isLoading ? 'border-stone-600 text-stone-500' : 'border-amber-500 text-amber-500 hover:bg-amber-500/10'}`}
+              className={`w-full rounded-3xl border px-4 py-3 text-sm font-semibold transition ${
+                cooldown > 0 || isLoading 
+                  ? 'border-stone-600 text-stone-500' 
+                  : isDark 
+                    ? 'border-amber-500 text-amber-500 hover:bg-amber-500/10' 
+                    : 'border-teal-600 text-teal-600 hover:bg-teal-50'
+              }`}
             >
               {cooldown > 0 ? `Kirim ulang (${cooldown}s)` : 'Kirim ulang kode'}
             </button>

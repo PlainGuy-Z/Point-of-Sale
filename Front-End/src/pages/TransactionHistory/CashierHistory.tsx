@@ -108,7 +108,7 @@ function Inner() {
             className={`w-full flex items-center justify-between p-4 md:hidden ${isDark ? 'text-stone-300' : 'text-stone-700'}`}
           >
             <div className="flex items-center gap-2">
-              <Filter size={16} className="text-amber-500" />
+              <Filter size={16} className={isDark ? 'text-amber-500' : 'text-teal-600'} />
               <span className="text-sm font-bold">Filter & Pencarian</span>
             </div>
             <ChevronDown size={16} className={`transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
@@ -121,7 +121,10 @@ function Inner() {
                 placeholder="Cari nama pelanggan atau ID transaksi"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full rounded-3xl border py-3 min-h-[44px] pl-12 pr-4 outline-none focus:ring-2 focus:ring-amber-500/40 ${isDark ? 'border-stone-800 bg-stone-950 text-white' : 'border-stone-200 bg-stone-50'
+                className={`w-full rounded-3xl border py-3 min-h-[44px] pl-12 pr-4 outline-none focus:ring-2 transition-all ${
+                  isDark 
+                    ? 'border-stone-800 bg-stone-950 text-white focus:ring-amber-500/40' 
+                    : 'border-stone-200 bg-stone-50 focus:ring-teal-500/40'
                   }`}
                 aria-label="Cari transaksi"
               />
@@ -133,7 +136,7 @@ function Inner() {
                   type="button"
                   onClick={() => setStatus(k === 'all' ? 'all' : k)}
                   className={`rounded-full px-4 py-2.5 min-h-[44px] text-xs font-black uppercase whitespace-nowrap flex-shrink-0 ${(k === 'all' ? status === 'all' : status === k)
-                      ? 'bg-amber-500 text-white'
+                      ? isDark ? 'bg-amber-500 text-white' : 'bg-teal-600 text-white'
                       : `border ${isDark ? 'border-stone-700 text-stone-300' : 'border-stone-200 text-stone-700'}`
                     }`}
                 >
@@ -144,14 +147,14 @@ function Inner() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className={`rounded-full px-4 py-2.5 min-h-[44px] text-xs font-bold ${sort === 'desc' ? 'bg-amber-500 text-white' : 'border dark:border-stone-700'}`}
+                className={`rounded-full px-4 py-2.5 min-h-[44px] text-xs font-bold transition-all ${sort === 'desc' ? (isDark ? 'bg-amber-500 text-white' : 'bg-teal-600 text-white') : 'border dark:border-stone-700'}`}
                 onClick={() => setSort('desc')}
               >
                 Terbaru
               </button>
               <button
                 type="button"
-                className={`rounded-full px-4 py-2.5 min-h-[44px] text-xs font-bold ${sort === 'asc' ? 'bg-amber-500 text-white' : 'border dark:border-stone-700'}`}
+                className={`rounded-full px-4 py-2.5 min-h-[44px] text-xs font-bold transition-all ${sort === 'asc' ? (isDark ? 'bg-amber-500 text-white' : 'bg-teal-600 text-white') : 'border dark:border-stone-700'}`}
                 onClick={() => setSort('asc')}
               >
                 Terlama
@@ -210,15 +213,19 @@ function Inner() {
                 </div>
                 <p className={`my-4 text-sm ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>{itemSummary(t)}</p>
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4 dark:border-stone-800">
-                  <span className="text-xs font-bold uppercase text-amber-500">{String(t.payment_method)}</span>
+                  <span className={`text-xs font-bold uppercase ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>{String(t.payment_method)}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-lg font-black text-amber-500">
+                    <span className={`text-lg font-black ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>
                       Rp{t.total_amount.toLocaleString('id-ID')}
                     </span>
                     <button
                       type="button"
                       onClick={() => setDetail(t)}
-                      className="rounded-3xl border border-amber-500/60 px-4 py-2.5 min-h-[44px] text-xs font-black uppercase tracking-wide hover:bg-amber-500 hover:text-white"
+                      className={`rounded-3xl border px-4 py-2.5 min-h-[44px] text-xs font-black uppercase tracking-wide transition-all ${
+                        isDark 
+                          ? 'border-amber-500/60 hover:bg-amber-500 hover:text-white' 
+                          : 'border-teal-500/60 hover:bg-teal-500 hover:text-white'
+                      }`}
                     >
                       Lihat Detail
                     </button>

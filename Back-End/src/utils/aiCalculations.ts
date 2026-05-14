@@ -43,6 +43,7 @@ export type BusinessSummary = {
   top_products_today: string;
   low_stock_count: number;
   active_shifts_count: number;
+  today_transactions: number;
 };
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -320,6 +321,11 @@ export async function getBusinessSummary(pool: Pool, shopId: string): Promise<Bu
       (NOW() AT TIME ZONE 'Asia/Jakarta')::date
       THEN grand_total ELSE 0 END) as today_revenue,
 
+    COUNT(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta')::date = 
+      (NOW() AT TIME ZONE 'Asia/Jakarta')::date
+      THEN id END) as today_transactions,
+
     SUM(CASE WHEN 
       (created_at AT TIME ZONE 'Asia/Jakarta')::date = 
       (NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1
@@ -417,5 +423,6 @@ export async function getBusinessSummary(pool: Pool, shopId: string): Promise<Bu
     top_products_today: topProductsStr || 'None yet',
     low_stock_count: Number(stockRes.rows[0]?.count || 0),
     active_shifts_count: Number(shiftsRes.rows[0]?.count || 0),
+    today_transactions: Number(rev.today_transactions || 0),
   };
 }

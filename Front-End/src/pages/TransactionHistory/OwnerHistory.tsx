@@ -193,7 +193,11 @@ function Inner() {
             <button
               type="button"
               onClick={() => void exportCsv()}
-              className={`hidden md:flex items-center gap-2 rounded-3xl border border-amber-500 px-5 py-2 text-sm font-bold shrink-0 ${dark ? 'text-amber-400' : 'text-amber-600'} hover:bg-amber-500 hover:text-white transition-all`}
+              className={`hidden md:flex items-center gap-2 rounded-3xl border px-5 py-2 text-sm font-bold shrink-0 transition-all ${
+                dark 
+                  ? 'border-amber-500 text-amber-400 hover:bg-amber-500 hover:text-white' 
+                  : 'border-teal-500 text-teal-600 hover:bg-teal-500 hover:text-white'
+              }`}
             >
               <Download className="h-4 w-4" /> Export
             </button>
@@ -225,11 +229,11 @@ function Inner() {
               ] as const
             ).map((c) => {
               const cls = `rounded-3xl border px-5 py-4 text-left shadow-sm transition min-w-[200px] flex-shrink-0 md:min-w-0 md:flex-shrink ${dark ? 'border-stone-800 bg-stone-900' : 'border-stone-200 bg-white'
-                } ${'onClick' in c && c.onClick ? 'cursor-pointer hover:border-amber-500/60' : ''} ${'amber' in c && c.amber ? 'ring-2 ring-amber-500/50' : ''}`;
+                } ${'onClick' in c && c.onClick ? (dark ? 'cursor-pointer hover:border-amber-500/60' : 'cursor-pointer hover:border-teal-500/60') : ''} ${'amber' in c && c.amber ? (dark ? 'ring-2 ring-amber-500/50' : 'ring-2 ring-teal-500/50') : ''}`;
               const inner = (
                 <>
                   <p className={`text-[10px] font-black uppercase tracking-wider ${dark ? 'text-stone-500' : 'text-stone-500'}`}>{c.k}</p>
-                  <p className="mt-2 text-xl font-black text-amber-500">{c.num ? (c.v as number).toLocaleString('id-ID') : String(c.v)}</p>
+                  <p className={`mt-2 text-xl font-black ${dark ? 'text-amber-500' : 'text-teal-600'}`}>{c.num ? (c.v as number).toLocaleString('id-ID') : String(c.v)}</p>
                 </>
               );
               if ('onClick' in c && c.onClick) {
@@ -264,7 +268,11 @@ function Inner() {
                     <p className="font-mono text-xs opacity-60">{p.id.slice(0, 8)}…</p>
                     <p className="text-sm">{p.cashier_name} • Rp{p.total_amount.toLocaleString('id-ID')}</p>
                   </div>
-                  <button type="button" onClick={() => setDetail(p)} className="rounded-3xl border border-amber-500 px-4 py-2 text-xs font-black uppercase hover:bg-amber-500 hover:text-white">
+                  <button type="button" onClick={() => setDetail(p)} className={`rounded-3xl border px-4 py-2 text-xs font-black uppercase transition-all ${
+                    dark 
+                      ? 'border-amber-500 text-amber-400 hover:bg-amber-500 hover:text-white' 
+                      : 'border-teal-500 text-teal-600 hover:bg-teal-500 hover:text-white'
+                  }`}>
                     Tinjau
                   </button>
                 </div>
@@ -283,7 +291,7 @@ function Inner() {
             className={`w-full flex items-center justify-between p-4 md:hidden ${dark ? 'text-stone-300' : 'text-stone-700'}`}
           >
             <div className="flex items-center gap-2">
-              <Filter size={16} className="text-amber-500" />
+              <Filter size={16} className={dark ? 'text-amber-500' : 'text-teal-600'} />
               <span className="text-sm font-bold">Filter & Pencarian</span>
             </div>
             <ChevronDown size={16} className={`transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
@@ -317,7 +325,11 @@ function Inner() {
                 placeholder="Pelanggan atau ID transaksi"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full rounded-3xl border py-3 min-h-[44px] pl-12 pr-4 outline-none focus:ring-2 focus:ring-amber-500/40 ${dark ? 'border-stone-800 bg-stone-950' : 'border-stone-200 bg-stone-50'}`}
+                className={`w-full rounded-3xl border py-3 min-h-[44px] pl-12 pr-4 outline-none focus:ring-2 transition-all ${
+                  dark 
+                    ? 'border-stone-800 bg-stone-950 focus:ring-amber-500/40' 
+                    : 'border-stone-200 bg-stone-50 focus:ring-teal-500/40'
+                }`}
               />
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -326,8 +338,8 @@ function Inner() {
                   key={k}
                   type="button"
                   onClick={() => setStatus(k === 'all' ? 'all' : k)}
-                  className={`rounded-full border px-4 py-2.5 min-h-[44px] text-xs font-black uppercase whitespace-nowrap flex-shrink-0 ${k === 'all' ? status === 'all' : status === k
-                      ? 'border-amber-500 bg-amber-500 text-white'
+                  className={`rounded-full border px-4 py-2.5 min-h-[44px] text-xs font-black uppercase whitespace-nowrap flex-shrink-0 transition-all ${k === 'all' ? status === 'all' : status === k
+                      ? dark ? 'border-amber-500 bg-amber-500 text-white' : 'border-teal-600 bg-teal-600 text-white'
                       : dark
                         ? 'border-stone-700 text-stone-300'
                         : 'border-stone-200 text-stone-700'
@@ -349,7 +361,11 @@ function Inner() {
                 <option value="card">Card</option>
                 <option value="transfer">Transfer</option>
               </select>
-              <button type="button" onClick={() => void exportCsv()} className={`md:hidden ml-auto rounded-3xl border border-amber-500 px-5 py-2.5 min-h-[44px] text-sm font-bold ${dark ? 'text-amber-400' : 'text-amber-600'} hover:bg-amber-500 hover:text-white`}>
+              <button type="button" onClick={() => void exportCsv()} className={`md:hidden ml-auto rounded-3xl border px-5 py-2.5 min-h-[44px] text-sm font-bold transition-all ${
+                dark 
+                  ? 'border-amber-500 text-amber-400 hover:bg-amber-500 hover:text-white' 
+                  : 'border-teal-500 text-teal-600 hover:bg-teal-500 hover:text-white'
+              }`}>
                 <Download className="mr-1.5 inline h-4 w-4 -translate-y-px" /> Export
               </button>
             </div>
@@ -398,12 +414,12 @@ function Inner() {
                       <td className="max-w-[120px] truncate px-5 py-3">{t.customer_name || 'Umum'}</td>
                       <td className="max-w-[200px] truncate px-5 py-3 text-xs opacity-90">{itemSummary(t)}</td>
                       <td className="px-5 py-3 text-xs font-bold">{String(t.payment_method)}</td>
-                      <td className="px-5 py-3 text-right font-mono font-bold text-amber-500">Rp{t.total_amount.toLocaleString('id-ID')}</td>
+                      <td className={`px-5 py-3 text-right font-mono font-bold ${dark ? 'text-amber-500' : 'text-teal-600'}`}>Rp{t.total_amount.toLocaleString('id-ID')}</td>
                       <td className="px-5 py-3">
                         <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black ${statusChip(t.status, dark)}`}>{statusLabel(t.status)}</span>
                       </td>
                       <td className="px-5 py-3">
-                        <button type="button" onClick={() => setDetail(t)} className="text-xs font-black uppercase text-amber-600">
+                        <button type="button" onClick={() => setDetail(t)} className={`text-xs font-black uppercase ${dark ? 'text-amber-400' : 'text-teal-600'}`}>
                           Detail
                         </button>
                       </td>
@@ -432,7 +448,7 @@ function Inner() {
                   <p className="my-3 text-xs opacity-80">{itemSummary(t)}</p>
                   <div className={`flex items-center justify-between border-t pt-3 ${dark ? 'border-stone-800' : 'border-stone-200'}`}>
                     <span className="text-xs font-bold">{String(t.payment_method)}</span>
-                    <span className="font-mono font-black text-amber-500">Rp{t.total_amount.toLocaleString('id-ID')}</span>
+                    <span className={`font-mono font-black ${dark ? 'text-amber-500' : 'text-teal-600'}`}>Rp{t.total_amount.toLocaleString('id-ID')}</span>
                   </div>
                 </button>
               ))}

@@ -107,7 +107,7 @@ export default function AIAssistant() {
       {/* Header Context Snapshot */}
       <div className={`px-6 py-4 flex items-center justify-between border-b ${isDark ? 'border-stone-800' : 'border-gray-100'}`}>
         <div className="flex items-center gap-2">
-          <Bot className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+          <Bot className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-teal-600'}`} />
           <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Smart Assistant</h2>
         </div>
         {contextSnapshot && (
@@ -130,8 +130,8 @@ export default function AIAssistant() {
       >
         {history.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center space-y-6">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDark ? 'bg-stone-800' : 'bg-amber-50'}`}>
-              <MessageSquare className={`w-8 h-8 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDark ? 'bg-stone-800' : 'bg-teal-50'}`}>
+              <MessageSquare className={`w-8 h-8 ${isDark ? 'text-amber-400' : 'text-teal-600'}`} />
             </div>
             <div className="text-center">
               <h3 className={`font-bold text-lg mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Mulai Percakapan</h3>
@@ -145,7 +145,7 @@ export default function AIAssistant() {
                   className={`text-sm px-4 py-2 rounded-full border transition-colors ${
                     isDark 
                       ? 'border-stone-700 bg-stone-800 text-stone-300 hover:bg-stone-700 hover:text-white' 
-                      : 'border-gray-200 bg-white text-gray-700 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:bg-teal-50 hover:border-teal-200 hover:text-teal-700'
                   }`}
                 >
                   {q}
@@ -159,14 +159,14 @@ export default function AIAssistant() {
               <div className={`flex gap-3 max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center ${
                   msg.role === 'user' 
-                    ? (isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-600')
+                    ? (isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-teal-100 text-teal-600')
                     : (isDark ? 'bg-stone-800 text-stone-400' : 'bg-gray-100 text-gray-500')
                 }`}>
                   {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                 </div>
                 <div className={`p-4 rounded-2xl text-sm overflow-x-auto ${
                   msg.role === 'user'
-                    ? (isDark ? 'bg-amber-500/10 text-amber-50 border border-amber-500/20' : 'bg-amber-50 text-amber-900 border border-amber-100')
+                    ? (isDark ? 'bg-amber-500/10 text-amber-50 border border-amber-500/20' : 'bg-teal-50 text-teal-900 border border-teal-100')
                     : (isDark ? 'bg-stone-800 text-stone-200' : 'bg-gray-50 text-gray-800 border border-gray-100')
                 } ${msg.role === 'user' ? 'whitespace-pre-wrap' : 'prose prose-sm max-w-none ' + (isDark ? 'prose-invert' : '')}`}>
                   {msg.role === 'model' ? (
@@ -243,7 +243,7 @@ export default function AIAssistant() {
           className={`absolute bottom-24 right-6 p-3 rounded-full shadow-lg transition-all transform hover:scale-105 z-10 flex items-center justify-center ${
             isDark 
               ? 'bg-stone-800 text-amber-400 border border-stone-700 hover:bg-stone-700' 
-              : 'bg-white text-amber-600 border border-gray-200 hover:bg-gray-50'
+              : 'bg-white text-teal-600 border border-gray-200 hover:bg-gray-50'
           }`}
           title="Scroll to bottom"
         >
@@ -261,10 +261,10 @@ export default function AIAssistant() {
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             placeholder="Tanya asisten AI..."
-            className={`w-full pl-4 pr-12 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-shadow ${
+            className={`w-full pl-4 pr-12 py-3 rounded-xl border focus:outline-none transition-shadow ${
               isDark 
-                ? 'bg-stone-800 border-stone-700 text-white placeholder-stone-500' 
-                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'
+                ? 'bg-stone-800 border-stone-700 text-white placeholder-stone-500 focus:ring-2 focus:ring-amber-500/50' 
+                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500/50'
             } disabled:opacity-50`}
           />
           <button
@@ -273,7 +273,7 @@ export default function AIAssistant() {
             className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
               !inputValue.trim() || isLoading
                 ? isDark ? 'text-stone-600' : 'text-gray-300'
-                : isDark ? 'text-amber-400 hover:bg-stone-700' : 'text-amber-600 hover:bg-amber-50'
+                : isDark ? 'text-amber-400 hover:bg-stone-700' : 'text-teal-600 hover:bg-teal-50'
             }`}
           >
             <Send className="w-5 h-5" />

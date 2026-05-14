@@ -76,13 +76,13 @@ export default function CashierSettings() {
     }
   };
 
-  const inputClass = `w-full px-4 py-3 pl-11 pr-11 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+  const inputClass = `w-full px-4 py-3 pl-11 pr-11 rounded-xl border outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} focus:border-transparent transition-all ${
     isDark
       ? 'bg-stone-950 border-stone-800 text-white placeholder-stone-600'
       : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
   }`;
 
-  const pinInputClass = `w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all ${
+  const pinInputClass = `w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} focus:border-transparent transition-all ${
     isDark ? 'bg-stone-950 border-stone-800 text-white placeholder-stone-600' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
   }`;
 
@@ -171,7 +171,7 @@ export default function CashierSettings() {
       <div className={`rounded-2xl border shadow-lg ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
         <div className={`p-6 border-b ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
           <h2 className={`flex items-center gap-2 font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            <User className="w-5 h-5 text-amber-500" />
+            <User className={`w-5 h-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
             Profil Saya
           </h2>
           <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-gray-500'}`}>
@@ -183,7 +183,7 @@ export default function CashierSettings() {
           <div className="flex items-center gap-5 mb-6">
             {/* Avatar */}
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black uppercase ${
-              isDark ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-amber-50 text-amber-600 border border-amber-200'
+              isDark ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-teal-50 text-teal-700 border border-teal-200'
             }`}>
               {user?.name?.[0] || 'U'}
             </div>
@@ -216,7 +216,9 @@ export default function CashierSettings() {
                 <Shield className={`w-4 h-4 ${isDark ? 'text-stone-500' : 'text-gray-400'}`} />
                 <span className={`text-xs font-medium uppercase tracking-wider ${isDark ? 'text-stone-500' : 'text-gray-400'}`}>Role</span>
               </div>
-              <p className={`font-semibold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>Kasir</p>
+              <p className={`font-semibold ${isDark ? 'text-amber-400' : 'text-teal-700'}`}>
+                {user?.role === 'owner' ? 'Owner' : 'Kasir'}
+              </p>
             </div>
             {/* Toko */}
             <div className={`p-4 rounded-xl border ${isDark ? 'bg-stone-950 border-stone-800' : 'bg-gray-50 border-gray-200'}`}>
@@ -234,7 +236,7 @@ export default function CashierSettings() {
       <div className={`rounded-2xl border shadow-lg ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
         <div className={`p-6 border-b ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
           <h2 className={`flex items-center gap-2 font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            <KeyRound className="w-5 h-5 text-amber-500" />
+            <KeyRound className={`w-5 h-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
             PIN Aplikasi Kasir
           </h2>
           <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-gray-500'}`}>
@@ -263,7 +265,13 @@ export default function CashierSettings() {
                       type="button"
                       disabled={pinLoading}
                       onClick={() => setShowPinForm(true)}
-                      className="rounded-3xl bg-amber-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600 disabled:opacity-60"
+                      className={`rounded-3xl px-5 py-3 text-sm font-bold text-white shadow-lg transition-all ${
+                        pinLoading
+                          ? 'bg-stone-400'
+                          : isDark
+                          ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20'
+                          : 'bg-teal-600 hover:bg-teal-700 shadow-teal-600/20'
+                      }`}
                     >
                       Ubah PIN
                     </button>
@@ -282,7 +290,11 @@ export default function CashierSettings() {
                     type="button"
                     disabled={pinLoading}
                     onClick={() => setShowPinForm(true)}
-                    className="rounded-3xl bg-amber-500 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-amber-600 disabled:opacity-60"
+                    className={`rounded-3xl px-5 py-3 text-sm font-bold text-white shadow-lg transition-all ${
+                      isDark
+                        ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20'
+                        : 'bg-teal-600 hover:bg-teal-700 shadow-teal-600/20'
+                    }`}
                   >
                     Buat PIN
                   </button>
@@ -342,8 +354,8 @@ export default function CashierSettings() {
                 <button
                   type="submit"
                   disabled={pinLoading}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-3xl py-3 text-sm font-bold text-white shadow-lg disabled:opacity-60 ${
-                    pinLoading ? 'bg-stone-400' : 'bg-amber-500 hover:bg-amber-600'
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-3xl py-3 text-sm font-bold text-white shadow-lg disabled:opacity-60 transition-all ${
+                    pinLoading ? 'bg-stone-400' : (isDark ? 'bg-amber-500 hover:bg-amber-600' : 'bg-teal-600 hover:bg-teal-700')
                   }`}
                 >
                   {pinLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan PIN
@@ -358,7 +370,7 @@ export default function CashierSettings() {
       <div className={`rounded-2xl border shadow-lg ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
         <div className={`p-6 border-b ${isDark ? 'border-stone-800' : 'border-gray-200'}`}>
           <h2 className={`flex items-center gap-2 font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            <Lock className="w-5 h-5 text-amber-500" />
+            <Lock className={`w-5 h-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
             Ubah Password
           </h2>
           <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-gray-500'}`}>
@@ -448,7 +460,9 @@ export default function CashierSettings() {
             className={`w-full flex items-center justify-center gap-3 px-8 py-3 rounded-xl font-semibold shadow-lg transition-all active:scale-95 ${
               isSubmitting
                 ? (isDark ? 'bg-stone-800 text-stone-500 cursor-not-allowed' : 'bg-gray-200 text-gray-400 cursor-not-allowed')
-                : 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20 hover:shadow-xl'
+                : isDark 
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20 hover:shadow-xl'
+                  : 'bg-teal-600 hover:bg-teal-700 text-white shadow-teal-600/20 hover:shadow-xl'
             }`}
           >
             {isSubmitting ? (

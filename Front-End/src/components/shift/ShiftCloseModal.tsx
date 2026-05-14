@@ -116,9 +116,9 @@ export default function ShiftCloseModal({ onClose }: ShiftCloseModalProps) {
                 <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Total Penjualan</p>
                 <p className={`font-bold text-emerald-600`}>{format(activeShift.current_total_sales || 0)}</p>
               </div>
-              <div className={`p-4 rounded-xl border ${isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
-                <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-amber-500/70' : 'text-amber-700/70'}`}>Kas Seharusnya</p>
-                <p className={`font-black ${isDark ? 'text-amber-500' : 'text-amber-700'}`}>{format(expectedCash)}</p>
+              <div className={`p-4 rounded-xl border ${isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-teal-50 border-teal-200'}`}>
+                <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-amber-500/70' : 'text-teal-700/70'}`}>Kas Seharusnya</p>
+                <p className={`font-black ${isDark ? 'text-amber-500' : 'text-teal-700'}`}>{format(expectedCash)}</p>
               </div>
             </div>
 
@@ -168,7 +168,7 @@ export default function ShiftCloseModal({ onClose }: ShiftCloseModalProps) {
 
               {/* Warning if selisih */}
               {closingCash && selisih !== 0 && (
-                <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-yellow-500/10 text-yellow-500' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-yellow-500/10 text-yellow-500' : 'bg-teal-50 text-teal-700 border border-teal-200'}`}>
                   <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                   <p className="text-sm font-medium">
                     Terdapat selisih kas. Pastikan uang dihitung dengan benar atau tambahkan catatan jika memang ada selisih.

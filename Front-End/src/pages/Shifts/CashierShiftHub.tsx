@@ -40,7 +40,7 @@ export default function CashierShiftHub() {
         </button>
         <div>
           <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Shift & <span className="text-amber-500">Rekonsiliasi</span>
+            Shift & <span className={isDark ? 'text-amber-500' : 'text-teal-600'}>Rekonsiliasi</span>
           </h1>
           <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
             Mulai shift, pantau penjualan, dan tutup shift dengan hitung kas akhir
@@ -50,6 +50,11 @@ export default function CashierShiftHub() {
 
       {isLoading ? (
         <div className={`rounded-2xl border p-12 text-center ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'}`}>
+          <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-lg transition-all mb-4 ${
+            isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-teal-50 border-teal-100 shadow-teal-500/10'
+          }`}>
+            <Coffee className={`w-8 h-8 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
+          </div>
           <p className={isDark ? 'text-stone-400' : 'text-gray-500'}>Memuat status shift…</p>
         </div>
       ) : !activeShift ? (
@@ -59,8 +64,8 @@ export default function CashierShiftHub() {
           }`}
         >
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-2xl bg-amber-500/15">
-              <Unlock className="w-8 h-8 text-amber-500" />
+            <div className={`p-3 rounded-2xl ${isDark ? 'bg-amber-500/15' : 'bg-teal-500/15'}`}>
+              <Unlock className={`w-8 h-8 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
             </div>
             <div className="flex-1 space-y-2">
               <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Belum ada shift aktif</h2>
@@ -70,7 +75,11 @@ export default function CashierShiftHub() {
               <button
                 type="button"
                 onClick={() => setOpenModal(true)}
-                className="mt-2 px-6 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20 hover:opacity-95 active:scale-[0.98]"
+                className={`mt-2 px-6 py-3 rounded-2xl font-bold text-white bg-gradient-to-r transition-all active:scale-[0.98] ${
+                  isDark 
+                    ? 'from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20' 
+                    : 'from-teal-500 to-teal-600 shadow-lg shadow-teal-500/20'
+                  }`}
               >
                 Mulai shift sekarang
               </button>
@@ -79,15 +88,15 @@ export default function CashierShiftHub() {
 
           <div className={`grid sm:grid-cols-3 gap-3 text-sm ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>
             <div className={`flex items-center gap-2 p-3 rounded-xl ${isDark ? 'bg-stone-950/50' : 'bg-gray-50'}`}>
-              <Wallet className="w-4 h-4 text-amber-500 shrink-0" />
+              <Wallet className={`w-4 h-4 shrink-0 ${isDark ? 'text-amber-500' : 'text-teal-500'}`} />
               <span>Catat uang di laci saat buka</span>
             </div>
             <div className={`flex items-center gap-2 p-3 rounded-xl ${isDark ? 'bg-stone-950/50' : 'bg-gray-50'}`}>
-              <Receipt className="w-4 h-4 text-amber-500 shrink-0" />
+              <Receipt className={`w-4 h-4 shrink-0 ${isDark ? 'text-amber-500' : 'text-teal-500'}`} />
               <span>Transaksi tercatat per shift</span>
             </div>
             <div className={`flex items-center gap-2 p-3 rounded-xl ${isDark ? 'bg-stone-950/50' : 'bg-gray-50'}`}>
-              <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+              <Lock className={`w-4 h-4 shrink-0 ${isDark ? 'text-amber-500' : 'text-teal-500'}`} />
               <span>Tutup shift dengan rekonsiliasi</span>
             </div>
           </div>
@@ -126,7 +135,7 @@ export default function CashierShiftHub() {
               </div>
               <div className={`p-4 rounded-2xl border ${isDark ? 'border-stone-800 bg-stone-950/40' : 'border-gray-100 bg-gray-50'}`}>
                 <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>Penjualan (shift)</p>
-                <p className={`text-xl font-black text-amber-500`}>{format(activeShift.current_total_sales ?? 0)}</p>
+                <p className={`text-xl font-black ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>{format(activeShift.current_total_sales ?? 0)}</p>
               </div>
               <div className={`p-4 rounded-2xl border ${isDark ? 'border-stone-800 bg-stone-950/40' : 'border-gray-100 bg-gray-50'}`}>
                 <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>Jumlah transaksi</p>
@@ -149,7 +158,9 @@ export default function CashierShiftHub() {
               <button
                 type="button"
                 onClick={() => navigate('/pos')}
-                className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 shadow-md hover:opacity-95"
+                className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-white shadow-md hover:opacity-95 bg-gradient-to-r ${
+                  isDark ? 'from-amber-500 to-orange-500' : 'from-teal-500 to-teal-600'
+                }`}
               >
                 <TrendingUp className="w-4 h-4" />
                 Ke POS
