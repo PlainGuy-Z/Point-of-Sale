@@ -249,7 +249,7 @@ export default function BusinessInsights() {
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 px-4 pb-8 overflow-y-auto no-scrollbar">
+        <div className="flex-1 px-4 pb-8 overflow-y-auto no-scrollbar flex flex-col">
 
           {/* ── METRICS TAB ── */}
           {activeTab === 'metrics' && (
@@ -278,7 +278,7 @@ export default function BusinessInsights() {
 
           {/* ── AI TAB ── */}
           {activeTab === 'ai' && (
-            <div className={`flex flex-col ${isMobile && window.innerWidth > window.innerHeight ? 'h-[calc(100vh-140px)]' : 'h-[calc(100vh-220px)]'}`}>
+            <div className="flex-1 flex flex-col min-h-[400px]">
               <AIChatPanel />
             </div>
           )}

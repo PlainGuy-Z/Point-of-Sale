@@ -144,7 +144,7 @@ export default function MobileCart({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center rounded-full ${isDark ? 'bg-amber-500' : 'bg-teal-500'} px-3 py-2 text-[11px] font-black uppercase text-white shadow-sm`}>
+            <span className="inline-flex items-center rounded-full bg-teal-500 px-3 py-2 text-[11px] font-black uppercase text-white shadow-sm">
               Buka
             </span>
             <ChevronUp size={18} className={isDark ? 'text-stone-200' : 'text-gray-600'} />
@@ -411,7 +411,7 @@ export default function MobileCart({
                   disabled={!canPay}
                   className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-black uppercase tracking-wide transition-all active:scale-[0.97] ${
                     canPay
-                      ? isDark ? 'bg-[#f59e0b] text-white shadow-lg shadow-amber-500/20 hover:opacity-95' : 'bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:opacity-95'
+                      ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:bg-teal-600'
                       : isDark
                         ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
