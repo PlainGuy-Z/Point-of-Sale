@@ -93,7 +93,7 @@ function PanelCarousel({ waste, summary, onRetry, isDark }: PanelCarouselProps) 
         {panels.map((panel) => (
           <div
             key={panel.key}
-            className="snap-start shrink-0 w-[85vw]"
+            className="snap-start shrink-0 w-[85vw] landscape:w-[45vw]"
           >
             {panel.content}
           </div>
@@ -255,7 +255,7 @@ export default function BusinessInsights() {
               {/* StatCards — snap carousel handled inside the component */}
               {summary.error
                 ? <ErrorBlock onRetry={fetchAll} isDark={isDark} />
-                : <StatCards summary={summary.data} isLoading={summary.loading} />
+                : <StatCards summary={summary.data} isLoading={summary.loading} isMobile={isMobile} />
               }
 
               {/* Revenue chart — full width */}
@@ -302,7 +302,7 @@ export default function BusinessInsights() {
         <div className="flex-[0_0_65%] overflow-y-auto pr-1 no-scrollbar space-y-6">
           {summary.error
             ? <ErrorBlock onRetry={fetchAll} isDark={isDark} />
-            : <StatCards summary={summary.data} isLoading={summary.loading} />
+            : <StatCards summary={summary.data} isLoading={summary.loading} isMobile={isMobile} />
           }
           {forecast.error
             ? <ErrorBlock onRetry={fetchAll} isDark={isDark} />

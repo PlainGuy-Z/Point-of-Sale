@@ -6,6 +6,7 @@ import type { SummaryResponse } from '../../../services/aiApi';
 interface StatCardsProps {
   summary: SummaryResponse | null;
   isLoading: boolean;
+  isMobile?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ function SkeletonCard({ isDark, isMobile }: { isDark: boolean; isMobile: boolean
     <div
       className={`rounded-2xl border p-5 min-h-[140px] animate-pulse transition-all ${
         isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-[#E2E8F0]'
-      } ${isMobile ? 'w-[75vw] shrink-0 snap-start' : ''}`}
+      } ${isMobile ? 'w-[75vw] landscape:w-[40vw] lg:w-auto shrink-0 snap-start' : ''}`}
     >
       <div className={`h-3 w-24 rounded-full mb-3 ${isDark ? 'bg-stone-800' : 'bg-stone-100'}`} />
       <div className={`h-8 w-40 rounded-xl mb-4 ${isDark ? 'bg-stone-800' : 'bg-stone-100'}`} />
@@ -84,7 +85,7 @@ function StatCard({
         relative rounded-2xl border p-5 transition-all duration-300 overflow-hidden group
         ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-[#E2E8F0] shadow-sm hover:shadow-md hover:border-teal-400'}
         ${card.highlight && !isDark ? 'border-t-2 border-t-teal-500' : ''}
-        ${isMobile ? 'w-[75vw] shrink-0 snap-start' : ''}
+        ${isMobile ? 'w-[75vw] landscape:w-[40vw] lg:w-auto shrink-0 snap-start' : ''}
       `}
     >
       <div className="flex items-center justify-between mb-3">
@@ -125,14 +126,23 @@ function StatCard({
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-export default function StatCards({ summary, isLoading }: StatCardsProps) {
+export default function StatCards({ summary, isLoading, isMobile: isMobileProp }: StatCardsProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Simple mobile detection inside component
-  const [isMobile] = React.useState(
+  // Use prop if provided, otherwise detect and listen for changes
+  const [isMobileState, setIsMobileState] = React.useState(
     typeof window !== 'undefined' ? window.innerWidth < 1024 : false
   );
+
+  React.useEffect(() => {
+    if (isMobileProp !== undefined) return;
+    const handler = () => setIsMobileState(window.innerWidth < 1024);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, [isMobileProp]);
+
+  const isMobile = isMobileProp !== undefined ? isMobileProp : isMobileState;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
