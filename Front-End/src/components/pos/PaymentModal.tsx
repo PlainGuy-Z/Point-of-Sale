@@ -300,19 +300,19 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
           {method === 'cash' && (
             <div className="flex flex-col justify-end gap-3 sm:gap-4 landscape:gap-1 mt-2 landscape:mt-0">
               {/* Keypad */}
-              <div className="grid grid-cols-3 gap-2 landscape:gap-1">
+              <div className="grid grid-cols-3 gap-3 landscape:gap-2">
                 {keypadButtons.map((btn) => (
                   <button 
                     key={btn} 
                     onClick={() => handleKeypadInput(btn)} 
-                    className={`py-3 sm:py-4 landscape:py-2 rounded-xl text-base sm:text-lg landscape:text-sm font-bold border ${isDark ? 'bg-stone-950 border-stone-800 text-white active:bg-[#1a1614]' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC] active:bg-stone-50'} active:scale-[0.99] transition-all`}
+                    className={`py-4 sm:py-5 landscape:py-3 rounded-xl text-lg sm:text-xl landscape:text-base font-bold border ${isDark ? 'bg-stone-950 border-stone-800 text-white active:bg-[#1a1614]' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC] active:bg-stone-50'} active:scale-[0.99] transition-all shadow-sm`}
                   >
                     {btn}
                   </button>
                 ))}
                 <button 
                   onClick={handleClear}
-                  className="col-span-3 py-3 sm:py-4 landscape:py-2 rounded-xl text-sm landscape:text-xs font-bold border border-red-200 bg-red-50 text-red-600 dark:bg-red-900/20 dark:border-red-800"
+                  className="col-span-3 py-4 sm:py-5 landscape:py-3 rounded-xl text-base landscape:text-sm font-bold border border-red-200 bg-red-50 text-red-600 dark:bg-red-900/20 dark:border-red-800 shadow-sm"
                 >
                   CLEAR (C)
                 </button>
