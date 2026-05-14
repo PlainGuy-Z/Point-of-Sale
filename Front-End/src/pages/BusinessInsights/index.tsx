@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, AlertCircle, BarChart3, LayoutDashboard, Bot, TrendingUp, ChevronLeft, ChevronRight, Maximize, Minimize } from 'lucide-react';
+import { RefreshCw, AlertCircle, BarChart3, LayoutDashboard, Bot, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { aiApi } from '../../services/aiApi';
 import type { ForecastResponse, WasteResponse, SummaryResponse } from '../../services/aiApi';
@@ -175,19 +175,6 @@ export default function BusinessInsights() {
   const bgClass = isDark ? 'bg-[#0a0908]' : 'bg-[#F8FAFC]';
 
   // ─── Header ──────────────────────────────────────────────────────────────
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    }
-  };
-
   const renderHeader = () => (
     <div className={`flex justify-between items-center mb-4 md:mb-6 px-4 py-3 md:px-5 md:py-4 rounded-2xl border ${
       isDark ? 'border-stone-800 bg-stone-900' : 'border-[#E2E8F0] bg-white shadow-sm'
@@ -206,15 +193,6 @@ export default function BusinessInsights() {
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <button
-          onClick={toggleFullscreen}
-          className={`flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-xl border transition-all ${
-            isDark ? 'border-stone-800 bg-stone-800 text-stone-300 hover:bg-stone-700' : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
-          }`}
-          title="Toggle Fullscreen"
-        >
-          {isFullscreen ? <Minimize size={isMobile ? 14 : 18} /> : <Maximize size={isMobile ? 14 : 18} />}
-        </button>
         <button
           onClick={() => fetchAll()}
           className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-bold border transition-all ${

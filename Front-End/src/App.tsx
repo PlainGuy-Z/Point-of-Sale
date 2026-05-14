@@ -5,6 +5,7 @@ import Layout from './components/Layout/Layout';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import PWAInstallBanner from './components/common/PWAInstallBanner';
+import FullscreenManager from './components/common/FullscreenManager';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AIProvider } from './contexts/AIContext';
 import { AppProvider } from './contexts/AppContext';
@@ -272,6 +273,7 @@ function App() {
       <AuthProvider>
         <AIProvider>
           <PWAInstallBanner />
+          <FullscreenManager />
           <Router>
             <AppRoutes />
           </Router>

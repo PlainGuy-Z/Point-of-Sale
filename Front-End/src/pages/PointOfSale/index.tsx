@@ -4,7 +4,7 @@ import {
   Search, ShoppingCart, Trash2, User, Plus, PlusCircle,
   Flame, Trophy, TrendingUp, Zap, ChevronRight,
   Package, CreditCard, ReceiptText, Pencil, Hash,
-  MessageSquare, ArrowLeft, ChevronUp, X, Maximize, Minimize
+  MessageSquare, ArrowLeft, ChevronUp, X
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -144,19 +144,6 @@ interface SwipeState {
 }
 
 export default function PointOfSale() {
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    }
-  };
-
   const createManualItemId = () =>
     typeof crypto !== 'undefined' && crypto.randomUUID
       ? `manual-${crypto.randomUUID()}`
@@ -1322,15 +1309,6 @@ export default function PointOfSale() {
                   Menu <span className="text-amber-500">Explorer</span>
                 </h1>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleFullscreen}
-                    className={`flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-2xl border transition-all ${
-                      isDark ? 'border-stone-800 bg-stone-900 text-stone-300 hover:bg-stone-800' : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
-                    }`}
-                    title="Toggle Fullscreen"
-                  >
-                    {isFullscreen ? <Minimize size={isMobile ? 14 : 18} /> : <Maximize size={isMobile ? 14 : 18} />}
-                  </button>
                   <button
                     onClick={() => setPanel('manual')}
                     className={`flex items-center justify-center gap-2 px-3 h-9 md:h-11 rounded-2xl border transition-all ${
