@@ -204,7 +204,7 @@ export default function CheckoutDetailsForm({
             disabled={!isFormValid}
             className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition ${
               isFormValid
-                ? isDark ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white'
+                ? 'bg-teal-500 hover:bg-teal-600 text-white shadow-md shadow-teal-500/10'
                 : isDark
                 ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
                 : 'bg-stone-200 text-[#94A3B8] cursor-not-allowed'

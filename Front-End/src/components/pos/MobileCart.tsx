@@ -227,7 +227,7 @@ export default function MobileCart({
                 <div className="space-y-2">
                   {/* Swipe hint */}
                   {revealedIndex === null && (
-                    <p className={`text-center text-[10px] font-medium pb-0.5 ${isDark ? 'text-stone-700' : 'text-stone-300'}`}>
+                    <p className={`text-center text-[10px] font-bold pb-0.5 ${isDark ? 'text-stone-700' : 'text-red-500'}`}>
                       ← geser kiri hapus · tap untuk edit
                     </p>
                   )}
@@ -383,7 +383,7 @@ export default function MobileCart({
             <div className={`flex-shrink-0 border-t px-4 py-4 ${isDark ? 'border-stone-800/70 bg-stone-950' : 'border-gray-200 bg-white'}`}>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className={`text-[11px] uppercase tracking-[0.24em] ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Total pesanan</p>
+                  <p className={`text-[11px] uppercase tracking-[0.24em] ${isDark ? 'text-stone-500' : 'text-stone-600 font-bold'}`}>Total pesanan</p>
                   <p className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{format(quote.grandTotal)}</p>
                 </div>
                 <div className={`rounded-3xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] shadow-sm ${isDark ? 'bg-stone-900 text-amber-400 shadow-amber-500/10' : 'bg-teal-50 text-teal-600 shadow-teal-500/5'}`}>

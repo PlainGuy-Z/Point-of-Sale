@@ -816,7 +816,7 @@ export default function PointOfSale() {
                   onClick={() => setPanel('manual')}
                   className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-bold border border-dashed transition-all active:scale-[0.98] ${isDark
                     ? 'border-stone-800 text-stone-500 hover:border-amber-500/50 hover:text-amber-400'
-                    : 'border-gray-200 text-[#94A3B8] hover:border-amber-300 hover:text-amber-600'
+                    : 'border-[#CBD5E1] text-[#0F172A] hover:border-teal-500 hover:text-teal-700 shadow-sm'
                     }`}
                 >
                   <PlusCircle size={13} /> Tambah Item Manual
@@ -824,7 +824,7 @@ export default function PointOfSale() {
 
                 {/* Swipe hint */}
                 {isMobile && cart.length > 0 && revealedDeleteIndex === null && (
-                  <p className={`text-center text-[10px] font-medium pb-0.5 ${isDark ? 'text-stone-700' : 'text-[#E2E8F0]'}`}>
+                  <p className={`text-center text-[10px] font-bold pb-0.5 ${isDark ? 'text-stone-700' : 'text-red-500'}`}>
                     ← geser untuk hapus
                   </p>
                 )}
@@ -839,12 +839,12 @@ export default function PointOfSale() {
             {!cartIsEmpty && (
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>Subtotal</span>
-                  <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#475569]'}`}>{format(quote.subtotal)}</span>
+                  <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>Subtotal</span>
+                  <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(quote.subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
+                    <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
                       Pajak ({quote.taxRate || 0}%)
                     </span>
                     <button
@@ -854,16 +854,16 @@ export default function PointOfSale() {
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
                     </button>
                   </div>
-                  <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-[#475569]') : (isDark ? 'text-stone-700 line-through' : 'text-[#CBD5E1] line-through')}`}>
+                  <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-[#0F172A]') : (isDark ? 'text-stone-700 line-through' : 'text-[#CBD5E1] line-through')}`}>
                     {format(quote.tax)}
                   </span>
                 </div>
                 {quote.serviceCharge > 0 && (
                   <div className="flex justify-between text-xs">
-                    <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
+                    <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
                       {quote.serviceChargeLabel || 'Service'} ({quote.serviceChargeRate || 0}%)
                     </span>
-                    <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#475569]'}`}>{format(quote.serviceCharge)}</span>
+                    <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(quote.serviceCharge)}</span>
                   </div>
                 )}
                 <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
@@ -878,7 +878,7 @@ export default function PointOfSale() {
                 onClick={quickPayCart}
                 disabled={!canPay}
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wide transition-all duration-200 active:scale-[0.97] ${canPay
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:opacity-90'
+                  ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/25 hover:bg-teal-600'
                   : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed'
                   }`}
               >
@@ -1045,7 +1045,7 @@ export default function PointOfSale() {
               onClick={() => { if (blockCheckoutForShift()) return; setPaymentModalOpen(true); }}
               disabled={!canPay}
               className={`flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm text-white uppercase tracking-wide transition-all duration-200 active:scale-[0.97] ${canPay
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20 hover:opacity-90'
+                ? 'bg-teal-500 shadow-lg shadow-teal-500/20 hover:bg-teal-600'
                 : 'bg-stone-400 cursor-not-allowed'
                 }`}
             >
@@ -1218,7 +1218,7 @@ export default function PointOfSale() {
               onClick={quickPayManualItem}
               disabled={!manualItemName.trim() || !manualItemPrice || isPaymentModalOpen}
               className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all duration-200 active:scale-[0.97] ${manualItemName.trim() && manualItemPrice
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 hover:opacity-90'
+                ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:bg-teal-600'
                 : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed'
                 }`}
             >
@@ -1305,39 +1305,39 @@ export default function PointOfSale() {
           <div className={`${isMobile ? 'sticky top-0 z-20 pt-2 pb-1 -mx-4 px-4 bg-inherit' : 'mb-4'}`}>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
               <div className="flex items-center gap-3">
-                <h1 className={`text-xl md:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'} ${showDesktopLayout ? 'block' : 'hidden'}`}>
+                <h1 className={`text-xl md:text-2xl font-black tracking-tight whitespace-nowrap ${isDark ? 'text-white' : 'text-[#0F172A]'} ${showDesktopLayout ? 'block' : 'hidden'}`}>
                   Menu <span className="text-amber-500">Explorer</span>
                 </h1>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPanel('manual')}
-                    className={`flex items-center justify-center gap-2 px-3 h-9 md:h-11 rounded-2xl border transition-all ${
-                      isDark ? 'border-stone-800 bg-stone-900 text-stone-300 hover:bg-stone-800' : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC] shadow-sm'
-                    }`}
-                    title="Item Manual"
-                  >
-                    <PlusCircle size={isMobile ? 14 : 16} />
-                    <span className="text-[10px] font-black uppercase">Manual</span>
-                  </button>
-                </div>
               </div>
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B] w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Cari menu..."
-                  className={`w-full pl-10 pr-4 py-3 min-h-[44px] rounded-2xl border-2 outline-none text-sm transition-all shadow-sm ${isDark
-                    ? 'bg-stone-900 border-stone-800 text-white focus:border-amber-500'
-                    : 'bg-white border-[#CBD5E1] text-[#0F172A] placeholder-[#64748B] focus:border-teal-500'
-                    }`}
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  onFocus={(e) => {
-                    if (isMobile) {
-                      e.target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  }}
-                />
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B] w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Cari menu..."
+                    className={`w-full pl-10 pr-4 py-3 min-h-[44px] rounded-2xl border-2 outline-none text-sm transition-all shadow-sm ${isDark
+                      ? 'bg-stone-900 border-stone-800 text-white focus:border-amber-500'
+                      : 'bg-white border-[#CBD5E1] text-[#0F172A] placeholder-[#64748B] focus:border-teal-500'
+                      }`}
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    onFocus={(e) => {
+                      if (isMobile) {
+                        e.target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={() => setPanel('manual')}
+                  className={`flex items-center justify-center gap-2 px-3 h-11 rounded-2xl border transition-all shrink-0 ${
+                    isDark ? 'border-stone-800 bg-stone-900 text-stone-300 hover:bg-stone-800' : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC] shadow-sm'
+                  }`}
+                  title="Item Manual"
+                >
+                  <PlusCircle size={16} />
+                  <span className={`text-[10px] font-black uppercase ${isLandscape ? 'inline' : 'hidden sm:inline'}`}>Manual</span>
+                </button>
               </div>
             </div>
 
