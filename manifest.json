@@ -3,7 +3,7 @@
   "short_name": "SmartPOS",
   "description": "Platform POS modern untuk manajemen kopi dan makanan",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#111111",
   "theme_color": "#f59e0b",
   "orientation": "any",
