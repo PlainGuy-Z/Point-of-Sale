@@ -278,7 +278,7 @@ export default function BusinessInsights() {
 
           {/* ── AI TAB ── */}
           {activeTab === 'ai' && (
-            <div className="flex-1 flex flex-col min-h-[400px]">
+            <div className="flex-1 flex flex-col" style={{ minHeight: 'calc(100dvh - 160px)' }}>
               <AIChatPanel />
             </div>
           )}

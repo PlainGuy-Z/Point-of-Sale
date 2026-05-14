@@ -131,7 +131,7 @@ export default function AIChatPanel() {
                   <div>
                     {/* Bubble */}
                     <div className={`
-                      px-4 py-2 landscape:py-1.5 rounded-2xl text-sm leading-relaxed transition-all
+                      px-4 py-2 landscape:py-1.5 rounded-2xl text-sm leading-relaxed transition-all break-words whitespace-pre-wrap
                       ${msg.role==='user' 
                         ? (isDark ? 'bg-amber-900/20 border border-amber-900/30 text-amber-200' : 'bg-teal-600 text-white rounded-tr-none shadow-sm')
                         : (isDark ? 'bg-stone-800 border border-stone-700 text-stone-200' : 'bg-[#F8FAFC] border border-[#CBD5E1] text-[#0F172A] rounded-tl-none font-semibold')

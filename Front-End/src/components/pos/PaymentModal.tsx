@@ -172,7 +172,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
       <div 
         ref={modalRef}
-        className={`w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border ${
+        className={`w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border ${
           isDark
             ? 'bg-stone-950/80 border-stone-800'
             : 'bg-white border-[#E2E8F0]'
@@ -182,8 +182,8 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
         autoFocus
       >
         {/* Header */}
-        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}>
-          <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Payment</h2>
+        <div className={`flex items-center justify-between p-3 sm:p-5 landscape:p-2 landscape:py-2 border-b ${isDark ? 'border-stone-800' : 'border-[#F1F5F9]'}`}>
+          <h2 className={`text-lg sm:text-xl landscape:text-base font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Payment</h2>
           <button 
             onClick={onClose} 
             className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-[#1a1614]' : 'text-[#94A3B8] hover:text-[#475569] hover:bg-[#F1F5F9]'}`}
@@ -193,68 +193,62 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
           </button>
         </div>
 
-        <div className="p-4">
-          {/* Total Amount */}
-          <div className={`mb-4 p-4 rounded-xl flex justify-between items-center border ${
-            isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-[#F8FAFC] border-[#E2E8F0]'
-          }`}>
-            <span className={`text-sm font-bold ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>Total</span>
-            <div className={`text-xl font-black ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>
-              {format(total)}
+        <div className="p-3 sm:p-4 landscape:p-2 overflow-y-auto max-h-[calc(100dvh-70px)] landscape:max-h-[calc(100dvh-65px)] flex flex-col landscape:grid landscape:grid-cols-2 gap-3 sm:gap-4 landscape:gap-2">
+          
+          {/* LEFT COLUMN */}
+          <div className="flex flex-col gap-3 sm:gap-4 landscape:gap-2">
+            {/* Total Amount */}
+            <div className={`p-4 sm:p-5 landscape:p-2 landscape:py-3 rounded-xl flex justify-between items-center border ${
+              isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-[#F8FAFC] border-[#E2E8F0]'
+            }`}>
+              <span className={`text-base landscape:text-xs font-bold ${isDark ? 'text-stone-400' : 'text-[#475569]'}`}>Total</span>
+              <div className={`text-2xl landscape:text-lg font-black ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>
+                {format(total)}
+              </div>
             </div>
-          </div>
 
-          {/* Payment Method Selector */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {[
-              { id: 'cash', label: 'Cash', icon: Banknote },
-              { id: 'card', label: 'Card', icon: CreditCard },
-              { id: 'qris', label: 'QRIS', icon: QrCode },
-            ].map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setMethod(m.id as any)}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
-                  method === m.id 
-                    ? `bg-teal-50 border-2 border-teal-500 text-teal-700` 
-                    : isDark 
-                      ? 'bg-stone-950 border-stone-800 text-stone-300 hover:bg-[#1a1614]' 
-                      : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'
-                }`}
-              >
-                <m.icon className={`w-4 h-4 ${method === m.id ? 'text-teal-600' : isDark ? 'text-stone-400' : 'text-stone-500'}`} />
-                <span className={`text-xs font-bold`}>
-                  {m.label}
-                </span>
-              </button>
-            ))}
-          </div>
+            {/* Payment Method Selector */}
+            <div className="grid grid-cols-3 gap-2 landscape:gap-1">
+              {[
+                { id: 'cash', label: 'Cash', icon: Banknote },
+                { id: 'card', label: 'Card', icon: CreditCard },
+                { id: 'qris', label: 'QRIS', icon: QrCode },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setMethod(m.id as any)}
+                  className={`flex items-center justify-center gap-2 landscape:gap-1 p-3 sm:p-4 landscape:p-2 rounded-xl border transition-all ${
+                    method === m.id 
+                      ? `bg-teal-50 border-2 border-teal-500 text-teal-700` 
+                      : isDark 
+                        ? 'bg-stone-950 border-stone-800 text-stone-300 hover:bg-[#1a1614]' 
+                        : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'
+                  }`}
+                >
+                  <m.icon className={`w-5 h-5 landscape:w-4 landscape:h-4 ${method === m.id ? 'text-teal-600' : isDark ? 'text-stone-400' : 'text-stone-500'}`} />
+                  <span className={`text-sm landscape:text-xs font-bold`}>{m.label}</span>
+                </button>
+              ))}
+            </div>
 
-          {method === 'cash' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Left Column: Cash Input Info */}
-              <div className="space-y-3">
-                <div className={`p-4 rounded-xl border ${isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-[#F8FAFC] border-[#E2E8F0]'}`}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-xs text-stone-400 font-semibold uppercase">Received</span>
-                    <button
-                      onClick={handleClear}
-                      className="text-xs text-red-500 hover:text-red-600 font-medium"
-                    >
-                      Clear
-                    </button>
+            {method === 'cash' ? (
+              <div className="space-y-3 sm:space-y-4 landscape:space-y-2">
+                <div className={`p-4 sm:p-5 landscape:p-2 landscape:py-3 rounded-xl border ${isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-[#F8FAFC] border-[#E2E8F0]'}`}>
+                  <div className="flex justify-between mb-2 landscape:mb-1">
+                    <span className="text-xs sm:text-sm landscape:text-xs text-stone-400 font-semibold uppercase">Received</span>
+                    <button onClick={handleClear} className="text-xs sm:text-sm landscape:text-xs text-red-500 hover:text-red-600 font-medium">Clear</button>
                   </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className={`text-lg font-black ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
+                  <div className="flex items-center gap-2 mb-3 sm:mb-4 landscape:mb-2">
+                    <div className={`text-xl sm:text-2xl landscape:text-base font-black ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
                       {rawCashValue ? format(Number(rawCashValue)) : format(0)}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-2 gap-2 landscape:gap-1">
                     {quickAmounts().map((amount) => (
                       <button 
                         key={amount} 
                         onClick={() => handleQuickCash(amount)} 
-                        className={`py-2 px-2 rounded-xl text-[10px] font-bold border ${isDark ? 'bg-stone-950 border-stone-800 text-stone-200 hover:bg-[#1a1614]' : 'bg-white border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
+                        className={`py-2.5 px-3 landscape:py-1.5 landscape:px-2 rounded-xl text-xs sm:text-sm landscape:text-xs font-bold border ${isDark ? 'bg-stone-950 border-stone-800 text-stone-200 hover:bg-[#1a1614]' : 'bg-white border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
                       >
                         {format(amount)}
                       </button>
@@ -262,69 +256,84 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                   </div>
                 </div>
 
-                <div className={`p-4 rounded-xl border ${change >= 0 ? (isDark ? 'bg-green-900/10 border-green-800' : 'bg-green-50 border-green-200') : (isDark ? 'bg-red-900/10 border-red-800' : 'bg-red-50 border-red-200')}`}>
-                  <span className="text-xs text-stone-400 font-semibold uppercase">Change</span>
-                  <div className={`text-lg font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                <div className={`p-4 sm:p-5 landscape:p-2 landscape:py-3 rounded-xl border ${change >= 0 ? (isDark ? 'bg-green-900/10 border-green-800' : 'bg-green-50 border-green-200') : (isDark ? 'bg-red-900/10 border-red-800' : 'bg-red-50 border-red-200')}`}>
+                  <span className="text-xs sm:text-sm landscape:text-xs text-stone-400 font-semibold uppercase">Change</span>
+                  <div className={`text-xl sm:text-2xl landscape:text-base font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                     {format(Math.abs(change))}
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className={`py-10 landscape:py-5 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center flex-1 ${isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-[#F8FAFC] border-[#E2E8F0]'}`}>
+                {method === 'qris' ? (
+                  <QrCode className="w-20 h-20 landscape:w-16 landscape:h-16 text-purple-500 mb-3" />
+                ) : (
+                  <CreditCard className={`w-20 h-20 landscape:w-16 landscape:h-16 mb-3 ${isDark ? 'text-amber-500' : 'text-teal-500'}`} />
+                )}
+                <p className="font-bold text-sm landscape:text-xs uppercase tracking-wide">Waiting for Payment</p>
+                <p className="text-xs landscape:text-[10px] text-stone-500 mt-2 text-center px-4">
+                  {method === 'qris' ? 'Scan QR Code with your mobile banking app' : 'Insert or tap your card on the reader'}
+                </p>
+              </div>
+            )}
 
-              {/* Right Column: Keypad */}
-              <div className="grid grid-cols-3 gap-1.5">
+            {/* Non-Cash CTA */}
+            {method !== 'cash' && (
+              <button
+                onClick={handleSubmit}
+                disabled={!canProcessPayment}
+                className={`w-full py-3 sm:py-4 landscape:py-2 landscape:text-sm mt-auto text-white font-black rounded-xl flex items-center justify-center gap-2 bg-gradient-to-r transition-all ${
+                  canProcessPayment
+                    ? isDark 
+                      ? 'from-amber-500 via-orange-500 to-amber-600 shadow-md hover:shadow-lg active:scale-[0.98]' 
+                      : 'from-teal-500 via-teal-600 to-emerald-600 shadow-md hover:shadow-lg active:scale-[0.98]'
+                    : 'from-gray-400 to-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <CheckCircle className="w-5 h-5 landscape:w-4 landscape:h-4" />
+                PROCESS {method.toUpperCase()} PAYMENT
+              </button>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN (Only for Cash) */}
+          {method === 'cash' && (
+            <div className="flex flex-col justify-end gap-3 sm:gap-4 landscape:gap-1 mt-2 landscape:mt-0">
+              {/* Keypad */}
+              <div className="grid grid-cols-3 gap-2 landscape:gap-1">
                 {keypadButtons.map((btn) => (
                   <button 
                     key={btn} 
                     onClick={() => handleKeypadInput(btn)} 
-                    className={`py-3 rounded-xl text-sm font-bold border ${isDark ? 'bg-stone-950 border-stone-800 text-white active:bg-[#1a1614]' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC] active:bg-stone-50'} active:scale-[0.99] transition-all`}
+                    className={`py-3 sm:py-4 landscape:py-2 rounded-xl text-base sm:text-lg landscape:text-sm font-bold border ${isDark ? 'bg-stone-950 border-stone-800 text-white active:bg-[#1a1614]' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC] active:bg-stone-50'} active:scale-[0.99] transition-all`}
                   >
                     {btn}
                   </button>
                 ))}
                 <button 
                   onClick={handleClear}
-                  className="col-span-3 py-3 rounded-xl text-xs font-bold border border-red-200 bg-red-50 text-red-600 dark:bg-red-900/20 dark:border-red-800"
+                  className="col-span-3 py-3 sm:py-4 landscape:py-2 rounded-xl text-sm landscape:text-xs font-bold border border-red-200 bg-red-50 text-red-600 dark:bg-red-900/20 dark:border-red-800"
                 >
                   CLEAR (C)
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className={`py-10 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center ${isDark ? 'bg-stone-950/30 border-stone-800' : 'bg-[#F8FAFC] border-[#E2E8F0]'}`}>
-              {method === 'qris' ? (
-                <QrCode className="w-20 h-20 text-purple-500 mb-3" />
-              ) : (
-                <CreditCard className={`w-20 h-20 mb-3 ${isDark ? 'text-amber-500' : 'text-teal-500'}`} />
-              )}
-              <p className="font-bold text-sm uppercase tracking-wide">Waiting for Payment</p>
-              <p className="text-xs text-stone-500 mt-2">
-                {method === 'qris' ? 'Scan QR Code with your mobile banking app' : 'Insert or tap your card on the reader'}
-              </p>
-            </div>
-          )}
 
-          {/* Process Transaction Button */}
-          <button
-            onClick={handleSubmit}
-            disabled={!canProcessPayment}
-            className={`w-full mt-5 py-4 text-white font-black rounded-xl flex items-center justify-center gap-2 bg-gradient-to-r transition-all ${
-              canProcessPayment
-                ? isDark 
-                  ? 'from-amber-500 via-orange-500 to-amber-600 shadow-md hover:shadow-lg active:scale-[0.98]' 
-                  : 'from-teal-500 via-teal-600 to-emerald-600 shadow-md hover:shadow-lg active:scale-[0.98]'
-                : 'from-gray-400 to-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <CheckCircle className="w-5 h-5" />
-            {method === 'cash' ? 'PROCESS TRANSACTION' : `PROCESS ${method.toUpperCase()} PAYMENT`}
-          </button>
+              {/* Cash CTA */}
+              <button
+                onClick={handleSubmit}
+                disabled={!canProcessPayment}
+                className={`w-full py-3 sm:py-4 landscape:py-2 landscape:text-sm text-white font-black rounded-xl flex items-center justify-center gap-2 bg-gradient-to-r transition-all ${
+                  canProcessPayment
+                    ? isDark 
+                      ? 'from-amber-500 via-orange-500 to-amber-600 shadow-md hover:shadow-lg active:scale-[0.98]' 
+                      : 'from-teal-500 via-teal-600 to-emerald-600 shadow-md hover:shadow-lg active:scale-[0.98]'
+                    : 'from-gray-400 to-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <CheckCircle className="w-5 h-5 landscape:w-4 landscape:h-4" />
+                PROCESS TRANSACTION
+              </button>
 
-          {/* Keyboard Shortcuts Hint */}
-          {method === 'cash' && (
-            <div className="mt-3 text-center">
-              <p className="text-xs text-stone-500">
-                <span className="font-semibold">Keyboard Shortcuts:</span> [0-9] Input • [.] Decimal • [Backspace] Delete • [C] Clear • [Enter] Submit
-              </p>
             </div>
           )}
         </div>
