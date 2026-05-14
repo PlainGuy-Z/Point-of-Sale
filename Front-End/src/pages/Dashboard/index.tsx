@@ -178,7 +178,7 @@ function SectionLabel({ children, isDark }: { children: React.ReactNode; isDark:
     <p style={{
       fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
       textTransform: 'uppercase',
-      color: isDark ? '#78716c' : '#94a3b8',
+      color: isDark ? '#78716c' : '#475569',
       marginBottom: 8,
     }}>
       {children}
@@ -208,7 +208,7 @@ const HeaderBadge = ({ children, isDark, type = 'info' }: {
 function PerfMetric({ label, value, isDark }: { label: string; value: string; isDark: boolean }) {
   return (
     <div className={`p-4 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-white shadow-sm'}`}>
-      <p className={`text-sm ${isDark ? 'text-stone-300' : 'text-gray-600'}`}>{label}</p>
+      <p className={`text-sm ${isDark ? 'text-stone-300' : 'text-[#334155] font-semibold'}`}>{label}</p>
       <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value}</p>
     </div>
   );
@@ -318,7 +318,7 @@ function ProductPanelCarousel({ topProducts, lowStockProducts, isDark }: Product
               cursor: 'pointer', fontSize: 11, fontWeight: 600,
               transition: 'all 0.2s',
               background: i === activeIndex ? (isDark ? '#f59e0b' : '#0d9488') : (isDark ? '#292524' : '#e7e5e4'),
-              color: i === activeIndex ? '#fff' : (isDark ? '#78716c' : '#78716c'),
+              color: i === activeIndex ? '#fff' : (isDark ? '#78716c' : '#475569'),
             }}
           >
             {panel.label}
@@ -410,14 +410,14 @@ export default function Dashboard() {
         {/* ── Header ── */}
         <div className={`rounded-2xl p-5 ${isDark
           ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
-          : 'bg-gradient-to-r from-white to-gray-50 border border-gray-100'
+          : 'bg-gradient-to-r from-white to-gray-50 border border-[#CBD5E1]'
         } shadow-sm`}>
           <div className="flex justify-between items-start">
             <div>
               <h1 className={`text-2xl font-black tracking-tight bg-gradient-to-r ${isDark ? 'from-amber-500 to-orange-500' : 'from-teal-600 to-emerald-600'} bg-clip-text text-transparent`}>
                 Dashboard <span className={isDark ? 'text-white' : 'text-gray-900'}>Bisnis</span>
               </h1>
-              <p className={`text-xs mt-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
+              <p className={`text-xs mt-1 ${isDark ? 'text-stone-400' : 'text-[#475569] font-semibold'}`}>
                 {formattedDate}
               </p>
             </div>
@@ -450,15 +450,15 @@ export default function Dashboard() {
           <div className="grid grid-cols-3 gap-2">
             <div className={`p-3 rounded-2xl text-center ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-sm'}`}>
               <p className={`text-lg font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{metrics.totalProducts}</p>
-              <p className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Produk</p>
+              <p className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-stone-500' : 'text-[#475569]'}`}>Produk</p>
             </div>
             <div className={`p-3 rounded-2xl text-center ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-sm'}`}>
               <p className={`text-lg font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{metrics.profitMargin}%</p>
-              <p className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Margin</p>
+              <p className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-stone-500' : 'text-[#475569]'}`}>Margin</p>
             </div>
             <div className={`p-3 rounded-2xl text-center ${isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-gray-100 shadow-sm'}`}>
               <p className={`text-lg font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{metrics.successRate}%</p>
-              <p className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>Sukses</p>
+              <p className={`text-[10px] font-bold mt-0.5 ${isDark ? 'text-stone-500' : 'text-[#475569]'}`}>Sukses</p>
             </div>
           </div>
         </div>
@@ -506,7 +506,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
               Dashboard <span className={isDark ? 'text-white' : 'text-gray-900'}>Bisnis</span>
             </h1>
-            <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-gray-600'}`}>
+            <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-[#475569] font-semibold'}`}>
               {formattedDate}
             </p>
           </div>

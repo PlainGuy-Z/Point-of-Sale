@@ -28,8 +28,8 @@ function ChartTooltip({ active, payload, isDark }: any) {
   const confColor: Record<string,string> = { high: '#22c55e', medium: '#f59e0b', low: '#ef4444' };
   const confLabel: Record<string,string> = { high: 'Tinggi', medium: 'Sedang', low: 'Rendah' };
   return (
-    <div style={{ background: isDark?'#1c1917':'#fff', border:`1px solid ${isDark?'#292524':'#e7e5e4'}`, borderRadius:12, padding:'12px 16px', boxShadow:'0 4px 16px rgba(0,0,0,0.15)', minWidth:180 }}>
-      <div style={{ fontWeight:700, marginBottom:8, color:isDark?'#fafaf9':'#1c1917', fontSize:13 }}>{d.day_name} — {d.date}</div>
+    <div style={{ background: isDark?'#1c1917':'#fff', border:`1px solid ${isDark?'#292524':'#CBD5E1'}`, borderRadius:12, padding:'12px 16px', boxShadow:'0 4px 16px rgba(0,0,0,0.15)', minWidth:180 }}>
+      <div style={{ fontWeight:700, marginBottom:8, color:isDark?'#fafaf9':'#111827', fontSize:13 }}>{d.day_name} — {d.date}</div>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
         <span style={{ width:8, height:8, borderRadius:4, background:'#f59e0b' }} />
         <span style={{ fontSize:12, color:isDark?'#a8a29e':'#78716c' }}>Revenue:</span>
@@ -37,8 +37,8 @@ function ChartTooltip({ active, payload, isDark }: any) {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
         <span style={{ width:8, height:8, borderRadius:4, background:'#0d9488' }} />
-        <span style={{ fontSize:12, color:isDark?'#a8a29e':'#78716c' }}>Transaksi:</span>
-        <span style={{ fontSize:12, fontWeight:600, fontFamily:'monospace', color:isDark?'#fafaf9':'#1c1917' }}>{d.predicted_transactions}</span>
+        <span style={{ fontSize:12, color:isDark?'#a8a29e':'#475569' }}>Transaksi:</span>
+        <span style={{ fontSize:12, fontWeight:600, fontFamily:'monospace', color:isDark?'#fafaf9':'#111827' }}>{d.predicted_transactions}</span>
       </div>
       <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:999, background:`${confColor[d.confidence]||confColor.medium}20`, color:confColor[d.confidence]||confColor.medium }}>{confLabel[d.confidence]||'Sedang'}</span>
     </div>
@@ -58,14 +58,14 @@ export default function RevenueChart({ forecast, isLoading }: Props) {
   const isDark = theme === 'dark';
 
   if (isLoading) return (
-    <div style={{ borderRadius:16, border:`1px solid ${isDark?'#292524':'#e7e5e4'}`, background:isDark?'#1c1917':'#fff', padding:24, marginBottom:20 }}>
-      <div style={{ width:180, height:16, borderRadius:8, background:isDark?'#292524':'#e7e5e4', marginBottom:12, animation:'pulse 1.5s ease-in-out infinite' }} />
-      <div style={{ width:'100%', height:260, borderRadius:12, background:isDark?'#292524':'#f5f5f4', animation:'pulse 1.5s ease-in-out infinite' }} />
+    <div style={{ borderRadius:16, border:`1px solid ${isDark?'#292524':'#CBD5E1'}`, background:isDark?'#1c1917':'#fff', padding:24, marginBottom:20 }}>
+      <div style={{ width:180, height:16, borderRadius:8, background:isDark?'#292524':'#CBD5E1', marginBottom:12, animation:'pulse 1.5s ease-in-out infinite' }} />
+      <div style={{ width:'100%', height:260, borderRadius:12, background:isDark?'#292524':'#F8FAFC', animation:'pulse 1.5s ease-in-out infinite' }} />
     </div>
   );
 
   if (!forecast?.length) return (
-    <div style={{ borderRadius:16, border:`1px solid ${isDark?'#292524':'#e7e5e4'}`, background:isDark?'#1c1917':'#fff', padding:40, textAlign:'center', marginBottom:20, color:isDark?'#78716c':'#a8a29e' }}>
+    <div style={{ borderRadius:16, border:`1px solid ${isDark?'#292524':'#CBD5E1'}`, background:isDark?'#1c1917':'#fff', padding:40, textAlign:'center', marginBottom:20, color:isDark?'#78716c':'#475569' }}>
       Belum ada data forecast tersedia.
     </div>
   );
@@ -75,7 +75,7 @@ export default function RevenueChart({ forecast, isLoading }: Props) {
   return (
     <div style={{
       borderRadius:16,
-      border:`1px solid ${isDark?'#292524':'#e7e5e4'}`,
+      border:`1px solid ${isDark?'#292524':'#CBD5E1'}`,
       background:isDark?'#1c1917':'#fff',
       padding:24,
       marginBottom:20,
@@ -90,7 +90,7 @@ export default function RevenueChart({ forecast, isLoading }: Props) {
             <TrendingUp size={18} color="#0d9488" />
             <h3 style={{ fontSize:16, fontWeight:700, color:isDark?'#fafaf9':'#1c1917', margin:0 }}>Prediksi 7 Hari ke Depan</h3>
           </div>
-          <p style={{ fontSize:12, color:isDark?'#78716c':'#a8a29e', marginTop:4 }}>Berdasarkan pola historis toko</p>
+          <p style={{ fontSize:12, color:isDark?'#78716c':'#475569', marginTop:4 }}>Berdasarkan pola historis toko</p>
         </div>
         <div style={{ display:'flex', gap:16, fontSize:12 }}>
           <div style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:12, height:3, borderRadius:2, background:'#f59e0b' }} /><span style={{ color:isDark?'#a8a29e':'#78716c' }}>Revenue</span></div>
@@ -112,9 +112,9 @@ export default function RevenueChart({ forecast, isLoading }: Props) {
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={isDark?'#292524':'#f5f5f4'} vertical={false} />
           {weekends.map(idx => <ReferenceLine key={idx} x={forecast[idx].day_name} stroke={isDark?'#292524':'#fef3c7'} strokeWidth={40} strokeOpacity={0.4} />)}
-          <XAxis dataKey="day_name" tick={{ fontSize:12, fill:isDark?'#78716c':'#a8a29e' }} axisLine={{ stroke:isDark?'#292524':'#e7e5e4' }} tickLine={false} />
-          <YAxis yAxisId="revenue" tickFormatter={fmtRp} tick={{ fontSize:11, fill:isDark?'#78716c':'#a8a29e' }} axisLine={false} tickLine={false} width={56} />
-          <YAxis yAxisId="txn" orientation="right" tick={{ fontSize:11, fill:isDark?'#78716c':'#a8a29e' }} axisLine={false} tickLine={false} width={36} />
+          <XAxis dataKey="day_name" tick={{ fontSize:12, fill:isDark?'#78716c':'#475569' }} axisLine={{ stroke:isDark?'#292524':'#CBD5E1' }} tickLine={false} />
+          <YAxis yAxisId="revenue" tickFormatter={fmtRp} tick={{ fontSize:11, fill:isDark?'#78716c':'#475569' }} axisLine={false} tickLine={false} width={56} />
+          <YAxis yAxisId="txn" orientation="right" tick={{ fontSize:11, fill:isDark?'#78716c':'#475569' }} axisLine={false} tickLine={false} width={36} />
           <Tooltip content={<ChartTooltip isDark={isDark} />} />
           <Area yAxisId="revenue" type="monotone" dataKey="predicted_revenue" stroke="transparent" fill="url(#revenue-fill)" />
           <Line yAxisId="revenue" type="monotone" dataKey="predicted_revenue" stroke="#f59e0b" strokeWidth={3} dot={<ConfDot stroke="#f59e0b" />} activeDot={{ r:6, fill:'#f59e0b', stroke:'#fff', strokeWidth:2 }} />

@@ -55,7 +55,7 @@ export default function CategoryPills({ selected, onSelect }: CategoryPillsProps
                     : 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg shadow-teal-500/20'
                   : isDark 
                     ? 'bg-[#1a1614] text-stone-300 border border-stone-800 hover:bg-stone-800 hover:text-white' 
-                    : 'bg-white border border-[#E2E8F0] text-[#475569] hover:border-teal-300 hover:text-teal-700 shadow-sm'
+                    : 'bg-white border border-[#CBD5E1] text-[#334155] hover:border-teal-500 hover:text-teal-800 shadow-sm'
                 }
               `}
               aria-label={`Select ${category} category`}

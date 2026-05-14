@@ -60,7 +60,7 @@ export default function ProductGrid({
               h-full rounded-3xl border p-4 text-left transition-all group relative flex flex-col justify-between overflow-hidden
               ${isDark
                 ? 'bg-stone-950 border-stone-800 hover:border-amber-500/40'
-                : 'bg-white border-teal-400/40 hover:border-teal-500'
+                : 'bg-white border-teal-500/30 hover:border-teal-600 shadow-sm'
               }
               ${isDisabled ? 'opacity-60 cursor-not-allowed grayscale-[0.5]' : ''}
               animate-in
@@ -151,14 +151,14 @@ export default function ProductGrid({
             <div className="flex-1 flex flex-col">
               <h3 className={`
                 font-semibold text-sm md:text-base line-clamp-1 transition-colors
-                ${isDark ? 'text-white group-hover:text-amber-400' : 'text-gray-800 group-hover:text-teal-700'}
+                ${isDark ? 'text-white group-hover:text-amber-400' : 'text-gray-900 group-hover:text-teal-800'}
               `}>
                 {product.name}
               </h3>
               
               <p className={`
                 text-[10px] font-bold uppercase tracking-wider mb-2
-                ${isDark ? 'text-stone-500' : 'text-stone-400'}
+                ${isDark ? 'text-stone-500' : 'text-stone-500 font-bold'}
               `}>
                 {product.category}
               </p>
@@ -169,7 +169,7 @@ export default function ProductGrid({
                 <div className="flex items-baseline gap-1 w-full">
                   <span className={`
                     font-bold text-sm md:text-base
-                      ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-amber-500' : 'text-teal-600')}
+                      ${isPromoActive ? (isDark ? 'text-red-400' : 'text-red-700') : (isDark ? 'text-amber-500' : 'text-teal-700')}
                   `}>
                     {format(priceToShow)}
                   </span>
@@ -180,7 +180,7 @@ export default function ProductGrid({
                   <div className="flex items-center gap-1 mt-0.5">
                     <span className={`
                       text-[10px] line-through
-                      ${isDark ? 'text-stone-500' : 'text-stone-400'}
+                      ${isDark ? 'text-stone-500' : 'text-stone-500'}
                     `}>
                        {format(product.price)}
                     </span>
@@ -199,7 +199,7 @@ export default function ProductGrid({
                     flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold
                     ${isDark 
                       ? 'bg-stone-900/70 text-stone-200' 
-                      : 'bg-gray-100 text-gray-700'
+                      : 'bg-gray-200 text-gray-800'
                     }
                   `}>
                     <span>
@@ -210,7 +210,7 @@ export default function ProductGrid({
                 
                 {/* Info Stok */}
                 <div className="flex justify-between items-center w-full mt-1">
-                  <span className={`text-[10px] ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
+                  <span className={`text-[10px] font-bold ${isDark ? 'text-stone-500' : 'text-stone-600'}`}>
                     Stok:
                   </span>
                   <span className={`
@@ -227,7 +227,7 @@ export default function ProductGrid({
                             : 'from-teal-50 to-teal-100 text-teal-600'
                           : isDark 
                             ? 'from-red-900/30 to-red-800/20 text-red-400'
-                            : 'from-red-50 to-red-100 text-red-600'
+                            : 'from-red-50 to-red-100 text-red-700'
                     }
                   `}>
                     {product.stock === -1 ? '∞' : product.stock}

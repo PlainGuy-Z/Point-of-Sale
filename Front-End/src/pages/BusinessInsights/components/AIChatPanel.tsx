@@ -56,8 +56,8 @@ export default function AIChatPanel() {
       isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-[#E2E8F0]'
     }`}>
       {/* Header */}
-      <div className={`px-5 py-4 flex justify-between items-center shrink-0 ${
-        isDark ? 'bg-gradient-to-r from-stone-800 to-stone-900 border-b border-stone-700' : 'bg-gradient-to-r from-teal-600 to-teal-700 text-white'
+      <div className={`px-5 py-2 md:py-4 flex justify-between items-center shrink-0 ${
+        isDark ? 'bg-gradient-to-r from-stone-800 to-stone-900 border-b border-stone-700' : 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-md'
       }`}>
         <div className="flex items-center gap-3">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
@@ -85,17 +85,17 @@ export default function AIChatPanel() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-4 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-4 py-3 md:py-6 flex flex-col gap-3 md:gap-4 no-scrollbar">
         {messages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-5">
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-              isDark ? 'bg-stone-800 border border-stone-700' : 'bg-teal-50 border border-teal-100'
+              isDark ? 'bg-stone-800 border border-stone-700' : 'bg-teal-50 border border-teal-200'
             }`}>
-              <Sparkles size={24} className={isDark ? 'text-teal-400' : 'text-teal-600'} />
+              <Sparkles size={24} className={isDark ? 'text-teal-400' : 'text-teal-700'} />
             </div>
             <div className="text-center">
               <div className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Halo! Saya Advisor Bisnis Anda.</div>
-              <div className={`text-xs font-medium max-w-[240px] leading-relaxed ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
+              <div className={`text-xs font-semibold max-w-[240px] leading-relaxed ${isDark ? 'text-stone-500' : 'text-[#64748B]'}`}>
                 Tanyakan tentang omzet, stok rendah, atau strategi produk terlaris hari ini.
               </div>
             </div>
@@ -105,7 +105,7 @@ export default function AIChatPanel() {
                   text-left text-xs font-bold px-4 py-3 rounded-xl border transition-all duration-200
                   ${isDark 
                     ? 'bg-stone-800 border-stone-700 text-stone-300 hover:bg-stone-700 hover:border-stone-600' 
-                    : 'bg-white border-[#E2E8F0] text-[#475569] hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 hover:shadow-sm'
+                    : 'bg-white border-[#CBD5E1] text-[#475569] hover:border-teal-500 hover:bg-teal-50 hover:text-teal-800 hover:shadow-sm'
                   }
                 `}>
                   {q}
@@ -131,10 +131,10 @@ export default function AIChatPanel() {
                   <div>
                     {/* Bubble */}
                     <div className={`
-                      px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all
+                      px-4 py-2 landscape:py-1.5 rounded-2xl text-sm leading-relaxed transition-all
                       ${msg.role==='user' 
-                        ? (isDark ? 'bg-amber-900/20 border border-amber-900/30 text-amber-200' : 'bg-teal-600 text-white rounded-tr-none')
-                        : (isDark ? 'bg-stone-800 border border-stone-700 text-stone-200' : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] rounded-tl-none font-medium')
+                        ? (isDark ? 'bg-amber-900/20 border border-amber-900/30 text-amber-200' : 'bg-teal-600 text-white rounded-tr-none shadow-sm')
+                        : (isDark ? 'bg-stone-800 border border-stone-700 text-stone-200' : 'bg-[#F8FAFC] border border-[#CBD5E1] text-[#0F172A] rounded-tl-none font-semibold')
                       }
                     `}>{msg.content}</div>
                     {/* Context snapshot */}
@@ -149,7 +149,7 @@ export default function AIChatPanel() {
                       </div>
                     )}
                     {/* Timestamp */}
-                    <div className={`text-[9px] mt-1 ${msg.role==='user'?'text-right':''} ${isDark ? 'text-stone-600' : 'text-[#94A3B8]'}`}>
+                    <div className={`text-[9px] mt-1 ${msg.role==='user'?'text-right':''} ${isDark ? 'text-stone-600' : 'text-[#64748B]'}`}>
                       {msg.timestamp.toLocaleTimeString('id-ID',{ hour:'2-digit', minute:'2-digit' })}
                     </div>
                   </div>
@@ -179,7 +179,7 @@ export default function AIChatPanel() {
                     text-[11px] font-medium px-3 py-1.5 rounded-full border transition-all
                     ${isDark 
                       ? 'bg-stone-800 border-stone-700 text-stone-400 hover:text-white hover:border-stone-500' 
-                      : 'bg-white border-[#E2E8F0] text-[#475569] hover:border-teal-400 hover:text-teal-700 hover:bg-teal-50 shadow-sm'
+                      : 'bg-white border-[#CBD5E1] text-[#334155] hover:border-teal-500 hover:text-teal-800 hover:bg-teal-50 shadow-sm'
                     }
                   `}>{q}</button>
                 ))}
@@ -191,7 +191,7 @@ export default function AIChatPanel() {
       </div>
 
       {/* Input */}
-      <div className={`p-4 shrink-0 border-t ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-[#F1F5F9]'}`}>
+      <div className={`p-3 landscape:p-2 shrink-0 border-t ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-[#F1F5F9]'}`}>
         <div className="flex gap-3 items-end">
           <textarea
             ref={textareaRef}

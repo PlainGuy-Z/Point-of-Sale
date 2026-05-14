@@ -41,18 +41,18 @@ export default function CheckoutDetailsForm({
         className={`w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden ${
           isDark
             ? 'bg-stone-950/95 text-stone-100 border-stone-800'
-            : 'bg-white/95 text-stone-900 border-stone-200'
+            : 'bg-white text-[#0F172A] border-[#CBD5E1]'
         }`}
       >
         {/* Header */}
         <div
           className={`p-5 border-b flex justify-between items-center ${
-            isDark ? 'border-stone-800' : 'border-stone-200'
+            isDark ? 'border-stone-800' : 'border-[#CBD5E1]'
           }`}
         >
           <div>
             <h2 className="text-lg font-bold">Order Details</h2>
-            <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+            <p className={`text-xs font-semibold ${isDark ? 'text-stone-400' : 'text-[#64748B]'}`}>
               Complete your order information
             </p>
           </div>
@@ -61,7 +61,7 @@ export default function CheckoutDetailsForm({
             className={`p-2 rounded-lg border transition ${
               isDark
                 ? 'border-stone-800 hover:bg-stone-900'
-                : 'border-stone-200 hover:bg-stone-100'
+                : 'border-[#CBD5E1] hover:bg-[#F8FAFC]'
             }`}
             aria-label="Close form"
           >
@@ -74,7 +74,7 @@ export default function CheckoutDetailsForm({
           {/* Order Type Selector */}
           <div>
             <label className="block text-sm font-semibold mb-2">Order Type</label>
-            <div className={`flex gap-2 p-1 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
+            <div className={`flex gap-2 p-1 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-[#F1F5F9]'}`}>
               {(['dine-in', 'take-away'] as const).map(type => (
                 <button
                   key={type}
@@ -83,10 +83,10 @@ export default function CheckoutDetailsForm({
                   className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${orderType === type
                     ? isDark
                       ? 'bg-stone-800 text-amber-400'
-                      : 'bg-white text-teal-700 shadow-sm'
+                      : 'bg-white text-teal-800 shadow-sm'
                     : isDark
                       ? 'text-stone-400 hover:text-stone-200'
-                      : 'text-stone-500 hover:text-gray-700'
+                      : 'text-[#64748B] hover:text-[#0F172A]'
                     }`}
                 >
                   {type === 'dine-in' ? 'Dine In' : 'Take Away'}
@@ -110,11 +110,11 @@ export default function CheckoutDetailsForm({
               className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} transition ${
                 isDark
                   ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
-                  : 'bg-white border-stone-200 text-stone-900 placeholder-stone-400'
+                  : 'bg-white border-[#CBD5E1] text-[#0F172A] placeholder-[#94A3B8]'
               }`}
               autoFocus
             />
-            <p className={`text-xs mt-1 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+            <p className={`text-xs mt-1 ${isDark ? 'text-stone-500' : 'text-[#64748B]'}`}>
               {customerName.length}/50 characters
             </p>
           </div>
@@ -136,10 +136,10 @@ export default function CheckoutDetailsForm({
                 className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} transition ${
                   isDark
                     ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
-                    : 'bg-white border-stone-200 text-stone-900 placeholder-stone-400'
+                    : 'bg-white border-[#CBD5E1] text-[#0F172A] placeholder-[#94A3B8]'
                 }`}
               />
-              <p className={`text-xs mt-1 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+              <p className={`text-xs mt-1 ${isDark ? 'text-stone-500' : 'text-[#64748B]'}`}>
                 {tableNumber.length}/20 characters
               </p>
             </div>
@@ -150,7 +150,7 @@ export default function CheckoutDetailsForm({
             <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               Order Notes
-              <span className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
+              <span className={`text-xs ${isDark ? 'text-stone-400' : 'text-[#64748B]'}`}>
                 (Optional)
               </span>
             </label>
@@ -162,11 +162,11 @@ export default function CheckoutDetailsForm({
               className={`w-full px-4 py-2.5 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} transition ${
                 isDark
                   ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
-                  : 'bg-white border-stone-200 text-stone-900 placeholder-stone-400'
+                  : 'bg-white border-[#CBD5E1] text-[#0F172A] placeholder-[#94A3B8]'
               }`}
               rows={3}
             />
-            <p className={`text-xs mt-1 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+            <p className={`text-xs mt-1 ${isDark ? 'text-stone-500' : 'text-[#64748B]'}`}>
               {orderDescription.length}/200 characters
             </p>
           </div>
@@ -174,11 +174,11 @@ export default function CheckoutDetailsForm({
           {/* Order Type Info */}
           <div
             className={`p-3 rounded-lg border ${
-              isDark ? 'bg-stone-900 border-stone-800' : 'bg-stone-50 border-stone-200'
+              isDark ? 'bg-stone-900 border-stone-800' : 'bg-[#F8FAFC] border-[#CBD5E1]'
             }`}
           >
             <p className="text-xs font-semibold mb-1">Order Type</p>
-            <p className={`text-sm font-bold ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>
+            <p className={`text-sm font-bold ${isDark ? 'text-amber-500' : 'text-teal-700'}`}>
               {orderType === 'dine-in' ? '🪑 Dine In' : '📦 Take Away'}
             </p>
           </div>
@@ -186,14 +186,14 @@ export default function CheckoutDetailsForm({
 
         {/* Footer */}
         <div
-          className={`p-5 border-t flex gap-3 ${isDark ? 'border-stone-800' : 'border-stone-200'}`}
+          className={`p-5 border-t flex gap-3 ${isDark ? 'border-stone-800' : 'border-[#CBD5E1]'}`}
         >
           <button
             onClick={onClose}
             className={`flex-1 py-2.5 px-4 rounded-lg border font-semibold transition ${
               isDark
                 ? 'border-stone-800 hover:bg-stone-900'
-                : 'border-stone-200 hover:bg-stone-100'
+                : 'border-[#CBD5E1] hover:bg-[#F8FAFC]'
             }`}
           >
             Cancel
@@ -207,7 +207,7 @@ export default function CheckoutDetailsForm({
                 ? isDark ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white'
                 : isDark
                 ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
-                : 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                : 'bg-stone-200 text-[#94A3B8] cursor-not-allowed'
             }`}
           >
             Proceed to Payment

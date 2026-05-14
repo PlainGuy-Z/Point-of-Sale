@@ -38,10 +38,10 @@ export default function SidebarItem({
           <Icon
             className={`w-[18px] h-[18px] transition-colors duration-200 ${
               isActive
-                ? 'text-teal-600'
+                ? 'text-teal-700'
                 : isDark
                   ? 'text-stone-500'
-                  : 'text-[#94A3B8]'
+                  : 'text-[#64748B]'
             }`}
           />
         )}
@@ -57,7 +57,7 @@ export default function SidebarItem({
                 : 'text-teal-700'
               : isDark
                 ? 'text-stone-300'
-                : 'text-[#475569]'
+                : 'text-[#334155]'
           }`}
         >
           {item.label}

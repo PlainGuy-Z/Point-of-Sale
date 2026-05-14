@@ -4,8 +4,8 @@
   "description": "Platform POS modern untuk manajemen kopi dan makanan",
   "start_url": "/",
   "display": "fullscreen",
-  "background_color": "#111111",
-  "theme_color": "#f59e0b",
+  "background_color": "#0a0908",
+  "theme_color": "#0a0908",
   "orientation": "any",
   "icons": [
     {

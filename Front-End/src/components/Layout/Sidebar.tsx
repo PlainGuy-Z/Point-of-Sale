@@ -228,7 +228,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
     <>
       <div
         className={`
-          ${isDark ? 'bg-stone-950 text-stone-100 border-stone-800' : 'bg-white text-[#0F172A] border-[#E2E8F0]'}
+          ${isDark ? 'bg-stone-950 text-stone-100 border-stone-800' : 'bg-white text-[#0F172A] border-[#CBD5E1]'}
           ${isCollapsed && !isMobileOpen ? 'w-[68px] overflow-visible' : 'w-[240px] overflow-hidden'}
           ${isMobileLandscape ? 'h-full' : 'h-screen'} fixed left-0 top-0 z-50 flex flex-col border-r transition-all duration-300
           ${isMobileLandscape ? 'flex' : 'hidden lg:flex'}
@@ -241,7 +241,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
         <div
           className={`
             ${isCollapsed ? 'p-3' : 'px-5 py-5'}
-            border-b ${isDark ? 'border-stone-800/60' : 'border-[#E2E8F0]'}
+            border-b ${isDark ? 'border-stone-800/60' : 'border-[#CBD5E1]'}
             transition-all duration-300
           `}
         >
@@ -287,10 +287,9 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                 title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 className={`
                   ${isCollapsed ? 'mt-2' : 'ml-auto'}
-                  p-1.5 rounded-xl border transition-all duration-200
                   ${isDark
                     ? 'border-stone-800 hover:bg-stone-900 text-stone-500 hover:text-stone-300'
-                    : 'border-[#E2E8F0] hover:bg-[#F1F5F9] text-[#94A3B8] hover:text-[#475569]'
+                    : 'border-[#CBD5E1] hover:bg-[#F1F5F9] text-[#64748B] hover:text-[#334155]'
                   }
                 `}
               >
@@ -306,7 +305,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
           {/* Shift counter for cashier */}
           {user?.role === 'cashier' && activeShift && !isCollapsed && (
             <div className="mt-2 flex items-center justify-between px-1">
-              <span className={`text-xs ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>
+              <span className={`text-xs ${isDark ? 'text-stone-500' : 'text-[#64748B]'}`}>
                 Transaksi shift ini:
               </span>
               <span className={`text-xs font-bold ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>
@@ -345,7 +344,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                   <div className="px-3 pt-2 pb-1.5">
                     <span
                       className={`text-[10px] font-bold uppercase tracking-[0.08em] ${
-                        isDark ? 'text-stone-600' : 'text-[#94A3B8]'
+                        isDark ? 'text-stone-600' : 'text-[#64748B]'
                       }`}
                     >
                       {section.label}
@@ -441,7 +440,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
               rounded-xl border
               ${isDark
                 ? 'bg-stone-900/50 border-stone-800/60'
-                : 'bg-[#F8FAFC] border-[#E2E8F0]'
+                : 'bg-[#F8FAFC] border-[#CBD5E1]'
               }
             `}
           >
@@ -485,10 +484,9 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                 ${isCollapsed ? '' : 'ml-auto'}
                 inline-flex items-center gap-1.5
                 ${isCollapsed ? 'p-2' : 'px-2.5 py-1.5'}
-                rounded-xl border text-xs font-bold transition-all duration-200
                 ${isDark
                   ? 'bg-stone-950 border-stone-800 text-stone-300 hover:bg-stone-900'
-                  : 'bg-[#F1F5F9] border-[#E2E8F0] text-[#475569] hover:bg-[#E2E8F0]'
+                  : 'bg-[#F1F5F9] border-[#CBD5E1] text-[#334155] hover:bg-[#E2E8F0]'
                 }
               `}
               aria-label="Toggle theme"

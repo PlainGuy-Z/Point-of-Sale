@@ -23,7 +23,7 @@ function TrendBadge({ value, isDark }: { value: number; isDark: boolean }) {
   
   if (isNeutral) return (
     <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-      isDark ? 'bg-stone-800 border-stone-700 text-stone-500' : 'bg-stone-50 border-stone-200 text-stone-600'
+      isDark ? 'bg-stone-800 border-stone-700 text-stone-500' : 'bg-stone-100 border-stone-300 text-stone-700'
     }`}>
       0.0%
     </span>
@@ -83,13 +83,13 @@ function StatCard({
     <div
       className={`
         relative rounded-2xl border p-5 transition-all duration-300 overflow-hidden group
-        ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-[#E2E8F0] shadow-sm hover:shadow-md hover:border-teal-400'}
-        ${card.highlight && !isDark ? 'border-t-2 border-t-teal-500' : ''}
+        ${isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-[#CBD5E1] shadow-sm hover:shadow-md hover:border-teal-500'}
+        ${card.highlight && !isDark ? 'border-t-2 border-t-teal-600' : ''}
         ${isMobile ? 'w-[75vw] landscape:w-[40vw] lg:w-auto shrink-0 snap-start' : ''}
       `}
     >
       <div className="flex items-center justify-between mb-3">
-        <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-stone-500' : 'text-[#475569]'}`}>
+        <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-stone-500' : 'text-[#334155]'}`}>
           {card.label}
         </span>
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110 ${
@@ -111,8 +111,8 @@ function StatCard({
         {card.trend !== null ? (
           <TrendBadge value={card.trend} isDark={isDark} />
         ) : (
-          <span className={`text-[10px] font-medium uppercase ${
-            isDark ? 'text-stone-600' : 'text-[#64748B]'
+          <span className={`text-[10px] font-bold uppercase ${
+            isDark ? 'text-stone-600' : 'text-[#475569]'
           }`}>{card.sub}</span>
         )}
       </div>

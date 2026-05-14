@@ -21,13 +21,16 @@
   --color-muted: #475569; /* slate-600 */
 }
 
-body {
+html, body {
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
   transition: background-color 0.3s ease, color 0.3s ease;
   background: var(--color-background);
   color: var(--color-foreground);
+}
+
+body {
   /* Prevent horizontal scroll and bounce on some devices */
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
@@ -46,7 +49,7 @@ body {
 
 /* Dark theme tokens */
 .dark {
-  --color-background: #0c0a09; /* stone-950 */
+  --color-background: #0a0908; /* Match BI Dashboard exactly */
   --color-surface: #1a1614; /* Dark Espresso */
   --color-border: #292524; /* stone-800 */
   --color-foreground: #f5f5f4; /* stone-100 */

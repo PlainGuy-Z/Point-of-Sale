@@ -196,7 +196,7 @@ export default function BusinessInsights() {
         <button
           onClick={() => fetchAll()}
           className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-bold border transition-all ${
-            isDark ? 'border-stone-800 bg-stone-800 text-stone-300 hover:bg-stone-700' : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
+            isDark ? 'border-stone-800 bg-stone-800 text-stone-300 hover:bg-stone-700' : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC]'
           }`}
         >
           <RefreshCw size={13} className={summary.loading ? 'animate-spin' : ''} />
@@ -236,8 +236,8 @@ export default function BusinessInsights() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
                     isActive 
-                      ? (isDark ? 'bg-stone-800 text-amber-500 shadow-lg' : 'bg-white text-teal-700 shadow-sm') 
-                      : (isDark ? 'text-stone-500 hover:text-stone-300' : 'text-[#64748B] hover:text-[#0F172A]')
+                      ? (isDark ? 'bg-stone-800 text-amber-500 shadow-lg' : 'bg-white text-teal-800 shadow-sm border border-teal-100') 
+                      : (isDark ? 'text-stone-500 hover:text-stone-300' : 'text-[#475569] hover:text-teal-600')
                   }`}
                 >
                   {tab.icon}
@@ -278,7 +278,7 @@ export default function BusinessInsights() {
 
           {/* ── AI TAB ── */}
           {activeTab === 'ai' && (
-            <div className="h-[calc(100vh-220px)] flex flex-col">
+            <div className={`flex flex-col ${isMobile && window.innerWidth > window.innerHeight ? 'h-[calc(100vh-140px)]' : 'h-[calc(100vh-220px)]'}`}>
               <AIChatPanel />
             </div>
           )}

@@ -1312,7 +1312,7 @@ export default function PointOfSale() {
                   <button
                     onClick={() => setPanel('manual')}
                     className={`flex items-center justify-center gap-2 px-3 h-9 md:h-11 rounded-2xl border transition-all ${
-                      isDark ? 'border-stone-800 bg-stone-900 text-stone-300 hover:bg-stone-800' : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
+                      isDark ? 'border-stone-800 bg-stone-900 text-stone-300 hover:bg-stone-800' : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC] shadow-sm'
                     }`}
                     title="Item Manual"
                   >
@@ -1322,13 +1322,13 @@ export default function PointOfSale() {
                 </div>
               </div>
               <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B] w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Cari menu..."
                   className={`w-full pl-10 pr-4 py-3 min-h-[44px] rounded-2xl border-2 outline-none text-sm transition-all shadow-sm ${isDark
                     ? 'bg-stone-900 border-stone-800 text-white focus:border-amber-500'
-                    : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8] focus:border-teal-400'
+                    : 'bg-white border-[#CBD5E1] text-[#0F172A] placeholder-[#64748B] focus:border-teal-500'
                     }`}
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -1378,7 +1378,7 @@ export default function PointOfSale() {
           {showMobilePortrait && (
             <div className="py-2">
             {categoryCarousels.length === 0 || categoryCarousels.every(c => c.products.length === 0) ? (
-              <div className={`flex flex-col items-center justify-center min-h-[300px] text-center px-4 ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>
+              <div className={`flex flex-col items-center justify-center min-h-[300px] text-center px-4 ${isDark ? 'text-stone-400' : 'text-[#64748B]'}`}>
                 <Package size={48} className={`mb-4 ${isDark ? 'text-stone-700' : 'text-[#CBD5E1]'}`} />
                 <p className="font-semibold text-sm mb-1">
                   {search ? 'Tidak ada hasil pencarian' : 'Tidak ada produk'}
