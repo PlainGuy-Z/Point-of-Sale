@@ -63,7 +63,8 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
             const price = priceById.get(line.productId);
             if (price === undefined)
                 throw new HttpError(400, 'UNKNOWN_PRODUCT', `Unknown productId ${line.productId}`);
-            subtotal += price * line.quantity;
+            const variantPrice = line.variantPrice ?? 0;
+            subtotal += (price + variantPrice) * line.quantity;
         }
         const shopSettings = await getShopSettings(shopId);
         const taxRateConfig = shopSettings.tax_enabled ? Number(shopSettings.tax_rate) / 100 : 0;
@@ -172,31 +173,39 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
             const normalizedItems = [];
             for (const line of realLines) {
                 const p = productById.get(line.productId);
-                subtotal += p.price * line.quantity;
+                const variantPrice = line.variantPrice ?? 0;
+                const finalPrice = p.price + variantPrice;
+                const variantNameString = line.variantName ? `[${line.variantName}]` : '';
+                const finalDesc = [line.description, variantNameString].filter(Boolean).join(' - ');
+                subtotal += finalPrice * line.quantity;
                 costTotal += p.cost * line.quantity;
                 normalizedItems.push({
                     kind: 'real',
                     productId: p.id,
                     name: p.name,
-                    price: p.price,
+                    price: finalPrice,
                     cost: p.cost,
                     quantity: line.quantity,
-                    description: line.description // ✅ Include description
+                    description: finalDesc || undefined
                 });
             }
             for (const line of manualLines) {
                 const price = line.price ?? 0;
                 if (price <= 0)
                     throw new HttpError(400, 'VALIDATION_ERROR', 'Manual item requires price');
+                const variantPrice = line.variantPrice ?? 0;
+                const finalPrice = price + variantPrice;
+                const variantNameString = line.variantName ? `[${line.variantName}]` : '';
+                const finalDesc = [line.description, variantNameString].filter(Boolean).join(' - ');
                 const name = line.note?.trim() || 'Custom Item';
-                subtotal += price * line.quantity;
+                subtotal += finalPrice * line.quantity;
                 normalizedItems.push({
                     kind: 'manual',
                     manualId: line.productId,
                     name,
-                    price,
+                    price: finalPrice,
                     quantity: line.quantity,
-                    description: line.description // ✅ Include description
+                    description: finalDesc || undefined
                 });
             }
             const shopSettings = await getShopSettings(shopId);

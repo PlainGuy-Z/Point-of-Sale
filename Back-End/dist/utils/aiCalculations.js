@@ -1,10 +1,14 @@
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 /**
  * Calculates a 7-day sales forecast based on historical data.
+ * Uses a priority chain:
+ * 1. DOW (day-of-week) average if data_points >= 2
+ * 2. 7-day moving average with DOW weighting as fallback
+ * 3. Zero if no historical data exists
  */
 export async function getSalesForecast(pool, shopId) {
     // Query daily revenue and apply a 7-day moving average, then average by day of week.
-    const query = `
+    const dowQuery = `
     WITH daily_stats AS (
       SELECT
         DATE(created_at) as date,
@@ -36,32 +40,69 @@ export async function getSalesForecast(pool, shopId) {
     )
     SELECT * FROM dow_averages;
   `;
-    const { rows } = await pool.query(query, [shopId]);
+    const globalAvgQuery = `
+    SELECT 
+      COALESCE(SUM(grand_total), 0) / NULLIF(COUNT(DISTINCT DATE(created_at)), 0) as avg_daily_revenue,
+      COALESCE(SUM(COUNT(id)) OVER (), 0) / NULLIF(COUNT(DISTINCT DATE(created_at)), 0) as avg_daily_transactions,
+      COUNT(DISTINCT DATE(created_at)) as days_with_data
+    FROM coffeepos.transactions
+    WHERE shop_id = $1 
+      AND created_at >= NOW() - INTERVAL '7 days'
+      AND status = 'completed'
+  `;
+    const [dowRes, globalAvgRes] = await Promise.all([
+        pool.query(dowQuery, [shopId]),
+        pool.query(globalAvgQuery, [shopId])
+    ]);
     const dowMap = new Map();
-    for (const row of rows) {
+    for (const row of dowRes.rows) {
         dowMap.set(Number(row.dow), {
             avg_revenue: Number(row.avg_revenue),
             avg_transactions: Number(row.avg_transactions),
             data_points: Number(row.data_points),
         });
     }
+    const globalAvgRow = globalAvgRes.rows[0];
+    const globalDailyAvg = Number(globalAvgRow?.avg_daily_revenue || 0);
+    const globalDailyTrx = Number(globalAvgRow?.avg_daily_transactions || 0);
+    const daysWithData = Number(globalAvgRow?.days_with_data || 0);
     const forecast = [];
     const today = new Date();
     for (let i = 1; i <= 7; i++) {
         const targetDate = new Date(today);
         targetDate.setDate(today.getDate() + i);
         const dow = targetDate.getDay();
-        const stats = dowMap.get(dow) || { avg_revenue: 0, avg_transactions: 0, data_points: 0 };
-        let confidence = 'low';
-        if (stats.data_points >= 8)
-            confidence = 'high';
-        else if (stats.data_points >= 4)
-            confidence = 'medium';
+        const stats = dowMap.get(dow);
+        const hasReliableDowData = stats && stats.data_points >= 2;
+        let predicted_revenue;
+        let predicted_transactions;
+        let confidence;
+        if (hasReliableDowData) {
+            // Priority 1: use DOW average
+            predicted_revenue = Math.round(stats.avg_revenue);
+            predicted_transactions = Math.round(stats.avg_transactions);
+            confidence = stats.data_points >= 8 ? 'high' : 'medium';
+        }
+        else if (globalDailyAvg > 0) {
+            // Priority 2: fallback to 7-day moving average
+            // Apply slight day-of-week weight if DOW data exists but < 2 points
+            const dowWeight = stats ? (stats.avg_revenue / globalDailyAvg) : 1;
+            const weightClamped = Math.min(Math.max(dowWeight, 0.5), 1.5); // clamp 50%-150%
+            predicted_revenue = Math.round(globalDailyAvg * weightClamped);
+            predicted_transactions = Math.round(globalDailyTrx * weightClamped);
+            confidence = daysWithData >= 3 ? 'medium' : 'low';
+        }
+        else {
+            // Priority 3: no data at all
+            predicted_revenue = 0;
+            predicted_transactions = 0;
+            confidence = 'low';
+        }
         forecast.push({
             date: targetDate.toISOString().split('T')[0],
             day_name: DAY_NAMES[dow],
-            predicted_revenue: Math.round(stats.avg_revenue),
-            predicted_transactions: Math.round(stats.avg_transactions),
+            predicted_revenue,
+            predicted_transactions,
             confidence,
         });
     }
@@ -205,6 +246,11 @@ export async function getBusinessSummary(pool, shopId) {
       (NOW() AT TIME ZONE 'Asia/Jakarta')::date
       THEN grand_total ELSE 0 END) as today_revenue,
 
+    COUNT(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta')::date = 
+      (NOW() AT TIME ZONE 'Asia/Jakarta')::date
+      THEN id END) as today_transactions,
+
     SUM(CASE WHEN 
       (created_at AT TIME ZONE 'Asia/Jakarta')::date = 
       (NOW() AT TIME ZONE 'Asia/Jakarta')::date - 1
@@ -212,19 +258,26 @@ export async function getBusinessSummary(pool, shopId) {
 
     SUM(CASE WHEN 
       (created_at AT TIME ZONE 'Asia/Jakarta') >= 
-      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'Asia/Jakarta'
+      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta')
       THEN grand_total ELSE 0 END) as this_week_revenue,
 
     SUM(CASE WHEN 
       (created_at AT TIME ZONE 'Asia/Jakarta') >= 
-      (date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') - INTERVAL '1 week') AT TIME ZONE 'Asia/Jakarta'
+      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') - INTERVAL '7 days'
       AND (created_at AT TIME ZONE 'Asia/Jakarta') < 
-      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'Asia/Jakarta'
-      THEN grand_total ELSE 0 END) as last_week_revenue,
+      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta')
+      THEN grand_total ELSE 0 END) as last_week_revenue_full,
 
     SUM(CASE WHEN 
       (created_at AT TIME ZONE 'Asia/Jakarta') >= 
-      date_trunc('month', NOW() AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'Asia/Jakarta'
+      date_trunc('week', NOW() AT TIME ZONE 'Asia/Jakarta') - INTERVAL '7 days'
+      AND (created_at AT TIME ZONE 'Asia/Jakarta') < 
+      (NOW() AT TIME ZONE 'Asia/Jakarta') - INTERVAL '7 days'
+      THEN grand_total ELSE 0 END) as last_week_revenue_apple,
+      
+    SUM(CASE WHEN 
+      (created_at AT TIME ZONE 'Asia/Jakarta') >= 
+      date_trunc('month', NOW() AT TIME ZONE 'Asia/Jakarta')
       THEN grand_total ELSE 0 END) as this_month_revenue
 
   FROM coffeepos.transactions
@@ -235,7 +288,10 @@ export async function getBusinessSummary(pool, shopId) {
     FROM coffeepos.transaction_items ti
     JOIN coffeepos.transactions t ON ti.transaction_id = t.id
     JOIN coffeepos.products p ON ti.product_id = p.id
-    WHERE t.shop_id = $1 AND t.created_at >= CURRENT_DATE AND t.status = 'completed'
+    WHERE t.shop_id = $1 
+    AND (t.created_at AT TIME ZONE 'Asia/Jakarta')::date = 
+        (NOW() AT TIME ZONE 'Asia/Jakarta')::date
+    AND t.status = 'completed'
     GROUP BY p.id, p.name
     ORDER BY qty DESC
     LIMIT 3
@@ -263,15 +319,16 @@ export async function getBusinessSummary(pool, shopId) {
     const today = Number(rev.today_revenue || 0);
     const yesterday = Number(rev.yesterday_revenue || 0);
     const thisWeek = Number(rev.this_week_revenue || 0);
-    const lastWeek = Number(rev.last_week_revenue || 0);
+    const lastWeekFull = Number(rev.last_week_revenue_full || 0);
+    const lastWeekApple = Number(rev.last_week_revenue_apple || 0);
     let dodChange = 0;
     if (yesterday > 0)
         dodChange = ((today - yesterday) / yesterday) * 100;
     else if (today > 0)
         dodChange = 100;
     let wowChange = 0;
-    if (lastWeek > 0)
-        wowChange = ((thisWeek - lastWeek) / lastWeek) * 100;
+    if (lastWeekApple > 0)
+        wowChange = ((thisWeek - lastWeekApple) / lastWeekApple) * 100;
     else if (thisWeek > 0)
         wowChange = 100;
     const topProductsStr = prodRes.rows.map(r => `${r.name} (${r.qty})`).join(', ');
@@ -279,12 +336,13 @@ export async function getBusinessSummary(pool, shopId) {
         today_revenue: today,
         yesterday_revenue: yesterday,
         this_week_revenue: thisWeek,
-        last_week_revenue: lastWeek,
+        last_week_revenue: lastWeekFull,
         this_month_revenue: Number(rev.this_month_revenue || 0),
         day_over_day_change_percent: Number(dodChange.toFixed(1)),
         week_over_week_change_percent: Number(wowChange.toFixed(1)),
         top_products_today: topProductsStr || 'None yet',
         low_stock_count: Number(stockRes.rows[0]?.count || 0),
         active_shifts_count: Number(shiftsRes.rows[0]?.count || 0),
+        today_transactions: Number(rev.today_transactions || 0),
     };
 }

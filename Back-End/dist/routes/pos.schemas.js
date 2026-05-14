@@ -14,6 +14,8 @@ export const CartLineSchema = z
     note: z.string().trim().min(1).optional(),
     modifiers: z.array(z.string().trim().min(1)).optional(),
     description: z.string().trim().max(200).optional(), // ✅ Per-item description
+    variantName: z.string().trim().max(100).optional(),
+    variantPrice: z.coerce.number().int().nonnegative().optional(),
     price: z.coerce.number().int().nonnegative().optional()
 })
     .superRefine((line, ctx) => {

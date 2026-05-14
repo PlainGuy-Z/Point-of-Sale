@@ -54,7 +54,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   try {
     await register({ shopName, shopSlug, ownerName, email, password });
     // Redirect manual setelah register sukses
-    navigate('/verify-email', { replace: true });
+    navigate('/', { replace: true });
   } catch (err: any) {
     if (err.details?.fieldErrors) {
       const firstField = Object.keys(err.details.fieldErrors)[0];
@@ -73,7 +73,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 // Tambah ini — redirect kalau sudah login saat buka halaman register
 useEffect(() => {
   if (status === 'authenticated' && user) {
-    // Sudah login → ke dashboard, bukan ke verify
+    // Sudah login → ke dashboard
     if (user.role === 'cashier') {
       navigate('/pos', { replace: true });
     } else {

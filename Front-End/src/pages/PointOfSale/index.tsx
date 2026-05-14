@@ -4,7 +4,7 @@ import {
   Search, ShoppingCart, Trash2, User, Plus, PlusCircle,
   Flame, Trophy, TrendingUp, Zap, ChevronRight,
   Package, CreditCard, ReceiptText, Pencil, Hash,
-  MessageSquare, ArrowLeft, ChevronUp, X
+  MessageSquare, ArrowLeft, ChevronUp, X, Maximize, Minimize
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -144,6 +144,19 @@ interface SwipeState {
 }
 
 export default function PointOfSale() {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  };
+
   const createManualItemId = () =>
     typeof crypto !== 'undefined' && crypto.randomUUID
       ? `manual-${crypto.randomUUID()}`
@@ -1304,9 +1317,32 @@ export default function PointOfSale() {
           {/* ── Catalog Header ── */}
           <div className={`${isMobile ? 'sticky top-0 z-20 pt-2 pb-1 -mx-4 px-4 bg-inherit' : 'mb-4'}`}>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
-              <h1 className={`text-xl md:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'} ${showDesktopLayout ? 'block' : 'hidden'}`}>
-                Menu <span className="text-amber-500">Explorer</span>
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className={`text-xl md:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'} ${showDesktopLayout ? 'block' : 'hidden'}`}>
+                  Menu <span className="text-amber-500">Explorer</span>
+                </h1>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleFullscreen}
+                    className={`flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-2xl border transition-all ${
+                      isDark ? 'border-stone-800 bg-stone-900 text-stone-300 hover:bg-stone-800' : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
+                    }`}
+                    title="Toggle Fullscreen"
+                  >
+                    {isFullscreen ? <Minimize size={isMobile ? 14 : 18} /> : <Maximize size={isMobile ? 14 : 18} />}
+                  </button>
+                  <button
+                    onClick={() => setPanel('manual')}
+                    className={`flex items-center justify-center gap-2 px-3 h-9 md:h-11 rounded-2xl border transition-all ${
+                      isDark ? 'border-stone-800 bg-stone-900 text-stone-300 hover:bg-stone-800' : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
+                    }`}
+                    title="Item Manual"
+                  >
+                    <PlusCircle size={isMobile ? 14 : 16} />
+                    <span className="text-[10px] font-black uppercase">Manual</span>
+                  </button>
+                </div>
+              </div>
               <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] w-4 h-4" />
                 <input

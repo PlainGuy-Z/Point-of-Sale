@@ -47,8 +47,8 @@ const ownerNavigation: Navigation = {
       label: 'LAPORAN & ANALITIK',
       collapsedIcon: 'BarChart3',
       items: [
-        { id: 'business-insights', label: 'Business Intelligence', icon: 'BrainCircuit', path: '/insights' },
         { id: 'transactions', label: 'Riwayat Transaksi', icon: 'Receipt', path: '/transactions' },
+        { id: 'business-insights', label: 'Business Intelligence', icon: 'BrainCircuit', path: '/insights' },
         { id: 'shifts', label: 'Laporan Shift', icon: 'ClipboardList', path: '/shifts' },
       ],
     },

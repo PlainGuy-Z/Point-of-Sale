@@ -49,7 +49,6 @@
 
     const logout = useCallback(async () => {
       await authApi.logout();
-      localStorage.removeItem('verifyBannerDismissed');
       setUser(null);
       setStatus('unauthenticated');
     }, []);

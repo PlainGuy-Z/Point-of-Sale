@@ -171,7 +171,8 @@ aiRouter.post('/chat', async (req, res, next) => {
                 reply,
                 context_snapshot: {
                     today_revenue: summary.today_revenue,
-                    week_revenue: summary.this_week_revenue,
+                    this_week_revenue: summary.this_week_revenue,
+                    total_transactions: summary.today_transactions,
                 },
             },
         });

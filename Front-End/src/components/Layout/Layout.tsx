@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Menu, Coffee } from 'lucide-react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import VerificationBanner from '../common/VerificationBanner';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -110,7 +109,6 @@ export default function Layout() {
 
         <div className={`h-full overflow-hidden ${isMobileLandscape ? 'pt-0' : 'pt-14 lg:pt-0'}`}>
           <div className="p-4 lg:px-6 lg:py-5 h-full overflow-auto">
-            <VerificationBanner />
             <Outlet />
           </div>
         </div>

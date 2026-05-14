@@ -28,6 +28,20 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   background: var(--color-background);
   color: var(--color-foreground);
+  /* Prevent horizontal scroll and bounce on some devices */
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Handle notches and status bars (Safe Areas) */
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* Dark theme tokens */
