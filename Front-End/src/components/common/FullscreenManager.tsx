@@ -9,23 +9,49 @@ const FullscreenManager: React.FC = () => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
       navigator.userAgent
     );
+    if (!isMobile) return;
 
-    // iOS Safari doesn't support the Fullscreen API on the document element.
-    // They must use "Add to Home Screen".
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    // If it's already in a PWA standalone mode, we don't need this
+    // Standalone check (PWA)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
                          (window.navigator as any).standalone || 
                          document.referrer.includes('android-app://');
 
-    if (!isMobile || isStandalone) return;
+    // Vendor-prefixed fullscreen request
+    const requestFullscreen = () => {
+      const docEl = document.documentElement as any;
+      const requestMethod = docEl.requestFullscreen || 
+                            docEl.webkitRequestFullscreen || 
+                            docEl.mozRequestFullScreen || 
+                            docEl.msRequestFullscreen;
 
-    // Show overlay to force a user gesture
-    setShowOverlay(true);
+      if (requestMethod && !document.fullscreenElement) {
+        requestMethod.call(docEl).catch((err: any) => {
+          console.warn(`Silent fullscreen request failed: ${err.message}`);
+        });
+      }
+      
+      // Cleanup listeners
+      window.removeEventListener('click', requestFullscreen);
+      window.removeEventListener('touchstart', requestFullscreen);
+      setShowOverlay(false);
+    };
+
+    if (isStandalone) {
+      // In PWA mode, try to go fullscreen silently on the first interaction
+      window.addEventListener('click', requestFullscreen);
+      window.addEventListener('touchstart', requestFullscreen);
+    } else {
+      // In regular browser, show the overlay to force a user gesture
+      setShowOverlay(true);
+    }
+
+    return () => {
+      window.removeEventListener('click', requestFullscreen);
+      window.removeEventListener('touchstart', requestFullscreen);
+    };
   }, []);
 
-  const handleEnter = () => {
+  const handleManualEnter = () => {
     const docEl = document.documentElement as any;
     const requestMethod = docEl.requestFullscreen || 
                           docEl.webkitRequestFullscreen || 
@@ -34,7 +60,7 @@ const FullscreenManager: React.FC = () => {
 
     if (requestMethod) {
       requestMethod.call(docEl).catch((err: any) => {
-        console.warn(`Fullscreen request failed: ${err.message}`);
+        console.warn(`Manual fullscreen request failed: ${err.message}`);
       });
     }
     
@@ -53,7 +79,7 @@ const FullscreenManager: React.FC = () => {
         Klik tombol di bawah untuk masuk ke mode layar penuh agar pengalaman transaksi lebih maksimal.
       </p>
       <button
-        onClick={handleEnter}
+        onClick={handleManualEnter}
         className="w-full max-w-xs py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 transition-all active:scale-95"
       >
         Masuk ke Aplikasi
