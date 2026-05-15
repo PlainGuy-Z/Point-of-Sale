@@ -21,6 +21,7 @@ import CheckoutDetailsForm from '../../components/pos/CheckoutDetailsForm';
 import ReceiptModal from '../../components/pos/ReceiptModal';
 import CartItemEditPanel from '../../components/pos/CartItemEditPanel';
 import MobileCart from '../../components/pos/MobileCart';
+import MobileCategoryCarousel from '../../components/pos/MobileCategoryCarousel';
 import { usePrinter } from '../../hooks/usePrinter';
 import type { Transaction, TransactionItem, CartItemWithInput, Product } from '../../types';
 import { ApiError } from '../../services/appApi';
@@ -352,6 +353,33 @@ export default function PointOfSale() {
   });
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
 
+  // ── Local Optimistic Quote ──────────────────────────────────────────────────
+  const localQuote = useMemo(() => {
+    const subtotal = cart.reduce((sum, item) => {
+      const basePrice = item.price + (item.variantPrice || 0);
+      return sum + (basePrice * item.quantity);
+    }, 0);
+    
+    const taxRate = settings?.tax_rate || 0;
+    const tax = taxEnabled ? Math.round(subtotal * taxRate / 100) : 0;
+    
+    const serviceChargeRate = settings?.service_charge_enabled ? (settings?.service_charge_rate || 0) : 0;
+    const serviceCharge = Math.round(subtotal * serviceChargeRate / 100);
+    
+    return {
+      subtotal,
+      tax,
+      serviceCharge,
+      grandTotal: subtotal + tax + serviceCharge,
+      taxRate,
+      taxLabel: settings?.tax_label || 'Pajak',
+      serviceChargeRate,
+      serviceChargeLabel: settings?.service_charge_label || 'Service'
+    };
+  }, [cart, taxEnabled, settings]);
+
+  const displayQuote = isQuoteLoading && (quote.grandTotal === 0 || cart.length > 0) ? localQuote : quote;
+
   // ── Manual item ──────────────────────────────────────────────────────────────
   const [manualItemName, setManualItemName] = useState('');
   const [manualItemPrice, setManualItemPrice] = useState('');
@@ -502,12 +530,12 @@ export default function PointOfSale() {
         if (!cancelled) setQuote({ subtotal: 0, tax: 0, serviceCharge: 0, grandTotal: 0, taxRate: settings?.tax_rate || 0 });
       } finally { if (!cancelled) setIsQuoteLoading(false); }
     };
-    const t = window.setTimeout(run, 250);
+    const t = window.setTimeout(run, 100);
     return () => { cancelled = true; window.clearTimeout(t); };
   }, [cart, selectedCustomer, customCustomerName, orderType, tableNumber, orderNote, settings, taxEnabled]);
 
   const cartIsEmpty = cart.length === 0;
-  const canPay = !cartIsEmpty && !isServiceLoading && !isQuoteLoading && quote.grandTotal > 0;
+  const canPay = !cartIsEmpty && !isServiceLoading && (quote.grandTotal > 0 || localQuote.grandTotal > 0);
 
   const cashierNeedsShift =
     user?.role === 'cashier' && !shiftLoading && !activeShift;
@@ -939,12 +967,12 @@ export default function PointOfSale() {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>Subtotal</span>
-                  <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(quote.subtotal)}</span>
+                  <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(displayQuote.subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
-                      Pajak ({quote.taxRate || 0}%)
+                      Pajak ({displayQuote.taxRate || 0}%)
                     </span>
                     <button
                       onClick={() => setTaxEnabled(t => !t)}
@@ -954,20 +982,20 @@ export default function PointOfSale() {
                     </button>
                   </div>
                   <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-[#0F172A]') : (isDark ? 'text-stone-700 line-through' : 'text-[#CBD5E1] line-through')}`}>
-                    {format(quote.tax)}
+                    {format(displayQuote.tax)}
                   </span>
                 </div>
-                {quote.serviceCharge > 0 && (
+                {displayQuote.serviceCharge > 0 && (
                   <div className="flex justify-between text-xs">
                     <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
-                      {quote.serviceChargeLabel || 'Service'} ({quote.serviceChargeRate || 0}%)
+                      {displayQuote.serviceChargeLabel || 'Service'} ({displayQuote.serviceChargeRate || 0}%)
                     </span>
-                    <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(quote.serviceCharge)}</span>
+                    <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(displayQuote.serviceCharge)}</span>
                   </div>
                 )}
                 <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
                   <span className={`font-black text-sm uppercase ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Total</span>
-                  <span className="font-black text-lg text-amber-500 tabular-nums">{format(quote.grandTotal)}</span>
+                  <span className="font-black text-lg text-amber-500 tabular-nums">{format(displayQuote.grandTotal)}</span>
                 </div>
               </div>
             )}
@@ -1099,12 +1127,12 @@ export default function PointOfSale() {
               <div className={`pt-1.5 mt-1.5 border-t space-y-1 ${isDark ? 'border-stone-800' : 'border-[#E2E8F0]'}`}>
                 <div className="flex justify-between text-xs">
                   <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>Subtotal</span>
-                  <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(quote.subtotal)}</span>
+                  <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(displayQuote.subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5">
                     <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
-                      {quote.taxLabel || 'Pajak'} ({quote.taxRate || 0}%)
+                      {displayQuote.taxLabel || 'Pajak'} ({displayQuote.taxRate || 0}%)
                     </span>
                     <button
                       onClick={() => setTaxEnabled(t => !t)}
@@ -1114,20 +1142,20 @@ export default function PointOfSale() {
                     </button>
                   </div>
                   <span className={`tabular-nums ${taxEnabled ? (isDark ? 'text-stone-300' : 'text-[#475569]') : (isDark ? 'text-stone-800 line-through' : 'text-[#CBD5E1] line-through')}`}>
-                    {format(quote.tax)}
+                    {format(displayQuote.tax)}
                   </span>
                 </div>
-                {quote.serviceCharge > 0 && (
+                {displayQuote.serviceCharge > 0 && (
                   <div className="flex justify-between text-xs">
                     <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
-                      {quote.serviceChargeLabel || 'Service'} ({quote.serviceChargeRate || 0}%)
+                      {displayQuote.serviceChargeLabel || 'Service'} ({displayQuote.serviceChargeRate || 0}%)
                     </span>
-                    <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(quote.serviceCharge)}</span>
+                    <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(displayQuote.serviceCharge)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-black text-sm pt-1 border-t border-dashed mt-1 dark:border-stone-800">
                   <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>Total</span>
-                  <span className="text-amber-500 tabular-nums">{format(quote.grandTotal)}</span>
+                  <span className="text-amber-500 tabular-nums">{format(displayQuote.grandTotal)}</span>
                 </div>
               </div>
             </div>
@@ -1505,7 +1533,7 @@ export default function PointOfSale() {
           <div>
             <MobileCart
             cart={cart}
-            quote={quote}
+            quote={displayQuote as any}
             sheetState={sheetState}
             isDark={isDark}
             canPay={canPay}
@@ -1592,7 +1620,7 @@ export default function PointOfSale() {
 
       {isPaymentModalOpen && (
         <PaymentModal
-          total={quote.grandTotal}
+          total={displayQuote.grandTotal}
           onClose={() => setPaymentModalOpen(false)}
           onConfirm={handlePaymentSuccess}
         />
