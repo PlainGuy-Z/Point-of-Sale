@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useApp } from '../../../contexts/AppContext'; 
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useDateFormatter } from '../../../hooks/useDateFormatter';
 import { analyzeCustomerBehavior } from '../../../utils/analytics/customerAnalytics';
 import CustomerStats from '../../../components/customers/CustomerStats';
 import { 
@@ -15,8 +16,9 @@ import {
 export default function LoyaltyInsight() {
   // 1. Ambil 'customers' juga dari useApp agar bisa cari nama
   const { transactions, customers } = useApp();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { effectiveTheme } = useTheme();
+  const isDark = effectiveTheme === 'dark';
+  const { formatDate } = useDateFormatter();
 
   // Analisis Data
   const analytics = useMemo(() => {
@@ -151,7 +153,7 @@ export default function LoyaltyInsight() {
                          {displayName}
                        </div>
                        <div className="text-xs text-red-500">
-                         Last visit: {new Date(stats.lastVisit).toLocaleDateString()}
+                         Last visit: {formatDate(stats.lastVisit)}
                        </div>
                      </div>
                      <button className="text-xs bg-white text-red-600 px-3 py-1.5 rounded-xl border border-red-200 font-bold shadow-sm hover:bg-red-50">

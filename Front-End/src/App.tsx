@@ -2,16 +2,10 @@
 import { Suspense, lazy, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
-import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import PWAInstallBanner from './components/common/PWAInstallBanner';
 import FullscreenManager from './components/common/FullscreenManager';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AIProvider } from './contexts/AIContext';
-import { AppProvider } from './contexts/AppContext';
-import { CartProvider } from './contexts/CartContext';
-import { ShiftProvider } from './contexts/ShiftContext';
-import { SettingsProvider } from './contexts/SettingsContext';
+import { useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import NetworkStatus from './components/common/NetworkStatus';
 
@@ -363,26 +357,12 @@ function AppRoutes() {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <AppProvider>
-          <SettingsProvider>
-            <ShiftProvider>
-              <CartProvider>
-                <AIProvider>
-                  <NetworkStatus />
-                  <PWAInstallBanner />
-                  <FullscreenManager />
-                  <Router>
-                    <AppRoutes />
-                  </Router>
-                </AIProvider>
-              </CartProvider>
-            </ShiftProvider>
-          </SettingsProvider>
-        </AppProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <Router>
+      <NetworkStatus />
+      <PWAInstallBanner />
+      <FullscreenManager />
+      <AppRoutes />
+    </Router>
   );
 }
 

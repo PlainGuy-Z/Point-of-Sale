@@ -10,6 +10,7 @@ import { appApi, ApiError } from '../../services/appApi';
 import type { HistoryTransaction, TransactionsListResponse } from '../../types/historyTransaction';
 import { Loader2, Search, ChevronDown, Filter } from 'lucide-react';
 import { Skeleton } from '../../components/common/Skeleton';
+import { useDateFormatter } from '../../hooks/useDateFormatter';
 
 function itemSummary(t: HistoryTransaction): string {
   return (
@@ -38,6 +39,7 @@ function Inner() {
   const { settings } = useSettings();
   const isDark = theme === 'dark';
   const { ToastComponent, showToast } = useToast();
+  const { formatDate, formatTime } = useDateFormatter();
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<HistoryTransaction[]>([]);
@@ -54,9 +56,8 @@ function Inner() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const todayLabel = useMemo(
-    () =>
-      new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'full' }).format(new Date()),
-    []
+    () => formatDate(new Date()),
+    [formatDate]
   );
 
   const load = useCallback(async () => {
@@ -201,7 +202,7 @@ function Inner() {
                   <div>
                     <p className="font-mono text-xs opacity-60">{t.id.slice(0, 8)}…</p>
                     <p className="mt-2 text-xl font-black">
-                      {new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })}
+                      {formatTime(t.created_at)}
                     </p>
                     <p className={`text-sm ${isDark ? 'text-stone-300' : 'text-stone-600'}`}>{t.customer_name?.trim() || 'Umum'}</p>
                   </div>

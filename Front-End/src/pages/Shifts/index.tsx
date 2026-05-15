@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { appApi } from '../../services/appApi';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import { useDateFormatter } from '../../hooks/useDateFormatter';
 import { ClipboardList, Calendar, DollarSign, Search, ArrowRight } from 'lucide-react';
 import { Skeleton, SkeletonCard } from '../../components/common/Skeleton';
 
@@ -10,6 +11,7 @@ export default function ShiftReport() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
+  const { formatDate, formatTime } = useDateFormatter();
   const navigate = useNavigate();
 
   const [shifts, setShifts] = useState<any[]>([]);
@@ -177,11 +179,10 @@ export default function ShiftReport() {
                     >
                       <td className="py-4 px-6">
                         <div className={`font-medium ${isDark ? 'text-stone-200' : 'text-gray-900'}`}>
-                          {openedAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                          {formatDate(shift.opened_at)}
                         </div>
                         <div className={`text-xs ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>
-                          {openedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} -
-                          {closedAt ? closedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Sekarang'}
+                          {formatTime(openedAt)} - {closedAt ? formatTime(closedAt) : 'Sekarang'}
                         </div>
                       </td>
                       <td className="py-4 px-6">

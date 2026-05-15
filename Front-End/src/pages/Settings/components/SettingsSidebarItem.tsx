@@ -19,14 +19,14 @@ export default function SettingsSidebarItem({ item }: SettingsSidebarItemProps) 
   return (
     <NavLink to={item.path} end={item.path === '/settings'}>
       <div
-        className={`flex items-center gap-3 px-3 py-2 rounded-xs transition-all ${
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
           isActive
             ? isDark
-              ? 'bg-amber-500/10'
-              : 'bg-teal-50'
+              ? 'bg-amber-500/10 shadow-sm shadow-amber-500/5'
+              : 'bg-teal-50 shadow-sm shadow-teal-500/5'
             : isDark
-            ? 'hover:bg-stone-900'
-            : 'hover:bg-gray-50'
+            ? 'hover:bg-stone-900/60'
+            : 'hover:bg-gray-100/60'
         }`}
       >
         {/* Icon */}

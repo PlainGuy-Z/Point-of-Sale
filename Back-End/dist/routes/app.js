@@ -33,6 +33,9 @@ import { withTransaction } from '../db/with-transaction.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { z } from 'zod';
+import multer from 'multer';
+import path from 'node:path';
+import fs from 'node:fs';
 export const appRouter = Router();
 const CreateWasteLogSchema = z.object({
     productId: z.string().uuid(),
@@ -59,6 +62,33 @@ const ProductSchema = z.object({
 });
 const CategorySchema = z.object({
     name: z.string().trim().min(1)
+});
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+        const dir = 'public/uploads';
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: (_req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    },
+});
+const upload = multer({
+    storage,
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    fileFilter: (_req, file, cb) => {
+        const allowed = /jpeg|jpg|png|webp/;
+        const extname = allowed.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowed.test(file.mimetype);
+        if (extname && mimetype) {
+            return cb(null, true);
+        }
+        cb(new Error('Only images (jpeg, jpg, png, webp) are allowed!'));
+    }
 });
 /* ─── Helper: ensure category exists, filtered by shop ──────── */
 async function ensureCategory(categoryName, shopId, client) {
@@ -323,5 +353,19 @@ appRouter.delete('/categories/:name', async (req, res, next) => {
     }
     catch (err) {
         next(err);
+    }
+});
+// POST /app/upload
+appRouter.post('/upload', upload.single('file'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+        const url = `/uploads/${req.file.filename}`;
+        res.json({ url });
+    }
+    catch (err) {
+        console.error('[Upload] Error:', err);
+        res.status(500).json({ message: 'Internal server error during upload' });
     }
 });

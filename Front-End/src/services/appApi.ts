@@ -41,7 +41,7 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     credentials: 'include',
     headers: {
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(init?.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers || {}),
     },
   });
@@ -149,4 +149,16 @@ export const appApi = {
   
   resetAllData: async (): Promise<AppDataState> => 
     normalizeAppStateWire(await http<AppStateWire>(`/app/maintenance/reset-all`, { method: 'POST' })),
+
+  uploadFile: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return http<{ url: string }>('/app/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  resetTransactions: async (): Promise<AppDataState> =>
+    normalizeAppStateWire(await http<AppStateWire>(`/app/data/transactions`, { method: 'DELETE' })),
 };

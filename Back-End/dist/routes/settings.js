@@ -60,6 +60,8 @@ const updateSettingsSchema = z.object({
     receipt_paper_size: z.enum(['58mm', '80mm']).optional(),
     receipt_auto_print: z.boolean().optional(),
     receipt_show_tax: z.boolean().optional(),
+    print_method: z.enum(['browser', 'rawbt', 'network', 'rawbt_intent']).optional(),
+    rawbt_ip: z.string().optional().nullable(),
     default_order_type: z.enum(['dine_in', 'takeaway']).optional(),
     require_customer_name: z.boolean().optional(),
     require_table_number: z.boolean().optional(),

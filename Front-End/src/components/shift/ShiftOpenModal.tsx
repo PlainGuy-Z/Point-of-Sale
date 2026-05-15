@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useDateFormatter } from '../../hooks/useDateFormatter';
 import { Coffee, Loader2, X } from 'lucide-react';
 
 interface ShiftOpenModalProps {
@@ -15,21 +16,14 @@ export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalPr
   const { openShift, isLoading } = useShift();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { formatDate, formatTime } = useDateFormatter();
 
   const [openingCash, setOpeningCash] = useState<string>('');
   const [error, setError] = useState<string>('');
 
   const now = new Date();
-  const formattedDate = now.toLocaleDateString('id-ID', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-  const formattedTime = now.toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const formattedDate = formatDate(now);
+  const formattedTime = formatTime(now);
 
   const handleCashChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');

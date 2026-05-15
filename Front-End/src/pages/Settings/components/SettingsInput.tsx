@@ -39,12 +39,12 @@ export default function SettingsInput({
         )}
         <input
           {...props}
-          className={`w-full py-2.5 rounded-xl border text-sm outline-none transition-all focus:ring-2 ${isDark ? 'focus:ring-amber-500/30' : 'focus:ring-teal-500/30'} ${
-            error ? 'border-red-500' : isDark ? 'border-stone-700' : 'border-gray-300'
+          className={`w-full py-2.5 rounded-xl border text-sm outline-none transition-all focus:ring-4 ${isDark ? 'focus:ring-amber-500/10' : 'focus:ring-teal-500/5'} ${
+            error ? 'border-red-500' : isDark ? 'border-stone-700' : 'border-gray-200'
           } ${
             isDark
               ? 'bg-stone-800 text-white placeholder-stone-500'
-              : 'bg-white text-gray-900 placeholder-gray-400'
+              : 'bg-[#F8FAFC] text-gray-900 placeholder-gray-400 focus:bg-white focus:border-teal-500/50'
           } ${prefix ? 'pl-8' : 'pl-3'} ${suffix ? 'pr-10' : 'pr-3'} ${props.className || ''}`}
         />
         {suffix && (

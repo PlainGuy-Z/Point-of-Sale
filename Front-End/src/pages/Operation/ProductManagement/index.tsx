@@ -606,10 +606,7 @@ export default function ProductManagement() {
                         </div>
                         <button
                             onClick={() => setModalOpen(true)}
-                            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl
-                                bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm
-                                shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-0.5 active:translate-y-0
-                                transition-all w-full md:w-auto flex-shrink-0"
+                            className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r ${isDark ? 'from-amber-500 to-amber-500' : 'from-teal-500 to-teal-600'} text-white font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all w-full md:w-auto flex-shrink-0`}
                         >
                             <Plus size={18} /> New Product
                         </button>

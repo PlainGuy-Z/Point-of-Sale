@@ -1,5 +1,6 @@
 import { Trash2, AlertTriangle, Calendar } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useDateFormatter } from '../../hooks/useDateFormatter';
 import type { WasteLog, Product } from '../../types';
 
 interface WasteLogTableProps {
@@ -10,6 +11,7 @@ interface WasteLogTableProps {
 export default function WasteLogTable({ wasteLogs, products }: WasteLogTableProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { formatDate } = useDateFormatter();
 
   const getProductName = (productId: string) => 
     products.find(p => p.id === productId)?.name || 'Unknown';
@@ -33,7 +35,7 @@ export default function WasteLogTable({ wasteLogs, products }: WasteLogTableProp
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-stone-400" />
-                    {new Date(waste.date).toLocaleDateString('id-ID')}
+                    {formatDate(waste.date)}
                   </div>
                 </td>
                 <td className="py-3 px-4">

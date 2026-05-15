@@ -12,6 +12,7 @@ import type { CreatedCashier } from '../../components/users/AddCashierModal';
 import { appApi, ApiError } from '../../services/appApi';
 import { Loader2, Search, Download, AlertTriangle, ChevronDown, Filter } from 'lucide-react';
 import { Skeleton } from '../../components/common/Skeleton';
+import { useDateFormatter } from '../../hooks/useDateFormatter';
 
 function itemSummary(t: HistoryTransaction): string {
   return (
@@ -52,6 +53,7 @@ function Inner() {
   const { settings } = useSettings();
   const dark = theme === 'dark';
   const { ToastComponent, showToast } = useToast();
+  const { formatDateTime } = useDateFormatter();
   const pendingBannerRef = useRef<HTMLDivElement | null>(null);
 
   const [todaySumm, setTodaySumm] = useState<TxSummaryToday | null>(null);
@@ -158,7 +160,7 @@ function Inner() {
       const res = await appApi.get<TransactionsListResponse>(`/transactions?${q.toString()}`);
       const head = [['ID', 'Waktu', 'Kasir', 'Pelanggan', 'Items', 'Subtotal', 'Diskon', 'Total', 'Metode', 'Status']];
       const body = res.data.map((t) => {
-        const iso = new Date(t.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+        const iso = formatDateTime(t.created_at);
         const disc = String(t.discount_amount ?? 0);
         const sub = String(t.subtotal ?? 0);
         return [
@@ -414,7 +416,7 @@ function Inner() {
                   {rows.map((t) => (
                     <tr key={t.id} className={`border-t ${dark ? 'border-stone-900' : 'border-stone-100'}`}>
                       <td className="whitespace-nowrap px-5 py-3 font-mono text-xs">
-                        {new Date(t.created_at).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })}
+                        {formatDateTime(t.created_at)}
                       </td>
                       <td className="px-5 py-3">{t.cashier_name}</td>
                       <td className="max-w-[120px] truncate px-5 py-3">{t.customer_name || 'Umum'}</td>

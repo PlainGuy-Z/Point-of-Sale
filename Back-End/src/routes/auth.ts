@@ -298,6 +298,7 @@ authRouter.post('/logout', (_req, res) => {
   // Explicitly set an expired cookie for backup
   res.cookie('token', '', {
     ...clearOptions,
+    sameSite: isProd ? 'none' : 'lax',
     expires: new Date(0),
     maxAge: 0
   });

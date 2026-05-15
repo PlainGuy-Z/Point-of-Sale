@@ -77,7 +77,10 @@ const updateSettingsSchema = z.object({
   payment_qris: z.boolean().optional(),
   payment_transfer: z.boolean().optional(),
   low_stock_threshold: z.number().min(0).optional(),
-  auto_disable_zero_stock: z.boolean().optional()
+  auto_disable_zero_stock: z.boolean().optional(),
+  currency_format: z.enum(['Rp', 'IDR']).optional(),
+  date_format: z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']).optional(),
+  language: z.enum(['id', 'en']).optional()
 });
 
 settingsRouter.put('/', async (req: Request, res: Response): Promise<void> => {

@@ -63,8 +63,8 @@ interface SettingsLayoutProps {
 }
 
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { effectiveTheme } = useTheme();
+  const isDark = effectiveTheme === 'dark';
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -101,7 +101,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
       {/* Content Area */}
       <div
         className={`
-          flex-1 overflow-y-auto bg-white dark:bg-[#0c0a09]
+          flex-1 overflow-y-auto ${isDark ? 'bg-[#0c0a09]' : 'bg-[#F8FAFC]'}
           ${isIndex ? 'hidden lg:block' : 'block'}
         `}
       >

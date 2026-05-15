@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useSettings } from '../../../contexts/SettingsContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useToast } from '../../../hooks/useToast';
 import { authApi } from '../../../services/authApi';
+import { appApi } from '../../../services/appApi';
 import SettingsCard from '../components/SettingsCard';
 import SettingsInput from '../components/SettingsInput';
-import { Store, MapPin, Clock, Image as ImageIcon, Upload } from 'lucide-react';
+import { Store, MapPin, Clock, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
+import { getApiBaseUrl } from '../../../services/apiBaseUrl';
 
 export default function ProfileSection() {
   const { theme } = useTheme();
@@ -72,6 +74,36 @@ export default function ProfileSection() {
     }
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Ukuran file maksimal 2MB', 'error');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const { url } = await appApi.uploadFile(file);
+      
+      // Immediately update settings with the new logo URL
+      await updateSettings({ logo_url: url });
+      
+      showToast('Logo toko berhasil diperbarui', 'success');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal mengupload logo';
+      showToast(msg, 'error');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="p-6 pb-24 relative">
       <h1 className={`text-xl font-black mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -105,10 +137,10 @@ export default function ProfileSection() {
             value={form.address}
             onChange={(e) => handleChange('address', e.target.value)}
             rows={3}
-            className={`w-full p-3 rounded-xl border text-sm outline-none transition-all resize-none ${
+            className={`w-full p-3 rounded-xl border text-sm outline-none transition-all resize-none focus:ring-4 ${
               isDark
-                ? 'bg-stone-800 border-stone-700 text-white placeholder-stone-500 focus:ring-2 focus:ring-amber-500/30'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500/30'
+                ? 'bg-stone-800 border-stone-700 text-white placeholder-stone-500 focus:ring-amber-500/10'
+                : 'bg-[#F8FAFC] border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-teal-500/5 focus:bg-white focus:border-teal-500/50'
             }`}
             placeholder="Jalan, Nomor, RT/RW, Kota"
           />
@@ -141,28 +173,54 @@ export default function ProfileSection() {
 
       <SettingsCard title="Logo Toko" icon={ImageIcon}>
         <div className="flex flex-col sm:flex-row items-start gap-6">
-          {settings?.logo_url && (
-            <img src={settings.logo_url} alt="Logo Toko" className="w-20 h-20 rounded-2xl object-cover border dark:border-stone-800 flex-shrink-0" />
-          )}
-          <div className={`flex-1 w-full border-2 border-dashed rounded-2xl p-6 text-center ${isDark ? 'border-stone-700' : 'border-gray-200'}`}>
+          <div className="relative group">
+            <div className={`w-24 h-24 rounded-2xl border-2 flex items-center justify-center overflow-hidden transition-all ${
+              isDark ? 'border-stone-800 bg-stone-900' : 'border-gray-100 bg-gray-50'
+            }`}>
+              {settings?.logo_url ? (
+                <img 
+                  src={settings.logo_url.startsWith('http') ? settings.logo_url : `${getApiBaseUrl()}${settings.logo_url}`} 
+                  alt="Logo Toko" 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <ImageIcon size={32} className={isDark ? 'text-stone-700' : 'text-gray-300'} />
+              )}
+              {isUploading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <Loader2 size={24} className="text-white animate-spin" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={`flex-1 w-full border-2 border-dashed rounded-2xl p-6 text-center transition-colors ${
+            isDark ? 'border-stone-700 hover:border-amber-500/50' : 'border-gray-200 hover:border-teal-500/50'
+          }`}>
             <Upload size={24} className={`mx-auto mb-2 ${isDark ? 'text-stone-500' : 'text-gray-400'}`} />
             <p className={`text-sm font-semibold mb-1 ${isDark ? 'text-stone-300' : 'text-gray-700'}`}>Upload logo toko</p>
-            <p className={`text-xs mb-3 ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>PNG, JPG max 2MB</p>
-            <div className="inline-block relative">
-              <button
-                type="button"
-                className={`px-4 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-stone-800 dark:text-stone-500`}
-                disabled
-              >
-                Pilih File
-              </button>
-              <span className={`absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5 rounded-full text-white font-bold whitespace-nowrap ${
-                isDark ? 'bg-amber-500' : 'bg-teal-500'
-              }`}>
-                Coming Soon
-              </span>
-            </div>
-            <input type="file" accept="image/*" className="hidden" />
+            <p className={`text-xs mb-4 ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>PNG, JPG, WEBP max 2MB</p>
+            
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                isDark 
+                  ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/20' 
+                  : 'bg-teal-500 text-white hover:bg-teal-600 shadow-lg shadow-teal-500/20'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isUploading ? 'Mengupload...' : 'Pilih File'}
+            </button>
+            
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              onChange={handleFileSelect}
+            />
           </div>
         </div>
       </SettingsCard>

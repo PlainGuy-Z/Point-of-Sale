@@ -293,6 +293,11 @@ export interface ShopSettings {
 
   low_stock_threshold: number;
   auto_disable_zero_stock: boolean;
+
+  // Sprint S-5: Appearance
+  currency_format: 'Rp' | 'IDR';
+  date_format: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
+  language: 'id' | 'en';
 }
 
 // ==================== AI TYPES ====================

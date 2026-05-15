@@ -1,6 +1,7 @@
 import { User, Phone, Calendar, DollarSign } from 'lucide-react';
 import type { Customer } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useDateFormatter } from '../../hooks/useDateFormatter';
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -8,6 +9,7 @@ interface CustomerTableProps {
 
 export default function CustomerTable({ customers }: CustomerTableProps) {
   const { theme } = useTheme();
+  const { formatDate } = useDateFormatter();
 
   return (
     <div className="overflow-x-auto">
@@ -62,7 +64,7 @@ export default function CustomerTable({ customers }: CustomerTableProps) {
                       <div>
                         <div className="font-medium">{customer.name}</div>
                         <div className={`text-xs ${theme === 'dark' ? 'text-stone-500' : 'text-stone-400'}`}>
-                          Member since {new Date(customer.joinDate).toLocaleDateString('id-ID')}
+                          Member since {formatDate(customer.joinDate)}
                         </div>
                       </div>
                     </div>
@@ -89,7 +91,7 @@ export default function CustomerTable({ customers }: CustomerTableProps) {
                   </td>
                   <td className="py-3 px-4">
                     <div className="text-sm">
-                      {lastVisit ? lastVisit.toLocaleDateString('id-ID') : 'Never'}
+                      {lastVisit ? formatDate(lastVisit) : 'Never'}
                     </div>
                   </td>
                   <td className="py-3 px-4">

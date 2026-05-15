@@ -16,8 +16,10 @@ export default function SettingsCard({ title, description, icon: Icon, children,
 
   return (
     <div
-      className={`rounded-2xl border overflow-hidden mb-4 ${
-        isDark ? 'bg-stone-900 border-stone-800' : 'bg-white border-gray-200'
+      className={`rounded-2xl border overflow-hidden mb-6 transition-all duration-300 ${
+        isDark 
+          ? 'bg-stone-900 border-stone-800' 
+          : 'bg-white border-gray-200 shadow-sm shadow-black/5 hover:shadow-md hover:shadow-black/[0.03]'
       }`}
     >
       {/* Card header */}

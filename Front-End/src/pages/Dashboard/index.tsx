@@ -14,6 +14,7 @@ import StockAlertIndicator from '../../components/dashboard/StockAlertIndicator'
 import ProfitChart from '../../components/dashboard/ProfitChart';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 import { useApp } from '../../contexts/AppContext';
+import { useDateFormatter } from '../../hooks/useDateFormatter';
 import { Skeleton, SkeletonCard } from '../../components/common/Skeleton';
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -354,10 +355,9 @@ export default function Dashboard() {
   const isDark = theme === 'dark';
   const isMobile = useIsMobile();
   const { format } = useCurrencyFormatter();
+  const { formatDate } = useDateFormatter();
 
-  const formattedDate = new Date().toLocaleDateString('id-ID', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  });
+  const formattedDate = formatDate(new Date());
 
   // ── Full-page Skeleton ────────────────────────────────────────────────────
   if (isServiceLoading && transactions.length === 0) {

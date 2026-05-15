@@ -4,10 +4,13 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { getApiBaseUrl } from '../../services/apiBaseUrl';
 
 export default function Layout() {
-  const { theme } = useTheme();
+  const { theme, effectiveTheme } = useTheme();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
@@ -58,12 +61,12 @@ export default function Layout() {
     };
   }, [isMobileOpen]);
 
-  const isDark = theme === 'dark';
+  const isDark = effectiveTheme === 'dark';
 
   return (
     <div 
       className={`relative ${isMobileLandscape ? 'h-full' : 'min-h-screen'} overflow-x-hidden transition-colors duration-300 ${
-        theme === 'dark' ? 'bg-stone-950' : 'bg-[#F8FAFC]'
+        effectiveTheme === 'dark' ? 'bg-stone-950' : 'bg-[#F8FAFC]'
       }`}
       style={scaleStyle}
     >
@@ -97,8 +100,16 @@ export default function Layout() {
             </button>
 
             <div className="flex items-center gap-2 text-sm font-bold text-center">
-              <Coffee className={`h-5 w-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
-              <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>SmartPOS</span>
+              {settings?.logo_url ? (
+                <img 
+                  src={settings.logo_url.startsWith('http') ? settings.logo_url : `${getApiBaseUrl()}${settings.logo_url}`} 
+                  alt="Logo" 
+                  className="h-6 w-6 object-cover rounded-md" 
+                />
+              ) : (
+                <Coffee className={`h-5 w-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
+              )}
+              <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>{user?.shop?.name || 'SmartPOS'}</span>
             </div>
 
             <div className={`flex h-10 w-10 items-center justify-center rounded-full border text-sm font-black ${isDark ? 'border-stone-800 bg-stone-950 text-white' : 'border-[#E2E8F0] bg-white text-[#0F172A]'}`}>

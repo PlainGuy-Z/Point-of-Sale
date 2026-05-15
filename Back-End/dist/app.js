@@ -12,6 +12,7 @@ import { shiftsRouter } from './routes/shifts.js';
 import { transactionsRouter } from './routes/transactions.js';
 import { settingsRouter } from './routes/settings.js';
 import { aiRouter } from './routes/ai.js';
+import { printerRouter } from './routes/printer.js';
 import { authenticateToken } from './middleware/auth.js';
 export function createApp() {
     const app = express();
@@ -51,6 +52,7 @@ export function createApp() {
         next();
     });
     app.use(express.json({ limit: '1mb' }));
+    app.use('/uploads', express.static('public/uploads'));
     app.get('/health', (_req, res) => res.json({ ok: true }));
     app.use('/auth', authRouter);
     app.use('/app', authenticateToken, appRouter);
@@ -60,6 +62,7 @@ export function createApp() {
     app.use('/transactions', authenticateToken, transactionsRouter);
     app.use('/settings', authenticateToken, settingsRouter);
     app.use('/api/ai', authenticateToken, aiRouter);
+    app.use('/printer', authenticateToken, printerRouter);
     app.use(notFoundHandler);
     app.use(errorHandler);
     return app;

@@ -267,6 +267,17 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
       const grandTotal = subtotal + tax + serviceCharge;
       const profit = subtotal - costTotal;
 
+      if (body.paymentMethod === 'cash') {
+        const cashReceivedVal = body.cashReceived ?? 0;
+        if (cashReceivedVal < grandTotal) {
+          throw new HttpError(
+            400,
+            'INSUFFICIENT_CASH',
+            `Uang diterima (${cashReceivedVal}) kurang dari total (${grandTotal})`
+          );
+        }
+      }
+
       const cashReceived =
         body.paymentMethod === 'cash' && body.cashReceived != null ? Math.round(body.cashReceived) : null;
       const changeAmount =

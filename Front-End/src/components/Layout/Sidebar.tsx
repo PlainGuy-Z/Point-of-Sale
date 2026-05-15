@@ -6,10 +6,12 @@ import { getIconComponent } from '../../utils/iconUtils';
 import SidebarItem from './SidebarItem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useShift } from '../../contexts/ShiftContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ShiftCloseModal from '../shift/ShiftCloseModal';
 import { appApi } from '../../services/appApi';
+import { getApiBaseUrl } from '../../services/apiBaseUrl';
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -171,11 +173,12 @@ function CollapsedGroup({
 export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobileOpen = false, isMobileLandscape = false, onNavigate }: SidebarProps) {
   const [showCloseModal, setShowCloseModal] = useState(false);
 
-  const { theme, toggleTheme } = useTheme();
+  const { theme, effectiveTheme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { settings } = useSettings();
   const { activeShift } = useShift();
   const navigate = useNavigate();
-  const isDark = theme === 'dark';
+  const isDark = effectiveTheme === 'dark';
 
   // ── Void request badge polling (owner only) ─────────────────────────────────
   const [pendingVoidBadge, setPendingVoidBadge] = useState(0);
@@ -259,9 +262,18 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                 rounded-2xl ${isDark ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-amber-500/20' : 'bg-teal-50 border-teal-200'}
                 flex items-center justify-center flex-shrink-0
                 transition-all duration-300
+                overflow-hidden border
               `}
             >
-              <Coffee className={`${isCollapsed ? 'h-5 w-5' : 'h-5 w-5'} ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
+              {settings?.logo_url ? (
+                <img 
+                  src={settings.logo_url.startsWith('http') ? settings.logo_url : `${getApiBaseUrl()}${settings.logo_url}`} 
+                  alt="Logo" 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <Coffee className={`${isCollapsed ? 'h-5 w-5' : 'h-5 w-5'} ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
+              )}
             </div>
 
             {!isCollapsed && (

@@ -324,16 +324,8 @@ export default function PointOfSale() {
   const [orderType, setOrderType] = useState<'dine-in' | 'take-away'>('dine-in');
   const [orderNote, setOrderNote] = useState('');
 
-  // ── Tax toggle ───────────────────────────────────────────────────────────────
-  const [taxEnabled, setTaxEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('pos_tax_enabled');
-    if (saved !== null) return saved === 'true';
-    return settings?.tax_enabled ?? true;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('pos_tax_enabled', String(taxEnabled));
-  }, [taxEnabled]);
+  // Remove taxEnabled state as requested to follow global settings strictly
+  const taxEnabled = settings?.tax_enabled ?? false;
 
   const [quote, setQuote] = useState<{
     subtotal: number;
@@ -969,22 +961,14 @@ export default function PointOfSale() {
                   <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>Subtotal</span>
                   <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(displayQuote.subtotal)}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between text-xs">
                     <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
                       Pajak ({displayQuote.taxRate || 0}%)
                     </span>
-                    <button
-                      onClick={() => setTaxEnabled(t => !t)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${taxEnabled ? (isDark ? 'bg-amber-500' : 'bg-teal-500') : isDark ? 'bg-stone-800' : 'bg-[#CBD5E1]'}`}
-                    >
-                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
-                    </button>
+                    <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-[#0F172A]') : (isDark ? 'text-stone-700 line-through' : 'text-[#CBD5E1] line-through')}`}>
+                      {format(displayQuote.tax)}
+                    </span>
                   </div>
-                  <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-[#0F172A]') : (isDark ? 'text-stone-700 line-through' : 'text-[#CBD5E1] line-through')}`}>
-                    {format(displayQuote.tax)}
-                  </span>
-                </div>
                 {displayQuote.serviceCharge > 0 && (
                   <div className="flex justify-between text-xs">
                     <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
@@ -1130,17 +1114,9 @@ export default function PointOfSale() {
                   <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(displayQuote.subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
-                      {displayQuote.taxLabel || 'Pajak'} ({displayQuote.taxRate || 0}%)
-                    </span>
-                    <button
-                      onClick={() => setTaxEnabled(t => !t)}
-                      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${taxEnabled ? (isDark ? 'bg-amber-500' : 'bg-teal-500') : isDark ? 'bg-stone-800' : 'bg-[#CBD5E1]'}`}
-                    >
-                      <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
-                    </button>
-                  </div>
+                  <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
+                    {displayQuote.taxLabel || 'Pajak'} ({displayQuote.taxRate || 0}%)
+                  </span>
                   <span className={`tabular-nums ${taxEnabled ? (isDark ? 'text-stone-300' : 'text-[#475569]') : (isDark ? 'text-stone-800 line-through' : 'text-[#CBD5E1] line-through')}`}>
                     {format(displayQuote.tax)}
                   </span>

@@ -64,7 +64,26 @@ export function createApp() {
     next();
   });
 
+  // CSRF mitigation via custom header check
+  app.use(['/app', '/pos', '/users', '/shifts', '/settings', '/printer'], (req, res, next) => {
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+      const origin = req.headers.origin || '';
+      const allowed = env.corsOrigins;
+      if (
+        !allowed.includes(origin) &&
+        !origin.endsWith('.vercel.app') &&
+        !origin.startsWith('http://localhost:')
+      ) {
+        return res.status(403).json({
+          error: { code: 'CSRF_BLOCKED', message: 'Invalid origin' },
+        });
+      }
+    }
+    next();
+  });
+
   app.use(express.json({ limit: '1mb' }));
+  app.use('/uploads', express.static('public/uploads'));
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
 

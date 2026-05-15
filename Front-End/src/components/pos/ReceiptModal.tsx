@@ -3,6 +3,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import type { Transaction } from '../../types';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import { useDateFormatter } from '../../hooks/useDateFormatter';
 
 interface ReceiptTransaction extends Transaction {
   customerName?: string;
@@ -31,16 +32,10 @@ export default function ReceiptModal({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
+  const { formatDateTime } = useDateFormatter();
   const { settings } = useSettings();
 
-  const formatDate = (date: Date) =>
-    new Date(date).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const formatDateString = (date: Date) => formatDateTime(date);
 
   const getOrderTypeLabel = () => {
     if (transaction.orderType === 'dine-in') return 'Dine In';
@@ -84,7 +79,7 @@ export default function ReceiptModal({
 === ${storeName.toUpperCase()} ===${storeAddress}
 --------------------------------
 ID: ${transaction.id?.substring(0,8) || 'N/A'}
-Tanggal: ${formatDate(transaction.date)}
+Tanggal: ${formatDateString(transaction.date)}
 ${orderTypeInfo}${tableInfo}${customerInfo}${notesInfo}--------------------------------
 ${itemsText}
 --------------------------------
@@ -176,7 +171,7 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
             </div>
             <div className="flex justify-between">
               <span className={`font-black ${isDark ? 'text-stone-400' : 'text-gray-800'}`}>Tanggal</span>
-              <span className="font-bold">{formatDate(transaction.date)}</span>
+              <span className="font-bold">{formatDateString(transaction.date)}</span>
             </div>
             
             {transaction.orderType && (

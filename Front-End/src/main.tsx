@@ -4,6 +4,12 @@ import App from './App.tsx'
 import './index.css'
 import { ThemeProvider } from './contexts/ThemeContext'
 import ErrorBoundary from './components/common/ErrorBoundary'
+import { AuthProvider } from './contexts/AuthContext'
+import { AppProvider } from './contexts/AppContext'
+import { CartProvider } from './contexts/CartContext'
+import { ShiftProvider } from './contexts/ShiftContext'
+import { SettingsProvider } from './contexts/SettingsContext'
+import { AIProvider } from './contexts/AIContext'
 
 // ============================================================================
 // ENVIRONMENT DETECTION
@@ -147,12 +153,30 @@ if (!rootElement) {
 // Create React root with error boundary
 const root = ReactDOM.createRoot(rootElement);
 
+const Providers = ({ children }: { children: React.ReactNode }) => (
+  <ThemeProvider>
+    <AuthProvider>
+      <AppProvider>
+        <SettingsProvider>
+          <ShiftProvider>
+            <CartProvider>
+              <AIProvider>
+                {children}
+              </AIProvider>
+            </CartProvider>
+          </ShiftProvider>
+        </SettingsProvider>
+      </AppProvider>
+    </AuthProvider>
+  </ThemeProvider>
+);
+
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <ThemeProvider>
+      <Providers>
         <App />
-      </ThemeProvider>
+      </Providers>
     </ErrorBoundary>
   </React.StrictMode>
 );

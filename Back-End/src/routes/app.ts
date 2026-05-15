@@ -34,6 +34,10 @@ import { withTransaction } from '../db/with-transaction.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { z } from 'zod';
+import { requireRole } from '../middleware/requireRole.js';
+import multer from 'multer';
+import path from 'node:path';
+import fs from 'node:fs';
 
 export const appRouter = Router();
 
@@ -66,6 +70,35 @@ const CategorySchema = z.object({
   name: z.string().trim().min(1)
 });
 
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = 'public/uploads';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = /jpeg|jpg|png|webp/;
+    const extname = allowed.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowed.test(file.mimetype);
+    if (extname && mimetype) {
+      return cb(null, true);
+    }
+    cb(new Error('Only images (jpeg, jpg, png, webp) are allowed!'));
+  }
+});
+
 
 
 /* ─── Helper: ensure category exists, filtered by shop ──────── */
@@ -94,63 +127,83 @@ async function ensureCategory(
 /* ─── buildAppState ─────────────────────────────────────────── */
 
 export async function buildAppState(shopId: string) {
-  const [products, txs, wastes, cats] = await Promise.all([
-    pool.query(
-      `SELECT p.id::text, p.name, p.description, p.price,
-              c.name as category, p.stock, p.min_stock, p.cost,
-              p.image, p.discount, p.is_promo, p.promo_price,
-              p.promo_label, p.promo_start, p.promo_end, p.is_available
-       FROM coffeepos.products p
-       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
-       WHERE p.shop_id = $1::uuid
-       ORDER BY p.name ASC`,
-      [shopId]
-    ),
-    pool.query(
-      `SELECT
-         t.id::text AS id,
-         t.created_at AS date,
-         t.grand_total AS total,
-         (SELECT COALESCE(SUM(p.cost * i.quantity), 0)
-            FROM coffeepos.transaction_items i
-            LEFT JOIN coffeepos.products p ON p.id = i.product_id
-           WHERE i.transaction_id = t.id) AS cost,
-         (t.subtotal - (SELECT COALESCE(SUM(p.cost * i.quantity), 0)
-            FROM coffeepos.transaction_items i
-            LEFT JOIN coffeepos.products p ON p.id = i.product_id
-           WHERE i.transaction_id = t.id)) AS profit,
-         t.payment_method,
-         t.customer_name,
-         t.table_number,
-         t.cashier_name,
-         ss.tax_rate AS tax_rate,
-         'dine-in'::text AS order_type,
-         NULL::text AS order_note,
-         (
-           SELECT COALESCE(
-             json_agg(
-               json_build_object(
-                 'productId', COALESCE(i.product_id::text, 'manual'),
-                 'quantity', i.quantity,
-                 'price', i.price,
-                 'note', i.name,
-                 'description', i.description,
-                 'modifiers', '[]'::json
-               )
-             ),
-             '[]'::json
-           )
-           FROM coffeepos.transaction_items i
-           WHERE i.transaction_id = t.id
-         ) AS items
-       FROM coffeepos.transactions t
-       LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = t.shop_id
-       WHERE t.shop_id = $1::uuid
-         AND COALESCE(t.status::text, 'completed') <> 'voided'
-       ORDER BY t.created_at DESC
-       LIMIT 200`,
-      [shopId]
-    ),
+  const products = await pool.query(
+    `SELECT p.id::text, p.name, p.description, p.price,
+            c.name as category, p.stock, p.min_stock, p.cost,
+            p.image, p.discount, p.is_promo, p.promo_price,
+            p.promo_label, p.promo_start, p.promo_end, p.is_available
+     FROM coffeepos.products p
+     LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+     WHERE p.shop_id = $1::uuid
+     ORDER BY p.name ASC`,
+    [shopId]
+  );
+
+  // STEP 1 — Fetch transactions WITHOUT items subquery
+  const txQuery = await pool.query(`
+    SELECT
+      t.id::text AS id,
+      t.created_at AS date,
+      t.grand_total AS total,
+      t.subtotal,
+      t.tax,
+      t.payment_method,
+      t.customer_name,
+      t.table_number,
+      t.notes,
+      t.cashier_name,
+      t.status,
+      ss.tax_rate AS tax_rate,
+      'dine-in'::text AS order_type,
+      NULL::text AS order_note,
+      (SELECT COALESCE(SUM(p.cost * i.quantity), 0)
+         FROM coffeepos.transaction_items i
+         LEFT JOIN coffeepos.products p ON p.id = i.product_id
+        WHERE i.transaction_id = t.id) AS cost,
+      (t.subtotal - (SELECT COALESCE(SUM(p.cost * i.quantity), 0)
+         FROM coffeepos.transaction_items i
+         LEFT JOIN coffeepos.products p ON p.id = i.product_id
+        WHERE i.transaction_id = t.id)) AS profit
+    FROM coffeepos.transactions t
+    LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = t.shop_id
+    WHERE t.shop_id = $1::uuid
+      AND COALESCE(t.status::text, 'completed') <> 'voided'
+    ORDER BY t.created_at DESC
+    LIMIT 200
+  `, [shopId]);
+
+  // STEP 2 — Fetch ALL items for those transactions in ONE query
+  const txIds = txQuery.rows.map(r => r.id);
+  let itemsMap = new Map<string, any[]>();
+  
+  if (txIds.length > 0) {
+    const itemsQuery = await pool.query(`
+      SELECT
+        i.transaction_id::text,
+        COALESCE(i.product_id::text, 'manual') AS "productId",
+        i.quantity,
+        i.price,
+        i.name AS note,
+        '[]'::json AS modifiers
+      FROM coffeepos.transaction_items i
+      WHERE i.transaction_id = ANY($1::uuid[])
+    `, [txIds]);
+    
+    for (const row of itemsQuery.rows) {
+      const txId = row.transaction_id;
+      if (!itemsMap.has(txId)) itemsMap.set(txId, []);
+      itemsMap.get(txId)!.push({
+        productId: row.productId,
+        quantity: Number(row.quantity),
+        price: Number(row.price),
+        note: row.note,
+        modifiers: [],
+      });
+    }
+  }
+
+  // Fetch wastes and cats
+  const [wastes, cats] = await Promise.all([
     pool.query(
       `SELECT
          w.id::text AS id,
@@ -193,10 +246,10 @@ export async function buildAppState(shopId: string) {
       unit: 'pcs',
       image: p.image || null
     })),
-    transactions: txs.rows.map((t) => ({
+    transactions: txQuery.rows.map((t) => ({
       id: t.id,
       date: new Date(t.date).toISOString(),
-      items: t.items,
+      items: itemsMap.get(t.id) || [],
       total: Number(t.total),
       cost: Number(t.cost),
       profit: Number(t.profit),
@@ -234,6 +287,107 @@ export async function buildAppState(shopId: string) {
   };
 }
 
+// GET /app/export/products
+appRouter.get('/export/products', async (req, res, next) => {
+  try {
+    const shopId = req.user!.shop_id;
+    const { rows } = await pool.query(
+      `SELECT p.name, p.description, p.price, c.name as category, p.stock, p.cost, p.is_available
+       FROM coffeepos.products p
+       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+       WHERE p.shop_id = $1::uuid
+       ORDER BY p.name ASC`,
+      [shopId]
+    );
+
+    const headers = ['Name', 'Description', 'Price', 'Category', 'Stock', 'Cost', 'Available'];
+    const csv = [
+      headers.join(','),
+      ...rows.map(r => [
+        `"${r.name}"`,
+        `"${r.description || ''}"`,
+        r.price,
+        `"${r.category || 'Uncategorized'}"`,
+        r.stock,
+        r.cost || 0,
+        r.is_available
+      ].join(','))
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=products.csv');
+    res.send(csv);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /app/export/transactions
+appRouter.get('/export/transactions', async (req, res, next) => {
+  try {
+    const shopId = req.user!.shop_id;
+    const { from, to } = req.query;
+    
+    let query = `
+      SELECT t.created_at, t.grand_total, t.payment_method, t.cashier_name, t.customer_name, t.status
+      FROM coffeepos.transactions t
+      WHERE t.shop_id = $1::uuid
+    `;
+    const params: any[] = [shopId];
+
+    if (from) {
+      params.push(from);
+      query += ` AND t.created_at >= $${params.length}`;
+    }
+    if (to) {
+      params.push(to);
+      query += ` AND t.created_at <= $${params.length}`;
+    }
+    query += ` ORDER BY t.created_at DESC`;
+
+    const { rows } = await pool.query(query, params);
+
+    const headers = ['Date', 'Total', 'Payment Method', 'Cashier', 'Customer', 'Status'];
+    const csv = [
+      headers.join(','),
+      ...rows.map(r => [
+        new Date(r.created_at).toISOString(),
+        r.grand_total,
+        r.payment_method,
+        `"${r.cashier_name}"`,
+        `"${r.customer_name || ''}"`,
+        r.status
+      ].join(','))
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=transactions.csv');
+    res.send(csv);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /app/data/transactions (Reset Data)
+appRouter.delete('/data/transactions', async (req, res, next) => {
+  try {
+    const shopId = req.user!.shop_id;
+    if (req.user!.role !== 'owner') throw new HttpError(403, 'FORBIDDEN', 'Only owner can reset data');
+
+    await withTransaction(async (client) => {
+      // Delete waste logs first due to FK or just dependency
+      await client.query(`DELETE FROM coffeepos.waste_logs WHERE shop_id = $1::uuid`, [shopId]);
+      // Delete transaction items then transactions
+      await client.query(`DELETE FROM coffeepos.transaction_items WHERE transaction_id IN (SELECT id FROM coffeepos.transactions WHERE shop_id = $1::uuid)`, [shopId]);
+      await client.query(`DELETE FROM coffeepos.transactions WHERE shop_id = $1::uuid`, [shopId]);
+    });
+
+    res.json(await buildAppState(shopId));
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /app/state
 appRouter.get('/state', async (req, res, next) => {
   try {
@@ -269,7 +423,7 @@ appRouter.post('/waste-logs', validateBody(CreateWasteLogSchema), async (req, re
 });
 
 // POST /app/products
-appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) => {
+appRouter.post('/products', requireRole('owner'), validateBody(ProductSchema), async (req, res, next) => {
   try {
     const body = req.body as any;
     const shopId = req.user!.shop_id;
@@ -297,7 +451,7 @@ appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) 
 });
 
 // PUT /app/products/:id
-appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, next) => {
+appRouter.put('/products/:id', requireRole('owner'), validateBody(ProductSchema), async (req, res, next) => {
   try {
     const { id } = req.params;
     const body = req.body as any;
@@ -331,7 +485,7 @@ appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, nex
 });
 
 // DELETE /app/products/:id
-appRouter.delete('/products/:id', async (req, res, next) => {
+appRouter.delete('/products/:id', requireRole('owner'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const shopId = req.user!.shop_id;
@@ -344,7 +498,7 @@ appRouter.delete('/products/:id', async (req, res, next) => {
 });
 
 // POST /app/categories
-appRouter.post('/categories', validateBody(CategorySchema), async (req, res, next) => {
+appRouter.post('/categories', requireRole('owner'), validateBody(CategorySchema), async (req, res, next) => {
   try {
     const shopId = req.user!.shop_id;
     await pool.query(
@@ -358,7 +512,7 @@ appRouter.post('/categories', validateBody(CategorySchema), async (req, res, nex
 });
 
 // DELETE /app/categories/:name
-appRouter.delete('/categories/:name', async (req, res, next) => {
+appRouter.delete('/categories/:name', requireRole('owner'), async (req, res, next) => {
   try {
     const shopId = req.user!.shop_id;
     // Note: User should handle product reassignment before deleting category in UI
@@ -366,5 +520,18 @@ appRouter.delete('/categories/:name', async (req, res, next) => {
     res.json(await buildAppState(shopId));
   } catch (err) {
     next(err);
+  }
+});
+// POST /app/upload
+appRouter.post('/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ url });
+  } catch (err) {
+    console.error('[Upload] Error:', err);
+    res.status(500).json({ message: 'Internal server error during upload' });
   }
 });

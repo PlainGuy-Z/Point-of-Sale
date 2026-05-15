@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { appApi } from '../../services/appApi';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import { useDateFormatter } from '../../hooks/useDateFormatter';
 import { ArrowLeft, Clock, DollarSign, ReceiptText, User, AlertTriangle, Calendar } from 'lucide-react';
 
 export default function ShiftDetail() {
@@ -10,6 +11,7 @@ export default function ShiftDetail() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { format } = useCurrencyFormatter();
+  const { formatDate, formatTime } = useDateFormatter();
   const navigate = useNavigate();
 
   const [shift, setShift] = useState<any>(null);
@@ -92,7 +94,7 @@ export default function ShiftDetail() {
           </h1>
           <div className="flex items-center gap-2 mt-1">
             <p className={isDark ? 'text-stone-400' : 'text-gray-500'}>
-              {openedAt.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {formatDate(shift.opened_at)}
             </p>
             <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
               isClosed 
@@ -122,13 +124,13 @@ export default function ShiftDetail() {
                 <div>
                   <p className={`text-xs font-medium uppercase tracking-wider mb-1 ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>Waktu Buka</p>
                   <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    {openedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                    {formatTime(openedAt)}
                   </p>
                 </div>
                 <div>
                   <p className={`text-xs font-medium uppercase tracking-wider mb-1 ${isDark ? 'text-stone-500' : 'text-gray-500'}`}>Waktu Tutup</p>
                   <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    {closedAt ? closedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                    {closedAt ? formatTime(closedAt) : '-'}
                   </p>
                 </div>
               </div>
@@ -220,7 +222,7 @@ export default function ShiftDetail() {
                     </tr>
                   ) : (
                     transactions.map((tx) => {
-                      const txTime = new Date(tx.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                      const txTime = formatTime(tx.date);
                       const method = tx.paymentMethod?.toLowerCase() || '';
                       
                       let badgeClass = isDark ? 'bg-stone-800 text-stone-400' : 'bg-gray-100 text-gray-600';
