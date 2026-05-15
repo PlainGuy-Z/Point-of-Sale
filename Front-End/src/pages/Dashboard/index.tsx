@@ -503,7 +503,7 @@ export default function Dashboard() {
       } shadow-sm`}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+            <h1 className={`text-3xl font-black tracking-tight bg-gradient-to-r ${isDark ? 'from-amber-500 to-orange-500' : 'from-teal-600 to-emerald-600'} bg-clip-text text-transparent`}>
               Dashboard <span className={isDark ? 'text-white' : 'text-gray-900'}>Bisnis</span>
             </h1>
             <p className={`text-sm mt-1 ${isDark ? 'text-stone-400' : 'text-[#475569] font-semibold'}`}>
@@ -552,7 +552,7 @@ export default function Dashboard() {
       {/* Wawasan Kinerja */}
       <div className={`p-6 rounded-2xl ${isDark
         ? 'bg-gradient-to-r from-stone-900 to-stone-900 border border-stone-800'
-        : 'bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-100'
+        : 'bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-100'
       }`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Wawasan Kinerja</h3>

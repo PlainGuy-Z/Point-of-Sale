@@ -72,9 +72,8 @@ export default function TransactionDetailModal({
         onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       >
         <div
-          className={`max-h-[90vh] w-full max-w-2xl overflow-y-auto horizontal-scrollbar-thin rounded-2xl border shadow-2xl ${
-            isDark ? 'border-stone-800 bg-stone-900 text-stone-100' : 'border-[#E2E8F0] bg-white text-[#0F172A]'
-          }`}
+          className={`max-h-[90vh] w-full max-w-2xl overflow-y-auto horizontal-scrollbar-thin rounded-2xl border shadow-2xl ${isDark ? 'border-stone-800 bg-stone-900 text-stone-100' : 'border-[#E2E8F0] bg-white text-[#0F172A]'
+            }`}
         >
           <div className={`sticky top-0 z-10 flex items-start justify-between border-b px-6 py-4 ${isDark ? 'border-stone-800 bg-stone-950/90' : 'border-[#F1F5F9] bg-white'}`}>
             <div>
@@ -138,7 +137,7 @@ export default function TransactionDetailModal({
                     {(t.items || []).map((it, i) => (
                       <tr key={i} className={`transition-colors ${isDark ? 'text-stone-200' : 'text-[#475569]'}`}>
                         <td className="px-4 py-3 font-semibold">
-                          {it.product_name} 
+                          {it.product_name}
                           {it.notes && <span className={`block text-xs font-normal italic ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>{it.notes}</span>}
                         </td>
                         <td className="px-4 py-3 text-center">{it.quantity}</td>

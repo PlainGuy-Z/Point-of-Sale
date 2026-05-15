@@ -36,8 +36,8 @@ export default function VoidRequestModal({ transaction: t, onClose, onSuccess, o
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
-    if (reason.trim().length < 10) {
-      setErr('Minimal 10 karakter.');
+    if (reason.trim().length < 5) {
+      setErr('Minimal 5 karakter.');
       return;
     }
     setLoading(true);
@@ -96,7 +96,7 @@ export default function VoidRequestModal({ transaction: t, onClose, onSuccess, o
               onChange={(e) => setReason(e.target.value)}
               placeholder="Contoh: Pelanggan salah pesan, minta ganti menu"
               required
-              minLength={10}
+              minLength={5}
             />
           </div>
           <div className="flex gap-3 pt-2">

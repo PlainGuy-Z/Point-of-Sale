@@ -97,5 +97,16 @@ CREATE INDEX IF NOT EXISTS idx_waste_logs_product_id
 CREATE INDEX IF NOT EXISTS idx_waste_logs_created_at
   ON waste_logs(created_at);
 
-COMMIT;
+-- Registration Tokens
+CREATE TABLE IF NOT EXISTS registration_tokens (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  token       TEXT UNIQUE NOT NULL,
+  is_used     BOOLEAN NOT NULL DEFAULT false,
+  used_at     TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
+CREATE INDEX IF NOT EXISTS idx_registration_tokens_token
+  ON registration_tokens(token);
+
+COMMIT;

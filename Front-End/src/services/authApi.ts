@@ -38,6 +38,7 @@ export interface RegisterData {
   ownerName: string;
   email: string;
   password: string;
+  licenseToken: string;
 }
 
 export interface LoginData {
@@ -85,5 +86,26 @@ export const authApi = {
     http<{ message: string }>('/auth/change-password', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+
+  verifyToken: async (token: string): Promise<{ valid: boolean; message: string }> =>
+    http<{ valid: boolean; message: string }>('/auth/verify-token', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+
+  forgotPassword: async (email: string): Promise<{ message: string }> =>
+    http('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: async (
+    token: string,
+    password: string
+  ): Promise<{ message: string }> =>
+    http('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
     }),
 };

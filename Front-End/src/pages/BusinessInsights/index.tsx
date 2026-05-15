@@ -107,7 +107,7 @@ function PanelCarousel({ waste, summary, onRetry, isDark }: PanelCarouselProps) 
           disabled={activeIndex === 0}
           className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
             isDark ? 'bg-stone-800 text-stone-300' : 'bg-stone-100 text-stone-700'
-          } ${activeIndex === 0 ? 'opacity-30' : 'hover:bg-teal-600 hover:text-white'}`}
+          } ${activeIndex === 0 ? 'opacity-30' : (isDark ? 'hover:bg-amber-600' : 'hover:bg-teal-600') + ' hover:text-white'}`}
         >
           <ChevronLeft size={14} />
         </button>
@@ -131,7 +131,7 @@ function PanelCarousel({ waste, summary, onRetry, isDark }: PanelCarouselProps) 
           disabled={activeIndex === 1}
           className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
             isDark ? 'bg-stone-800 text-stone-300' : 'bg-stone-100 text-stone-700'
-          } ${activeIndex === 1 ? 'opacity-30' : 'hover:bg-teal-600 hover:text-white'}`}
+          } ${activeIndex === 1 ? 'opacity-30' : (isDark ? 'hover:bg-amber-600' : 'hover:bg-teal-600') + ' hover:text-white'}`}
         >
           <ChevronRight size={14} />
         </button>
@@ -181,7 +181,7 @@ export default function BusinessInsights() {
     }`}>
       <div>
         <div className="flex items-center gap-2">
-          <BarChart3 size={isMobile ? 18 : 22} className={isDark ? 'text-teal-400' : 'text-teal-600'} />
+          <BarChart3 size={isMobile ? 18 : 22} className={isDark ? 'text-amber-500' : 'text-teal-600'} />
           <h1 className={`text-lg md:text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
             Business <span className="text-amber-500">Intelligence</span>
           </h1>

@@ -68,8 +68,8 @@ export default function WastePanel({ waste: initialWaste, isLoading: parentLoadi
           {([7,14,30] as const).map(p=>(
             <button key={p} onClick={()=>handlePeriod(p)} style={{
               fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:999, border:'none', cursor:'pointer',
-              background: period===p ? '#0d9488' : (isDark?'#292524':'#f5f5f4'),
-              color: period===p ? '#fff' : (isDark?'#a8a29e':'#78716c'),
+              background: period===p ? (isDark ? '#f59e0b' : '#0d9488') : (isDark?'#292524':'#f5f5f4'),
+              color: period===p ? (isDark ? '#000' : '#fff') : (isDark?'#a8a29e':'#78716c'),
             }}>{p}H</button>
           ))}
         </div>

@@ -1,7 +1,9 @@
+/* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import type { Product, Transaction, WasteLog, Customer, BusinessSettings, CheckoutParams, CartItemWithInput } from '../types';
 import { ApiError, appApi, normalizeAppStateWire, type AppStateWire } from '../services/appApi';
 import { posApi } from '../services/posApi';
+import { useAuth } from './AuthContext';
 
 interface AppState {
   products: Product[];
@@ -34,8 +36,6 @@ interface AppContextType extends AppState {
   resetAllData: () => Promise<boolean>;
 }
 
-import { useAuth } from './AuthContext';
-
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const defaultSettings: BusinessSettings = {
@@ -48,7 +48,7 @@ const defaultSettings: BusinessSettings = {
   receiptFooter: 'Terima kasih telah berbelanja!',
 };
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AppProvider({ children }: { children: React.ReactNode }) {
   const { status } = useAuth();
   const [state, setState] = useState<AppState>({
     products: [],
@@ -321,10 +321,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-};
+}
 
-export const useApp = () => {
+export function useApp() {
   const context = useContext(AppContext);
   if (!context) throw new Error('useApp must be used within AppProvider');
   return context;
-};
+}

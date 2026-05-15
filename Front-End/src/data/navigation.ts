@@ -76,7 +76,6 @@ const ownerNavigation: Navigation = {
       label: 'MANAJEMEN',
       collapsedIcon: 'Settings',
       items: [
-        { id: 'users', label: 'Manajemen Kasir', icon: 'UserCog', path: '/users' },
         { id: 'settings', label: 'Settings', icon: 'Settings', path: '/settings' },
         { id: 'help', label: 'Help Center', icon: 'HelpCircle', path: '/help' },
       ],

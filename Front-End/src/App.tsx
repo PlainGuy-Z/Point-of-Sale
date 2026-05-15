@@ -13,11 +13,14 @@ import { CartProvider } from './contexts/CartContext';
 import { ShiftProvider } from './contexts/ShiftContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import NetworkStatus from './components/common/NetworkStatus';
 
 // Auth Pages
 const LandingPage = lazy(() => import('./pages/Auth/LandingPage'));
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
+const ForgotPassword = lazy(() => import('./pages/Auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/Auth/ResetPassword'));
 
 // App Pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -37,11 +40,20 @@ const ProductManagement = lazy(() => import('./pages/Operation/ProductManagement
 const ShiftReport = lazy(() => import('./pages/Shifts/index'));
 const ShiftDetail = lazy(() => import('./pages/Shifts/detail'));
 const CashierShiftHub = lazy(() => import('./pages/Shifts/CashierShiftHub'));
-const UserManagement = lazy(() => import('./pages/UserManagement'));
 const CashierHistory = lazy(() => import('./pages/TransactionHistory/CashierHistory'));
 const OwnerHistory = lazy(() => import('./pages/TransactionHistory/OwnerHistory'));
 const SalesReport = lazy(() => import('./pages/SalesReport'));
 const HelpCenter = lazy(() => import('./pages/HelpCenter'));
+
+// Settings Sections
+const ProfileSection = lazy(() => import('./pages/Settings/sections/ProfileSection'));
+const AccountSection = lazy(() => import('./pages/Settings/sections/AccountSection'));
+const PrinterSection = lazy(() => import('./pages/Settings/sections/PrinterSection'));
+const PaymentSection = lazy(() => import('./pages/Settings/sections/PaymentSection'));
+const AppearanceSection = lazy(() => import('./pages/Settings/sections/AppearanceSection'));
+const NotificationSection = lazy(() => import('./pages/Settings/sections/NotificationSection'));
+const DataSection = lazy(() => import('./pages/Settings/sections/DataSection'));
+const CashierSection = lazy(() => import('./pages/Settings/sections/CashierSection'));
 
 
 interface RoleRouteProps {
@@ -52,15 +64,54 @@ interface RoleRouteProps {
 }
 
 function RoleRoute({ allowedRoles, children, redirectTo }: RoleRouteProps) {
-  const { user } = useAuth();
+  const { user, status } = useAuth();
+  
+  if (status === 'loading') {
+    return <LoadingSpinner text="Memverifikasi izin..." />;
+  }
+
   if (!user) return <Navigate to="/login" replace />;
+  
   if (!allowedRoles.includes(user.role)) {
+    // Better defaults: If you are an owner, you usually want dashboard. 
+    // If you are a cashier, you usually want POS.
     const fallback =
       redirectTo ?? (user.role === 'owner' ? '/dashboard' : '/pos');
     return <Navigate to={fallback} replace />;
   }
   return <>{children}</>;
 }
+
+/** 
+ * Handles the root path (/) logic. 
+ * If guest: show landing.
+ * If owner: go to dashboard.
+ * If cashier: go to POS.
+ */
+function RootRedirect() {
+  const { status, user } = useAuth();
+  if (status === 'authenticated' && user) {
+    return <Navigate to={user.role === 'owner' ? '/dashboard' : '/pos'} replace />;
+  }
+  return (
+    <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
+      <LandingPage />
+    </Suspense>
+  );
+}
+
+/**
+ * A more resilient catch-all for typos.
+ * Keeps users in the app instead of bouncing to landing.
+ */
+function CatchAllRedirect() {
+  const { status, user } = useAuth();
+  if (status === 'authenticated' && user) {
+    return <Navigate to={user.role === 'owner' ? '/dashboard' : '/pos'} replace />;
+  }
+  return <Navigate to="/" replace />;
+}
+
 
 function RoleBasedDashboard() {
   const { user } = useAuth();
@@ -73,14 +124,20 @@ function RoleBasedSettings() {
 }
 
 function AppRoutes() {
+  const { status } = useAuth();
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-stone-900">
+        <LoadingSpinner text="Memverifikasi sesi..." />
+      </div>
+    );
+  }
+
   return (
     <Routes>
       {/* Marketing / SaaS landing (guests). Logged-in users are redirected inside LandingPage. */}
-      <Route path="/" element={
-        <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
-          <LandingPage />
-        </Suspense>
-      } />
+      <Route path="/" element={<RootRedirect />} />
 
       {/* Public routes */}
       <Route path="/login" element={
@@ -93,23 +150,26 @@ function AppRoutes() {
           <Register />
         </Suspense>
       } />
+      <Route path="/forgot-password" element={
+        <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
+          <ForgotPassword />
+        </Suspense>
+      } />
+      <Route path="/reset-password" element={
+        <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
+          <ResetPassword />
+        </Suspense>
+      } />
 
       <Route path="/welcome" element={<Navigate to="/" replace />} />
 
-      {/* Protected routes */}
+      {/* Main app layout wrapper with ProtectedRoute */}
       <Route element={
         <ProtectedRoute>
-          <AppProvider>
-            <SettingsProvider>
-              <ShiftProvider>
-                <CartProvider>
-                  <Layout />
-                </CartProvider>
-              </ShiftProvider>
-            </SettingsProvider>
-          </AppProvider>
+          <Layout />
         </ProtectedRoute>
       }>
+
         {/* All roles */}
         <Route path="pos">
           <Route index element={
@@ -227,7 +287,48 @@ function AppRoutes() {
               <RoleBasedSettings />
             </Suspense>
           </RoleRoute>
-        } />
+        }>
+          <Route index element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ProfileSection />
+            </Suspense>
+          } />
+          <Route path="account" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AccountSection />
+            </Suspense>
+          } />
+          <Route path="printer" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PrinterSection />
+            </Suspense>
+          } />
+          <Route path="payment" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PaymentSection />
+            </Suspense>
+          } />
+          <Route path="appearance" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AppearanceSection />
+            </Suspense>
+          } />
+          <Route path="notifications" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <NotificationSection />
+            </Suspense>
+          } />
+          <Route path="data" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <DataSection />
+            </Suspense>
+          } />
+          <Route path="cashiers" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <CashierSection />
+            </Suspense>
+          } />
+        </Route>
         {/* Shifts (Owner) */}
         <Route path="shifts">
           <Route index element={
@@ -245,13 +346,6 @@ function AppRoutes() {
             </RoleRoute>
           } />
         </Route>
-        <Route path="users" element={
-          <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
-            <Suspense fallback={<LoadingSpinner />}>
-              <UserManagement />
-            </Suspense>
-          </RoleRoute>
-        } />
         <Route path="transactions" element={
           <RoleRoute allowedRoles={['owner']} redirectTo="/pos">
             <Suspense fallback={<LoadingSpinner />}>
@@ -262,7 +356,7 @@ function AppRoutes() {
       </Route>
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<CatchAllRedirect />} />
     </Routes>
   );
 }
@@ -271,16 +365,26 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <AIProvider>
-          <PWAInstallBanner />
-          <FullscreenManager />
-          <Router>
-            <AppRoutes />
-          </Router>
-        </AIProvider>
+        <AppProvider>
+          <SettingsProvider>
+            <ShiftProvider>
+              <CartProvider>
+                <AIProvider>
+                  <NetworkStatus />
+                  <PWAInstallBanner />
+                  <FullscreenManager />
+                  <Router>
+                    <AppRoutes />
+                  </Router>
+                </AIProvider>
+              </CartProvider>
+            </ShiftProvider>
+          </SettingsProvider>
+        </AppProvider>
       </AuthProvider>
     </ErrorBoundary>
   );
 }
+
 
 export default App;

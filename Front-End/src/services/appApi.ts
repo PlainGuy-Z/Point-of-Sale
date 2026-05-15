@@ -48,8 +48,8 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     if (res.status === 401) {
-      // Jika session habis, arahkan ke login
-      window.location.href = '/login';
+      // Dispatch event instead of hard redirect to let AuthContext handle it
+      window.dispatchEvent(new CustomEvent('auth-unauthorized'));
       throw new ApiError(401, 'Session expired', 'UNAUTHORIZED');
     }
     let message = `HTTP ${res.status}`;
@@ -71,13 +71,23 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
 export function normalizeAppStateWire(wire: AppStateWire): AppDataState {
   return {
     ...wire,
-    customers: wire.customers.map((c) => ({
-      ...c,
-      joinDate: new Date(c.joinDate),
-      lastVisit: c.lastVisit ? new Date(c.lastVisit) : undefined,
-    })),
-    transactions: wire.transactions.map((t) => ({ ...t, date: new Date(t.date) })),
-    wasteLogs: wire.wasteLogs.map((w) => ({ ...w, date: new Date(w.date) })),
+    customers: (wire.customers || []).map((c) => {
+      const join = c.joinDate ? new Date(c.joinDate) : new Date();
+      const visit = c.lastVisit ? new Date(c.lastVisit) : undefined;
+      return {
+        ...c,
+        joinDate: isNaN(join.getTime()) ? new Date() : join,
+        lastVisit: visit && !isNaN(visit.getTime()) ? visit : undefined,
+      };
+    }),
+    transactions: (wire.transactions || []).map((t) => {
+      const d = t.date ? new Date(t.date) : new Date();
+      return { ...t, date: isNaN(d.getTime()) ? new Date() : d };
+    }),
+    wasteLogs: (wire.wasteLogs || []).map((w) => {
+      const d = w.date ? new Date(w.date) : new Date();
+      return { ...w, date: isNaN(d.getTime()) ? new Date() : d };
+    }),
   };
 }
 

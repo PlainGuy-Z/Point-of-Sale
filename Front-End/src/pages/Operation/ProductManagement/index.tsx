@@ -854,7 +854,7 @@ export default function ProductManagement() {
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                                             isDark
                                                 ? 'bg-amber-900/20 text-amber-400 hover:bg-amber-900/40'
-                                                : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                                                : 'bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200'
                                         }`}
                                     >
                                         <Pencil size={12} /> Edit
@@ -1048,7 +1048,7 @@ export default function ProductManagement() {
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => handleOpenEditModal(product)}
-                                                    className={`p-2 rounded-xl transition-all ${isDark ? 'bg-stone-800 text-amber-400 hover:bg-amber-500/20' : 'bg-gray-100 text-amber-600 hover:bg-amber-600 hover:text-white'}`}
+                                                    className={`p-2 rounded-xl transition-all ${isDark ? 'bg-stone-800 text-amber-400 hover:bg-amber-500/20' : 'bg-gray-100 text-teal-600 hover:bg-teal-600 hover:text-white'}`}
                                                     title="Edit"
                                                 >
                                                     <Edit2 size={14} />
@@ -1100,8 +1100,8 @@ export default function ProductManagement() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
                 <div className="flex items-center gap-3 mb-4 md:mb-0">
-                    <div className={`p-3 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-amber-50'}`}>
-                        <Tag className={isDark ? 'text-amber-400' : 'text-amber-600'} size={24} />
+                    <div className={`p-3 rounded-2xl ${isDark ? 'bg-stone-900' : 'bg-teal-50'}`}>
+                        <Tag className={isDark ? 'text-amber-400' : 'text-teal-600'} size={24} />
                     </div>
                     <div>
                         <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Category Management</h2>
@@ -1109,13 +1109,13 @@ export default function ProductManagement() {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className={`px-4 py-2 rounded-full ${isDark ? 'bg-stone-900 text-amber-400' : 'bg-amber-100 text-amber-700'} text-sm font-semibold flex items-center gap-2`}>
+                    <div className={`px-4 py-2 rounded-full ${isDark ? 'bg-stone-900 text-amber-400' : 'bg-teal-100 text-teal-700'} text-sm font-semibold flex items-center gap-2`}>
                         <Filter size={14} />
                         <span>{categories.length} Categories</span>
                     </div>
                     <button
                         onClick={() => setActiveCategory('all')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium ${activeCategory === 'all' ? (isDark ? 'bg-amber-600 text-white' : 'bg-amber-500 text-white') : (isDark ? 'bg-stone-900 text-stone-300' : 'bg-gray-100 text-gray-700')}`}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium ${activeCategory === 'all' ? (isDark ? 'bg-amber-600 text-white' : 'bg-teal-600 text-white') : (isDark ? 'bg-stone-900 text-stone-300' : 'bg-gray-100 text-gray-700')}`}
                     >
                         View All
                     </button>
@@ -1124,7 +1124,7 @@ export default function ProductManagement() {
 
             {/* Summary Card */}
             <div
-                className={`mb-8 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:shadow-xl ${allCategoryStat.gradient} ${activeCategory === 'all' ? 'ring-2 ring-amber-400' : ''}`}
+                className={`mb-8 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:shadow-xl ${allCategoryStat.gradient} ${activeCategory === 'all' ? (isDark ? 'ring-2 ring-amber-400' : 'ring-2 ring-teal-400') : ''}`}
                 onClick={() => setActiveCategory('all')}
             >
                 <div className="flex items-center justify-between mb-4">
@@ -1176,7 +1176,7 @@ export default function ProductManagement() {
                     {categoryStats.map((stat) => (
                         <div
                             key={stat.name}
-                            className={`p-4 border-b ${isDark ? 'border-stone-900 hover:bg-stone-900/50' : 'border-gray-100 hover:bg-gray-50'} transition-colors ${activeCategory === stat.name ? (isDark ? 'bg-stone-900' : 'bg-amber-50/50') : ''}`}
+                            className={`p-4 border-b ${isDark ? 'border-stone-900 hover:bg-stone-900/50' : 'border-gray-100 hover:bg-gray-50'} transition-colors ${activeCategory === stat.name ? (isDark ? 'bg-stone-900' : 'bg-teal-50/50') : ''}`}
                         >
                             {/* --- MOBILE CARD --- */}
                             <div className="lg:hidden flex flex-col gap-4">
@@ -1236,7 +1236,7 @@ export default function ProductManagement() {
                                         <div className="flex items-center gap-1 flex-shrink-0">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleEditCategory(stat.name); }}
-                                                className={`p-2.5 rounded-xl ${isDark ? 'bg-stone-800 text-amber-400' : 'bg-gray-100 text-amber-600'} transition-colors`}
+                                                className={`p-2.5 rounded-xl ${isDark ? 'bg-stone-800 text-amber-400' : 'bg-gray-100 text-teal-600'} transition-colors`}
                                             >
                                                 <Edit2 size={16} />
                                             </button>
@@ -1516,7 +1516,7 @@ export default function ProductManagement() {
                     <div className="flex flex-col gap-6">
                         <div>
                             <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                Inventory <span className="text-amber-500">Hub</span>
+                                Inventory <span className={isDark ? 'text-amber-500' : 'text-teal-600'}>Hub</span>
                             </h1>
                             <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                                 Manage your digital menu and stock availability
@@ -1539,7 +1539,7 @@ export default function ProductManagement() {
 
                             <div className={`p-3 lg:p-4 rounded-2xl ${isDark ? 'bg-stone-800/50' : 'bg-gray-50'}`}>
                                 <div className="flex items-center gap-2">
-                                    <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                                    <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-teal-600'}`} />
                                     <div>
                                         <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Total Items</p>
                                         <p className={`font-bold text-xl lg:text-2xl ${isDark ? 'text-white' : 'text-gray-900'}`}>{totalProducts}</p>
@@ -1559,12 +1559,12 @@ export default function ProductManagement() {
                                 </div>
                             </div>
 
-                            <div className={`p-3 lg:p-4 rounded-2xl ${bestSellerCount > 0 ? (isDark ? 'bg-amber-900/30' : 'bg-amber-50') : (isDark ? 'bg-stone-800/50' : 'bg-gray-50')}`}>
+                            <div className={`p-3 lg:p-4 rounded-2xl ${bestSellerCount > 0 ? (isDark ? 'bg-amber-900/30' : 'bg-teal-50') : (isDark ? 'bg-stone-800/50' : 'bg-gray-50')}`}>
                                 <div className="flex items-center gap-2">
-                                    <Trophy className={`w-5 h-5 ${bestSellerCount > 0 ? 'text-amber-500' : isDark ? 'text-stone-400' : 'text-stone-500'}`} />
+                                    <Trophy className={`w-5 h-5 ${bestSellerCount > 0 ? (isDark ? 'text-amber-500' : 'text-teal-600') : (isDark ? 'text-stone-400' : 'text-stone-500')}`} />
                                     <div>
                                         <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Best Sellers</p>
-                                        <p className={`font-bold text-xl lg:text-2xl ${bestSellerCount > 0 ? 'text-amber-600 dark:text-amber-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                                        <p className={`font-bold text-xl lg:text-2xl ${bestSellerCount > 0 ? (isDark ? 'text-amber-400' : 'text-teal-600') : (isDark ? 'text-white' : 'text-gray-900')}`}>
                                             {bestSellerCount}
                                         </p>
                                     </div>
@@ -1579,27 +1579,27 @@ export default function ProductManagement() {
                             <button
                                 onClick={() => setActiveTab('products')}
                                 className={`px-6 py-3 text-sm font-bold transition-all relative flex items-center gap-2 ${activeTab === 'products'
-                                        ? isDark ? 'text-amber-400' : 'text-amber-600'
+                                        ? isDark ? 'text-amber-400' : 'text-teal-600'
                                         : isDark ? 'text-stone-400 hover:text-stone-300' : 'text-gray-600 hover:text-gray-900'
                                     }`}
                             >
                                 <Package size={16} />
                                 Products
                                 {activeTab === 'products' && (
-                                    <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? 'bg-amber-400' : 'bg-amber-600'}`} />
+                                    <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? 'bg-amber-400' : 'bg-teal-600'}`} />
                                 )}
                             </button>
                             <button
                                 onClick={() => setActiveTab('categories')}
                                 className={`px-6 py-3 text-sm font-bold transition-all relative flex items-center gap-2 ${activeTab === 'categories'
-                                        ? isDark ? 'text-amber-400' : 'text-amber-600'
+                                        ? isDark ? 'text-amber-400' : 'text-teal-600'
                                         : isDark ? 'text-stone-400 hover:text-stone-300' : 'text-gray-600 hover:text-gray-900'
                                     }`}
                             >
                                 <Tag size={16} />
                                 Categories
                                 {activeTab === 'categories' && (
-                                    <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? 'bg-amber-400' : 'bg-amber-600'}`} />
+                                    <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? 'bg-amber-400' : 'bg-teal-600'}`} />
                                 )}
                             </button>
                         </div>
@@ -1643,7 +1643,7 @@ export default function ProductManagement() {
                                     <div className="flex justify-center relative group">
                                         <div
                                             onClick={() => fileInputRef.current?.click()}
-                                            className={`relative w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition-all ${isDark ? 'bg-stone-950 border-stone-800 hover:border-amber-500' : 'bg-gray-50 border-gray-200 hover:border-amber-500'
+                                            className={`relative w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition-all ${isDark ? 'bg-stone-950 border-stone-800 hover:border-amber-500' : 'bg-gray-50 border-gray-200 hover:border-teal-500'
                                                 }`}
                                         >
                                             {previewImage ? (
@@ -1679,7 +1679,7 @@ export default function ProductManagement() {
                                             </div>
                                         </div>
                                         {!isAvailable && (
-                                            <p className={`text-xs mt-2 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                                            <p className={`text-xs mt-2 ${isDark ? 'text-amber-400' : 'text-teal-600'}`}>
                                                 ⚠️ Produk tidak akan muncul sebagai tersedia di kasir
                                             </p>
                                         )}
@@ -1693,11 +1693,11 @@ export default function ProductManagement() {
                                     {/* Basic Information Section */}
                                     <div className="space-y-3">
                                         <div>
-                                            <label className="text-[9px] font-black uppercase text-amber-500 ml-1 tracking-widest">Name</label>
+                                            <label className={`text-[9px] font-black uppercase ${isDark ? 'text-amber-500' : 'text-teal-600'} ml-1 tracking-widest`}>Name</label>
                                             <input
                                                 name="name"
                                                 defaultValue={editingProduct?.name}
-                                                className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm transition-all mt-1 ${isDark ? 'border-stone-800 focus:border-amber-500 text-white' : 'border-gray-100 focus:border-amber-500 text-gray-900'}`}
+                                                className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm transition-all mt-1 ${isDark ? 'border-stone-800 focus:border-amber-500 text-white' : 'border-gray-100 focus:border-teal-600 text-gray-900'}`}
                                                 required
                                                 placeholder="Product Name"
                                                 onBlur={(e) => {
@@ -1709,7 +1709,7 @@ export default function ProductManagement() {
                                         </div>
 
                                         <div>
-                                            <label className="text-[9px] font-black uppercase text-amber-500 ml-1 tracking-widest">Category</label>
+                                            <label className={`text-[9px] font-black uppercase ${isDark ? 'text-amber-500' : 'text-teal-600'} ml-1 tracking-widest`}>Category</label>
                                             <select
                                                 name="category"
                                                 defaultValue={editingProduct?.category}
@@ -1744,10 +1744,10 @@ export default function ProductManagement() {
                                         </div>
 
                                         {/* Track Stock Toggle */}
-                                        <div className={`p-4 rounded-2xl transition-all duration-300 ${isDark ? 'bg-stone-800/50 border border-stone-700' : 'bg-amber-50 border border-amber-200'}`}>
+                                        <div className={`p-4 rounded-2xl transition-all duration-300 ${isDark ? 'bg-stone-800/50 border border-stone-700' : 'bg-teal-50 border border-teal-200'}`}>
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                                                    <Package className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-teal-600'}`} />
                                                     <label className="text-sm font-bold">Track Stock</label>
                                                 </div>
                                                 <div className="relative">
@@ -1758,7 +1758,7 @@ export default function ProductManagement() {
                                                             onChange={(e) => setTrackStock(e.target.checked)}
                                                             className="sr-only peer"
                                                         />
-                                                        <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-stone-700 peer-checked:bg-amber-500' : 'bg-gray-300 peer-checked:bg-amber-500'} peer-focus:ring-2 peer-focus:ring-amber-300 transition-colors`}>
+                                                        <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-stone-700 peer-checked:bg-amber-500' : 'bg-gray-300 peer-checked:bg-teal-600'} peer-focus:ring-2 ${isDark ? 'peer-focus:ring-amber-300' : 'peer-focus:ring-teal-300'} transition-colors`}>
                                                             <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${trackStock ? 'translate-x-4' : ''}`}></div>
                                                         </div>
                                                     </label>
@@ -1773,7 +1773,7 @@ export default function ProductManagement() {
                                                             name="stock"
                                                             type="number"
                                                             defaultValue={editingProduct?.stock !== -1 ? editingProduct?.stock : ''}
-                                                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-amber-500 text-white' : 'border-amber-200 focus:border-amber-500 text-gray-900'}`}
+                                                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-amber-500 text-white' : 'border-teal-200 focus:border-teal-600 text-gray-900'}`}
                                                             required
                                                         />
                                                     </div>
@@ -1783,7 +1783,7 @@ export default function ProductManagement() {
                                                             name="minStock"
                                                             type="number"
                                                             defaultValue={editingProduct?.minStock}
-                                                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-amber-500 text-white' : 'border-amber-200 focus:border-amber-500 text-gray-900'}`}
+                                                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-amber-500 text-white' : 'border-teal-200 focus:border-teal-600 text-gray-900'}`}
                                                             required
                                                         />
                                                     </div>
@@ -1795,10 +1795,10 @@ export default function ProductManagement() {
                                     </div>
 
                                     {/* PROMO SECTION */}
-                                    <div className={`p-4 rounded-2xl transition-all duration-300 ${isDark ? 'bg-stone-800/50 border border-stone-700' : 'bg-amber-50 border border-amber-200'}`}>
+                                    <div className={`p-4 rounded-2xl transition-all duration-300 ${isDark ? 'bg-stone-800/50 border border-stone-700' : 'bg-teal-50 border border-teal-200'}`}>
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
-                                                <Percent className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                                                <Percent className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-teal-600'}`} />
                                                 <label className="text-sm font-bold">Promo Settings</label>
                                             </div>
                                             <div className="relative">
@@ -1809,7 +1809,7 @@ export default function ProductManagement() {
                                                         onChange={(e) => setIsPromo(e.target.checked)}
                                                         className="sr-only peer"
                                                     />
-                                                    <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-stone-700 peer-checked:bg-amber-500' : 'bg-gray-300 peer-checked:bg-amber-500'} peer-focus:ring-2 peer-focus:ring-amber-300 transition-colors`}>
+                                                    <div className={`relative w-10 h-6 rounded-full peer ${isDark ? 'bg-stone-700 peer-checked:bg-amber-500' : 'bg-gray-300 peer-checked:bg-teal-600'} peer-focus:ring-2 ${isDark ? 'peer-focus:ring-amber-300' : 'peer-focus:ring-teal-300'} transition-colors`}>
                                                         <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isPromo ? 'translate-x-4' : ''}`}></div>
                                                     </div>
                                                 </label>
@@ -1824,7 +1824,7 @@ export default function ProductManagement() {
                                                         type="number"
                                                         value={promoPrice}
                                                         onChange={(e) => setPromoPrice(e.target.value)}
-                                                        className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                                                        className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-teal-200 focus:border-red-500 text-gray-900'}`}
                                                         placeholder="Masukkan harga promo"
                                                         min="0"
                                                     />
@@ -1859,7 +1859,7 @@ export default function ProductManagement() {
                                                         type="text"
                                                         value={promoLabel}
                                                         onChange={(e) => setPromoLabel(e.target.value)}
-                                                        className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                                                        className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-teal-200 focus:border-red-500 text-gray-900'}`}
                                                         placeholder="e.g., Flash Sale"
                                                         maxLength={20}
                                                     />
@@ -1872,7 +1872,7 @@ export default function ProductManagement() {
                                                             type="date"
                                                             value={promoStart}
                                                             onChange={(e) => setPromoStart(e.target.value)}
-                                                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                                                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-teal-200 focus:border-red-500 text-gray-900'}`}
                                                         />
                                                     </div>
                                                     <div>
@@ -1881,7 +1881,7 @@ export default function ProductManagement() {
                                                             type="date"
                                                             value={promoEnd}
                                                             onChange={(e) => setPromoEnd(e.target.value)}
-                                                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-amber-200 focus:border-red-500 text-gray-900'}`}
+                                                            className={`w-full p-3 rounded-2xl border-2 bg-transparent outline-none text-sm mt-1 ${isDark ? 'border-stone-700 focus:border-red-500 text-white' : 'border-teal-200 focus:border-red-500 text-gray-900'}`}
                                                         />
                                                     </div>
                                                 </div>
@@ -1903,7 +1903,7 @@ export default function ProductManagement() {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white text-sm font-black rounded-2xl shadow-lg transition-all active:scale-95 uppercase"
+                                        className={`flex-1 py-3 ${isDark ? 'bg-amber-500 hover:bg-amber-600' : 'bg-teal-600 hover:bg-teal-700'} text-white text-sm font-black rounded-2xl shadow-lg transition-all active:scale-95 uppercase`}
                                     >
                                         {editingProduct ? 'Update' : 'Confirm'}
                                     </button>

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { pool } from '../db/pool.js';
 import { withTransaction } from '../db/with-transaction.js';
 import { HttpError } from '../http/errors.js';
@@ -9,6 +10,8 @@ import { validateBody } from '../http/validate.js';
 import { env } from '../env.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireOwner } from '../middleware/requireRole.js';
+import { sendPasswordResetEmail } from '../services/email.js';
+
 
 export const authRouter = Router();
 
@@ -24,7 +27,8 @@ const RegisterSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with dashes'),
   ownerName: z.string().trim().min(2),
   email: z.string().trim().email(),
-  password: z.string().min(8)
+  password: z.string().min(8),
+  licenseToken: z.string().trim().min(1)
 });
 
 const LoginSchema = z.object({
@@ -49,6 +53,15 @@ const UpdateMeSchema = z
 const ResetCashierPasswordSchema = z.object({
   cashierId: z.string().uuid(),
   newPassword: z.string().min(8)
+});
+
+const ForgotPasswordSchema = z.object({
+  email: z.string().trim().email()
+});
+
+const ResetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8)
 });
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -102,6 +115,20 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
       throw new HttpError(409, 'SLUG_TAKEN', 'Shop slug is already taken');
     }
 
+    // Check Token Validation
+    const tokenCheck = await pool.query(
+      `SELECT id, is_used FROM coffeepos.registration_tokens WHERE token = $1`,
+      [body.licenseToken]
+    );
+
+    if (tokenCheck.rowCount === 0) {
+      throw new HttpError(400, 'INVALID_TOKEN', 'License Token tidak valid atau tidak ditemukan');
+    }
+    
+    if (tokenCheck.rows[0].is_used) {
+      throw new HttpError(400, 'TOKEN_USED', 'License Token sudah digunakan');
+    }
+
     // Hash password
     const passwordHash = await bcrypt.hash(body.password, env.BCRYPT_ROUNDS);
 
@@ -122,6 +149,14 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
         [shop.id, body.email, passwordHash, body.ownerName]
       );
       const user = userResult.rows[0];
+
+      // Mark token as used
+      await client.query(
+        `UPDATE coffeepos.registration_tokens 
+         SET is_used = true, used_at = now() 
+         WHERE token = $1`,
+        [body.licenseToken]
+      );
 
       return { user, shop };
     });
@@ -152,6 +187,35 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
         }
       }
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /auth/verify-token ───────────────────────────────
+
+const VerifyTokenSchema = z.object({
+  token: z.string().trim().min(1)
+});
+
+authRouter.post('/verify-token', validateBody(VerifyTokenSchema), async (req, res, next) => {
+  try {
+    const { token } = req.body as z.infer<typeof VerifyTokenSchema>;
+    
+    const tokenCheck = await pool.query(
+      `SELECT id, is_used FROM coffeepos.registration_tokens WHERE token = $1`,
+      [token]
+    );
+
+    if (tokenCheck.rowCount === 0) {
+      return res.status(400).json({ valid: false, message: 'License Token tidak valid atau tidak ditemukan' });
+    }
+    
+    if (tokenCheck.rows[0].is_used) {
+      return res.status(400).json({ valid: false, message: 'License Token sudah digunakan' });
+    }
+
+    res.json({ valid: true, message: 'Token tersedia' });
   } catch (err) {
     next(err);
   }
@@ -218,16 +282,26 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
   }
 });
 
-// ── POST /auth/logout ───────────────────────────────────────
-
 authRouter.post('/logout', (_req, res) => {
   const isProd = env.NODE_ENV === 'production';
-  res.clearCookie('token', {
+  
+  // Clear the cookie with all possible variations to ensure it's removed
+  const clearOptions = {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax' | 'strict',
     path: '/',
+  };
+
+  res.clearCookie('token', clearOptions);
+  
+  // Explicitly set an expired cookie for backup
+  res.cookie('token', '', {
+    ...clearOptions,
+    expires: new Date(0),
+    maxAge: 0
   });
+
   res.json({ message: 'Logged out successfully' });
 });
 
@@ -401,3 +475,82 @@ authRouter.post(
     }
   }
 );
+
+// ── POST /auth/forgot-password ──────────────────────────────
+
+authRouter.post('/forgot-password', validateBody(ForgotPasswordSchema), async (req, res, next) => {
+  try {
+    const { email } = req.body as z.infer<typeof ForgotPasswordSchema>;
+
+    const result = await pool.query(
+      `SELECT id, name, email FROM coffeepos.users WHERE email = $1`,
+      [email]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(200).json({ message: 'Jika email terdaftar, link reset telah dikirim.' });
+    }
+
+    const user = result.rows[0];
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await pool.query(
+      `UPDATE coffeepos.users SET reset_token = $1, reset_token_expires_at = $2 WHERE id = $3::uuid`,
+      [tokenHash, expiresAt, user.id]
+    );
+
+    const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${token}`;
+
+    try {
+      await sendPasswordResetEmail(user.email, user.name, resetUrl);
+    } catch (err) {
+      console.error('[forgot-password]', err);
+    }
+
+    res.status(200).json({ message: 'Jika email terdaftar, link reset telah dikirim.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /auth/reset-password ───────────────────────────────
+
+authRouter.post('/reset-password', validateBody(ResetPasswordSchema), async (req, res, next) => {
+  try {
+    const { token, password } = req.body as z.infer<typeof ResetPasswordSchema>;
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const result = await pool.query(
+      `SELECT id, reset_token_expires_at FROM coffeepos.users WHERE reset_token = $1`,
+      [tokenHash]
+    );
+
+    if (result.rowCount === 0) {
+      throw new HttpError(400, 'INVALID_TOKEN', 'Link reset tidak valid atau sudah digunakan.');
+    }
+
+    const user = result.rows[0];
+
+    if (new Date() > new Date(user.reset_token_expires_at)) {
+      await pool.query(
+        `UPDATE coffeepos.users SET reset_token = NULL, reset_token_expires_at = NULL WHERE id = $1::uuid`,
+        [user.id]
+      );
+      throw new HttpError(400, 'TOKEN_EXPIRED', 'Link reset sudah kedaluwarsa. Minta link baru.');
+    }
+
+    const passwordHash = await bcrypt.hash(password, env.BCRYPT_ROUNDS);
+
+    await pool.query(
+      `UPDATE coffeepos.users SET password_hash = $1, reset_token = NULL, reset_token_expires_at = NULL WHERE id = $2::uuid`,
+      [passwordHash, user.id]
+    );
+
+    res.status(200).json({ message: 'Password berhasil diubah. Silakan login.' });
+  } catch (err) {
+    next(err);
+  }
+});

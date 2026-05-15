@@ -1,22 +1,10 @@
+/* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { aiApi } from '../services/aiApi';
 import type { ChatMessage } from '../services/aiApi';
 import { ApiError } from '../services/appApi';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface AIMessage {
-  id: string;
-  role: 'user' | 'ai';
-  content: string;
-  timestamp: Date;
-  contextSnapshot?: {
-    today_revenue: number;
-    this_week_revenue: number;
-    total_transactions: number;
-  };
-}
+import type { AIMessage } from '../types';
 
 interface AIContextType {
   messages: AIMessage[];
@@ -25,6 +13,7 @@ interface AIContextType {
   sendMessage: (text: string) => Promise<void>;
   clearChat: () => void;
 }
+
 
 // ─── Serialisation helpers ───────────────────────────────────────────────────
 
@@ -43,7 +32,11 @@ function serialise(messages: AIMessage[]): string {
 function deserialise(raw: string): AIMessage[] {
   try {
     const wire: StoredMessage[] = JSON.parse(raw);
-    return wire.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }));
+    if (!Array.isArray(wire)) return [];
+    return wire.map((m) => {
+      const ts = m.timestamp ? new Date(m.timestamp) : new Date();
+      return { ...m, timestamp: isNaN(ts.getTime()) ? new Date() : ts };
+    });
   } catch {
     return [];
   }
@@ -53,7 +46,7 @@ function deserialise(raw: string): AIMessage[] {
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
-export const AIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AIProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const storageKey = `ai_chat_${user?.id ?? 'guest'}`;
 
@@ -157,10 +150,11 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   );
 
   return <AIContext.Provider value={value}>{children}</AIContext.Provider>;
-};
+}
 
-export const useAI = (): AIContextType => {
+export function useAI(): AIContextType {
   const ctx = useContext(AIContext);
   if (!ctx) throw new Error('useAI must be used within AIProvider');
   return ctx;
-};
+}
+

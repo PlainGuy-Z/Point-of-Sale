@@ -19,9 +19,17 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (status === 'authenticated' && user) {
-      navigate('/dashboard', { replace: true });
+      navigate(user.role === 'owner' ? '/dashboard' : '/pos', { replace: true });
     }
   }, [status, user, navigate]);
+
+  if (status === 'loading') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? '#0c0a09' : '#F8FAFC' }}>
+        <Loader2 className="w-8 h-8 animate-spin text-[#0D9488]" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +54,7 @@ export default function Login() {
         justifyContent: 'center',
         padding: 16,
         background: isDark
-          ? 'linear-gradient(135deg, #0c0a09 0%, #1c1917 50%, #0c0a09 100%)'
+          ? '#111111'
           : 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
         transition: 'background 0.3s',
         position: 'relative',
@@ -70,19 +78,19 @@ export default function Login() {
           borderRadius: 9999,
           backgroundColor: isDark ? 'rgba(28, 25, 23, 0.5)' : '#FFFFFF',
           backdropFilter: 'blur(8px)',
-          border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
+          border: `1px solid ${isDark ? '#2e2e2e' : '#E2E8F0'}`,
           boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.05)',
           transition: 'all 0.2s',
           zIndex: 10,
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = isDark ? '#fafaf9' : '#0D9488';
-          e.currentTarget.style.borderColor = isDark ? '#292524' : '#99F6E4';
+          e.currentTarget.style.borderColor = isDark ? '#2e2e2e' : '#99F6E4';
           e.currentTarget.style.transform = 'translateX(-4px)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.color = isDark ? '#a8a29e' : '#475569';
-          e.currentTarget.style.borderColor = isDark ? '#292524' : '#E2E8F0';
+          e.currentTarget.style.borderColor = isDark ? '#2e2e2e' : '#E2E8F0';
           e.currentTarget.style.transform = 'translateX(0)';
         }}
       >
@@ -96,8 +104,8 @@ export default function Login() {
           maxWidth: 440,
           borderRadius: 24,
           padding: 40,
-          backgroundColor: isDark ? '#1c1917' : '#ffffff',
-          border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
+          backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+          border: `1px solid ${isDark ? '#2e2e2e' : '#E2E8F0'}`,
           boxShadow: isDark
             ? '0 25px 50px -12px rgba(0,0,0,0.5)'
             : '0 10px 40px -10px rgba(0,0,0,0.08)',
@@ -108,15 +116,16 @@ export default function Login() {
           <Link to="/" style={{ display: 'inline-block', textDecoration: 'none', color: 'inherit' }}>
             <div
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 20,
-                background: 'linear-gradient(135deg, #0D9488, #0f766e)',
+                background: isDark 
+                  ? 'linear-gradient(135deg, #F59E0B, #D97706)' 
+                  : 'linear-gradient(135deg, #0D9488, #0f766e)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px',
-                boxShadow: '0 8px 24px rgba(13, 148, 136, 0.2)',
+                boxShadow: isDark 
+                  ? '0 8px 24px rgba(245, 158, 11, 0.2)' 
+                  : '0 8px 24px rgba(13, 148, 136, 0.2)',
                 transition: 'transform 0.2s',
               }}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
@@ -133,7 +142,7 @@ export default function Login() {
                 letterSpacing: '-0.02em'
               }}
             >
-              Coffee<span style={{ color: '#0D9488' }}>Pos</span>
+              Coffee<span style={{ color: isDark ? '#F59E0B' : '#0D9488' }}>Pos</span>
             </h1>
           </Link>
           <p style={{ color: isDark ? '#a8a29e' : '#475569', fontSize: 14, fontWeight: 500 }}>
@@ -200,17 +209,17 @@ export default function Login() {
                   width: '100%',
                   padding: '12px 14px 12px 44px',
                   borderRadius: 12,
-                  border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
-                  backgroundColor: isDark ? '#0c0a09' : '#ffffff',
-                  color: isDark ? '#fafaf9' : '#0F172A',
+                  border: `1px solid ${isDark ? '#2e2e2e' : '#E2E8F0'}`,
+                  backgroundColor: isDark ? '#222222' : '#ffffff',
+                  color: isDark ? '#ffffff' : '#0F172A',
                   fontSize: 14,
                   outline: 'none',
                   transition: 'border-color 0.2s, box-shadow 0.2s',
                   boxSizing: 'border-box',
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#0D9488';
-                  e.target.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)';
+                  e.target.style.borderColor = isDark ? '#F59E0B' : '#0D9488';
+                  e.target.style.boxShadow = isDark ? '0 0 0 4px rgba(245,158,11,0.1)' : '0 0 0 4px rgba(13,148,136,0.1)';
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = isDark ? '#292524' : '#E2E8F0';
@@ -222,17 +231,26 @@ export default function Login() {
 
           {/* Password */}
           <div style={{ marginBottom: 24 }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: 13,
-                fontWeight: 600,
-                color: isDark ? '#d6d3d1' : '#475569',
-                marginBottom: 6,
-              }}
-            >
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: isDark ? '#d6d3d1' : '#475569',
+                }}
+              >
+                Password
+              </label>
+              <Link
+                to="/forgot-password"
+                style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, textDecoration: 'none' }}
+                onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+              >
+                Lupa password?
+              </Link>
+            </div>
             <div style={{ position: 'relative' }}>
               <Lock
                 style={{
@@ -255,9 +273,9 @@ export default function Login() {
                   width: '100%',
                   padding: '12px 44px 12px 44px',
                   borderRadius: 12,
-                  border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
-                  backgroundColor: isDark ? '#0c0a09' : '#ffffff',
-                  color: isDark ? '#fafaf9' : '#0F172A',
+                  border: `1px solid ${isDark ? '#2e2e2e' : '#E2E8F0'}`,
+                  backgroundColor: isDark ? '#222222' : '#ffffff',
+                  color: isDark ? '#ffffff' : '#0F172A',
                   fontSize: 14,
                   outline: 'none',
                   transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -303,27 +321,27 @@ export default function Login() {
             style={{
               width: '100%',
               padding: '14px 24px',
-              borderRadius: 12,
+              borderRadius: 14,
               border: 'none',
               background: isLoading
                 ? (isDark ? '#44403c' : '#d6d3d1')
-                : '#0D9488',
-              color: '#ffffff',
-              fontSize: 16,
-              fontWeight: 700,
+                : (isDark ? '#F59E0B' : '#0D9488'),
+              color: isDark ? '#1c1917' : '#ffffff',
+              fontSize: 15,
+              fontWeight: 800,
               cursor: isLoading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
               transition: 'all 0.2s',
-              boxShadow: isLoading ? 'none' : '0 4px 14px rgba(13,148,136,0.25)',
+              boxShadow: isLoading ? 'none' : (isDark ? '0 4px 14px rgba(245,158,11,0.25)' : '0 4px 14px rgba(13,148,136,0.25)'),
             }}
             onMouseEnter={(e) => {
-              if (!isLoading) e.currentTarget.style.background = '#0f766e';
+              if (!isLoading) e.currentTarget.style.filter = 'brightness(1.1)';
             }}
             onMouseLeave={(e) => {
-              if (!isLoading) e.currentTarget.style.background = '#0D9488';
+              if (!isLoading) e.currentTarget.style.filter = 'brightness(1)';
             }}
           >
             {isLoading ? (

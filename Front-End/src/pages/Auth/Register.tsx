@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { authApi } from '../../services/authApi';
 import { Coffee, Store, Link as LinkIcon, User, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 
 export default function Register() {
@@ -17,11 +18,32 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [licenseToken, setLicenseToken] = useState('');
+  const [tokenStatus, setTokenStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [tokenMessage, setTokenMessage] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const checkToken = async () => {
+    if (!licenseToken.trim()) return;
+    setTokenStatus('checking');
+    try {
+      const res = await authApi.verifyToken(licenseToken);
+      if (res.valid) {
+        setTokenStatus('valid');
+        setTokenMessage('Token valid dan tersedia.');
+      } else {
+        setTokenStatus('invalid');
+        setTokenMessage(res.message);
+      }
+    } catch (err: any) {
+      setTokenStatus('invalid');
+      setTokenMessage(err.message || 'Token tidak valid.');
+    }
+  };
 
   const generateSlug = (name: string) =>
     name.toLowerCase()
@@ -35,6 +57,18 @@ export default function Register() {
       setShopSlug(generateSlug(shopName));
     }
   }, [shopName, slugEdited]);
+
+  // Redirect check handled inside the component body for better UX
+  // We'll show a message instead of a silent redirect if they are already logged in
+
+
+  if (status === 'loading') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? '#0c0a09' : '#F8FAFC' }}>
+        <Loader2 className="w-8 h-8 animate-spin text-[#0D9488]" />
+      </div>
+    );
+  }
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -50,11 +84,21 @@ const handleSubmit = async (e: React.FormEvent) => {
     return;
   }
 
+  if (!licenseToken.trim()) {
+    setError('License Token wajib diisi.');
+    return;
+  }
+
+  if (tokenStatus !== 'valid') {
+    setError('Silakan verifikasi License Token Anda terlebih dahulu.');
+    return;
+  }
+
   setIsLoading(true);
   try {
-    await register({ shopName, shopSlug, ownerName, email, password });
+    await register({ shopName, shopSlug, ownerName, email, password, licenseToken });
     // Redirect manual setelah register sukses
-    navigate('/', { replace: true });
+    navigate('/dashboard', { replace: true });
   } catch (err: any) {
     if (err.details?.fieldErrors) {
       const firstField = Object.keys(err.details.fieldErrors)[0];
@@ -70,28 +114,19 @@ const handleSubmit = async (e: React.FormEvent) => {
   }
 };
 
-// Tambah ini — redirect kalau sudah login saat buka halaman register
-useEffect(() => {
-  if (status === 'authenticated' && user) {
-    // Sudah login → ke dashboard
-    if (user.role === 'cashier') {
-      navigate('/pos', { replace: true });
-    } else {
-      navigate('/', { replace: true });
-    }
-  }
-}, [status, user, navigate]);
+// Removed redundant redirect useEffect
+
 
   const inputStyle = {
     width: '100%',
     padding: '12px 14px 12px 44px',
     borderRadius: 12,
-    border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
-    backgroundColor: isDark ? '#0c0a09' : '#ffffff',
-    color: isDark ? '#fafaf9' : '#0F172A',
+    border: `1px solid ${isDark ? '#2e2e2e' : '#E2E8F0'}`,
+    backgroundColor: isDark ? '#222222' : '#ffffff',
+    color: isDark ? '#ffffff' : '#0F172A',
     fontSize: 14,
     outline: 'none',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
+    transition: 'all 0.2s',
     boxSizing: 'border-box' as const,
   };
 
@@ -122,7 +157,7 @@ useEffect(() => {
         justifyContent: 'center',
         padding: '32px 16px',
         background: isDark
-          ? 'linear-gradient(135deg, #0c0a09 0%, #1c1917 50%, #0c0a09 100%)'
+          ? '#111111'
           : 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
         transition: 'background 0.3s',
         position: 'relative',
@@ -172,13 +207,42 @@ useEffect(() => {
           maxWidth: 800,
           borderRadius: 24,
           padding: '40px',
-          backgroundColor: isDark ? '#1c1917' : '#ffffff',
-          border: `1px solid ${isDark ? '#292524' : '#E2E8F0'}`,
+          backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+          border: `1px solid ${isDark ? '#2e2e2e' : '#E2E8F0'}`,
           boxShadow: isDark
             ? '0 25px 50px -12px rgba(0,0,0,0.5)'
             : '0 10px 40px -10px rgba(0,0,0,0.08)',
         }}
       >
+        {status === 'authenticated' && user ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <User style={{ width: 32, height: 32, color: '#f59e0b' }} />
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 900, color: isDark ? '#ffffff' : '#0F172A', marginBottom: 12 }}>
+              Sesi Aktif Terdeteksi
+            </h2>
+            <p style={{ color: isDark ? '#888888' : '#475569', fontSize: 15, lineHeight: 1.6, maxWidth: 400, margin: '0 auto 32px' }}>
+              Anda sedang masuk sebagai <strong style={{ color: '#f59e0b' }}>{user.name}</strong> ({user.role}). 
+              Silakan keluar terlebih dahulu jika ingin mendaftarkan toko baru.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button 
+                onClick={() => navigate(user.role === 'owner' ? '/dashboard' : '/pos')}
+                style={{ padding: '12px 24px', borderRadius: 12, border: `1px solid ${isDark ? '#2e2e2e' : '#E2E8F0'}`, background: isDark ? '#222222' : '#ffffff', color: isDark ? '#ffffff' : '#0F172A', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Kembali ke App
+              </button>
+              <button 
+                onClick={async () => { await useAuth().logout(); }}
+                style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: '#ef4444', color: '#ffffff', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Keluar Sesi
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <Link to="/" style={{ display: 'inline-block', textDecoration: 'none', color: 'inherit' }}>
             <div
@@ -186,12 +250,16 @@ useEffect(() => {
                 width: 56,
                 height: 56,
                 borderRadius: 16,
-                background: 'linear-gradient(135deg, #0D9488, #0f766e)',
+                background: isDark 
+                  ? 'linear-gradient(135deg, #F59E0B, #D97706)' 
+                  : 'linear-gradient(135deg, #0D9488, #0f766e)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px',
-                boxShadow: '0 8px 24px rgba(13, 148, 136, 0.2)',
+                boxShadow: isDark 
+                  ? '0 8px 24px rgba(245, 158, 11, 0.2)' 
+                  : '0 8px 24px rgba(13, 148, 136, 0.2)',
                 transition: 'transform 0.2s',
               }}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
@@ -203,7 +271,7 @@ useEffect(() => {
               style={{
                 fontSize: 28,
                 fontWeight: 900,
-                color: isDark ? '#fafaf9' : '#0F172A',
+                color: isDark ? '#ffffff' : '#0F172A',
                 marginBottom: 4,
                 letterSpacing: '-0.02em'
               }}
@@ -211,10 +279,11 @@ useEffect(() => {
               Daftarkan Toko Anda
             </h1>
           </Link>
-          <p style={{ color: isDark ? '#a8a29e' : '#475569', fontSize: 14, fontWeight: 500 }}>
+          <p style={{ color: isDark ? '#888888' : '#475569', fontSize: 14, fontWeight: 500 }}>
             Mulai kelola bisnis lebih efisien dengan CoffeePos
           </p>
         </div>
+
 
         {error && (
           <div
@@ -241,7 +310,7 @@ useEffect(() => {
           <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 32 }}>
             {/* Left Column: Toko */}
             <div style={{ flex: '1 1 300px' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#0D9488' : '#0D9488', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#F59E0B' : '#0D9488', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
                 <Store style={{ width: 20, height: 20 }} />
                 Informasi Toko
               </h3>
@@ -258,7 +327,7 @@ useEffect(() => {
                     minLength={2}
                     placeholder="Contoh: Kopi Kenangan"
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = '#0D9488'; e.target.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)'; }}
+                    onFocus={(e) => { e.target.style.borderColor = isDark ? '#F59E0B' : '#14B8A6'; e.target.style.boxShadow = isDark ? '0 0 0 4px rgba(245,158,11,0.1)' : '0 0 0 4px rgba(20,184,166,0.1)'; }}
                     onBlur={(e) => { e.target.style.borderColor = isDark ? '#292524' : '#E2E8F0'; e.target.style.boxShadow = 'none'; }}
                   />
                 </div>
@@ -278,7 +347,7 @@ useEffect(() => {
                     required
                     placeholder="kopi-kenangan"
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = '#0D9488'; e.target.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)'; }}
+                    onFocus={(e) => { e.target.style.borderColor = isDark ? '#F59E0B' : '#14B8A6'; e.target.style.boxShadow = isDark ? '0 0 0 4px rgba(245,158,11,0.1)' : '0 0 0 4px rgba(20,184,166,0.1)'; }}
                     onBlur={(e) => { e.target.style.borderColor = isDark ? '#292524' : '#E2E8F0'; e.target.style.boxShadow = 'none'; }}
                   />
                 </div>
@@ -292,7 +361,7 @@ useEffect(() => {
 
             {/* Right Column: Owner */}
             <div style={{ flex: '1 1 300px' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#0D9488' : '#0D9488', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#F59E0B' : '#0D9488', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
                 <User style={{ width: 20, height: 20 }} />
                 Akun Owner
               </h3>
@@ -309,7 +378,7 @@ useEffect(() => {
                     minLength={2}
                     placeholder="Nama Anda"
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = '#0D9488'; e.target.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)'; }}
+                    onFocus={(e) => { e.target.style.borderColor = isDark ? '#F59E0B' : '#14B8A6'; e.target.style.boxShadow = isDark ? '0 0 0 4px rgba(245,158,11,0.1)' : '0 0 0 4px rgba(20,184,166,0.1)'; }}
                     onBlur={(e) => { e.target.style.borderColor = isDark ? '#292524' : '#E2E8F0'; e.target.style.boxShadow = 'none'; }}
                   />
                 </div>
@@ -326,7 +395,7 @@ useEffect(() => {
                     required
                     placeholder="admin@toko.com"
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = '#0D9488'; e.target.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)'; }}
+                    onFocus={(e) => { e.target.style.borderColor = isDark ? '#F59E0B' : '#14B8A6'; e.target.style.boxShadow = isDark ? '0 0 0 4px rgba(245,158,11,0.1)' : '0 0 0 4px rgba(20,184,166,0.1)'; }}
                     onBlur={(e) => { e.target.style.borderColor = isDark ? '#292524' : '#E2E8F0'; e.target.style.boxShadow = 'none'; }}
                   />
                 </div>
@@ -344,7 +413,7 @@ useEffect(() => {
                     minLength={8}
                     placeholder="Minimal 8 karakter"
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = '#0D9488'; e.target.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)'; }}
+                    onFocus={(e) => { e.target.style.borderColor = isDark ? '#F59E0B' : '#14B8A6'; e.target.style.boxShadow = isDark ? '0 0 0 4px rgba(245,158,11,0.1)' : '0 0 0 4px rgba(20,184,166,0.1)'; }}
                     onBlur={(e) => { e.target.style.borderColor = isDark ? '#292524' : '#E2E8F0'; e.target.style.boxShadow = 'none'; }}
                   />
                   <button
@@ -369,7 +438,7 @@ useEffect(() => {
                     minLength={8}
                     placeholder="Ketik ulang password"
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = '#0D9488'; e.target.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)'; }}
+                    onFocus={(e) => { e.target.style.borderColor = isDark ? '#F59E0B' : '#14B8A6'; e.target.style.boxShadow = isDark ? '0 0 0 4px rgba(245,158,11,0.1)' : '0 0 0 4px rgba(20,184,166,0.1)'; }}
                     onBlur={(e) => { e.target.style.borderColor = isDark ? '#292524' : '#E2E8F0'; e.target.style.boxShadow = 'none'; }}
                   />
                   <button
@@ -380,6 +449,56 @@ useEffect(() => {
                     {showConfirmPassword ? <EyeOff style={{ width: 18, height: 18 }} /> : <Eye style={{ width: 18, height: 18 }} />}
                   </button>
                 </div>
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <label style={labelStyle}>License Token</label>
+                <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <Lock style={iconStyle} />
+                    <input
+                      type="text"
+                      value={licenseToken}
+                      onChange={(e) => {
+                        setLicenseToken(e.target.value);
+                        setTokenStatus('idle');
+                        setTokenMessage('');
+                      }}
+                      required
+                      placeholder="Masukkan Token Anda"
+                      style={{
+                        ...inputStyle,
+                        borderColor: tokenStatus === 'valid' ? '#22c55e' : (tokenStatus === 'invalid' ? '#ef4444' : (isDark ? '#292524' : '#E2E8F0')),
+                      }}
+                      onFocus={(e) => { e.target.style.borderColor = isDark ? '#F59E0B' : '#14B8A6'; e.target.style.boxShadow = isDark ? '0 0 0 4px rgba(245,158,11,0.1)' : '0 0 0 4px rgba(20,184,166,0.1)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = tokenStatus === 'valid' ? '#22c55e' : (tokenStatus === 'invalid' ? '#ef4444' : (isDark ? '#292524' : '#E2E8F0')); e.target.style.boxShadow = 'none'; }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={checkToken}
+                    disabled={tokenStatus === 'checking' || !licenseToken.trim()}
+                    style={{
+                      padding: '0 16px',
+                      background: isDark ? '#F59E0B' : '#14B8A6',
+                      color: isDark ? '#1c1917' : '#ffffff',
+                      border: 'none',
+                      borderRadius: 10,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: tokenStatus === 'checking' ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: isDark ? '0 4px 12px rgba(245,158,11,0.2)' : '0 4px 12px rgba(13,148,136,0.2)',
+                    }}
+                  >
+                    {tokenStatus === 'checking' ? '...' : 'Cek'}
+                  </button>
+                </div>
+                {tokenMessage && (
+                  <p style={{ marginTop: 6, fontSize: 12, color: tokenStatus === 'valid' ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                    {tokenMessage}
+                  </p>
+                )}
               </div>
 
             </div>
@@ -396,8 +515,8 @@ useEffect(() => {
                 border: 'none',
                 background: isLoading
                   ? (isDark ? '#44403c' : '#d6d3d1')
-                  : '#0D9488',
-                color: '#ffffff',
+                  : (isDark ? '#F59E0B' : '#14B8A6'),
+                color: isDark ? '#1c1917' : '#ffffff',
                 fontSize: 16,
                 fontWeight: 700,
                 cursor: isLoading ? 'not-allowed' : 'pointer',
@@ -406,13 +525,13 @@ useEffect(() => {
                 justifyContent: 'center',
                 gap: 8,
                 transition: 'all 0.2s',
-                boxShadow: isLoading ? 'none' : '0 4px 14px rgba(13,148,136,0.25)',
+                boxShadow: isLoading ? 'none' : (isDark ? '0 4px 14px rgba(245,158,11,0.25)' : '0 4px 14px rgba(20,184,166,0.25)'),
               }}
               onMouseEnter={(e) => {
-                if (!isLoading) e.currentTarget.style.background = '#0f766e';
+                if (!isLoading) e.currentTarget.style.background = isDark ? '#D97706' : '#0D9488';
               }}
               onMouseLeave={(e) => {
-                if (!isLoading) e.currentTarget.style.background = '#0D9488';
+                if (!isLoading) e.currentTarget.style.background = isDark ? '#F59E0B' : '#14B8A6';
               }}
             >
               {isLoading ? (
@@ -440,7 +559,7 @@ useEffect(() => {
           <Link
             to="/login"
             style={{
-              color: '#0D9488',
+              color: isDark ? '#F59E0B' : '#0D9488',
               fontWeight: 700,
               textDecoration: 'none',
             }}
@@ -450,6 +569,8 @@ useEffect(() => {
             Masuk
           </Link>
         </p>
+          </>
+        )}
       </div>
     </div>
   );

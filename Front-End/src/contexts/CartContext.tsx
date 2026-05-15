@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import type { CartItemWithInput, Product } from '../types';
 import { getEffectivePrice } from '../utils/priceUtils';

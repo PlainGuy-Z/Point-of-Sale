@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import ErrorBoundary from '../../components/common/ErrorBoundary';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useToast } from '../../hooks/useToast';
 import TransactionDetailModal from '../../components/transactions/TransactionDetailModal';
 import VoidRequestModal from '../../components/transactions/VoidRequestModal';
@@ -34,6 +35,7 @@ function statusLabel(s: HistoryTransaction['status']): string {
 function Inner() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { settings } = useSettings();
   const isDark = theme === 'dark';
   const { ToastComponent, showToast } = useToast();
 
@@ -92,9 +94,11 @@ function Inner() {
   return (
     <>
       {ToastComponent}
-      <div className={`mx-auto max-w-5xl animate-in fade-in pb-16 ${isDark ? 'text-white' : 'text-stone-900'}`}>
+      <div className={`mx-auto max-w-5xl animate-in fade-in pt-2 md:pt-4 pb-16 ${isDark ? 'text-white' : 'text-stone-900'}`}>
         <header className="mb-6 space-y-1">
-          <h1 className="text-2xl md:text-3xl font-black">Riwayat Transaksi</h1>
+          <h1 className="text-2xl md:text-3xl font-black">
+            Riwayat <span className={isDark ? 'text-amber-500' : 'text-teal-600'}>Transaksi</span>
+          </h1>
           <p className={`text-sm ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>Transaksi Hari Ini — {todayLabel}</p>
         </header>
 
@@ -262,7 +266,11 @@ function Inner() {
         <TransactionDetailModal
           transaction={detail}
           userRole="cashier"
-          shop={user?.shop ? { name: user.shop.name } : undefined}
+          shop={{ 
+            name: settings?.shop_name || user?.shop?.name || 'Toko', 
+            address: settings?.address, 
+            phone: settings?.phone 
+          }}
           onVoidRequest={() => setVoidTarget(detail)}
           onClose={() => setDetail(null)}
         />

@@ -110,8 +110,7 @@ function POSMockup({ isDark }: { isDark: boolean }) {
     <div style={{ position: 'relative', width: '100%', maxWidth: 820, margin: '0 auto' }}>
 
       {/* ── Main window frame ── */}
-      <div style={{
-        display: 'flex', borderRadius: 16, overflow: 'hidden',
+      <div className="flex flex-col sm:flex-row rounded-2xl overflow-hidden" style={{
         border: `1px solid ${border}`,
         boxShadow: isDark
           ? '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)'
@@ -121,7 +120,7 @@ function POSMockup({ isDark }: { isDark: boolean }) {
       }}>
 
         {/* ── LEFT: Menu Explorer ── */}
-        <div style={{ flex: 1, padding: '18px 16px', minWidth: 0, borderRight: `1px solid ${border}` }}>
+        <div className="flex-1 p-4 sm:p-[18px_16px] min-w-0 border-b sm:border-b-0 sm:border-r" style={{ borderColor: border }}>
 
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -167,7 +166,7 @@ function POSMockup({ isDark }: { isDark: boolean }) {
           </div>
 
           {/* Product grid — 2x2 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div className="grid grid-cols-2 gap-2">
             {menuItems.map((item) => (
               <div key={item.name} style={{
                 background: panel, borderRadius: 12,
@@ -219,7 +218,7 @@ function POSMockup({ isDark }: { isDark: boolean }) {
         </div>
 
         {/* ── RIGHT: Shopping Cart ── */}
-        <div style={{ width: 220, background: isDark ? '#161616' : '#FFFFFF', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div className="w-full sm:w-[220px] flex flex-col shrink-0" style={{ background: isDark ? '#161616' : '#FFFFFF' }}>
 
           {/* Cart header */}
           <div style={{ padding: '16px 14px 10px', borderBottom: `1px solid ${border}` }}>
@@ -376,8 +375,7 @@ function ProductTableMockup({ isDark }: { isDark: boolean }) {
   ];
 
   return (
-    <div style={{
-      borderRadius: 16, overflow: 'hidden',
+    <div className="rounded-2xl overflow-x-auto" style={{
       border: `1px solid ${border}`,
       background: bg,
       boxShadow: isDark
@@ -501,8 +499,8 @@ function FeatureCard({ icon: Icon, title, desc, isDark, delay }: {
         cursor: 'default',
       }}
     >
-      <div style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 18, background: isDark ? 'rgba(13,148,136,0.12)' : '#F0FDFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Icon size={20} color="#0D9488" />
+      <div style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 18, background: isDark ? 'rgba(245,158,11,0.12)' : '#F0FDFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon size={20} color={isDark ? '#F59E0B' : '#0D9488'} />
       </div>
       <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: isDark ? '#f5f5f4' : '#0F172A', letterSpacing: '-0.01em' }}>{title}</h3>
       <p style={{ fontSize: 14, lineHeight: 1.65, color: isDark ? '#a8a29e' : '#475569', margin: 0 }}>{desc}</p>
@@ -529,8 +527,19 @@ export default function LandingPage() {
     return () => clearTimeout(t);
   }, []);
 
+  // Only redirect if we are SURE the user is authenticated and we have their data
   if (status === 'authenticated' && user) {
     return <Navigate to={user.role === 'owner' ? '/dashboard' : '/pos'} replace />;
+  }
+
+  // If we are still checking auth, show a minimal loading state or nothing to avoid flicker
+  if (status === 'loading') {
+    return (
+      <div style={{ minHeight: '100vh', background: isDark ? '#0c0a09' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #0D9488', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   const c = {
@@ -571,7 +580,7 @@ export default function LandingPage() {
               <Coffee size={16} color="#fff" />
             </div>
             <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em', color: c.text }}>
-              smartpos<span style={{ color: c.teal }}>.</span><span style={{ color: c.muted, fontWeight: 400 }}>cafe</span>
+              smartpos<span style={{ color: isDark ? c.amber : c.teal }}>.</span><span style={{ color: c.muted, fontWeight: 400 }}>cafe</span>
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -579,7 +588,7 @@ export default function LandingPage() {
               {isDark ? <Sun size={15} /> : <Moon size={15} />}
             </button>
             <Link to="/login" style={{ padding: '8px 16px', borderRadius: 9, border: `1px solid ${c.border}`, color: c.text, fontSize: 13, fontWeight: 600, textDecoration: 'none', transition: 'all 0.15s' }}>Masuk</Link>
-            <Link to="/register" className="nav-cta" style={{ padding: '8px 18px', borderRadius: 9, background: c.teal, color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(13,148,136,0.22)' }}>Daftar Gratis</Link>
+            <Link to="/register" className="nav-cta" style={{ padding: '8px 18px', borderRadius: 9, background: isDark ? c.amber : c.teal, color: isDark ? '#000' : '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none', transition: 'all 0.2s', boxShadow: isDark ? '0 2px 8px rgba(245,158,11,0.22)' : '0 2px 8px rgba(13,148,136,0.22)' }}>Daftar Gratis</Link>
           </div>
         </div>
       </nav>
@@ -591,7 +600,7 @@ export default function LandingPage() {
           : 'radial-gradient(ellipse 70% 55% at 72% 38%, rgba(13,148,136,0.05) 0%, transparent 60%), radial-gradient(ellipse 45% 35% at 15% 82%, rgba(75,54,33,0.04) 0%, transparent 60%)',
         }} />
 
-        <div ref={heroRef} style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(340px, 480px) 1fr', gap: 64, alignItems: 'center' }}>
+        <div ref={heroRef} className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-[minmax(340px,480px)_1fr] gap-12 lg:gap-16 items-center text-center lg:text-left">
 
           {/* LEFT — Copy */}
           <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
@@ -600,18 +609,18 @@ export default function LandingPage() {
               <span style={{ fontSize: 12, fontWeight: 600, color: c.brown, letterSpacing: '0.02em' }}>Platform POS untuk F&B Indonesia</span>
             </div>
 
-            <h1 style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: 'clamp(36px, 4vw, 52px)', fontWeight: 400, lineHeight: 1.12, marginBottom: 22, letterSpacing: '-0.025em', color: c.text }}>
+            <h1 className="font-serif text-[clamp(36px,4vw,52px)] font-normal leading-[1.12] mb-6 tracking-tight text-center lg:text-left" style={{ color: c.text }}>
               Kelola Kedai Kopi<br />
               <em style={{ color: c.teal, fontStyle: 'italic' }}>Tanpa Pusing.</em><br />
               Antrean Lancar,<br />
               Laporan Otomatis.
             </h1>
 
-            <p style={{ fontSize: 16, lineHeight: 1.72, color: c.muted, marginBottom: 38, maxWidth: 420, fontWeight: 500 }}>
+            <p className="text-base leading-[1.72] mb-10 max-w-[420px] font-medium mx-auto lg:mx-0 text-center lg:text-left" style={{ color: c.muted }}>
               Dari kasir hingga laporan harian — satu platform untuk semua kebutuhan operasional kedai kopi Anda.
             </p>
 
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
+            <div className="flex flex-wrap justify-center lg:justify-start gap-3 mb-10">
               <Link to="/register" className="hero-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 26px', borderRadius: 11, background: c.teal, color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 16px rgba(13,148,136,0.28)', transition: 'all 0.2s' }}>
                 Mulai Gratis Sekarang <ArrowRight size={16} />
               </Link>
@@ -620,7 +629,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 {[...Array(5)].map((_, i) => <Star key={i} size={13} fill="#f59e0b" color="#f59e0b" />)}
                 <span style={{ fontSize: 13, fontWeight: 700, color: c.text, marginLeft: 5 }}>4.9/5</span>
@@ -641,9 +650,9 @@ export default function LandingPage() {
 
       {/* ═══════════ STATS BAR ═══════════ */}
       <div style={{ borderTop: `1px solid ${c.border}`, borderBottom: `1px solid ${c.border}`, background: c.surface }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 28px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0 }}>
+        <div className="max-w-[1200px] mx-auto px-7 py-7 grid grid-cols-2 lg:grid-cols-4 gap-y-8 lg:gap-y-0">
           {stats.map((s, i) => (
-            <div key={s.value} style={{ textAlign: 'center', borderRight: i < 3 ? `1px solid ${c.border}` : 'none', padding: '0 24px' }}>
+            <div key={s.value} className={`text-center px-2 lg:px-6 ${i === 1 || i === 3 ? 'border-r-0' : 'border-r lg:border-r'} ${i === 3 ? 'lg:border-r-0' : ''}`} style={{ borderColor: c.border }}>
               <div style={{ fontSize: 25, fontWeight: 900, color: c.teal, letterSpacing: '-0.03em' }}>{s.value}</div>
               <div style={{ fontSize: 12, color: c.muted, marginTop: 4, fontWeight: 600 }}>{s.label}</div>
             </div>
@@ -722,13 +731,13 @@ export default function LandingPage() {
           <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(26px, 3vw, 38px)', fontWeight: 400, letterSpacing: '-0.022em', margin: '0 auto 12px', lineHeight: 1.2, color: c.text }}>Mulai dalam 3 Langkah</h2>
           <p style={{ fontSize: 14, color: c.muted, margin: 0, fontWeight: 500 }}>Dari daftar hingga transaksi pertama — kurang dari 5 menit.</p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 0 }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
           {[
             { step: '01', icon: Receipt,    title: 'Daftarkan Toko', desc: 'Isi nama toko, buat akun owner. Selesai dalam 30 detik.' },
             { step: '02', icon: Layers,     title: 'Setup Produk',   desc: 'Tambahkan menu, harga, kategori, dan stok awal.' },
             { step: '03', icon: RefreshCw,  title: 'Langsung Jual',  desc: 'Buka POS, mulai transaksi. Laporan otomatis tersedia.' },
           ].map((item, i) => (
-            <div key={item.step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '0 32px', borderRight: i < 2 ? `1px solid ${c.border}` : 'none' }}>
+            <div key={item.step} className="flex flex-col items-center text-center py-8 md:py-0 md:px-8 border-b md:border-b-0 md:border-r last:border-b-0 last:border-r-0" style={{ borderColor: c.border }}>
               <div style={{ width: 52, height: 52, borderRadius: '50%', background: isDark ? 'rgba(13,148,136,0.12)' : '#F0FDFA', border: `2px solid ${isDark ? 'rgba(13,148,136,0.28)' : '#99F6E4'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
                 <item.icon size={22} color={c.teal} />
               </div>

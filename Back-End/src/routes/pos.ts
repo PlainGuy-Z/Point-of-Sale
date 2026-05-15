@@ -346,13 +346,18 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
           description: r.description ?? undefined // ✅ Include description
         })),
         total: grandTotal,
+        subtotal: subtotal,
+        tax: tax,
+        service_charge: serviceCharge,
         cost: costTotal,
         profit,
         paymentMethod: transaction.payment_method,
+        cashReceived: cashReceived ?? undefined,
+        change: changeAmount ?? undefined,
         customerName: transaction.customer_name ?? undefined,
         tableNumber: transaction.table_number ?? undefined,
         notes: transaction.notes ?? undefined, // ✅ Include notes
-        taxRate: 0.11,
+        taxRate: Number(shopSettings.tax_rate),
         orderType: body.orderType,
         orderNote: body.orderNote ?? undefined
       };

@@ -97,7 +97,7 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={this.handleReset}
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl hover:opacity-90 transition-opacity"
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-teal-600 to-teal-700 dark:from-amber-500 dark:to-orange-500 text-white font-medium rounded-xl hover:opacity-90 transition-opacity"
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh Halaman

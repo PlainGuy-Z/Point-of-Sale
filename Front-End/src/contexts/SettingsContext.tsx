@@ -1,50 +1,17 @@
+/* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { http } from '../services/appApi';
+export type { ShopSettings } from '../types';
 
-export interface ShopSettings {
-  shop_name: string;
-  shop_slug: string;
-  phone: string;
-  address: string;
-  logo_url: string;
-  open_time: string;
-  close_time: string;
-
-  tax_enabled: boolean;
-  tax_rate: number;
-  tax_label: string;
-  tax_inclusive: boolean;
-
-  service_charge_enabled: boolean;
-  service_charge_rate: number;
-  service_charge_label: string;
-
-  receipt_footer: string;
-  receipt_show_logo: boolean;
-  receipt_paper_size: '58mm' | '80mm';
-  receipt_auto_print: boolean;
-  receipt_show_tax: boolean;
-
-  default_order_type: 'dine_in' | 'takeaway';
-  require_customer_name: boolean;
-  require_table_number: boolean;
-
-  payment_cash: boolean;
-  payment_qris: boolean;
-  payment_transfer: boolean;
-
-  low_stock_threshold: number;
-  auto_disable_zero_stock: boolean;
-}
-
-export interface SettingsContextValue {
+interface SettingsContextValue {
   settings: ShopSettings | null;
   isLoading: boolean;
   error: string | null;
   updateSettings: (data: Partial<ShopSettings>) => Promise<void>;
   refreshSettings: () => Promise<void>;
 }
+
 
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
 

@@ -59,7 +59,7 @@ async function http<T>(path: string, init: RequestInit): Promise<T> {
 
   if (!res.ok) {
     if (res.status === 401) {
-      window.location.href = '/login';
+      window.dispatchEvent(new CustomEvent('auth-unauthorized'));
       throw new ApiError(401, 'Session expired', 'UNAUTHORIZED');
     }
     let message = `HTTP ${res.status}`;

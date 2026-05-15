@@ -21,7 +21,7 @@ import CheckoutDetailsForm from '../../components/pos/CheckoutDetailsForm';
 import ReceiptModal from '../../components/pos/ReceiptModal';
 import CartItemEditPanel from '../../components/pos/CartItemEditPanel';
 import MobileCart from '../../components/pos/MobileCart';
-import MobileCategoryCarousel from '../../components/pos/MobileCategoryCarousel.tsx';
+import { usePrinter } from '../../hooks/usePrinter';
 import type { Transaction, TransactionItem, CartItemWithInput, Product } from '../../types';
 import { ApiError } from '../../services/appApi';
 import { posApi } from '../../services/posApi';
@@ -256,6 +256,55 @@ export default function PointOfSale() {
     swipeRef.current = { ...s, activeIndex: null, isConfirmedSwipe: false };
   }, []);
 
+  const handleCartItemMouseDown = useCallback((index: number, e: React.MouseEvent) => {
+    swipeRef.current = {
+      activeIndex: index,
+      startX: e.clientX,
+      currentX: e.clientX,
+      isConfirmedSwipe: false,
+    };
+    swipeStartYRef.current = e.clientY;
+    swipeIntentLockedRef.current = 'none';
+    if (revealedDeleteIndex !== null && revealedDeleteIndex !== index) {
+      setRevealedDeleteIndex(null);
+    }
+  }, [revealedDeleteIndex]);
+
+  const handleCartItemMouseMove = useCallback((index: number, e: React.MouseEvent) => {
+    const s = swipeRef.current;
+    if (s.activeIndex !== index) return;
+
+    e.preventDefault();
+
+    const deltaX = e.clientX - s.startX;
+    const deltaY = e.clientY - swipeStartYRef.current;
+
+    if (swipeIntentLockedRef.current === 'none') {
+      if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
+        swipeIntentLockedRef.current = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
+      }
+    }
+
+    if (swipeIntentLockedRef.current !== 'horizontal') return;
+
+    swipeRef.current.currentX = e.clientX;
+    const clampedDelta = Math.max(-88, Math.min(0, deltaX));
+
+    if (clampedDelta <= -44) {
+      setRevealedDeleteIndex(index);
+    } else {
+      setRevealedDeleteIndex(null);
+    }
+  }, []);
+
+  const handleCartItemMouseUp = useCallback((index: number) => {
+    handleCartItemTouchEnd(index);
+  }, [handleCartItemTouchEnd]);
+
+  const handleCartItemMouseLeave = useCallback((index: number) => {
+    handleCartItemTouchEnd(index);
+  }, [handleCartItemTouchEnd]);
+
   // ── Mobile Bottom Sheet ───────────────────────────────────────────────────────
   const [sheetState, setSheetState] = useState<SheetState>('collapsed');
 
@@ -306,7 +355,6 @@ export default function PointOfSale() {
   // ── Manual item ──────────────────────────────────────────────────────────────
   const [manualItemName, setManualItemName] = useState('');
   const [manualItemPrice, setManualItemPrice] = useState('');
-  const [manualItemCategory, setManualItemCategory] = useState('');
   const [manualItemDescription, setManualItemDescription] = useState('');
   const [manualItemVariantName, setManualItemVariantName] = useState('');
   const [manualItemVariantPrice, setManualItemVariantPrice] = useState('');
@@ -343,7 +391,6 @@ export default function PointOfSale() {
   const resetManualForm = () => {
     setManualItemName('');
     setManualItemPrice('');
-    setManualItemCategory('');
     setManualItemDescription('');
     setManualItemVariantName('');
     setManualItemVariantPrice('');
@@ -365,7 +412,7 @@ export default function PointOfSale() {
       description: manualItemDescription.trim() || undefined,
       variantName: manualItemVariantName.trim() || undefined,
       variantPrice: variantPrice > 0 ? variantPrice : undefined,
-      modifiers: manualItemCategory.trim() ? [manualItemCategory.trim()] : [],
+      modifiers: [],
     };
   };
 
@@ -497,6 +544,49 @@ export default function PointOfSale() {
     [checkout, cart, selectedCustomer, customCustomerName, orderType, tableNumber, orderNote, taxEnabled],
   );
 
+  const { print: rawPrint } = usePrinter();
+
+  const handlePrintReceipt = useCallback(async (tx: Transaction) => {
+    const method = settings?.print_method || 'browser';
+
+    if ((method === 'rawbt' && settings?.rawbt_ip) || method === 'rawbt_intent') {
+      try {
+        await rawPrint({
+          shopName: settings?.shop_name || 'CoffeePOS',
+          shopAddress: settings?.address,
+          shopPhone: settings?.phone,
+          cashierName: tx.cashierName || user?.name || '-',
+          transactionId: tx.id,
+          createdAt: tx.date,
+          orderType: tx.orderType === 'dine-in' ? 'dine_in' : 'takeaway',
+          tableNumber: tx.tableNumber || undefined,
+          customerName: tx.customerName || undefined,
+          items: tx.items.map(it => ({
+            name: it.name,
+            quantity: it.quantity,
+            price: it.price,
+            subtotal: it.price * it.quantity
+          })),
+          subtotal: tx.subtotal || tx.total,
+          tax: tx.tax || 0,
+          taxRate: tx.taxRate || 0,
+          serviceCharge: tx.service_charge,
+          grandTotal: tx.total,
+          paymentMethod: tx.paymentMethod,
+          amountPaid: tx.cashReceived || undefined,
+          change: tx.change || undefined,
+          receiptFooter: settings?.receipt_footer,
+          paperSize: (settings?.receipt_paper_size || '58mm') as '58mm' | '80mm'
+        });
+      } catch (err) {
+        console.error('RawBT print failed, fallback to browser:', err);
+        window.print();
+      }
+    } else {
+      window.print();
+    }
+  }, [settings, rawPrint, user]);
+
   const handlePaymentSuccess = async (method: 'cash' | 'card' | 'qris', cashReceived?: number, change?: number) => {
     if (cartIsEmpty) return;
     try {
@@ -512,6 +602,11 @@ export default function PointOfSale() {
       setReceiptTransaction(transaction);
       setSheetState('collapsed');
       await refreshShift();
+
+      // ✅ AUTO PRINT
+      if (settings?.receipt_auto_print) {
+        setTimeout(() => handlePrintReceipt(transaction), 100);
+      }
     } catch (error) {
       const err = error as unknown;
       if (err instanceof ApiError) {
@@ -605,6 +700,10 @@ export default function PointOfSale() {
             onTouchStart={e => handleCartItemTouchStart(idx, e)}
             onTouchMove={e => handleCartItemTouchMove(idx, e)}
             onTouchEnd={() => handleCartItemTouchEnd(idx)}
+            onMouseDown={e => handleCartItemMouseDown(idx, e)}
+            onMouseMove={e => handleCartItemMouseMove(idx, e)}
+            onMouseUp={() => handleCartItemMouseUp(idx)}
+            onMouseLeave={() => handleCartItemMouseLeave(idx)}
           >
             {/* ── Card ── */}
             <div className={`flex-shrink-0 w-full rounded-2xl border transition-colors ${cardBg}`}>
@@ -721,9 +820,9 @@ export default function PointOfSale() {
               </div>
             </div>
 
-            {/* MOBILE DELETE ZONE */}
+            {/* SWIPE DELETE ZONE */}
             <div
-              className="lg:hidden flex-shrink-0 flex items-center justify-center bg-red-500 rounded-2xl ml-2"
+              className="flex-shrink-0 flex items-center justify-center bg-red-500 rounded-2xl ml-2"
               style={{ width: 68 }}
               onClick={e => {
                 e.stopPropagation();
@@ -849,7 +948,7 @@ export default function PointOfSale() {
                     </span>
                     <button
                       onClick={() => setTaxEnabled(t => !t)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${taxEnabled ? 'bg-teal-500' : isDark ? 'bg-stone-800' : 'bg-[#CBD5E1]'}`}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${taxEnabled ? (isDark ? 'bg-amber-500' : 'bg-teal-500') : isDark ? 'bg-stone-800' : 'bg-[#CBD5E1]'}`}
                     >
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
                     </button>
@@ -878,7 +977,7 @@ export default function PointOfSale() {
                 onClick={quickPayCart}
                 disabled={!canPay}
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wide transition-all duration-200 active:scale-[0.97] ${canPay
-                  ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/25 hover:bg-teal-600'
+                  ? isDark ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25 hover:bg-amber-600' : 'bg-teal-500 text-white shadow-lg shadow-teal-500/25 hover:bg-teal-600'
                   : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed'
                   }`}
               >
@@ -1009,7 +1108,7 @@ export default function PointOfSale() {
                     </span>
                     <button
                       onClick={() => setTaxEnabled(t => !t)}
-                      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${taxEnabled ? 'bg-teal-500' : isDark ? 'bg-stone-800' : 'bg-[#CBD5E1]'}`}
+                      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${taxEnabled ? (isDark ? 'bg-amber-500' : 'bg-teal-500') : isDark ? 'bg-stone-800' : 'bg-[#CBD5E1]'}`}
                     >
                       <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${taxEnabled ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
                     </button>
@@ -1045,7 +1144,7 @@ export default function PointOfSale() {
               onClick={() => { if (blockCheckoutForShift()) return; setPaymentModalOpen(true); }}
               disabled={!canPay}
               className={`flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm text-white uppercase tracking-wide transition-all duration-200 active:scale-[0.97] ${canPay
-                ? 'bg-teal-500 shadow-lg shadow-teal-500/20 hover:bg-teal-600'
+                ? isDark ? 'bg-amber-500 shadow-lg shadow-amber-500/20 hover:bg-amber-600' : 'bg-teal-500 shadow-lg shadow-teal-500/20 hover:bg-teal-600'
                 : 'bg-stone-400 cursor-not-allowed'
                 }`}
             >
@@ -1087,22 +1186,13 @@ export default function PointOfSale() {
               />
             </div>
             <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Kategori (opsional)</label>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Deskripsi (opsional)</label>
               <input
                 type="text"
-                placeholder="e.g. Service, Custom..."
-                value={manualItemCategory}
-                onChange={e => setManualItemCategory(e.target.value)}
-                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
-              />
-            </div>
-            <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Deskripsi (opsional)</label>
-              <textarea
                 value={manualItemDescription}
                 onChange={e => setManualItemDescription(e.target.value)}
                 placeholder="e.g. Pedas sekali, Tanpa bawang"
-                className={`w-full min-h-[88px] p-3 rounded-2xl border outline-none text-sm resize-none transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
+                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -1218,7 +1308,7 @@ export default function PointOfSale() {
               onClick={quickPayManualItem}
               disabled={!manualItemName.trim() || !manualItemPrice || isPaymentModalOpen}
               className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all duration-200 active:scale-[0.97] ${manualItemName.trim() && manualItemPrice
-                ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:bg-teal-600'
+                ? isDark ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600' : 'bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:bg-teal-600'
                 : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed'
                 }`}
             >
@@ -1328,16 +1418,18 @@ export default function PointOfSale() {
                     }}
                   />
                 </div>
-                <button
-                  onClick={() => setPanel('manual')}
-                  className={`flex items-center justify-center gap-2 px-3 h-11 rounded-2xl border transition-all shrink-0 ${
-                    isDark ? 'border-stone-800 bg-stone-900 text-stone-300 hover:bg-stone-800' : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC] shadow-sm'
-                  }`}
-                  title="Item Manual"
-                >
-                  <PlusCircle size={16} />
-                  <span className={`text-[10px] font-black uppercase ${isLandscape ? 'inline' : 'hidden sm:inline'}`}>Manual</span>
-                </button>
+                {showMobilePortrait && (
+                  <button
+                    onClick={() => setPanel('manual')}
+                    className={`flex items-center justify-center gap-2 px-3 h-11 rounded-2xl border transition-all shrink-0 ${
+                      isDark ? 'border-stone-800 bg-stone-900 text-stone-300 hover:bg-stone-800' : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC] shadow-sm'
+                    }`}
+                    title="Item Manual"
+                  >
+                    <PlusCircle size={16} />
+                    <span className="text-[10px] font-black uppercase">Manual</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1510,7 +1602,7 @@ export default function PointOfSale() {
         <ReceiptModal
           transaction={receiptTransaction}
           onClose={() => setReceiptTransaction(null)}
-          onPrint={() => window.print()}
+          onPrint={() => handlePrintReceipt(receiptTransaction)}
         />
       )}
     </div>

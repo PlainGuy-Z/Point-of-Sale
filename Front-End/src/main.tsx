@@ -84,20 +84,7 @@ if (typeof window !== 'undefined') {
     console.warn('Application is offline');
     // Notify user
     document.dispatchEvent(new CustomEvent('app:offline'));
-    
-    // Show offline toast
-    if (typeof document !== 'undefined') {
-      const toast = document.createElement('div');
-      toast.className = 'fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-xl shadow-lg z-50';
-      toast.textContent = 'Anda sedang offline. Beberapa fitur mungkin tidak tersedia.';
-      document.body.appendChild(toast);
-      
-      setTimeout(() => {
-        if (document.body.contains(toast)) {
-          document.body.removeChild(toast);
-        }
-      }, 5000);
-    }
+    // Toast offline is now handled by NetworkStatus.tsx
   });
 }
 

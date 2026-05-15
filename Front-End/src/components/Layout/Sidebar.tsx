@@ -194,9 +194,16 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
     };
     void poll();
     const iv = window.setInterval(poll, 60_000);
+    
+    const handleUpdate = () => {
+      void poll();
+    };
+    window.addEventListener('void_badge_update', handleUpdate);
+    
     return () => {
       cancelled = true;
       window.clearInterval(iv);
+      window.removeEventListener('void_badge_update', handleUpdate);
     };
   }, [user?.role]);
 
@@ -495,7 +502,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
               {isDark ? (
                 <Sun className="w-3.5 h-3.5 text-amber-500" />
               ) : (
-                <Moon className="w-3.5 h-3.5 text-amber-500" />
+                <Moon className="w-3.5 h-3.5 text-teal-600" />
               )}
               {!isCollapsed && <span>{isDark ? 'Light' : 'Dark'}</span>}
             </button>

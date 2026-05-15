@@ -81,7 +81,7 @@ export default function SalesReport() {
   };
 
   return (
-    <div className="space-y-4 px-2 py-2">
+    <div className="space-y-4 px-2 pt-2 md:pt-4 pb-10">
       {/* ═══ HEADER ═══ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

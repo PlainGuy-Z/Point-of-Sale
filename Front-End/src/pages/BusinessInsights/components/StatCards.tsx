@@ -251,7 +251,7 @@ export default function StatCards({ summary, isLoading, isMobile: isMobileProp }
               }}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 i === activeIndex 
-                  ? (isDark ? 'w-5 bg-teal-500' : 'w-5 bg-teal-600') 
+                  ? (isDark ? 'w-5 bg-amber-500' : 'w-5 bg-teal-600') 
                   : (isDark ? 'w-1.5 bg-stone-700' : 'w-1.5 bg-stone-200')
               }`}
             />

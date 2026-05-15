@@ -87,14 +87,14 @@ export default function RevenueChart({ forecast, isLoading }: Props) {
       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
         <div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <TrendingUp size={18} color="#0d9488" />
+            <TrendingUp size={18} color={isDark ? '#f59e0b' : '#0d9488'} />
             <h3 style={{ fontSize:16, fontWeight:700, color:isDark?'#fafaf9':'#1c1917', margin:0 }}>Prediksi 7 Hari ke Depan</h3>
           </div>
           <p style={{ fontSize:12, color:isDark?'#78716c':'#475569', marginTop:4 }}>Berdasarkan pola historis toko</p>
         </div>
         <div style={{ display:'flex', gap:16, fontSize:12 }}>
           <div style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:12, height:3, borderRadius:2, background:'#f59e0b' }} /><span style={{ color:isDark?'#a8a29e':'#78716c' }}>Revenue</span></div>
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:12, height:3, borderRadius:2, background:'#0d9488' }} /><span style={{ color:isDark?'#a8a29e':'#78716c' }}>Transaksi</span></div>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:12, height:3, borderRadius:2, background: isDark ? '#f59e0b' : '#0d9488' }} /><span style={{ color:isDark?'#a8a29e':'#78716c' }}>Transaksi</span></div>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={260}>

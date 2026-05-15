@@ -56,7 +56,7 @@ export default function PWAInstallBanner() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-amber-500 text-white px-4 py-3 shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-teal-600 text-white px-4 py-3 shadow-2xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/15 text-white">
@@ -71,7 +71,7 @@ export default function PWAInstallBanner() {
           <button
             type="button"
             onClick={handleInstall}
-            className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-amber-600 shadow-sm transition hover:bg-amber-50"
+            className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-teal-700 shadow-sm transition hover:bg-teal-50"
           >
             Install
           </button>

@@ -57,18 +57,18 @@ export default function AIChatPanel() {
     }`}>
       {/* Header */}
       <div className={`px-5 py-2 md:py-4 flex justify-between items-center shrink-0 ${
-        isDark ? 'bg-gradient-to-r from-stone-800 to-stone-900 border-b border-stone-700' : 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-md'
+        isDark ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-stone-900 shadow-md' : 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-md'
       }`}>
         <div className="flex items-center gap-3">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
             isDark ? 'bg-stone-800 border border-stone-700' : 'bg-white/20 border border-white/30 backdrop-blur-md'
           }`}>
-            <Bot size={20} className={isDark ? 'text-teal-400' : 'text-white'} />
+            <Bot size={20} className={isDark ? 'text-stone-900' : 'text-white'} />
           </div>
           <div>
             <div className="text-sm font-bold">AI Business Advisor</div>
             <div className={`text-[10px] flex items-center gap-1.5 ${isDark ? 'text-stone-500' : 'text-white/70'}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-stone-900' : 'bg-emerald-400'} animate-pulse`} />
               Online · Real-time
             </div>
           </div>
@@ -91,7 +91,7 @@ export default function AIChatPanel() {
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
               isDark ? 'bg-stone-800 border border-stone-700' : 'bg-teal-50 border border-teal-200'
             }`}>
-              <Sparkles size={24} className={isDark ? 'text-teal-400' : 'text-teal-700'} />
+              <Sparkles size={24} className={isDark ? 'text-amber-500' : 'text-teal-700'} />
             </div>
             <div className="text-center">
               <div className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Halo! Saya Advisor Bisnis Anda.</div>
@@ -204,7 +204,7 @@ export default function AIChatPanel() {
             className={`
               flex-1 resize-none text-sm px-4 py-2.5 rounded-xl outline-none transition-all no-scrollbar max-h-24 leading-relaxed
               ${isDark 
-                ? 'bg-stone-800 border border-stone-700 text-white placeholder:text-stone-600 focus:border-teal-500 focus:ring-1 focus:ring-teal-500' 
+                ? 'bg-stone-800 border border-stone-700 text-white placeholder:text-stone-600 focus:border-amber-500 focus:ring-1 focus:ring-amber-500' 
                 : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] placeholder:text-[#94A3B8] focus:border-teal-400 focus:bg-white'
               }
               ${isLoading ? 'opacity-50' : ''}
@@ -218,7 +218,7 @@ export default function AIChatPanel() {
               w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all shadow-md active:scale-95
               ${!input.trim()||isLoading
                 ? (isDark ? 'bg-stone-800 text-stone-600 border border-stone-700' : 'bg-[#E2E8F0] text-[#94A3B8]')
-                : 'bg-teal-600 hover:bg-teal-700 text-white'
+                : (isDark ? 'bg-amber-500 hover:bg-amber-600 text-stone-900' : 'bg-teal-600 hover:bg-teal-700 text-white')
               }
             `}
           >

@@ -8,7 +8,7 @@ import { requireOwner } from '../middleware/requireRole.js';
 export const transactionsRouter = Router();
 const TZ = 'Asia/Jakarta';
 const VoidRequestSchema = z.object({
-    reason: z.string().trim().min(10)
+    reason: z.string().trim().min(5)
 });
 const VoidApproveSchema = z.object({
     note: z.string().trim().optional()

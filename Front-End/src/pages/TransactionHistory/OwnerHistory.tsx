@@ -3,6 +3,7 @@ import ErrorBoundary from '../../components/common/ErrorBoundary';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useToast } from '../../hooks/useToast';
 import TransactionDetailModal from '../../components/transactions/TransactionDetailModal';
 import VoidReviewModal from '../../components/transactions/VoidReviewModal';
@@ -48,6 +49,7 @@ function downloadCsv(filename: string, rows: string[][]): void {
 function Inner() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { settings } = useSettings();
   const dark = theme === 'dark';
   const { ToastComponent, showToast } = useToast();
   const pendingBannerRef = useRef<HTMLDivElement | null>(null);
@@ -183,13 +185,17 @@ function Inner() {
   return (
     <>
       {ToastComponent}
-      <div className={`mx-auto max-w-[1200px] animate-in fade-in pb-20 ${dark ? 'text-white' : 'text-stone-900'}`}>
+      <div className={`mx-auto max-w-[1200px] animate-in fade-in pt-2 md:pt-4 pb-20 ${dark ? 'text-white' : 'text-stone-900'}`}>
         <header className="mb-6">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-black">Riwayat Transaksi</h1>
-              <p className={`mt-1 text-sm ${dark ? 'text-stone-400' : 'text-stone-600'}`}>Filter lengkap untuk semua transaksi di toko Anda</p>
-            </div>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-black">
+          Riwayat <span className={dark ? 'text-amber-600' : 'text-teal-600'}>Transaksi</span>
+        </h1>
+        <p className={`mt-1 text-sm ${dark ? 'text-stone-400' : 'text-stone-600'}`}>
+          Filter lengkap untuk semua transaksi di toko Anda
+        </p>
+      </div>
             <button
               type="button"
               onClick={() => void exportCsv()}
@@ -482,7 +488,11 @@ function Inner() {
         <TransactionDetailModal
           transaction={detail}
           userRole="owner"
-          shop={{ name: user?.shop?.name || 'Toko', address: undefined, phone: undefined }}
+          shop={{ 
+            name: settings?.shop_name || user?.shop?.name || 'Toko', 
+            address: settings?.address, 
+            phone: settings?.phone 
+          }}
           onVoidApprove={() => setReview({ t: detail, action: 'approve' })}
           onVoidReject={() => setReview({ t: detail, action: 'reject' })}
           onClose={() => setDetail(null)}
@@ -500,6 +510,7 @@ function Inner() {
             setDetail(null);
             void loadRows();
             void loadSummaries();
+            window.dispatchEvent(new Event('void_badge_update'));
           }}
         />
       ) : null}

@@ -411,7 +411,7 @@ export default function MobileCart({
                   disabled={!canPay}
                   className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-black uppercase tracking-wide transition-all active:scale-[0.97] ${
                     canPay
-                      ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:bg-teal-600'
+                      ? isDark ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600' : 'bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:bg-teal-600'
                       : isDark
                         ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'

@@ -47,7 +47,7 @@ export interface Product {
 
 // ==================== TRANSACTION TYPES ====================
 export interface TransactionItem {
-  name: any;
+  name: string;
   productId: string;
   quantity: number;
   price: number;
@@ -88,6 +88,9 @@ export interface Transaction {
   cashReceived?: number;
   change?: number;
   taxRate?: number;
+  subtotal?: number;
+  tax?: number;
+  service_charge?: number;
   orderType?: 'dine-in' | 'take-away';
   orderNote?: string;
 }
@@ -231,3 +234,77 @@ export interface AuthUser {
 }
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
+
+// ==================== SHIFT TYPES ====================
+export interface Shift {
+  id: string;
+  cashier_id: string;
+  cashier_name: string;
+  opened_at: string;
+  closed_at: string | null;
+  opening_cash: number;
+  closing_cash: number | null;
+  expected_cash: number | null;
+  cash_difference: number | null;
+  total_sales: number;
+  total_transactions: number;
+  notes: string | null;
+  status: 'open' | 'closed';
+  current_total_sales?: number;
+  current_total_transactions?: number;
+  current_expected_cash?: number;
+}
+
+// ==================== SETTINGS TYPES ====================
+export interface ShopSettings {
+  shop_name: string;
+  shop_slug: string;
+  phone: string;
+  address: string;
+  logo_url: string;
+  open_time: string;
+  close_time: string;
+
+  tax_enabled: boolean;
+  tax_rate: number;
+  tax_label: string;
+  tax_inclusive: boolean;
+
+  service_charge_enabled: boolean;
+  service_charge_rate: number;
+  service_charge_label: string;
+
+  receipt_footer: string;
+  receipt_show_logo: boolean;
+  receipt_paper_size: '58mm' | '80mm';
+  receipt_auto_print: boolean;
+  receipt_show_tax: boolean;
+
+  print_method: 'browser' | 'rawbt' | 'network' | 'rawbt_intent';
+  rawbt_ip: string;
+
+  default_order_type: 'dine_in' | 'takeaway';
+  require_customer_name: boolean;
+  require_table_number: boolean;
+
+  payment_cash: boolean;
+  payment_qris: boolean;
+  payment_transfer: boolean;
+
+  low_stock_threshold: number;
+  auto_disable_zero_stock: boolean;
+}
+
+// ==================== AI TYPES ====================
+export interface AIMessage {
+  id: string;
+  role: 'user' | 'ai';
+  content: string;
+  timestamp: Date;
+  contextSnapshot?: {
+    today_revenue: number;
+    this_week_revenue: number;
+    total_transactions: number;
+  };
+}
+

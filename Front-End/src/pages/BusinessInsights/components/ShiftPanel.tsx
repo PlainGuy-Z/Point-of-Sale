@@ -62,7 +62,7 @@ export default function ShiftPanel({ summary, isLoading: parentLoading }: Props)
       {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <Users size={16} color="#7c3aed" />
+          <Users size={16} color={isDark ? '#f59e0b' : '#7c3aed'} />
           <h3 style={{ fontSize:14, fontWeight:700, color:isDark?'#fafaf9':'#1c1917', margin:0 }}>Performa Shift</h3>
         </div>
         {summary && summary.active_shifts_count > 0 && (

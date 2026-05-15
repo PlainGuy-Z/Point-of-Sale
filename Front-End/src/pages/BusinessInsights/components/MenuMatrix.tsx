@@ -124,7 +124,7 @@ export default function MenuMatrix() {
       onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 0 1px #3b82f640'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <Grid3x3 size={16} color="#3b82f6" />
+        <Grid3x3 size={16} color={isDark ? '#f59e0b' : '#3b82f6'} />
         <h3 style={{ fontSize: 14, fontWeight: 700, color: isDark ? '#fafaf9' : '#1c1917', margin: 0 }}>Menu BCG Matrix</h3>
         <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
           {Object.entries(QUAD_LABELS).map(([k, v]) => (

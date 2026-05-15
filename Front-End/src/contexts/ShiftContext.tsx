@@ -1,26 +1,7 @@
-/* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { appApi } from '../services/appApi';
-
-export interface Shift {
-  id: string;
-  cashier_id: string;
-  cashier_name: string;
-  opened_at: string;
-  closed_at: string | null;
-  opening_cash: number;
-  closing_cash: number | null;
-  expected_cash: number | null;
-  cash_difference: number | null;
-  total_sales: number;
-  total_transactions: number;
-  notes: string | null;
-  status: 'open' | 'closed';
-  current_total_sales?: number;
-  current_total_transactions?: number;
-  current_expected_cash?: number;
-}
+import type { Shift } from '../types';
 
 interface ShiftContextValue {
   activeShift: Shift | null;
@@ -29,6 +10,7 @@ interface ShiftContextValue {
   closeShift: (closing_cash: number, notes?: string) => Promise<void>;
   refreshShift: () => Promise<void>;
 }
+
 
 const ShiftContext = createContext<ShiftContextValue | undefined>(undefined);
 

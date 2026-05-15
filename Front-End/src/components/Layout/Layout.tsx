@@ -97,7 +97,7 @@ export default function Layout() {
             </button>
 
             <div className="flex items-center gap-2 text-sm font-bold text-center">
-              <Coffee className="h-5 w-5 text-amber-500" />
+              <Coffee className={`h-5 w-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
               <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>SmartPOS</span>
             </div>
 

@@ -70,7 +70,7 @@ export default function SummaryCards({ summary }: Props) {
 
   const handleScroll = () => {
     if (!scrollRef.current) return;
-    const cardW = 270 + 12; // min-w + gap
+    const cardW = 220 + 12; // min-w + gap
     const idx = Math.round(scrollRef.current.scrollLeft / cardW);
     setActiveIdx(Math.max(0, Math.min(idx, cards.length - 1)));
   };
@@ -81,17 +81,17 @@ export default function SummaryCards({ summary }: Props) {
     return (
       <div
         key={cfg.label}
-        className={`${isDark ? 'bg-[#1a1a1a] border-[#2e2e2e] hover:border-[#3e3e3e]' : 'bg-white border-stone-200 hover:border-stone-300'} rounded-2xl border p-5 transition-all duration-200 group ${isMobile ? 'min-w-[260px] snap-start' : ''}`}
+        className={`${isDark ? 'bg-[#1a1a1a] border-[#2e2e2e] hover:border-[#3e3e3e]' : 'bg-white border-stone-200 hover:border-stone-300'} rounded-2xl border p-4 transition-all duration-200 group ${isMobile ? 'min-w-[220px] snap-start' : ''}`}
       >
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className={`w-10 h-10 rounded-xl ${cfg.iconBg} flex items-center justify-center`}>
-            <IconComp size={18} className={cfg.iconColor} />
+        <div className="flex items-center gap-2 mb-2">
+          <div className={`w-8 h-8 rounded-xl ${cfg.iconBg} flex items-center justify-center`}>
+            <IconComp size={16} className={cfg.iconColor} />
           </div>
           <span className={`text-[10px] uppercase tracking-widest ${isDark ? 'text-[#888]' : 'text-stone-500'} font-bold leading-tight`}>
             {i === 3 && !summary.hasCostData ? 'Gross Revenue' : cfg.label}
           </span>
         </div>
-        <p className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-black ${isDark ? 'text-white' : 'text-stone-900'} mb-2 font-mono`}>{c.value}</p>
+        <p className={`${isMobile ? 'text-lg' : 'text-lg lg:text-xl'} font-black ${isDark ? 'text-white' : 'text-stone-900'} mb-1.5 font-mono tracking-tight`}>{c.value}</p>
         <Change value={c.change} />
       </div>
     );
@@ -131,7 +131,7 @@ export default function SummaryCards({ summary }: Props) {
 
   // Desktop: grid
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {cards.map((c, i) => renderCard(c, i))}
     </div>
   );

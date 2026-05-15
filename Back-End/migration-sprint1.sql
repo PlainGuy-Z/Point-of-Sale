@@ -39,6 +39,14 @@ ALTER TABLE coffeepos.categories
 ALTER TABLE coffeepos.waste_logs
   ADD COLUMN IF NOT EXISTS shop_id UUID REFERENCES coffeepos.shops(id);
 
+
+ALTER TABLE coffeepos.shop_settings
+  ADD COLUMN IF NOT EXISTS print_method TEXT DEFAULT 'browser'
+    CHECK (print_method IN ('browser','rawbt','network','rawbt_intent')),
+  ADD COLUMN IF NOT EXISTS rawbt_ip TEXT,
+  ADD COLUMN IF NOT EXISTS receipt_show_tax BOOLEAN DEFAULT true;
+
+
 -- 3. Add cashier tracking to transactions
 ALTER TABLE coffeepos.transactions
   ADD COLUMN IF NOT EXISTS cashier_id UUID REFERENCES coffeepos.users(id);

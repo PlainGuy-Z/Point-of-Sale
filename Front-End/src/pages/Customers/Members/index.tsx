@@ -89,7 +89,7 @@ export default function Members() {
                 </div>
                 <button
                     onClick={() => setModalOpen(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-bold shadow-lg shadow-teal-600/25 transition-all active:scale-95"
+                    className={`flex items-center gap-2 px-6 py-3 ${isDark ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white' } rounded-2xl font-bold shadow-lg shadow-teal-600/25 transition-all active:scale-95`}
                 >
                     <UserPlus size={20} /> Register Member
                 </button>
