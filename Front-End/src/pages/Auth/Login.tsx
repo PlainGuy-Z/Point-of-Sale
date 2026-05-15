@@ -6,9 +6,9 @@ import { Coffee, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2, ArrowLeft } from
 
 export default function Login() {
   const { login, status, user } = useAuth();
-  const { theme } = useTheme();
+  const { effectiveTheme } = useTheme();
   const navigate = useNavigate();
-  const isDark = theme === 'dark';
+  const isDark = effectiveTheme === 'dark';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

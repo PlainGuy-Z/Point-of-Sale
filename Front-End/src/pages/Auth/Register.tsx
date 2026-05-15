@@ -6,10 +6,10 @@ import { authApi } from '../../services/authApi';
 import { Coffee, Store, Link as LinkIcon, User, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 
 export default function Register() {
-  const { register, status, user } = useAuth();
-  const { theme } = useTheme();
+  const { register, status, user, logout } = useAuth();
+  const { effectiveTheme } = useTheme();
   const navigate = useNavigate();
-  const isDark = theme === 'dark';
+  const isDark = effectiveTheme === 'dark';
 
   const [shopName, setShopName] = useState('');
   const [shopSlug, setShopSlug] = useState('');
@@ -234,7 +234,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 Kembali ke App
               </button>
               <button 
-                onClick={async () => { await useAuth().logout(); }}
+                onClick={async () => { await logout(); }}
                 style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: '#ef4444', color: '#ffffff', fontWeight: 700, cursor: 'pointer' }}
               >
                 Keluar Sesi

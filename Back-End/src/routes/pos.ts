@@ -43,8 +43,9 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
 
     const priceById = new Map<string, number>();
     if (realProductIds.length > 0) {
+      // [FIX-10] Also fetch `discount` field so promo logic matches frontend's getEffectivePrice
       const result = await pool.query(
-        `SELECT id::text, price, is_promo, promo_price
+        `SELECT id::text, price, is_promo, promo_price, discount
          FROM coffeepos.products
          WHERE id = ANY($1::uuid[]) AND shop_id = $2::uuid`,
         [realProductIds, shopId]
@@ -53,10 +54,15 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
         const basePrice = Number(row.price);
         const isPromo = Boolean(row.is_promo);
         const promoPrice = Number(row.promo_price ?? 0);
+        const discount = Number(row.discount ?? 0);
 
+        // [FIX-10] Unified promo logic: same as frontend getEffectivePrice
         const effectivePrice = (() => {
-          if (isPromo && promoPrice > 0 && promoPrice < basePrice) {
+          if (isPromo && promoPrice > 0 && promoPrice < basePrice && discount > 0) {
             return promoPrice;
+          }
+          if (discount > 0) {
+            return Math.round(basePrice - (basePrice * discount / 100));
           }
           return basePrice;
         })();
@@ -136,8 +142,9 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
 
       const productById = new Map<string, { id: string; name: string; price: number; cost: number; stock: number }>();
       if (productIds.length > 0) {
+        // [FIX-10] Also fetch `discount` field for unified promo logic
         const products = await client.query(
-          `SELECT id::text AS id, name, price, cost, stock, is_promo, promo_price, is_available
+          `SELECT id::text AS id, name, price, cost, stock, is_promo, promo_price, discount, is_available
            FROM coffeepos.products
            WHERE id = ANY($1::uuid[]) AND shop_id = $2::uuid
            FOR UPDATE`,
@@ -148,10 +155,15 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
           const basePrice = Number(row.price);
           const isPromo = Boolean(row.is_promo);
           const promoPrice = Number(row.promo_price ?? 0);
+          const discount = Number(row.discount ?? 0);
 
+          // [FIX-10] Unified promo logic: same as frontend getEffectivePrice
           const effectivePrice = (() => {
-            if (isPromo && promoPrice > 0 && promoPrice < basePrice) {
+            if (isPromo && promoPrice > 0 && promoPrice < basePrice && discount > 0) {
               return promoPrice;
+            }
+            if (discount > 0) {
+              return Math.round(basePrice - (basePrice * discount / 100));
             }
             return basePrice;
           })();

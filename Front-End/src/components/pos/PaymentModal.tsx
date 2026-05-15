@@ -282,7 +282,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
               <button
                 onClick={handleSubmit}
                 disabled={!canProcessPayment}
-                className={`w-full py-3 sm:py-4 landscape:py-2 landscape:text-sm mt-auto text-white font-black rounded-xl flex items-center justify-center gap-2 bg-gradient-to-r transition-all ${
+                className={`w-full py-3 sm:py-1 landscape:py-2 landscape:text-sm mt-auto text-white font-black rounded-xl flex items-center justify-center gap-2 bg-gradient-to-r transition-all ${
                   canProcessPayment
                     ? isDark 
                       ? 'from-amber-500 via-orange-500 to-amber-600 shadow-md hover:shadow-lg active:scale-[0.98]' 

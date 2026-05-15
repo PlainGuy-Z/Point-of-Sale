@@ -323,6 +323,14 @@ function AppRoutes() {
             </Suspense>
           } />
         </Route>
+        {/* Cashier Settings with nested routes */}
+        <Route path="cashier-settings/*" element={
+          <RoleRoute allowedRoles={['cashier']} redirectTo="/pos">
+            <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
+              <CashierSettings />
+            </Suspense>
+          </RoleRoute>
+        } />
         {/* Shifts (Owner) */}
         <Route path="shifts">
           <Route index element={

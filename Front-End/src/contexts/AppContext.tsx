@@ -1,3 +1,4 @@
+// @refresh reset
 /* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import type { Product, Transaction, WasteLog, Customer, BusinessSettings, CheckoutParams, CartItemWithInput } from '../types';
@@ -97,10 +98,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [status]);
 
+  // [FIX-1] Optimistic state updates — only update affected slices, not full state reload
   const addProduct = useCallback(async (product: Product) => {
     setIsServiceLoading(true);
     try {
-      setState(await appApi.addProduct(product));
+      // Call the API (backend still returns full appState for now)
+      const fullState = await appApi.addProduct(product);
+      // But only use the products array from the response to stay accurate
+      setState(prev => ({
+        ...prev,
+        products: fullState.products,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
     } finally {
       setIsServiceLoading(false);
     }
@@ -109,7 +119,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateProduct = useCallback(async (product: Product) => {
     setIsServiceLoading(true);
     try {
-      setState(await appApi.updateProduct(product));
+      const fullState = await appApi.updateProduct(product);
+      setState(prev => ({
+        ...prev,
+        products: fullState.products,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
     } finally {
       setIsServiceLoading(false);
     }
@@ -118,11 +134,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteProduct = useCallback(async (id: string) => {
     setIsServiceLoading(true);
     try {
-      setState(await appApi.deleteProduct(id));
+      // Optimistic: immediately remove from UI
+      setState(prev => ({
+        ...prev,
+        products: prev.products.filter(p => p.id !== id),
+      }));
+      await appApi.deleteProduct(id);
+    } catch (e) {
+      // Rollback on failure: re-fetch products
+      await refreshState();
+      throw e;
     } finally {
       setIsServiceLoading(false);
     }
-  }, []);
+  }, [refreshState]);
 
   const addTransaction = useCallback(async (_transaction: Transaction) => {
     // Transactions should be created via backend checkout endpoint.
@@ -154,18 +179,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         applyTax: params.applyTax,
       });
 
-      // Same normalization as GET /app/state (JSON dates → Date) so dashboard metrics stay correct
-      setState(normalizeAppStateWire(appState as AppStateWire));
+      // Optimistic stock update + prepend new transaction
+      // Use appState products for accurate stock, but only update products + transactions
+      const normalized = normalizeAppStateWire(appState as AppStateWire);
+      setState(prev => ({
+        ...prev,
+        products: normalized.products,
+        transactions: [transaction, ...prev.transactions.slice(0, 199)],
+      }));
       return transaction;
     } finally {
       setIsServiceLoading(false);
     }
-  }, [refreshState]);
+  }, []);
 
   const addWasteLog = useCallback(async (waste: WasteLog) => {
     setIsServiceLoading(true);
     try {
-      setState(await appApi.addWasteLog(waste));
+      // Backend handles stock deduction and returns full state
+      const fullState = await appApi.addWasteLog(waste);
+      // Only update wasteLogs and products (stock changed)
+      setState(prev => ({
+        ...prev,
+        wasteLogs: fullState.wasteLogs,
+        products: fullState.products,
+      }));
     } finally {
       setIsServiceLoading(false);
     }
@@ -201,7 +239,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = useCallback(async (newSettings: BusinessSettings) => {
     setIsServiceLoading(true);
     try {
-      setState(await appApi.updateSettings(newSettings));
+      // Settings update returns full appState but we only need settings
+      const fullState = await appApi.updateSettings(newSettings);
+      setState(prev => ({
+        ...prev,
+        settings: fullState.settings,
+      }));
     } finally {
       setIsServiceLoading(false);
     }
@@ -210,7 +253,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addCategory = useCallback(async (name: string) => {
     setIsServiceLoading(true);
     try {
-      setState(await appApi.addCategory(name));
+      const fullState = await appApi.addCategory(name);
+      setState(prev => ({
+        ...prev,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
     } finally {
       setIsServiceLoading(false);
     }
@@ -219,7 +267,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteCategory = useCallback(async (name: string) => {
     setIsServiceLoading(true);
     try {
-      setState(await appApi.deleteCategory(name));
+      const fullState = await appApi.deleteCategory(name);
+      setState(prev => ({
+        ...prev,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
     } finally {
       setIsServiceLoading(false);
     }

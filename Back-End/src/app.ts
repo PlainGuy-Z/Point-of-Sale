@@ -65,8 +65,19 @@ export function createApp() {
   });
 
   // CSRF mitigation via custom header check
-  app.use(['/app', '/pos', '/users', '/shifts', '/settings', '/printer'], (req, res, next) => {
-    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+  app.use((req, res, next) => {
+    // [FIX-2] Apply CSRF check to all state-changing methods on all routes except public endpoints
+    const publicEndpoints = [
+      'POST /auth/login',
+      'POST /auth/register',
+      'POST /auth/verify-token',
+      'POST /auth/forgot-password',
+      'POST /auth/reset-password',
+    ];
+    const requestKey = `${req.method} ${req.path}`;
+    const isPublic = publicEndpoints.some(e => requestKey.startsWith(e));
+
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method) && !isPublic) {
       const origin = req.headers.origin || '';
       const allowed = env.corsOrigins;
       if (

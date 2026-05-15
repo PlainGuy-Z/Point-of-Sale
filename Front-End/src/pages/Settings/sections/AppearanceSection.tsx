@@ -125,10 +125,15 @@ function _AppearanceSection() {
 
           {/* Date Format */}
           <div>
-            <label className={`text-xs font-black uppercase tracking-wider mb-3 block ${isDark ? 'text-stone-500' : 'text-gray-400'}`}>
-              Format Tanggal
-            </label>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-2 mb-3">
+              <label className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-stone-500' : 'text-gray-400'}`}>
+                Format Tanggal
+              </label>
+              <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${isDark ? 'bg-amber-500/10 text-amber-500/50' : 'bg-gray-100 text-gray-400'}`}>
+                Coming Soon
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-4 opacity-50 cursor-not-allowed">
               {[
                 { id: 'DD/MM/YYYY', label: '15/05/2026' },
                 { id: 'MM/DD/YYYY', label: '05/15/2026' },
@@ -136,7 +141,7 @@ function _AppearanceSection() {
               ].map((fmt) => (
                 <button
                   key={fmt.id}
-                  onClick={() => handleUpdate({ date_format: fmt.id })}
+                  disabled
                   className={`
                     flex items-center gap-3 px-5 py-3 rounded-xl border-2 transition-all
                     ${settings?.date_format === fmt.id

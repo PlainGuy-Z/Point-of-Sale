@@ -186,7 +186,24 @@ root.render(
 // ============================================================================
 
 async function registerServiceWorkerIfAvailable(): Promise<void> {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !isProduction) {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return;
+  }
+
+  // [FIX] Force unregister any lingering service workers in dev mode to prevent cache bugs
+  if (!isProduction) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      await registration.unregister();
+      console.log('Unregistered lingering ServiceWorker in dev mode:', registration.scope);
+    }
+    // Clear caches too
+    if (window.caches) {
+      const keys = await caches.keys();
+      for (const key of keys) {
+        await caches.delete(key);
+      }
+    }
     return;
   }
 

@@ -74,7 +74,9 @@ export const authApi = {
   },
 
   me: async (): Promise<{ user: AuthUser }> =>
-    http<{ user: AuthUser }>('/auth/me'),
+    http<{ user: AuthUser }>('/auth/me', {
+      cache: 'no-store'
+    }),
 
   updateProfile: async (data: UpdateProfileData): Promise<{ user: AuthUser }> =>
     http<{ user: AuthUser }>('/auth/me', {

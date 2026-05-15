@@ -11,9 +11,38 @@ import { env } from '../env.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireOwner } from '../middleware/requireRole.js';
 import { sendPasswordResetEmail } from '../services/email.js';
+// [FIX-9] Rate limiting to prevent brute-force attacks
+import rateLimit from 'express-rate-limit';
 
 
 export const authRouter = Router();
+
+// [FIX-9] Rate limiters for auth endpoints
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 attempts per 15 min per IP
+  message: {
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.'
+    }
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 3, // max 3 requests per minute per IP
+  message: {
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Terlalu banyak permintaan reset password. Tunggu 1 menit.'
+    }
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // ── Schemas ──────────────────────────────────────────────────
 
@@ -223,7 +252,8 @@ authRouter.post('/verify-token', validateBody(VerifyTokenSchema), async (req, re
 
 // ── POST /auth/login ────────────────────────────────────────
 
-authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
+// [FIX-9] Rate limiting applied to login route
+authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, res, next) => {
   try {
     const body = req.body as z.infer<typeof LoginSchema>;
 
@@ -310,6 +340,11 @@ authRouter.post('/logout', (_req, res) => {
 
 authRouter.get('/me', authenticateToken, async (req, res, next) => {
   try {
+    // [FIX] Prevent browser caching of /me endpoint to ensure accurate session state after logout
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const result = await pool.query(
       `SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
@@ -479,7 +514,8 @@ authRouter.post(
 
 // ── POST /auth/forgot-password ──────────────────────────────
 
-authRouter.post('/forgot-password', validateBody(ForgotPasswordSchema), async (req, res, next) => {
+// [FIX-9] Rate limiting applied to forgot-password route
+authRouter.post('/forgot-password', forgotPasswordLimiter, validateBody(ForgotPasswordSchema), async (req, res, next) => {
   try {
     const { email } = req.body as z.infer<typeof ForgotPasswordSchema>;
 

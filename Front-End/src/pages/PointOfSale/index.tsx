@@ -345,32 +345,9 @@ export default function PointOfSale() {
   });
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
 
-  // ── Local Optimistic Quote ──────────────────────────────────────────────────
-  const localQuote = useMemo(() => {
-    const subtotal = cart.reduce((sum, item) => {
-      const basePrice = item.price + (item.variantPrice || 0);
-      return sum + (basePrice * item.quantity);
-    }, 0);
-    
-    const taxRate = settings?.tax_rate || 0;
-    const tax = taxEnabled ? Math.round(subtotal * taxRate / 100) : 0;
-    
-    const serviceChargeRate = settings?.service_charge_enabled ? (settings?.service_charge_rate || 0) : 0;
-    const serviceCharge = Math.round(subtotal * serviceChargeRate / 100);
-    
-    return {
-      subtotal,
-      tax,
-      serviceCharge,
-      grandTotal: subtotal + tax + serviceCharge,
-      taxRate,
-      taxLabel: settings?.tax_label || 'Pajak',
-      serviceChargeRate,
-      serviceChargeLabel: settings?.service_charge_label || 'Service'
-    };
-  }, [cart, taxEnabled, settings]);
-
-  const displayQuote = isQuoteLoading && (quote.grandTotal === 0 || cart.length > 0) ? localQuote : quote;
+  // [FIX-11] No local tax calculation — backend /pos/quote is the SINGLE SOURCE OF TRUTH.
+  // `displayQuote` is always the backend quote. While loading, the UI shows a spinner on totals.
+  const displayQuote = quote;
 
   // ── Manual item ──────────────────────────────────────────────────────────────
   const [manualItemName, setManualItemName] = useState('');
@@ -527,7 +504,8 @@ export default function PointOfSale() {
   }, [cart, selectedCustomer, customCustomerName, orderType, tableNumber, orderNote, settings, taxEnabled]);
 
   const cartIsEmpty = cart.length === 0;
-  const canPay = !cartIsEmpty && !isServiceLoading && (quote.grandTotal > 0 || localQuote.grandTotal > 0);
+  // [FIX-11] canPay requires a valid backend quote (grandTotal > 0) — no local estimate fallback
+  const canPay = !cartIsEmpty && !isServiceLoading && !isQuoteLoading && quote.grandTotal > 0;
 
   const cashierNeedsShift =
     user?.role === 'cashier' && !shiftLoading && !activeShift;
@@ -957,30 +935,44 @@ export default function PointOfSale() {
           <div className={`flex-shrink-0 border-t p-4 space-y-3 ${isDark ? 'border-stone-900 bg-stone-950/80' : 'border-[#E2E8F0] bg-white/95'}`}>
             {!cartIsEmpty && (
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>Subtotal</span>
-                  <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(displayQuote.subtotal)}</span>
-                </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
-                      Pajak ({displayQuote.taxRate || 0}%)
-                    </span>
-                    <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-[#0F172A]') : (isDark ? 'text-stone-700 line-through' : 'text-[#CBD5E1] line-through')}`}>
-                      {format(displayQuote.tax)}
-                    </span>
+                {/* [FIX-11] Show loading skeleton while backend quote is being fetched */}
+                {isQuoteLoading && cart.length > 0 ? (
+                  <div className="space-y-2 animate-pulse">
+                    <div className="flex justify-between"><span className={`text-xs ${isDark ? 'text-stone-500' : 'text-[#475569]'}`}>Menghitung...</span><div className={`h-3.5 w-16 rounded ${isDark ? 'bg-stone-800' : 'bg-[#E2E8F0]'}`} /></div>
+                    <div className="flex justify-between"><div className={`h-3 w-20 rounded ${isDark ? 'bg-stone-800' : 'bg-[#E2E8F0]'}`} /><div className={`h-3 w-14 rounded ${isDark ? 'bg-stone-800' : 'bg-[#E2E8F0]'}`} /></div>
+                    <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
+                      <span className={`font-black text-sm uppercase ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Total</span>
+                      <div className={`h-5 w-24 rounded ${isDark ? 'bg-stone-800' : 'bg-[#E2E8F0]'}`} />
+                    </div>
                   </div>
-                {displayQuote.serviceCharge > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
-                      {displayQuote.serviceChargeLabel || 'Service'} ({displayQuote.serviceChargeRate || 0}%)
-                    </span>
-                    <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(displayQuote.serviceCharge)}</span>
-                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>Subtotal</span>
+                      <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(displayQuote.subtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
+                        Pajak ({displayQuote.taxRate || 0}%)
+                      </span>
+                      <span className={`font-bold tabular-nums ${taxEnabled ? (isDark ? 'text-stone-200' : 'text-[#0F172A]') : (isDark ? 'text-stone-700 line-through' : 'text-[#CBD5E1] line-through')}`}>
+                        {format(displayQuote.tax)}
+                      </span>
+                    </div>
+                    {displayQuote.serviceCharge > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className={isDark ? 'text-stone-500' : 'text-[#475569] font-semibold'}>
+                          {displayQuote.serviceChargeLabel || 'Service'} ({displayQuote.serviceChargeRate || 0}%)
+                        </span>
+                        <span className={`font-bold tabular-nums ${isDark ? 'text-stone-200' : 'text-[#0F172A]'}`}>{format(displayQuote.serviceCharge)}</span>
+                      </div>
+                    )}
+                    <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
+                      <span className={`font-black text-sm uppercase ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Total</span>
+                      <span className="font-black text-lg text-amber-500 tabular-nums">{format(displayQuote.grandTotal)}</span>
+                    </div>
+                  </>
                 )}
-                <div className={`flex justify-between pt-1.5 border-t ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
-                  <span className={`font-black text-sm uppercase ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>Total</span>
-                  <span className="font-black text-lg text-amber-500 tabular-nums">{format(displayQuote.grandTotal)}</span>
-                </div>
               </div>
             )}
 
@@ -1109,30 +1101,44 @@ export default function PointOfSale() {
                 );
               })}
               <div className={`pt-1.5 mt-1.5 border-t space-y-1 ${isDark ? 'border-stone-800' : 'border-[#E2E8F0]'}`}>
-                <div className="flex justify-between text-xs">
-                  <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>Subtotal</span>
-                  <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(displayQuote.subtotal)}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
-                    {displayQuote.taxLabel || 'Pajak'} ({displayQuote.taxRate || 0}%)
-                  </span>
-                  <span className={`tabular-nums ${taxEnabled ? (isDark ? 'text-stone-300' : 'text-[#475569]') : (isDark ? 'text-stone-800 line-through' : 'text-[#CBD5E1] line-through')}`}>
-                    {format(displayQuote.tax)}
-                  </span>
-                </div>
-                {displayQuote.serviceCharge > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
-                      {displayQuote.serviceChargeLabel || 'Service'} ({displayQuote.serviceChargeRate || 0}%)
-                    </span>
-                    <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(displayQuote.serviceCharge)}</span>
+                {/* [FIX-11] Show loading skeleton while backend quote is being fetched */}
+                {isQuoteLoading && cart.length > 0 ? (
+                  <div className="space-y-1.5 animate-pulse">
+                    <div className="flex justify-between"><span className={`text-xs ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Menghitung...</span><div className={`h-3 w-14 rounded ${isDark ? 'bg-stone-800' : 'bg-[#E2E8F0]'}`} /></div>
+                    <div className="flex justify-between"><div className={`h-3 w-16 rounded ${isDark ? 'bg-stone-800' : 'bg-[#E2E8F0]'}`} /><div className={`h-3 w-12 rounded ${isDark ? 'bg-stone-800' : 'bg-[#E2E8F0]'}`} /></div>
+                    <div className="flex justify-between font-black text-sm pt-1 border-t border-dashed mt-1 dark:border-stone-800">
+                      <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>Total</span>
+                      <div className={`h-4 w-20 rounded ${isDark ? 'bg-stone-800' : 'bg-[#E2E8F0]'}`} />
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>Subtotal</span>
+                      <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(displayQuote.subtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
+                        {displayQuote.taxLabel || 'Pajak'} ({displayQuote.taxRate || 0}%)
+                      </span>
+                      <span className={`tabular-nums ${taxEnabled ? (isDark ? 'text-stone-300' : 'text-[#475569]') : (isDark ? 'text-stone-800 line-through' : 'text-[#CBD5E1] line-through')}`}>
+                        {format(displayQuote.tax)}
+                      </span>
+                    </div>
+                    {displayQuote.serviceCharge > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className={isDark ? 'text-stone-500' : 'text-[#94A3B8]'}>
+                          {displayQuote.serviceChargeLabel || 'Service'} ({displayQuote.serviceChargeRate || 0}%)
+                        </span>
+                        <span className={`tabular-nums ${isDark ? 'text-stone-300' : 'text-[#475569]'}`}>{format(displayQuote.serviceCharge)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-black text-sm pt-1 border-t border-dashed mt-1 dark:border-stone-800">
+                      <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>Total</span>
+                      <span className="text-amber-500 tabular-nums">{format(displayQuote.grandTotal)}</span>
+                    </div>
+                  </>
                 )}
-                <div className="flex justify-between font-black text-sm pt-1 border-t border-dashed mt-1 dark:border-stone-800">
-                  <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>Total</span>
-                  <span className="text-amber-500 tabular-nums">{format(displayQuote.grandTotal)}</span>
-                </div>
               </div>
             </div>
           </div>

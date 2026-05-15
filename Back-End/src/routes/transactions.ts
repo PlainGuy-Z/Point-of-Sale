@@ -422,15 +422,29 @@ transactionsRouter.post('/:id/void-approve', requireOwner, validateBody(VoidAppr
         [ownerId, body.note ?? null, txId]
       );
 
+      // [FIX-4] Also update expected_cash and cash_difference for cash payments on closed shifts
       const shiftId = trx.shift_id as string | null;
       const grandTotal = Number(trx.grand_total ?? 0);
+      const paymentMethod = String(trx.payment_method ?? '').toLowerCase();
+      const isCashPayment = paymentMethod === 'cash' || paymentMethod.includes('tunai');
+
       if (shiftId) {
         await client.query(
           `UPDATE coffeepos.shifts
            SET total_transactions = GREATEST(0, COALESCE(total_transactions, 0) - 1),
-               total_sales = GREATEST(0, COALESCE(total_sales, 0) - $1::bigint)
-           WHERE id = $2::uuid AND status = 'closed'`,
-          [grandTotal, shiftId]
+               total_sales = GREATEST(0, COALESCE(total_sales, 0) - $1::bigint),
+               expected_cash = CASE
+                 WHEN $3::boolean
+                 THEN GREATEST(0, COALESCE(expected_cash, 0) - $1::bigint)
+                 ELSE expected_cash
+               END,
+               cash_difference = CASE
+                 WHEN $3::boolean AND status = 'closed'
+                 THEN COALESCE(cash_difference, 0) + $1::bigint
+                 ELSE cash_difference
+               END
+           WHERE id = $2::uuid`,
+          [grandTotal, shiftId, isCashPayment]
         );
       }
     });

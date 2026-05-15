@@ -21,9 +21,23 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('/api/')) return;
-  if (event.request.url.includes('railway.app')) return;
-  if (event.request.url.includes('supabase.co')) return;
+  
+  const url = new URL(event.request.url);
+  // Prevent caching of any backend API calls or Vite dev server internals
+  if (
+    url.pathname.startsWith('/api/') || 
+    url.pathname.startsWith('/auth/') || 
+    url.pathname.startsWith('/pos/') ||
+    url.pathname.startsWith('/settings') ||
+    url.hostname === 'localhost' && url.port === '3000' || // Backend
+    url.hostname.includes('railway.app') || 
+    url.hostname.includes('supabase.co') ||
+    url.pathname.includes('@vite') ||
+    url.pathname.includes('.tsx') ||
+    url.pathname.includes('.ts')
+  ) {
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {

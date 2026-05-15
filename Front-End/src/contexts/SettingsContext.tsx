@@ -1,19 +1,12 @@
+// @refresh reset
 /* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { useContext, useState, useEffect, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { http } from '../services/appApi';
-export type { ShopSettings } from '../types';
+import type { ShopSettings } from '../types';
+import { SettingsContext, type SettingsContextValue } from './SettingsContextDef';
 
-interface SettingsContextValue {
-  settings: ShopSettings | null;
-  isLoading: boolean;
-  error: string | null;
-  updateSettings: (data: Partial<ShopSettings>) => Promise<void>;
-  refreshSettings: () => Promise<void>;
-}
-
-
-const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
+export type { ShopSettings };
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();

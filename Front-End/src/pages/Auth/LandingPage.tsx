@@ -510,9 +510,9 @@ function FeatureCard({ icon: Icon, title, desc, isDark, delay }: {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function LandingPage() {
-  const { theme, toggleTheme } = useTheme();
+  const { effectiveTheme, toggleTheme } = useTheme();
   const { status, user } = useAuth();
-  const isDark = theme === 'dark';
+  const isDark = effectiveTheme === 'dark';
   const [heroVisible, setHeroVisible] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const featuresSection = useInView();

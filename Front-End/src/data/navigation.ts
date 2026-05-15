@@ -114,7 +114,7 @@ const cashierNavigation: Navigation = {
       id: 'management',
       label: 'LAINNYA',
       items: [
-        { id: 'settings', label: 'Settings', icon: 'Settings', path: '/settings' },
+        { id: 'settings', label: 'Settings', icon: 'Settings', path: '/cashier-settings' },
         { id: 'help', label: 'Help Center', icon: 'HelpCircle', path: '/help' },
       ],
     },

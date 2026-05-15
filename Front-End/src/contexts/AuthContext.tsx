@@ -1,21 +1,10 @@
+// @refresh reset
 /* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import type { AuthUser, AuthStatus } from '../types';
 import { authApi } from '../services/authApi';
 import type { RegisterData } from '../services/authApi';
-
-interface AuthContextType {
-  user: AuthUser | null;
-  status: AuthStatus;
-  isOwner: boolean;
-  isCashier: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext, type AuthContextType } from './AuthContextDef';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
