@@ -214,7 +214,8 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
           name: result.shop.name,
           slug: result.shop.slug
         }
-      }
+      },
+      token: token
     });
   } catch (err) {
     next(err);
@@ -305,7 +306,8 @@ authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, r
           name: user.shop_name,
           slug: user.shop_slug
         }
-      }
+      },
+      token: token
     });
   } catch (err) {
     next(err);

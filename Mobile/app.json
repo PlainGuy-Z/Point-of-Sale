@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "SmartPOS",
+    "slug": "smartpos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "smartpos",
+    "userInterfaceStyle": "dark",
+    "platforms": ["android"],
+    "icon": "./assets/icon.png",
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "backgroundColor": "#111111"
+      },
+      "package": "com.smartpos.app",
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN"
+      ]
+    },
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#111111"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": { "typedRoutes": true }
+  }
+}

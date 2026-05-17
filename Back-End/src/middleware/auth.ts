@@ -27,8 +27,9 @@ interface JwtPayload {
 }
 
 export const authenticateToken: RequestHandler = (req, _res, next) => {
-  const token = req.cookies?.token as string | undefined;
-
+  const token = req.cookies?.token
+    ?? req.headers.authorization?.replace('Bearer ', '');
+  
   if (!token) {
     return next(new HttpError(401, 'UNAUTHORIZED', 'Invalid or expired token'));
   }

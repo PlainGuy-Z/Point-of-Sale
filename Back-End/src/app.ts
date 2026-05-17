@@ -80,7 +80,9 @@ export function createApp() {
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method) && !isPublic) {
       const origin = req.headers.origin || '';
       const allowed = env.corsOrigins;
+      // Allow requests with no origin (mobile apps, server-to-server)
       if (
+        origin &&
         !allowed.includes(origin) &&
         !origin.endsWith('.vercel.app') &&
         !origin.startsWith('http://localhost:')
