@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useCart } from '../../contexts/CartContext';
-import MobileCart from '../../components/pos/MobileCart';
+import { useApp } from '../../contexts/AppContext.tsx';
+import { useTheme } from '../../contexts/ThemeContext.tsx';
+import { useCart } from '../../contexts/CartContext.tsx';
+import MobileCart from '../../components/pos/MobileCart.tsx';
 import { MobileProductCard } from '../../components/pos/MobileCategoryCarousel.tsx';
-import CartItemEditPanel from '../../components/pos/CartItemEditPanel';
-import type { CartItemWithInput } from '../../types';
-import { getRecentSalesMapByPeriod } from '../../utils/analytics/productAnalytics';
+import CartItemEditPanel from '../../components/pos/CartItemEditPanel.tsx';
+import type { CartItemWithInput } from '../../types/index.ts';
+import { getRecentSalesMapByPeriod } from '../../utils/analytics/productAnalytics.ts';
 
 export default function CategoryPage() {
   const { categoryName } = useParams<{ categoryName: string }>();
