@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Coffee, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import logoIcon from '../../assets/icon.png';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -60,7 +61,7 @@ export default function PWAInstallBanner() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/15 text-white">
-            <Coffee className="h-5 w-5" />
+            <img src={logoIcon} className="h-5 w-5 object-contain" alt="Logo" />
           </div>
           <div>
             <p className="text-sm font-medium">Install SmartPOS untuk pengalaman terbaik</p>

@@ -4,6 +4,7 @@ import { useShift } from '../../contexts/ShiftContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useDateFormatter } from '../../hooks/useDateFormatter';
 import { Coffee, Loader2, X } from 'lucide-react';
+import logoIcon from '../../assets/icon.png';
 
 interface ShiftOpenModalProps {
   onSuccess?: () => void;
@@ -89,7 +90,7 @@ export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalPr
             <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-lg transition-all ${
               isDark ? 'bg-amber-500/10 border-amber-500/20 shadow-amber-500/10' : 'bg-teal-50 border-teal-100 shadow-teal-500/10'
             }`}>
-              <Coffee className={`w-8 h-8 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
+              <img src={logoIcon} className="w-8 h-8 object-contain" alt="Logo" />
             </div>
             <h2 id="shift-open-title" className={`text-2xl font-bold tracking-tight mt-4 ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
               Mulai Shift Baru

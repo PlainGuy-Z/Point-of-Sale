@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Menu, Coffee } from 'lucide-react';
+import logoIcon from '../../assets/icon.png';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -107,7 +108,7 @@ export default function Layout() {
                   className="h-6 w-6 object-cover rounded-md" 
                 />
               ) : (
-                <Coffee className={`h-5 w-5 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
+                <img src={logoIcon} className="h-6 w-6 object-cover rounded-md" alt="Logo" />
               )}
               <span className={`text-sm font-extrabold tracking-tight truncate max-w-[150px] ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
                 {user?.shop?.name || 'SmartPOS'}

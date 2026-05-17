@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { authApi } from '../../services/authApi';
 import { Coffee, Lock, Eye, EyeOff, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
+import icon from '../../assets/icon.png';
 
 export default function ResetPassword() {
   const { theme } = useTheme();
@@ -191,7 +192,7 @@ export default function ResetPassword() {
                     : '0 8px 24px rgba(13, 148, 136, 0.2)',
                 }}
               >
-                <Coffee style={{ width: 28, height: 28, color: '#ffffff' }} />
+                <img src={icon} alt="Logo" style={{ width: 28, height: 28, objectFit: 'contain' }} />
               </div>
               <h1
                 style={{

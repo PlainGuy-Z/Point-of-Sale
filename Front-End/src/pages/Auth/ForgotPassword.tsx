@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { authApi } from '../../services/authApi';
 import { Coffee, Mail, AlertCircle, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
+import icon from '../../assets/icon.png';
 
 export default function ForgotPassword() {
   const { theme } = useTheme();
@@ -157,7 +158,7 @@ export default function ForgotPassword() {
                     : '0 8px 24px rgba(13, 148, 136, 0.2)',
                 }}
               >
-                <Coffee style={{ width: 28, height: 28, color: '#ffffff' }} />
+                <img src={icon} alt="Logo" style={{ width: 28, height: 28, objectFit: 'contain' }} />
               </div>
               <h1
                 style={{

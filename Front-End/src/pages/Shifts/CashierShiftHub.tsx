@@ -14,6 +14,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 import ShiftOpenModal from '../../components/shift/ShiftOpenModal';
 import ShiftCloseModal from '../../components/shift/ShiftCloseModal';
+import logoIcon from '../../assets/icon.png';
 
 export default function CashierShiftHub() {
   const { theme } = useTheme();
@@ -53,7 +54,7 @@ export default function CashierShiftHub() {
           <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-lg transition-all mb-4 ${
             isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-teal-50 border-teal-100 shadow-teal-500/10'
           }`}>
-            <Coffee className={`w-8 h-8 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
+            <img src={logoIcon} className="w-8 h-8 object-contain" alt="Logo" />
           </div>
           <p className={isDark ? 'text-stone-400' : 'text-gray-500'}>Memuat status shift…</p>
         </div>

@@ -4,6 +4,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useSettings } from '../../../contexts/SettingsContext';
 import { type LucideIcon, User, KeyRound, Printer, Palette, Bell, ChevronLeft, Coffee } from 'lucide-react';
+import logoIcon from '../../../assets/icon.png';
 import SettingsSidebarItem from '../components/SettingsSidebarItem';
 import { getApiBaseUrl } from '../../../services/apiBaseUrl';
 
@@ -76,7 +77,7 @@ export default function CashierSettingsLayout({ children }: SettingsLayoutProps)
                 className="h-8 w-8 object-cover rounded-lg flex-shrink-0" 
               />
             ) : (
-              <Coffee className={`h-6 w-6 ${isDark ? 'text-amber-500' : 'text-teal-600'} flex-shrink-0`} />
+              <img src={logoIcon} className="h-8 w-8 object-cover rounded-lg flex-shrink-0" alt="Logo" />
             )}
             <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-gray-900'} truncate`}>
               {user?.shop?.name || settings?.shop_name || 'SmartPOS'}

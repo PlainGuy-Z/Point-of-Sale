@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Coffee, Moon, Sun, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import logoIcon from '../../assets/icon.png';
 import { getNavigation } from '../../data/navigation';
 import type { NavItem, NavSection } from '../../data/navigation';
 import { getIconComponent } from '../../utils/iconUtils';
@@ -272,7 +273,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                   className="w-full h-full object-cover" 
                 />
               ) : (
-                <Coffee className={`${isCollapsed ? 'h-5 w-5' : 'h-5 w-5'} ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
+                <img src={logoIcon} alt="Logo" className="w-full h-full object-cover" />
               )}
             </div>
 
@@ -494,7 +495,7 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse, isMobil
                   {user?.name?.[0] || 'U'}
                 </span>
               ) : (
-                <Coffee className={`w-4 h-4 ${isDark ? 'text-amber-500' : 'text-teal-600'}`} />
+                <img src={logoIcon} className="w-4 h-4 object-cover" alt="User" />
               )}
             </div>
 
