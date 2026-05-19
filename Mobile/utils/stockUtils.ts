@@ -1,10 +1,5 @@
 import type { Product } from '../types';
 
-/**
- * Stock utility helpers.
- * stock === -1 means "unlimited / not tracked" — always skip from stock warnings.
- */
-
 export function isStockTracked(product: Product): boolean {
   return product.stock !== -1;
 }
@@ -12,7 +7,7 @@ export function isStockTracked(product: Product): boolean {
 export function isLowStock(product: Product): boolean {
   if (product.isAvailable === false) return false;
   if (!isStockTracked(product)) return false;
-  return product.stock > 0 && product.stock <= product.minStock;
+  return product.stock > 0 && product.stock <= (product.minStock || 10);
 }
 
 export function isOutOfStock(product: Product): boolean {

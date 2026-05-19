@@ -9,6 +9,8 @@ import SettingsCard from '../components/SettingsCard';
 import SettingsInput from '../components/SettingsInput';
 import { Store, MapPin, Clock, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
 import { getApiBaseUrl } from '../../../services/apiBaseUrl';
+import QRCodeMenuCard from '../../../components/pos/QRCodeMenuCard';
+
 
 export default function ProfileSection() {
   const { theme } = useTheme();
@@ -224,6 +226,15 @@ export default function ProfileSection() {
           </div>
         </div>
       </SettingsCard>
+
+<div className="mt-12 pt-12 border-t border-[#E2E8F0] dark:border-stone-800">
+  <div className="mb-6">
+    <h3 className="text-lg font-black dark:text-white">🎯 Menu Digital</h3>
+    <p className="text-sm text-[#64748B] dark:text-stone-400 mt-1">
+    </p>
+  </div>
+  <QRCodeMenuCard />
+</div>
 
       {/* Sticky Footer */}
       {isDirty && (

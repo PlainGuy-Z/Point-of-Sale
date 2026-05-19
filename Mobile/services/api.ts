@@ -17,18 +17,38 @@ export async function http<T>(
   path: string,
   init: RequestInit = {}
 ): Promise<T> {
+  if (!BASE_URL) {
+    throw new ApiError(0, 'API base URL not configured (EXPO_PUBLIC_API_URL)', 'NO_BASE_URL');
+  }
+
   const token = await SecureStore.getItemAsync('auth_token');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${BASE_URL}${cleanPath}`;
 
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init.headers || {}),
-    },
-  });
+  // Timeout: abort request after 10s to avoid indefinite hanging
+  const controller = new AbortController();
+  const timeoutMs = 10000; // 10 seconds
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...init,
+      signal: controller.signal as any,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init.headers || {}),
+      },
+    });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new ApiError(0, `Network request timed out after ${timeoutMs / 1000}s`, 'TIMEOUT');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     if (res.status === 401) {

@@ -20,6 +20,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CashierDashboard = lazy(() => import('./pages/Dashboard/CashierDashboard'));
 const PointOfSale = lazy(() => import('./pages/PointOfSale'));
 const CategoryPage = lazy(() => import('./pages/PointOfSale/CategoryPage'));
+const CustomerMenu = lazy(() => import('./pages/CustomerMenu'));
 const BusinessInsights = lazy(() => import('./pages/BusinessInsights'));
 const WasteLog = lazy(() => import('./pages/Operation/WasteLog'));
 const InventoryUsage = lazy(() => import('./pages/Operation/InventoryUsage'));
@@ -147,6 +148,13 @@ function AppRoutes() {
       <Route path="/reset-password" element={
         <Suspense fallback={<LoadingSpinner text="Memuat..." />}>
           <ResetPassword />
+        </Suspense>
+      } />
+
+      {/* Public Customer Menu Route */}
+      <Route path="/menu" element={
+        <Suspense fallback={<LoadingSpinner text="Memuat menu..." />}>
+          <CustomerMenu />
         </Suspense>
       } />
 

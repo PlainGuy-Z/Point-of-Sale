@@ -134,7 +134,9 @@ async function ensureCategory(
   return inserted.rows[0].id;
 }
 
+
 /* ─── buildAppState ─────────────────────────────────────────── */
+
 
 export async function buildAppState(shopId: string) {
   const products = await pool.query(

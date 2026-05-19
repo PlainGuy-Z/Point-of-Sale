@@ -1,17 +1,17 @@
-import React, { useMemo, useState } from 'react';
-import {
-  View, Text, TouchableOpacity, ScrollView, useWindowDimensions,
-} from 'react-native';
+import React, { useMemo } from 'react';
+import { View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  Home, TrendingUp, Package, AlertTriangle, Clock, ShoppingCart,
-  DollarSign, BarChart2, Users, Zap, Menu,
-} from 'lucide-react-native';
 import { useApp } from '../../contexts/AppContext';
-import { useShift } from '../../contexts/ShiftContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { getColors } from '../../utils/theme';
+import { useLayout } from '../../hooks/useLayout';
 import { formatRupiah, formatRupiahShort } from '../../utils/currency';
+
+// Components
+import DashboardHeader from './DashboardHeader';
+import StatCard from './StatCard';
+import RevenueChart from './RevenueChart';
+import StockAlertPanel from './StockAlertPanel';
+import TopProductsPanel from './TopProductsPanel';
+import WawasanKinerja from './WawasanKinerja';
 
 interface DashboardScreenProps {
   onOpenSidebar?: () => void;
@@ -19,121 +19,156 @@ interface DashboardScreenProps {
 
 export default function DashboardScreen({ onOpenSidebar }: DashboardScreenProps) {
   const { products, transactions } = useApp();
-  const { activeShift } = useShift();
-  const { effectiveTheme } = useTheme();
-  const isDark = effectiveTheme === 'dark';
-  const c = getColors(isDark);
-  const { width } = useWindowDimensions();
-  const isLandscape = width > 600;
+  const layout = useLayout();
 
+  // Data calculations (preserved from original)
   const todayTransactions = useMemo(() =>
     transactions.filter(t => new Date(t.date).toDateString() === new Date().toDateString()),
     [transactions]
   );
   const todayRevenue = useMemo(() => todayTransactions.reduce((s, t) => s + t.total, 0), [todayTransactions]);
   const todayProfit = useMemo(() => todayTransactions.reduce((s, t) => s + t.profit, 0), [todayTransactions]);
-  const activeProducts = useMemo(() => products.filter(p => p.isAvailable !== false).length, [products]);
-  const lowStock = useMemo(() => products.filter(p => p.stock > 0 && p.stock <= p.minStock && p.stock !== -1).length, [products]);
+  
   const avgTicket = todayTransactions.length > 0 ? todayRevenue / todayTransactions.length : 0;
+  const profitMargin = todayRevenue > 0 ? Math.round((todayProfit / todayRevenue) * 100) : 0;
 
-  const formattedDate = new Intl.DateTimeFormat('id-ID', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta',
-  }).format(new Date());
+  // Stat Cards Data
+  const statsRow1 = [
+    { title: 'Pendapatan', value: formatRupiah(todayRevenue), icon: 'dollar-sign', iconColor: '#10b981', barColor: '#10b981' },
+    { title: 'Transaksi', value: String(todayTransactions.length), icon: 'shopping-cart', iconColor: '#f59e0b', barColor: '#f59e0b' },
+    { title: 'Pelanggan', value: '0', icon: 'users', iconColor: '#8b5cf6', barColor: '#8b5cf6' },
+    { title: 'Rata Tiket', value: formatRupiahShort(avgTicket), icon: 'trending-up', iconColor: '#f59e0b', barColor: '#f59e0b' },
+  ] as const;
 
-  const statCards = [
-    { label: 'PENDAPATAN HARI INI', value: formatRupiah(todayRevenue), color: c.accent, icon: DollarSign, large: true },
-    { label: 'Profit', value: formatRupiahShort(todayProfit), color: c.success, icon: TrendingUp },
-    { label: 'Produk Aktif', value: String(activeProducts), color: c.accent, icon: Package },
-    { label: 'Shift Aktif', value: activeShift ? 'Ya' : 'Tidak', color: activeShift ? c.success : c.textMuted, icon: Clock },
-    { label: 'Stok Rendah', value: String(lowStock), color: c.error, icon: AlertTriangle },
-    { label: 'Transaksi', value: String(todayTransactions.length), color: c.accent, icon: ShoppingCart },
-    { label: 'Rata-rata Tiket', value: formatRupiahShort(avgTicket), color: c.accent, icon: BarChart2 },
-  ];
+  const statsRow3 = [
+    { title: 'Peringatan', value: '1', icon: 'alert-triangle', iconColor: '#f97316', barColor: '#f97316' },
+    { title: 'Stok Habis', value: '5', icon: 'package', iconColor: '#ef4444', barColor: '#ef4444' },
+    { title: 'Tk.Margin', value: `${profitMargin}%`, icon: 'percent', iconColor: '#0d9488', barColor: '#0d9488' },
+  ] as const;
 
+  const statsRow4 = [
+    { title: 'Total Prod', value: String(products.length), icon: 'box', iconColor: '#8b5cf6', barColor: '#8b5cf6' },
+    { title: 'Nilai Stok', value: 'Rp 3.86jt', icon: 'database', iconColor: '#10b981', barColor: '#10b981' },
+    { title: 'Tk.Berhasil', value: '96%', icon: 'check-circle', iconColor: '#0d9488', barColor: '#0d9488' },
+  ] as const;
+
+  // Top products calculation
+  const topProductsData = useMemo(() => {
+    const productSales = new Map<string, any>();
+    todayTransactions.forEach(transaction => {
+      transaction.items?.forEach(item => {
+        const productId = item.productId;
+        const existing = productSales.get(productId);
+        if (existing) {
+          existing.quantity += item.quantity || 1;
+          existing.revenue += item.price * (item.quantity || 1);
+        } else {
+          const product = products.find(p => p.id === productId);
+          if (product) {
+            productSales.set(productId, {
+              product,
+              quantity: item.quantity || 1,
+              revenue: item.price * (item.quantity || 1),
+            });
+          }
+        }
+      });
+    });
+    return Array.from(productSales.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .map(sale => ({ ...sale.product, quantity: sale.quantity, revenue: sale.revenue }));
+  }, [todayTransactions, products]);
+
+  // Split layout (Tablet/Landscape)
+  if (layout.showSplitLayout) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#111111' }}>
+        <View style={{ paddingHorizontal: 24 }}>
+          <DashboardHeader />
+        </View>
+        <View style={{ flex: 1, flexDirection: 'row' }}>
+          
+          {/* LEFT PANEL */}
+          <ScrollView 
+            style={{ flex: 0.65, paddingHorizontal: 24 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Row 1 */}
+            <View style={{ flexDirection: 'row', gap: layout.spacing, marginBottom: layout.spacing }}>
+              {statsRow1.map((s, i) => (
+                <View key={i} style={{ flex: 1 }}>
+                  <StatCard {...s} width="100%" height={130} />
+                </View>
+              ))}
+            </View>
+
+            {/* Row 2: Chart */}
+            <RevenueChart transactions={transactions} width={(layout.width * 0.65) - 48} />
+
+            {/* Row 3 */}
+            <View style={{ flexDirection: 'row', gap: layout.spacing, marginBottom: layout.spacing }}>
+              {statsRow3.map((s, i) => (
+                <View key={i} style={{ flex: 1 }}>
+                  <StatCard {...s} width="100%" height={120} />
+                </View>
+              ))}
+            </View>
+
+            {/* Row 4 */}
+            <View style={{ flexDirection: 'row', gap: layout.spacing, marginBottom: layout.spacing }}>
+              {statsRow4.map((s, i) => (
+                <View key={i} style={{ flex: 1 }}>
+                  <StatCard {...s} width="100%" height={120} />
+                </View>
+              ))}
+            </View>
+
+            {/* Row 5: Wawasan Kinerja */}
+            <WawasanKinerja numColumns={4} />
+          </ScrollView>
+
+          {/* DIVIDER */}
+          <View style={{ width: 1, backgroundColor: '#2a2a2a' }} />
+
+          {/* RIGHT PANEL */}
+          <ScrollView 
+            style={{ flex: 0.35, paddingHorizontal: 16 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <StockAlertPanel products={products} />
+            <TopProductsPanel products={topProductsData} />
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Stack layout (Phone Portrait)
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      {/* Header */}
-      <View style={{
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingVertical: 12,
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Home size={22} color={c.accent} strokeWidth={2} />
-          <Text style={{ color: c.text, fontSize: 20, fontWeight: '900' }}>Dashboard</Text>
-        </View>
-        {onOpenSidebar && (
-          <TouchableOpacity onPress={onOpenSidebar} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Menu size={24} color={c.accent} strokeWidth={2} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}>
-        {/* Date Header */}
-        <View style={{
-          backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.border,
-          borderRadius: 16, padding: 16,
-        }}>
-          <Text style={{ color: c.accent, fontSize: 18, fontWeight: '900' }}>Dashboard Bisnis</Text>
-          <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}>{formattedDate}</Text>
-          <View style={{
-            alignSelf: 'flex-start', marginTop: 8,
-            backgroundColor: c.warningBg, borderRadius: 12,
-            paddingHorizontal: 10, paddingVertical: 4,
-            flexDirection: 'row', alignItems: 'center', gap: 4,
-          }}>
-            <Zap size={10} color={c.warning} strokeWidth={2} />
-            <Text style={{ color: c.warning, fontSize: 10, fontWeight: '700' }}>Live</Text>
-          </View>
-        </View>
-
-        {/* Revenue Card */}
-        <View style={{
-          backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.border,
-          borderRadius: 16, padding: 20,
-        }}>
-          <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '600' }}>PENDAPATAN HARI INI</Text>
-          <Text style={{ color: c.accent, fontSize: 32, fontWeight: '900', marginTop: 4 }}>
-            {formatRupiah(todayRevenue)}
-          </Text>
-          <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}>
-            {todayTransactions.length} transaksi
-          </Text>
-        </View>
-
-        {/* Stats Grid */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          {statCards.slice(1).map(card => (
-            <View key={card.label} style={{
-              width: isLandscape ? '31%' : '47%',
-              backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.border,
-              borderRadius: 14, padding: 14,
-            }}>
-              <card.icon size={16} color={card.color} strokeWidth={2} />
-              <Text style={{ color: c.textSecondary, fontSize: 11, marginTop: 8 }}>{card.label}</Text>
-              <Text style={{ color: card.color, fontSize: 18, fontWeight: '800' }}>{card.value}</Text>
-            </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#111111' }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
+        <DashboardHeader />
+        
+        {/* 2x2 Grid */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+          {statsRow1.map((s, i) => (
+            <StatCard key={i} {...s} width={(layout.width - 32 - 12) / 2} height={120} />
           ))}
         </View>
 
-        {/* Quick Stats Bar */}
-        <View style={{
-          flexDirection: 'row', gap: 8,
-        }}>
-          {[
-            { label: 'Produk', val: String(products.length) },
-            { label: 'Margin', val: todayRevenue > 0 ? `${Math.round((todayProfit / todayRevenue) * 100)}%` : '0%' },
-            { label: 'Sukses', val: '100%' },
-          ].map(q => (
-            <View key={q.label} style={{
-              flex: 1, backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.border,
-              borderRadius: 14, padding: 12, alignItems: 'center',
-            }}>
-              <Text style={{ color: c.text, fontSize: 18, fontWeight: '900' }}>{q.val}</Text>
-              <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '700', marginTop: 2 }}>{q.label}</Text>
-            </View>
+        <RevenueChart transactions={transactions} width={layout.width - 32} />
+
+        <StockAlertPanel products={products} />
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+          {statsRow3.map((s, i) => (
+            <StatCard key={i} {...s} width={(layout.width - 32 - 12) / 2} height={120} />
           ))}
         </View>
+
+        <WawasanKinerja numColumns={2} />
+
+        <TopProductsPanel products={topProductsData} />
       </ScrollView>
     </SafeAreaView>
   );
