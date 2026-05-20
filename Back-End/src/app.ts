@@ -13,6 +13,7 @@ import { transactionsRouter } from './routes/transactions.js';
 import { settingsRouter } from './routes/settings.js';
 import { aiRouter } from './routes/ai.js';
 import { printerRouter } from './routes/printer.js';
+import { publicRouter } from './routes/public.js';
 import { authenticateToken } from './middleware/auth.js';
 
 export function createApp() {
@@ -74,6 +75,12 @@ export function createApp() {
       'POST /auth/forgot-password',
       'POST /auth/reset-password',
     ];
+    
+    // GET requests to /api/public/* are always public (no CSRF check needed)
+    if (req.method === 'GET' && req.path.startsWith('/api/public/')) {
+      return next();
+    }
+    
     const requestKey = `${req.method} ${req.path}`;
     const isPublic = publicEndpoints.some(e => requestKey.startsWith(e));
 
@@ -100,6 +107,10 @@ export function createApp() {
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
 
+  // 🔓 Public routes (no authentication required)
+  app.use('/api/public', publicRouter);
+
+  // 🔐 Protected routes (authentication required)
   app.use('/auth', authRouter);
   app.use('/app', authenticateToken, appRouter);
   app.use('/pos', authenticateToken, posRouter);

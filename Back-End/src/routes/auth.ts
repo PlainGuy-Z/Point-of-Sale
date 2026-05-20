@@ -401,9 +401,25 @@ authRouter.put('/me', authenticateToken, validateBody(UpdateMeSchema), async (re
         );
       }
       if (body.shop_name !== undefined) {
+        let slug = body.shop_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        let isUnique = false;
+        let count = 0;
+        while (!isUnique) {
+          const currentSlug = count === 0 ? slug : `${slug}-${count}`;
+          const check = await client.query(
+            'SELECT id FROM coffeepos.shops WHERE slug = $1 AND id != $2::uuid',
+            [currentSlug, req.user!.shop_id]
+          );
+          if (check.rowCount === 0) {
+            slug = currentSlug;
+            isUnique = true;
+          } else {
+            count++;
+          }
+        }
         await client.query(
-          `UPDATE coffeepos.shops SET name = $1 WHERE id = $2::uuid`,
-          [body.shop_name, req.user!.shop_id]
+          `UPDATE coffeepos.shops SET name = $1, slug = $2 WHERE id = $3::uuid`,
+          [body.shop_name, slug, req.user!.shop_id]
         );
       }
     });

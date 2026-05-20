@@ -151,8 +151,8 @@ function AppRoutes() {
         </Suspense>
       } />
 
-      {/* Public Customer Menu Route */}
-      <Route path="/menu" element={
+      {/* Public Customer Menu Route - Dynamic based on shop slug */}
+      <Route path="/menu/:shopSlug" element={
         <Suspense fallback={<LoadingSpinner text="Memuat menu..." />}>
           <CustomerMenu />
         </Suspense>

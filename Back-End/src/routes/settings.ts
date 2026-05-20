@@ -100,9 +100,25 @@ settingsRouter.put('/', async (req: Request, res: Response): Promise<void> => {
     
     await pool.query('BEGIN');
 
-    // Update shop name if provided
+    // Update shop name and slug if provided
     if (body.shop_name) {
-      await pool.query('UPDATE coffeepos.shops SET name = $1 WHERE id = $2', [body.shop_name, shopId]);
+      let slug = body.shop_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      let isUnique = false;
+      let count = 0;
+      while (!isUnique) {
+        const currentSlug = count === 0 ? slug : `${slug}-${count}`;
+        const check = await pool.query(
+          'SELECT id FROM coffeepos.shops WHERE slug = $1 AND id != $2::uuid',
+          [currentSlug, shopId]
+        );
+        if (check.rowCount === 0) {
+          slug = currentSlug;
+          isUnique = true;
+        } else {
+          count++;
+        }
+      }
+      await pool.query('UPDATE coffeepos.shops SET name = $1, slug = $2 WHERE id = $3', [body.shop_name, slug, shopId]);
     }
 
     // Build UPDATE query for shop_settings dynamically based on provided fields

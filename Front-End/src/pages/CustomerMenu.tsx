@@ -1,14 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Package } from 'lucide-react';
-import { useApp } from '../contexts/AppContext';
+import { useParams } from 'react-router-dom';
+import { Search, Package, AlertCircle, Loader2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCurrencyFormatter } from '../hooks/useCurrencyFormatter';
-import ProductGrid from '../components/pos/ProductGrid';
-import CategoryPills from '../components/pos/CategoryPills';
 import type { Product } from '../types';
+import { getApiBaseUrl } from '../services/apiBaseUrl';
 
+/**
+ * Public Customer Menu Page - Accessed via /menu/:shopSlug
+ * Dynamically loads menu items for a specific shop from Supabase
+ */
 export default function CustomerMenu() {
-  const { products, transactions } = useApp();
+  const { shopSlug } = useParams<{ shopSlug: string }>();
   const { theme } = useTheme();
   const { format } = useCurrencyFormatter();
   const isDark = theme === 'dark';
@@ -16,19 +19,145 @@ export default function CustomerMenu() {
   // ── States ─────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [shopName, setShopName] = useState<string>('');
+  const [shopInfo, setShopInfo] = useState<{ phone?: string; address?: string; logo_url?: string | null }>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(() => {
+    return typeof window !== 'undefined' ? window.innerWidth < 1024 : false;
+  });
+
+  // ── Fetch Shop Data & Products ─────────────────────────────────────────────
+  useEffect(() => {
+    const fetchMenuData = async () => {
+      if (!shopSlug) {
+        setError('Shop slug tidak ditemukan di URL');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // 1️⃣ Determine API base URL using centralized service
+        let apiBase = '';
+        try {
+          apiBase = getApiBaseUrl();
+        } catch (e) {
+          // If VITE_API_BASE_URL is missing in production, fallback to a sensible default or show error
+          apiBase = import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin;
+        }
+        
+        const apiUrl = `${apiBase}/api/public/menu/${shopSlug}`;
+        console.log('[CustomerMenu] Fetching menu dari:', apiUrl);
+
+        // 2️⃣ Fetch dengan error handling lebih detail
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'omit', // Ensure no credentials sent to public endpoint
+        });
+
+        console.log('[CustomerMenu] Response status:', response.status);
+
+        if (!response.ok) {
+          let errorMessage = 'Gagal memuat menu';
+          
+          try {
+            const textResponse = await response.text();
+            
+            // Check if response is HTML (often happens when route is not found and falls back to index.html)
+            if (textResponse.trim().toLowerCase().startsWith('<!doctype html>')) {
+              errorMessage = 'Koneksi ke server gagal (Endpoint tidak ditemukan).';
+              console.error('[CustomerMenu] Received HTML instead of JSON. Ensure API Base URL is correct.');
+            } else {
+              const errorData = JSON.parse(textResponse);
+              console.error('[CustomerMenu] API Error:', errorData);
+              errorMessage = errorData.error?.message || errorMessage;
+            }
+          } catch {
+            console.error('[CustomerMenu] Non-JSON response:', response.statusText);
+            errorMessage = response.statusText || errorMessage;
+          }
+
+          if (response.status === 404) {
+            setError(`Toko tidak ditemukan. Slug: "${shopSlug}"`);
+          } else if (response.status === 400) {
+            setError(`Slug tidak valid: "${shopSlug}"`);
+          } else {
+            setError(`${errorMessage} (Error: ${response.status})`);
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        const textData = await response.text();
+        if (textData.trim().toLowerCase().startsWith('<!doctype html>')) {
+          throw new Error('Koneksi ke server gagal. Pastikan konfigurasi URL API sudah benar.');
+        }
+
+        const data = JSON.parse(textData);
+        console.log('[CustomerMenu] Menu loaded successfully:', data);
+
+        // 2️⃣ Extract shop info
+        if (data.shop) {
+          setShopName(data.shop.name || 'Menu Digital');
+          setShopInfo({
+            phone: data.shop.phone,
+            address: data.shop.address,
+            logo_url: data.shop.logo_url,
+          });
+        }
+
+        // 3️⃣ Extract products (filter only available items)
+        const availableProducts = (data.products || []).filter(
+          (p: Product) => p.isAvailable !== false && (p.stock > 0 || p.stock === -1 || p.stock === 0)
+        );
+        setProducts(availableProducts);
+
+        // 4️⃣ Extract unique categories
+        const uniqueCategories = ['All', ...Array.from(new Set(
+          availableProducts
+            .map((p: Product) => p.category)
+            .filter((c: string | undefined) => c && typeof c === 'string')
+        ) as Set<string>)];
+        setCategories(uniqueCategories);
+
+        // Reset selected category to 'All' if new categories loaded
+        setSelectedCategory('All');
+      } catch (err) {
+        console.error('Error fetching menu:', err);
+        setError(
+          err instanceof Error 
+            ? err.message 
+            : 'Gagal memuat menu. Silakan coba lagi nanti.'
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMenuData();
+  }, [shopSlug]);
+
+  // ── Handle Responsive ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   // ── Filter & Sort Products ─────────────────────────────────────────────────
   const filteredProducts = useMemo(() => {
     const searchLower = search.toLowerCase().trim();
     const categoryFilter = selectedCategory === 'All' 
-      ? (p: Product) => true 
+      ? () => true
       : (p: Product) => p.category === selectedCategory;
 
-    const filtered = products.filter(product => {
-      // Show only available and in-stock products
-      if (product.isAvailable === false) return false;
-      if (product.stock === 0) return false;
-
+    return products.filter(product => {
       // Apply category filter
       if (!categoryFilter(product)) return false;
 
@@ -42,20 +171,62 @@ export default function CustomerMenu() {
 
       return true;
     });
-
-    return filtered;
   }, [products, search, selectedCategory]);
 
-  // ── Responsive ─────────────────────────────────────────────────────────────
-  const [isMobile, setIsMobile] = useState(() => {
-    return typeof window !== 'undefined' ? window.innerWidth < 1024 : false;
-  });
+  // ── Error State ────────────────────────────────────────────────────────────
+  if (error && !isLoading) {
+    return (
+      <div className={`min-h-screen ${isDark ? 'bg-stone-950' : 'bg-white'} flex items-center justify-center p-4`}>
+        <div className={`max-w-md w-full rounded-3xl border-2 p-8 text-center ${
+          isDark
+            ? 'bg-stone-900/80 border-red-500/30'
+            : 'bg-red-50 border-red-200'
+        }`}>
+          <AlertCircle className={`w-16 h-16 mx-auto mb-4 ${
+            isDark ? 'text-red-400' : 'text-red-500'
+          }`} />
+          <h2 className={`text-xl font-bold mb-3 ${
+            isDark ? 'text-white' : 'text-[#0F172A]'
+          }`}>
+            Toko Tidak Ditemukan
+          </h2>
+          <p className={`text-sm mb-6 ${
+            isDark ? 'text-stone-400' : 'text-[#475569]'
+          }`}>
+            {error}
+          </p>
+          <button
+            onClick={() => window.history.back()}
+            className={`w-full py-3 rounded-xl font-semibold transition-all ${
+              isDark
+                ? 'bg-stone-800 hover:bg-stone-700 text-white'
+                : 'bg-gray-200 hover:bg-gray-300 text-[#0F172A]'
+            }`}
+          >
+            Kembali
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
+  // ── Loading State ──────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen ${isDark ? 'bg-stone-950' : 'bg-white'} flex items-center justify-center`}>
+        <div className="text-center">
+          <Loader2 className={`w-12 h-12 animate-spin mx-auto mb-4 ${
+            isDark ? 'text-amber-500' : 'text-teal-500'
+          }`} />
+          <p className={`text-sm font-semibold ${
+            isDark ? 'text-stone-400' : 'text-[#475569]'
+          }`}>
+            Memuat menu...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-stone-950' : 'bg-white'}`}>
@@ -64,22 +235,53 @@ export default function CustomerMenu() {
       ──────────────────────────────────────────────────────────────────────── */}
       <div className={`${isDark ? 'bg-stone-900/80 border-stone-800' : 'bg-gradient-to-r from-teal-500 to-cyan-500 border-b border-teal-200'} border-b sticky top-0 z-30 backdrop-blur-md`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          {/* Title & Description */}
-          <div className="mb-6">
+          {/* Logo & Shop Name */}
+          {shopInfo.logo_url && (
+            <div className="mb-4 flex items-center gap-3">
+              <img
+                src={shopInfo.logo_url}
+                alt={shopName}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <div>
+                <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${
+                  isDark ? 'text-white' : 'text-white'
+                }`}>
+                  {shopName}
+                </h1>
+              </div>
+            </div>
+          )}
+          {!shopInfo.logo_url && (
             <h1 className={`text-3xl sm:text-4xl font-black tracking-tight mb-2 ${
               isDark ? 'text-white' : 'text-white'
             }`}>
-              📋 Daftar Menu
+              📋 {shopName}
             </h1>
-            <p className={`text-sm sm:text-base ${
-              isDark ? 'text-stone-400' : 'text-white/90'
+          )}
+
+          {/* Description */}
+          <p className={`text-sm sm:text-base mb-4 ${
+            isDark ? 'text-stone-400' : 'text-white/90'
+          }`}>
+            Silakan pesan langsung ke Kasir
+          </p>
+
+          {/* Shop Info */}
+          {(shopInfo.address || shopInfo.phone) && (
+            <div className={`text-xs sm:text-sm mb-4 space-y-1 ${
+              isDark ? 'text-stone-400' : 'text-white/80'
             }`}>
-              Silakan pesan langsung ke Kasir
-            </p>
-          </div>
+              {shopInfo.address && <p>📍 {shopInfo.address}</p>}
+              {shopInfo.phone && <p>☎️ {shopInfo.phone}</p>}
+            </div>
+          )}
 
           {/* Search Bar */}
-          <div className="relative">
+          <div className="relative mt-4">
             <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${
               isDark ? 'text-stone-500' : 'text-white/60'
             }`} />
@@ -101,10 +303,28 @@ export default function CustomerMenu() {
       {/* ────────────────────────────────────────────────────────────────────────
           CATEGORY FILTER (Desktop Only)
       ──────────────────────────────────────────────────────────────────────── */}
-      {!isMobile && (
-        <div className={`${isDark ? 'bg-stone-900/40 border-stone-800' : 'bg-[#F8FAFC] border-[#E2E8F0]'} border-b sticky top-[110px] z-20 backdrop-blur-sm`}>
+      {!isMobile && categories.length > 0 && (
+        <div className={`${isDark ? 'bg-stone-900/40 border-stone-800' : 'bg-[#F8FAFC] border-[#E2E8F0]'} border-b sticky top-[140px] z-20 backdrop-blur-sm`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <CategoryPills selected={selectedCategory} onSelect={setSelectedCategory} />
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
+                    selectedCategory === cat
+                      ? isDark
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-teal-500 text-white'
+                      : isDark
+                        ? 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                        : 'bg-white text-[#475569] hover:bg-gray-100 border border-gray-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -114,9 +334,27 @@ export default function CustomerMenu() {
       ──────────────────────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Mobile Category Filter */}
-        {isMobile && (
+        {isMobile && categories.length > 0 && (
           <div className="mb-6 pb-4 border-b">
-            <CategoryPills selected={selectedCategory} onSelect={setSelectedCategory} />
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                    selectedCategory === cat
+                      ? isDark
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-teal-500 text-white'
+                      : isDark
+                        ? 'bg-stone-800 text-stone-300'
+                        : 'bg-gray-200 text-[#475569]'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -148,7 +386,7 @@ export default function CustomerMenu() {
               </p>
             </div>
 
-            {/* Product Grid — Full Width, Read-Only */}
+            {/* Product Grid */}
             <div className="w-full">
               <ProductGridReadOnly products={filteredProducts} isDark={isDark} format={format} />
             </div>
@@ -188,7 +426,7 @@ function ProductGridReadOnly({ products, isDark, format }: ProductGridReadOnlyPr
         const isOutOfStock = product.stock === 0;
         const isUnavailable = product.isAvailable === false;
         const isDisabled = isOutOfStock || isUnavailable;
-        const { price: priceToShow, isPromoActive, discountPercent } = getEffectivePrice(product);
+        const { priceToShow, isPromoActive, discountPercent } = getEffectivePrice(product);
 
         return (
           <div
@@ -303,3 +541,4 @@ function getEffectivePrice(product: Product) {
     discountPercent,
   };
 }
+

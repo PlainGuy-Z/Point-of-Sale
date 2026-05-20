@@ -1,7 +1,8 @@
 /* eslint-disable react-refresh/only-export-components -- Provider + hook in one module */
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { CartItemWithInput, Product } from '../types';
 import { getEffectivePrice } from '../utils/priceUtils';
+import { useAuth } from './AuthContext';
 
 interface CartContextValue {
   cart: CartItemWithInput[];
@@ -16,7 +17,14 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { status } = useAuth();
   const [cart, setCart] = useState<CartItemWithInput[]>([]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') {
+      setCart([]);
+    }
+  }, [status]);
 
   const addToCart = useCallback((product: Product) => {
     if (product.isAvailable === false) return false;

@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken';
 import { env } from '../env.js';
 import { HttpError } from '../http/errors.js';
 export const authenticateToken = (req, _res, next) => {
-    const token = req.cookies?.token;
+    const token = req.cookies?.token
+        ?? req.headers.authorization?.replace('Bearer ', '');
     if (!token) {
         return next(new HttpError(401, 'UNAUTHORIZED', 'Invalid or expired token'));
     }

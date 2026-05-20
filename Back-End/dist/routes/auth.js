@@ -11,7 +11,34 @@ import { env } from '../env.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireOwner } from '../middleware/requireRole.js';
 import { sendPasswordResetEmail } from '../services/email.js';
+// [FIX-9] Rate limiting to prevent brute-force attacks
+import rateLimit from 'express-rate-limit';
 export const authRouter = Router();
+// [FIX-9] Rate limiters for auth endpoints
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // max 10 attempts per 15 min per IP
+    message: {
+        error: {
+            code: 'RATE_LIMITED',
+            message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.'
+        }
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+const forgotPasswordLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 3, // max 3 requests per minute per IP
+    message: {
+        error: {
+            code: 'RATE_LIMITED',
+            message: 'Terlalu banyak permintaan reset password. Tunggu 1 menit.'
+        }
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 // ── Schemas ──────────────────────────────────────────────────
 const RegisterSchema = z.object({
     shopName: z.string().trim().min(2),
@@ -130,7 +157,8 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
                     name: result.shop.name,
                     slug: result.shop.slug
                 }
-            }
+            },
+            token: token
         });
     }
     catch (err) {
@@ -158,7 +186,8 @@ authRouter.post('/verify-token', validateBody(VerifyTokenSchema), async (req, re
     }
 });
 // ── POST /auth/login ────────────────────────────────────────
-authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
+// [FIX-9] Rate limiting applied to login route
+authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, res, next) => {
     try {
         const body = req.body;
         // Find user + shop
@@ -200,7 +229,8 @@ authRouter.post('/login', validateBody(LoginSchema), async (req, res, next) => {
                     name: user.shop_name,
                     slug: user.shop_slug
                 }
-            }
+            },
+            token: token
         });
     }
     catch (err) {
@@ -220,6 +250,7 @@ authRouter.post('/logout', (_req, res) => {
     // Explicitly set an expired cookie for backup
     res.cookie('token', '', {
         ...clearOptions,
+        sameSite: isProd ? 'none' : 'lax',
         expires: new Date(0),
         maxAge: 0
     });
@@ -228,6 +259,10 @@ authRouter.post('/logout', (_req, res) => {
 // ── GET /auth/me ────────────────────────────────────────────
 authRouter.get('/me', authenticateToken, async (req, res, next) => {
     try {
+        // [FIX] Prevent browser caching of /me endpoint to ensure accurate session state after logout
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         const result = await pool.query(`SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
@@ -270,7 +305,21 @@ authRouter.put('/me', authenticateToken, validateBody(UpdateMeSchema), async (re
                 await client.query(`UPDATE coffeepos.users SET name = $1, updated_at = now() WHERE id = $2::uuid`, [body.name, req.user.id]);
             }
             if (body.shop_name !== undefined) {
-                await client.query(`UPDATE coffeepos.shops SET name = $1 WHERE id = $2::uuid`, [body.shop_name, req.user.shop_id]);
+                let slug = body.shop_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                let isUnique = false;
+                let count = 0;
+                while (!isUnique) {
+                    const currentSlug = count === 0 ? slug : `${slug}-${count}`;
+                    const check = await client.query('SELECT id FROM coffeepos.shops WHERE slug = $1 AND id != $2::uuid', [currentSlug, req.user.shop_id]);
+                    if (check.rowCount === 0) {
+                        slug = currentSlug;
+                        isUnique = true;
+                    }
+                    else {
+                        count++;
+                    }
+                }
+                await client.query(`UPDATE coffeepos.shops SET name = $1, slug = $2 WHERE id = $3::uuid`, [body.shop_name, slug, req.user.shop_id]);
             }
         });
         const result = await pool.query(`SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
@@ -340,7 +389,8 @@ authRouter.post('/reset-cashier-password', authenticateToken, requireOwner, vali
     }
 });
 // ── POST /auth/forgot-password ──────────────────────────────
-authRouter.post('/forgot-password', validateBody(ForgotPasswordSchema), async (req, res, next) => {
+// [FIX-9] Rate limiting applied to forgot-password route
+authRouter.post('/forgot-password', forgotPasswordLimiter, validateBody(ForgotPasswordSchema), async (req, res, next) => {
     try {
         const { email } = req.body;
         const result = await pool.query(`SELECT id, name, email FROM coffeepos.users WHERE email = $1`, [email]);

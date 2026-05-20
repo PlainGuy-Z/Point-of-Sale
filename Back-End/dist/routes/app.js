@@ -33,10 +33,21 @@ import { withTransaction } from '../db/with-transaction.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { z } from 'zod';
+import { requireRole, requireOwner } from '../middleware/requireRole.js';
 import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
 export const appRouter = Router();
+// [FIX-6] CSV injection prevention — prefix formula-triggering characters
+function sanitizeCsvField(value) {
+    if (value === null || value === undefined)
+        return '';
+    const str = String(value);
+    if (/^[=+\-@\t\r]/.test(str)) {
+        return `'${str}`;
+    }
+    return str;
+}
 const CreateWasteLogSchema = z.object({
     productId: z.string().uuid(),
     quantity: z.coerce.number().int().positive(),
@@ -103,57 +114,78 @@ async function ensureCategory(categoryName, shopId, client) {
 }
 /* ─── buildAppState ─────────────────────────────────────────── */
 export async function buildAppState(shopId) {
-    const [products, txs, wastes, cats] = await Promise.all([
-        pool.query(`SELECT p.id::text, p.name, p.description, p.price,
-              c.name as category, p.stock, p.min_stock, p.cost,
-              p.image, p.discount, p.is_promo, p.promo_price,
-              p.promo_label, p.promo_start, p.promo_end, p.is_available
-       FROM coffeepos.products p
-       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
-       WHERE p.shop_id = $1::uuid
-       ORDER BY p.name ASC`, [shopId]),
-        pool.query(`SELECT
-         t.id::text AS id,
-         t.created_at AS date,
-         t.grand_total AS total,
-         (SELECT COALESCE(SUM(p.cost * i.quantity), 0)
-            FROM coffeepos.transaction_items i
-            LEFT JOIN coffeepos.products p ON p.id = i.product_id
-           WHERE i.transaction_id = t.id) AS cost,
-         (t.subtotal - (SELECT COALESCE(SUM(p.cost * i.quantity), 0)
-            FROM coffeepos.transaction_items i
-            LEFT JOIN coffeepos.products p ON p.id = i.product_id
-           WHERE i.transaction_id = t.id)) AS profit,
-         t.payment_method,
-         t.customer_name,
-         t.table_number,
-         t.cashier_name,
-         ss.tax_rate AS tax_rate,
-         'dine-in'::text AS order_type,
-         NULL::text AS order_note,
-         (
-           SELECT COALESCE(
-             json_agg(
-               json_build_object(
-                 'productId', COALESCE(i.product_id::text, 'manual'),
-                 'quantity', i.quantity,
-                 'price', i.price,
-                 'note', i.name,
-                 'description', i.description,
-                 'modifiers', '[]'::json
-               )
-             ),
-             '[]'::json
-           )
-           FROM coffeepos.transaction_items i
-           WHERE i.transaction_id = t.id
-         ) AS items
-       FROM coffeepos.transactions t
-       LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = t.shop_id
-       WHERE t.shop_id = $1::uuid
-         AND COALESCE(t.status::text, 'completed') <> 'voided'
-       ORDER BY t.created_at DESC
-       LIMIT 200`, [shopId]),
+    const products = await pool.query(`SELECT p.id::text, p.name, p.description, p.price,
+            c.name as category, p.stock, p.min_stock, p.cost,
+            p.image, p.discount, p.is_promo, p.promo_price,
+            p.promo_label, p.promo_start, p.promo_end, p.is_available
+     FROM coffeepos.products p
+     LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+     WHERE p.shop_id = $1::uuid
+     ORDER BY p.name ASC`, [shopId]);
+    // [FIX-3] Replaced correlated subqueries with LEFT JOIN aggregation to eliminate N+1
+    const txQuery = await pool.query(`
+    SELECT
+      t.id::text AS id,
+      t.created_at AS date,
+      t.grand_total AS total,
+      t.subtotal,
+      t.tax,
+      t.payment_method,
+      t.customer_name,
+      t.table_number,
+      t.notes,
+      t.cashier_name,
+      t.status,
+      ss.tax_rate AS tax_rate,
+      'dine-in'::text AS order_type,
+      NULL::text AS order_note,
+      COALESCE(cost_agg.cost_total, 0) AS cost,
+      (t.subtotal - COALESCE(cost_agg.cost_total, 0)) AS profit
+    FROM coffeepos.transactions t
+    LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = t.shop_id
+    LEFT JOIN (
+      SELECT
+        i.transaction_id,
+        SUM(COALESCE(p.cost, 0) * i.quantity) AS cost_total
+      FROM coffeepos.transaction_items i
+      LEFT JOIN coffeepos.products p ON p.id = i.product_id
+      GROUP BY i.transaction_id
+    ) cost_agg ON cost_agg.transaction_id = t.id
+    WHERE t.shop_id = $1::uuid
+      AND COALESCE(t.status::text, 'completed') <> 'voided'
+    ORDER BY t.created_at DESC
+    LIMIT 200
+  `, [shopId]);
+    // STEP 2 — Fetch ALL items for those transactions in ONE query
+    const txIds = txQuery.rows.map(r => r.id);
+    let itemsMap = new Map();
+    if (txIds.length > 0) {
+        const itemsQuery = await pool.query(`
+      SELECT
+        i.transaction_id::text,
+        COALESCE(i.product_id::text, 'manual') AS "productId",
+        i.quantity,
+        i.price,
+        i.name AS note,
+        '[]'::json AS modifiers
+      FROM coffeepos.transaction_items i
+      WHERE i.transaction_id = ANY($1::uuid[])
+    `, [txIds]);
+        for (const row of itemsQuery.rows) {
+            const txId = row.transaction_id;
+            if (!itemsMap.has(txId))
+                itemsMap.set(txId, []);
+            itemsMap.get(txId).push({
+                productId: row.productId,
+                quantity: Number(row.quantity),
+                price: Number(row.price),
+                note: row.note,
+                modifiers: [],
+            });
+        }
+    }
+    // Fetch wastes and cats
+    const [wastes, cats] = await Promise.all([
         pool.query(`SELECT
          w.id::text AS id,
          w.product_id::text AS product_id,
@@ -188,10 +220,10 @@ export async function buildAppState(shopId) {
             unit: 'pcs',
             image: p.image || null
         })),
-        transactions: txs.rows.map((t) => ({
+        transactions: txQuery.rows.map((t) => ({
             id: t.id,
             date: new Date(t.date).toISOString(),
-            items: t.items,
+            items: itemsMap.get(t.id) || [],
             total: Number(t.total),
             cost: Number(t.cost),
             profit: Number(t.profit),
@@ -228,6 +260,100 @@ export async function buildAppState(shopId) {
         categoriesWithId: cats.rows.map(r => ({ id: r.id, name: r.name }))
     };
 }
+// GET /app/export/products
+// [FIX-5] Added requireOwner guard — cashiers should not export business data
+appRouter.get('/export/products', requireOwner, async (req, res, next) => {
+    try {
+        const shopId = req.user.shop_id;
+        const { rows } = await pool.query(`SELECT p.name, p.description, p.price, c.name as category, p.stock, p.cost, p.is_available
+       FROM coffeepos.products p
+       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+       WHERE p.shop_id = $1::uuid
+       ORDER BY p.name ASC`, [shopId]);
+        const headers = ['Name', 'Description', 'Price', 'Category', 'Stock', 'Cost', 'Available'];
+        const csv = [
+            headers.join(','),
+            // [FIX-6] Sanitize string fields to prevent CSV formula injection
+            ...rows.map(r => [
+                `"${sanitizeCsvField(r.name)}"`,
+                `"${sanitizeCsvField(r.description || '')}"`,
+                r.price,
+                `"${sanitizeCsvField(r.category || 'Uncategorized')}"`,
+                r.stock,
+                r.cost || 0,
+                r.is_available
+            ].join(','))
+        ].join('\n');
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=products.csv');
+        res.send(csv);
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// GET /app/export/transactions
+// [FIX-5] Added requireOwner guard — cashiers should not export business data
+appRouter.get('/export/transactions', requireOwner, async (req, res, next) => {
+    try {
+        const shopId = req.user.shop_id;
+        const { from, to } = req.query;
+        let query = `
+      SELECT t.created_at, t.grand_total, t.payment_method, t.cashier_name, t.customer_name, t.status
+      FROM coffeepos.transactions t
+      WHERE t.shop_id = $1::uuid
+    `;
+        const params = [shopId];
+        if (from) {
+            params.push(from);
+            query += ` AND t.created_at >= $${params.length}`;
+        }
+        if (to) {
+            params.push(to);
+            query += ` AND t.created_at <= $${params.length}`;
+        }
+        query += ` ORDER BY t.created_at DESC`;
+        const { rows } = await pool.query(query, params);
+        const headers = ['Date', 'Total', 'Payment Method', 'Cashier', 'Customer', 'Status'];
+        const csv = [
+            headers.join(','),
+            // [FIX-6] Sanitize string fields to prevent CSV formula injection
+            ...rows.map(r => [
+                new Date(r.created_at).toISOString(),
+                r.grand_total,
+                sanitizeCsvField(r.payment_method),
+                `"${sanitizeCsvField(r.cashier_name)}"`,
+                `"${sanitizeCsvField(r.customer_name || '')}"`,
+                r.status
+            ].join(','))
+        ].join('\n');
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=transactions.csv');
+        res.send(csv);
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// DELETE /app/data/transactions (Reset Data)
+appRouter.delete('/data/transactions', async (req, res, next) => {
+    try {
+        const shopId = req.user.shop_id;
+        if (req.user.role !== 'owner')
+            throw new HttpError(403, 'FORBIDDEN', 'Only owner can reset data');
+        await withTransaction(async (client) => {
+            // Delete waste logs first due to FK or just dependency
+            await client.query(`DELETE FROM coffeepos.waste_logs WHERE shop_id = $1::uuid`, [shopId]);
+            // Delete transaction items then transactions
+            await client.query(`DELETE FROM coffeepos.transaction_items WHERE transaction_id IN (SELECT id FROM coffeepos.transactions WHERE shop_id = $1::uuid)`, [shopId]);
+            await client.query(`DELETE FROM coffeepos.transactions WHERE shop_id = $1::uuid`, [shopId]);
+        });
+        res.json(await buildAppState(shopId));
+    }
+    catch (err) {
+        next(err);
+    }
+});
 // GET /app/state
 appRouter.get('/state', async (req, res, next) => {
     try {
@@ -262,7 +388,7 @@ appRouter.post('/waste-logs', validateBody(CreateWasteLogSchema), async (req, re
     }
 });
 // POST /app/products
-appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) => {
+appRouter.post('/products', requireRole('owner'), validateBody(ProductSchema), async (req, res, next) => {
     try {
         const body = req.body;
         const shopId = req.user.shop_id;
@@ -287,7 +413,7 @@ appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) 
     }
 });
 // PUT /app/products/:id
-appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, next) => {
+appRouter.put('/products/:id', requireRole('owner'), validateBody(ProductSchema), async (req, res, next) => {
     try {
         const { id } = req.params;
         const body = req.body;
@@ -319,11 +445,15 @@ appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, nex
     }
 });
 // DELETE /app/products/:id
-appRouter.delete('/products/:id', async (req, res, next) => {
+// [FIX-7] Soft delete instead of hard delete to avoid FK violations with transaction_items
+appRouter.delete('/products/:id', requireRole('owner'), async (req, res, next) => {
     try {
         const { id } = req.params;
         const shopId = req.user.shop_id;
-        const result = await pool.query(`DELETE FROM coffeepos.products WHERE id = $1::uuid AND shop_id = $2::uuid`, [id, shopId]);
+        const result = await pool.query(`UPDATE coffeepos.products
+       SET is_available = false,
+           updated_at = now()
+       WHERE id = $1::uuid AND shop_id = $2::uuid`, [id, shopId]);
         if (result.rowCount === 0)
             throw new HttpError(404, 'NOT_FOUND', 'Product not found');
         res.json(await buildAppState(shopId));
@@ -333,7 +463,7 @@ appRouter.delete('/products/:id', async (req, res, next) => {
     }
 });
 // POST /app/categories
-appRouter.post('/categories', validateBody(CategorySchema), async (req, res, next) => {
+appRouter.post('/categories', requireRole('owner'), validateBody(CategorySchema), async (req, res, next) => {
     try {
         const shopId = req.user.shop_id;
         await pool.query(`INSERT INTO coffeepos.categories (name, shop_id) VALUES ($1, $2::uuid) ON CONFLICT (name, shop_id) DO NOTHING`, [req.body.name, shopId]);
@@ -344,7 +474,7 @@ appRouter.post('/categories', validateBody(CategorySchema), async (req, res, nex
     }
 });
 // DELETE /app/categories/:name
-appRouter.delete('/categories/:name', async (req, res, next) => {
+appRouter.delete('/categories/:name', requireRole('owner'), async (req, res, next) => {
     try {
         const shopId = req.user.shop_id;
         // Note: User should handle product reassignment before deleting category in UI

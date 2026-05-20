@@ -55,7 +55,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (status !== 'authenticated') return;
+    if (status !== 'authenticated') {
+      setState({
+        products: [],
+        transactions: [],
+        wasteLogs: [],
+        customers: [],
+        settings: defaultSettings,
+        categories: [],
+        categoriesWithId: [],
+      });
+      return;
+    }
     let mounted = true;
     (async () => {
       try {

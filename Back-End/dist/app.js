@@ -13,6 +13,7 @@ import { transactionsRouter } from './routes/transactions.js';
 import { settingsRouter } from './routes/settings.js';
 import { aiRouter } from './routes/ai.js';
 import { printerRouter } from './routes/printer.js';
+import { publicRouter } from './routes/public.js';
 import { authenticateToken } from './middleware/auth.js';
 export function createApp() {
     const app = express();
@@ -51,9 +52,43 @@ export function createApp() {
         res.setHeader('Access-Control-Allow-Private-Network', 'true');
         next();
     });
+    // CSRF mitigation via custom header check
+    app.use((req, res, next) => {
+        // [FIX-2] Apply CSRF check to all state-changing methods on all routes except public endpoints
+        const publicEndpoints = [
+            'POST /auth/login',
+            'POST /auth/register',
+            'POST /auth/verify-token',
+            'POST /auth/forgot-password',
+            'POST /auth/reset-password',
+        ];
+        // GET requests to /api/public/* are always public (no CSRF check needed)
+        if (req.method === 'GET' && req.path.startsWith('/api/public/')) {
+            return next();
+        }
+        const requestKey = `${req.method} ${req.path}`;
+        const isPublic = publicEndpoints.some(e => requestKey.startsWith(e));
+        if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method) && !isPublic) {
+            const origin = req.headers.origin || '';
+            const allowed = env.corsOrigins;
+            // Allow requests with no origin (mobile apps, server-to-server)
+            if (origin &&
+                !allowed.includes(origin) &&
+                !origin.endsWith('.vercel.app') &&
+                !origin.startsWith('http://localhost:')) {
+                return res.status(403).json({
+                    error: { code: 'CSRF_BLOCKED', message: 'Invalid origin' },
+                });
+            }
+        }
+        next();
+    });
     app.use(express.json({ limit: '1mb' }));
     app.use('/uploads', express.static('public/uploads'));
     app.get('/health', (_req, res) => res.json({ ok: true }));
+    // 🔓 Public routes (no authentication required)
+    app.use('/api/public', publicRouter);
+    // 🔐 Protected routes (authentication required)
     app.use('/auth', authRouter);
     app.use('/app', authenticateToken, appRouter);
     app.use('/pos', authenticateToken, posRouter);

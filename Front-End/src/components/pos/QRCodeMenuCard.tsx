@@ -1,17 +1,20 @@
 import { QRCodeSVG } from 'qrcode.react';
 import { Printer, QrCode } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * QR Code Menu Component - Untuk ditampilkan di Settings/Dashboard
- * Render QR Code yang mengarah ke halaman publik /menu
+ * Render QR Code yang mengarah ke halaman publik /menu/:shopSlug
  */
 export default function QRCodeMenuCard() {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const isDark = theme === 'dark';
 
-  // Generate menu URL
-  const menuUrl = `${window.location.origin}/menu`;
+  // Generate menu URL dengan shop slug dari authenticated user
+  const shopSlug = user?.shop?.slug || 'unknown';
+  const menuUrl = `${window.location.origin}/menu/${shopSlug}`;
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');

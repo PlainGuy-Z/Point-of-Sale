@@ -34,16 +34,22 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
             .filter((id) => !id.startsWith('manual-'));
         const priceById = new Map();
         if (realProductIds.length > 0) {
-            const result = await pool.query(`SELECT id::text, price, is_promo, promo_price
+            // [FIX-10] Also fetch `discount` field so promo logic matches frontend's getEffectivePrice
+            const result = await pool.query(`SELECT id::text, price, is_promo, promo_price, discount
          FROM coffeepos.products
          WHERE id = ANY($1::uuid[]) AND shop_id = $2::uuid`, [realProductIds, shopId]);
             for (const row of result.rows) {
                 const basePrice = Number(row.price);
                 const isPromo = Boolean(row.is_promo);
                 const promoPrice = Number(row.promo_price ?? 0);
+                const discount = Number(row.discount ?? 0);
+                // [FIX-10] Unified promo logic: same as frontend getEffectivePrice
                 const effectivePrice = (() => {
-                    if (isPromo && promoPrice > 0 && promoPrice < basePrice) {
+                    if (isPromo && promoPrice > 0 && promoPrice < basePrice && discount > 0) {
                         return promoPrice;
+                    }
+                    if (discount > 0) {
+                        return Math.round(basePrice - (basePrice * discount / 100));
                     }
                     return basePrice;
                 })();
@@ -111,7 +117,8 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
             const productIds = realLines.map((l) => l.productId);
             const productById = new Map();
             if (productIds.length > 0) {
-                const products = await client.query(`SELECT id::text AS id, name, price, cost, stock, is_promo, promo_price, is_available
+                // [FIX-10] Also fetch `discount` field for unified promo logic
+                const products = await client.query(`SELECT id::text AS id, name, price, cost, stock, is_promo, promo_price, discount, is_available
            FROM coffeepos.products
            WHERE id = ANY($1::uuid[]) AND shop_id = $2::uuid
            FOR UPDATE`, [productIds, shopId]);
@@ -119,9 +126,14 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
                     const basePrice = Number(row.price);
                     const isPromo = Boolean(row.is_promo);
                     const promoPrice = Number(row.promo_price ?? 0);
+                    const discount = Number(row.discount ?? 0);
+                    // [FIX-10] Unified promo logic: same as frontend getEffectivePrice
                     const effectivePrice = (() => {
-                        if (isPromo && promoPrice > 0 && promoPrice < basePrice) {
+                        if (isPromo && promoPrice > 0 && promoPrice < basePrice && discount > 0) {
                             return promoPrice;
+                        }
+                        if (discount > 0) {
+                            return Math.round(basePrice - (basePrice * discount / 100));
                         }
                         return basePrice;
                     })();
@@ -215,6 +227,12 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
             const serviceCharge = Math.round(subtotal * serviceRateConfig);
             const grandTotal = subtotal + tax + serviceCharge;
             const profit = subtotal - costTotal;
+            if (body.paymentMethod === 'cash') {
+                const cashReceivedVal = body.cashReceived ?? 0;
+                if (cashReceivedVal < grandTotal) {
+                    throw new HttpError(400, 'INSUFFICIENT_CASH', `Uang diterima (${cashReceivedVal}) kurang dari total (${grandTotal})`);
+                }
+            }
             const cashReceived = body.paymentMethod === 'cash' && body.cashReceived != null ? Math.round(body.cashReceived) : null;
             const changeAmount = cashReceived != null ? Math.max(0, cashReceived - grandTotal) : null;
             const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
