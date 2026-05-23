@@ -91,9 +91,9 @@ export default function CashierDashboard() {
         <>
             {showOpenModal && (
                 <ShiftOpenModal
-                    onSuccess={() => {
+                    onSuccess={async () => {
                         setShowOpenModal(false);
-                        void refreshShift();
+                        await refreshShift();
                     }}
                     onCancel={() => setShowOpenModal(false)}
                 />

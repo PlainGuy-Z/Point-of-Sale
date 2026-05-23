@@ -188,9 +188,9 @@ export default function CashierShiftHub() {
 
       {openModal && (
         <ShiftOpenModal
-          onSuccess={() => {
+          onSuccess={async () => {
             setOpenModal(false);
-            void refreshShift();
+            await refreshShift();
           }}
           onCancel={() => setOpenModal(false)}
         />

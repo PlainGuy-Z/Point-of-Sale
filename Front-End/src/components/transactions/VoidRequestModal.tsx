@@ -29,8 +29,8 @@ export default function VoidRequestModal({ transaction: t, onClose, onSuccess, o
   const [loading, setLoading] = useState(false);
 
   const panelCls = `${isDark ? 'bg-stone-900 border-stone-700' : 'bg-white border-[#E2E8F0]'} border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden`;
-  const inputCls = `w-full min-h-[120px] rounded-xl border px-4 py-3 outline-none transition-all focus:border-teal-400 focus:bg-white ${
-    isDark ? 'border-stone-800 bg-stone-950 text-white focus:ring-1 focus:ring-teal-500' : 'border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A]'
+  const inputCls = `w-full min-h-[120px] rounded-xl border px-4 py-3 outline-none transition-all focus:border-teal-400 ${
+    isDark ? 'border-stone-800 bg-stone-950 focus:bg-stone-950 text-white focus:ring-1 focus:ring-teal-500' : 'focus:bg-white border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A]'
   }`;
 
   const submit = async (e: React.FormEvent) => {

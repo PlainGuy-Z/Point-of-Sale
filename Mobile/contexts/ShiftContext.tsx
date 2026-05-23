@@ -46,6 +46,11 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     try {
       const shift = await api.post<Shift>('/shifts/open', { opening_cash });
       setActiveShift(shift);
+      try {
+        await refreshShift();
+      } catch (refreshError) {
+        console.error('Failed to refresh shift after opening:', refreshError);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -56,6 +61,11 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     try {
       await api.post('/shifts/close', { closing_cash, notes });
       setActiveShift(null);
+      try {
+        await refreshShift();
+      } catch (refreshError) {
+        console.error('Failed to refresh shift after closing:', refreshError);
+      }
     } finally {
       setIsLoading(false);
     }

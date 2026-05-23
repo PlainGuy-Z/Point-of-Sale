@@ -179,6 +179,7 @@ export default function PointOfSale() {
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [receiptTransaction, setReceiptTransaction] = useState<Transaction | null>(null);
   const [shiftGateOpen, setShiftGateOpen] = useState(false);
+  const [pendingAfterShift, setPendingAfterShift] = useState<'quickpay' | 'checkout' | null>(null);
 
   // ── Swipe-to-delete (mobile) ─────────────────────────────────────────────────
   const [revealedDeleteIndex, setRevealedDeleteIndex] = useState<number | null>(null);
@@ -510,8 +511,9 @@ export default function PointOfSale() {
   const cashierNeedsShift =
     user?.role === 'cashier' && !shiftLoading && !activeShift;
 
-  const blockCheckoutForShift = () => {
+  const blockCheckoutForShift = (action: 'quickpay' | 'checkout' = 'checkout') => {
     if (cashierNeedsShift) {
+      setPendingAfterShift(action);
       setShiftGateOpen(true);
       return true;
     }
@@ -627,7 +629,7 @@ export default function PointOfSale() {
 
   const quickPayCart = () => {
     if (!canPay) return;
-    if (blockCheckoutForShift()) return;
+    if (blockCheckoutForShift('quickpay')) return;
     setPanel('cart');
     setPaymentModalOpen(true);
   };
@@ -898,7 +900,7 @@ export default function PointOfSale() {
                     onClick={() => setPanel('manual')}
                     className={`mt-8 flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 ${isDark
                       ? 'bg-amber-500 text-black hover:bg-amber-400 shadow-lg shadow-amber-500/20'
-                      : 'bg-black text-white hover:bg-[#1a1614] shadow-lg shadow-black/10'
+                      : 'bg-teal-500 text-white hover:bg-teal-600 shadow-lg shadow-teal-500/20'
                       }`}
                   >
                     <Plus size={14} />
@@ -1591,12 +1593,15 @@ export default function PointOfSale() {
 
       {shiftGateOpen && (
         <ShiftOpenModal
-          onSuccess={() => {
+          onSuccess={async () => {
             setShiftGateOpen(false);
-            void refreshShift();
-            setCheckoutDetailsFormOpen(true);
+            await refreshShift();
+            // Go directly to payment — checkout details are already filled
+            // in the side panel or are unnecessary for Quick Pay
+            setPendingAfterShift(null);
+            setPaymentModalOpen(true);
           }}
-          onCancel={() => setShiftGateOpen(false)}
+          onCancel={() => { setShiftGateOpen(false); setPendingAfterShift(null); }}
         />
       )}
 

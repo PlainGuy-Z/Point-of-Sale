@@ -7,7 +7,7 @@ import { Coffee, Loader2, X } from 'lucide-react';
 import logoIcon from '../../assets/icon.png';
 
 interface ShiftOpenModalProps {
-  onSuccess?: () => void;
+  onSuccess?: () => Promise<void> | void;
   /** When set, shows Batal and allows closing without submitting */
   onCancel?: () => void;
 }
@@ -42,7 +42,7 @@ export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalPr
 
     try {
       await openShift(parseInt(openingCash, 10));
-      if (onSuccess) onSuccess();
+      if (onSuccess) await onSuccess();
     } catch (err: any) {
       setError(err.message || 'Gagal membuka shift');
     }
@@ -130,10 +130,10 @@ export default function ShiftOpenModal({ onSuccess, onCancel }: ShiftOpenModalPr
                   value={formattedCashDisplay}
                   onChange={handleCashChange}
                   placeholder="0"
-                  className={`w-full pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none transition-all focus:border-teal-400 focus:bg-white ${
+                  className={`w-full pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none transition-all focus:border-teal-400 ${
                     isDark 
-                      ? 'bg-stone-950 border border-stone-800 text-white focus:ring-1 focus:ring-teal-500' 
-                      : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A]'
+                      ? 'bg-stone-950 border border-stone-800 focus:bg-stone-950 text-white focus:ring-1 focus:ring-teal-500' 
+                      : 'focus:bg-white bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A]'
                   }`}
                   autoFocus
                 />

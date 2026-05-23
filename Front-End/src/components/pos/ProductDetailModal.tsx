@@ -183,10 +183,10 @@ export default function ProductDetailModal({ product, item, onClose, onSave }: P
               value={note} 
               onChange={(e) => setNote(e.target.value)} 
               rows={2} 
-              className={`w-full p-3 rounded-xl border text-sm outline-none resize-none transition-all focus:border-teal-400 focus:bg-white ${
+              className={`w-full p-3 rounded-xl border text-sm outline-none resize-none transition-all focus:border-teal-400 ${
                 isDark 
-                  ? 'bg-stone-950/30 border-stone-800 text-white placeholder-stone-500' 
-                  : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'
+                  ? 'bg-stone-950/30 border-stone-800 focus:bg-stone-950/30 text-white placeholder-stone-500' 
+                  : 'focus:bg-white bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'
               }`} 
               placeholder={isManual ? "Enter item name..." : "Add special instructions, requests, or notes..."} 
               tabIndex={0}

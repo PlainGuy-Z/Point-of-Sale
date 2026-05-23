@@ -12,7 +12,7 @@ interface ShiftCloseModalProps {
 
 export default function ShiftCloseModal({ onClose }: ShiftCloseModalProps) {
   const { logout } = useAuth();
-  const { activeShift, closeShift, isLoading } = useShift();
+  const { activeShift, closeShift, isLoading, refreshShift } = useShift();
   const { theme } = useTheme();
   const { format } = useCurrencyFormatter();
   const navigate = useNavigate();
@@ -54,6 +54,11 @@ export default function ShiftCloseModal({ onClose }: ShiftCloseModalProps) {
     try {
       await closeShift(actualCash, notes);
       onClose();
+      try {
+        await refreshShift();
+      } catch (refreshError) {
+        console.error('Failed to refresh shift after closing:', refreshError);
+      }
       await logout();
       navigate('/login');
     } catch (err: any) {
@@ -139,10 +144,10 @@ export default function ShiftCloseModal({ onClose }: ShiftCloseModalProps) {
                     value={formattedCashDisplay}
                     onChange={handleCashChange}
                     placeholder="0"
-                    className={`w-full pl-12 pr-4 py-3 rounded-xl text-lg font-bold outline-none transition-all focus:border-teal-400 focus:bg-white ${
+                    className={`w-full pl-12 pr-4 py-3 rounded-xl text-lg font-bold outline-none transition-all focus:border-teal-400 ${
                       isDark 
-                        ? 'bg-stone-950 border border-stone-800 text-white focus:ring-1 focus:ring-teal-500' 
-                        : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A]'
+                        ? 'bg-stone-950 border border-stone-800 focus:bg-stone-950 text-white focus:ring-1 focus:ring-teal-500' 
+                        : 'focus:bg-white bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A]'
                     }`}
                     autoFocus
                   />
@@ -184,10 +189,10 @@ export default function ShiftCloseModal({ onClose }: ShiftCloseModalProps) {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Contoh: Ada kembalian kurang Rp 5.000"
-                  className={`w-full p-3 rounded-xl outline-none transition-all resize-none h-24 focus:border-teal-400 focus:bg-white ${
+                  className={`w-full p-3 rounded-xl outline-none transition-all resize-none h-24 focus:border-teal-400 ${
                     isDark 
-                      ? 'bg-stone-950 border border-stone-800 text-white focus:ring-1 focus:ring-teal-500' 
-                      : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A]'
+                      ? 'bg-stone-950 border border-stone-800 focus:bg-stone-950 text-white focus:ring-1 focus:ring-teal-500' 
+                      : 'focus:bg-white bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A]'
                   }`}
                 />
               </div>

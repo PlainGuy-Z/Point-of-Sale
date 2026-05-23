@@ -145,10 +145,10 @@ export default function CartItemEditModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g., 'Extra ice', 'Tanpa gula'"
-              className={`w-full px-3 py-2 rounded-xl border text-sm resize-none outline-none transition-all focus:border-teal-400 focus:bg-white ${
+              className={`w-full px-3 py-2 rounded-xl border text-sm resize-none outline-none transition-all focus:border-teal-400 ${
                 isDark
-                  ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500 focus:ring-1 focus:ring-teal-500'
-                  : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'
+                  ? 'bg-stone-900 border-stone-800 focus:bg-stone-900 text-stone-100 placeholder-stone-500 focus:ring-1 focus:ring-teal-500'
+                  : 'focus:bg-white bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'
               }`}
               rows={2}
             />
@@ -165,10 +165,10 @@ export default function CartItemEditModal({
                 value={variantName}
                 onChange={(e) => setVariantName(e.target.value)}
                 placeholder="e.g. Large"
-                className={`w-full px-3 py-2 rounded-xl border text-sm outline-none transition-all focus:border-teal-400 focus:bg-white ${
+                className={`w-full px-3 py-2 rounded-xl border text-sm outline-none transition-all focus:border-teal-400 ${
                   isDark
-                    ? 'bg-stone-900 border-stone-800 text-stone-100 focus:ring-1 focus:ring-teal-500'
-                    : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'
+                    ? 'bg-stone-900 border-stone-800 focus:bg-stone-900 text-stone-100 focus:ring-1 focus:ring-teal-500'
+                    : 'focus:bg-white bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'
                 }`}
               />
             </div>
@@ -181,10 +181,10 @@ export default function CartItemEditModal({
                 value={variantPrice || ''}
                 onChange={(e) => setVariantPrice(parseInt(e.target.value) || 0)}
                 placeholder="0"
-                className={`w-full px-3 py-2 rounded-xl border text-sm outline-none transition-all focus:border-teal-400 focus:bg-white ${
+                className={`w-full px-3 py-2 rounded-xl border text-sm outline-none transition-all focus:border-teal-400 ${
                   isDark
-                    ? 'bg-stone-900 border-stone-800 text-stone-100 focus:ring-1 focus:ring-teal-500'
-                    : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'
+                    ? 'bg-stone-900 border-stone-800 focus:bg-stone-900 text-stone-100 focus:ring-1 focus:ring-teal-500'
+                    : 'focus:bg-white bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'
                 }`}
               />
             </div>

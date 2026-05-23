@@ -193,7 +193,7 @@ export default function MobileCategoryCarousel({
             isDark={isDark}
             onAdd={() => onAddToCart(product.id)}
             rank={index < 3 ? index + 1 : undefined}
-            totalSold={product.salesCount || product.recentSalesCount || 0}
+            totalSold={product.recentSalesCount ?? product.salesCount ?? 0}
           />
         ))}
       </div>

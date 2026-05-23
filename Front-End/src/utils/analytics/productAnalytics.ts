@@ -151,7 +151,7 @@ export function getBestSellersByPeriod(
     .map((item, index) => ({
       product: item.product,
       quantity: item.quantity,
-      revenue: item.quantity,
+      revenue: item.revenue,
       periodDays: periodDays,
       rank: index + 1
     }));
