@@ -1,6 +1,7 @@
 import type { Transaction, TransactionItem } from '../types';
 import { ApiError } from './appApi';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { getBearerAuthHeader } from './authHeader';
 
 /**
  * Backend contract (DTO) — keep frontend payload minimal.
@@ -54,6 +55,7 @@ async function http<T>(path: string, init: RequestInit): Promise<T> {
     headers: {
       'Content-Type': 'application/json',
       ...(init.headers || {}),
+      ...getBearerAuthHeader(),
     },
   });
 

@@ -16,7 +16,7 @@ export default function AppearanceSection() {
 }
 
 function _AppearanceSection() {
-  const { theme, setTheme, effectiveTheme } = useTheme();
+  const { theme, mode, setMode, effectiveTheme } = useTheme();
   const { settings, updateSettings } = useSettings();
   const { showToast, ToastComponent } = useToast();
   const isDark = effectiveTheme === 'dark';
@@ -44,13 +44,13 @@ function _AppearanceSection() {
             { id: 'light', label: 'Terang', icon: <Sun size={20} /> },
             { id: 'dark', label: 'Gelap', icon: <Moon size={20} /> },
             { id: 'system', label: 'Sistem', icon: <Monitor size={20} /> }
-          ].map((mode) => (
+          ].map((option) => (
             <button
-              key={mode.id}
-              onClick={() => setTheme(mode.id as any)}
+              key={option.id}
+              onClick={() => setMode(option.id as any)}
               className={`
                 relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200
-                ${theme === mode.id
+                ${mode === option.id
                   ? (isDark ? 'border-amber-500 bg-amber-500/10' : 'border-teal-500 bg-teal-50')
                   : (isDark ? 'border-stone-800 bg-stone-900/50 hover:border-stone-700' : 'border-gray-200 bg-white hover:border-gray-300')
                 }
@@ -58,16 +58,16 @@ function _AppearanceSection() {
             >
               <div className={`
                 w-10 h-10 rounded-xl flex items-center justify-center
-                ${theme === mode.id
+                ${mode === option.id
                   ? (isDark ? 'text-amber-500' : 'text-teal-600')
                   : (isDark ? 'text-stone-500' : 'text-gray-400')
                 }
               `}>
-                {mode.icon}
+                {option.icon}
               </div>
-              <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{mode.label}</span>
+              <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{option.label}</span>
               
-              {theme === mode.id && (
+              {mode === option.id && (
                 <div className={`absolute top-2 right-2 ${isDark ? 'text-amber-500' : 'text-teal-600'}`}>
                   <Check size={16} strokeWidth={3} />
                 </div>

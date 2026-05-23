@@ -1,5 +1,6 @@
 import type { AppDataState, Customer, Transaction, WasteLog } from '../types';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { getBearerAuthHeader } from './authHeader';
 
 type IsoDateString = string;
 
@@ -43,6 +44,7 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
     headers: {
       ...(init?.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers || {}),
+      ...getBearerAuthHeader(),
     },
   });
 

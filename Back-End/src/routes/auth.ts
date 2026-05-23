@@ -114,7 +114,7 @@ function setCookie(res: import('express').Response, token: string): void {
   res.cookie('token', token, {
     httpOnly: true,
     secure: isProd,              // true di production (HTTPS wajib)
-    sameSite: isProd ? 'none' : 'lax', // 'none' untuk cross-domain production
+    sameSite: 'none',            // Cross-origin frontend requires SameSite=None in dev and prod
     maxAge: 24 * 60 * 60 * 1000,
     path: '/',
   });
@@ -321,7 +321,7 @@ authRouter.post('/logout', (_req, res) => {
   const clearOptions = {
     httpOnly: true,
     secure: isProd,
-    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax' | 'strict',
+    sameSite: 'none' as 'none' | 'lax' | 'strict',
     path: '/',
   };
 
@@ -330,7 +330,6 @@ authRouter.post('/logout', (_req, res) => {
   // Explicitly set an expired cookie for backup
   res.cookie('token', '', {
     ...clearOptions,
-    sameSite: isProd ? 'none' : 'lax',
     expires: new Date(0),
     maxAge: 0
   });

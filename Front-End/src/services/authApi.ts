@@ -1,6 +1,7 @@
 import type { AuthUser } from '../types';
 import { ApiError } from './appApi';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { getBearerAuthHeader } from './authHeader';
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
@@ -10,6 +11,7 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     headers: {
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers || {}),
+      ...getBearerAuthHeader(),
     },
   });
 
@@ -64,13 +66,31 @@ export const authApi = {
     }),
 
   login: async (data: LoginData): Promise<{ user: AuthUser }> =>
-    http<{ user: AuthUser }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    // store token returned in response (fallback when cookie isn't set)
+    (async () => {
+      const body = await http<any>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      if (body?.token) {
+        try {
+          localStorage.setItem('token', body.token);
+        } catch {
+          // ignore storage errors
+        }
+      }
+
+      return body as { user: AuthUser };
+    })(),
 
   logout: async (): Promise<void> => {
     await http<{ message: string }>('/auth/logout', { method: 'POST' });
+    try {
+      localStorage.removeItem('token');
+    } catch {
+      // ignore
+    }
   },
 
   me: async (): Promise<{ user: AuthUser }> =>

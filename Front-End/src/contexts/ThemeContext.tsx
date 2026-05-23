@@ -2,38 +2,42 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react'; 
 
-type Theme = 'light' | 'dark' | 'system';
+type ThemeMode = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
-  theme: Theme;
-  effectiveTheme: 'light' | 'dark'; // The actual theme being applied
-  setTheme: (theme: Theme) => void;
+  theme: Theme; // actual applied theme
+  mode: ThemeMode; // user preference
+  effectiveTheme: Theme; // alias for applied theme
+  setMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
+  const [mode, setModeState] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('coffee-pos-theme') as Theme;
+      const saved = localStorage.getItem('coffee-pos-theme') as ThemeMode;
       if (['light', 'dark', 'system'].includes(saved)) return saved;
     }
     return 'system';
   });
 
-  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<Theme>('dark');
+  const [effectiveTheme, setEffectiveTheme] = useState<Theme>('dark');
 
   useEffect(() => {
     const root = document.documentElement;
     
-    const applyTheme = (val: 'light' | 'dark') => {
+    const applyTheme = (val: Theme) => {
       root.classList.remove('light', 'dark');
       root.classList.add(val);
+      setTheme(val);
       setEffectiveTheme(val);
     };
 
-    if (theme === 'system') {
+    if (mode === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handleChange = () => applyTheme(mediaQuery.matches ? 'dark' : 'light');
       
@@ -41,21 +45,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     } else {
-      applyTheme(theme);
+      applyTheme(mode);
     }
 
-    localStorage.setItem('coffee-pos-theme', theme);
-  }, [theme]);
+    localStorage.setItem('coffee-pos-theme', mode);
+  }, [mode]);
 
   const toggleTheme = () => {
-    setThemeState(prev => {
-      if (prev === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark';
+    setModeState(prev => {
+      if (prev === 'system') {
+        return theme === 'dark' ? 'light' : 'dark';
+      }
       return prev === 'light' ? 'dark' : 'light';
     });
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, effectiveTheme, setTheme: setThemeState, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, mode, effectiveTheme, setMode: setModeState, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
