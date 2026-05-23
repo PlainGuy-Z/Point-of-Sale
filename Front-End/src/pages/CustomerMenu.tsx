@@ -48,7 +48,7 @@ export default function CustomerMenu() {
           apiBase = getApiBaseUrl();
         } catch (e) {
           // If VITE_API_BASE_URL is missing in production, fallback to a sensible default or show error
-          apiBase = import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin;
+        apiBase = import.meta.env.VITE_API_URL || window.location.origin;
         }
         
         const apiUrl = `${apiBase}/api/public/menu/${shopSlug}`;
