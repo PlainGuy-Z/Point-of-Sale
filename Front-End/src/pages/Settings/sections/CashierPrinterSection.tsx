@@ -163,8 +163,8 @@ export default function CashierPrinterSection() {
           </div>
         </SettingsCard>
 
-        {/* Connection Status Card (only if not browser) */}
-        {printMethod !== 'browser' && (
+        {/* Connection Status Card (only if rawbt network only) */}
+        {printMethod === 'rawbt' && (
           <SettingsCard title="Status Koneksi" icon={Activity}>
             <div className="space-y-4">
               {/* Status Indicator */}
@@ -201,7 +201,7 @@ export default function CashierPrinterSection() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
-          {printMethod !== 'browser' && (
+          {printMethod === 'rawbt' && (
             <button
               onClick={handleTestConnection}
               disabled={isConnecting}
@@ -242,7 +242,7 @@ export default function CashierPrinterSection() {
             ) : (
               <>
                 <Printer size={18} />
-                Test Print Struk
+                {printMethod === 'rawbt_intent' ? 'Test Print Android (RawBT Intent)' : 'Test Print Struk'}
               </>
             )}
           </button>

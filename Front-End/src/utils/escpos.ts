@@ -147,9 +147,7 @@ export function buildReceipt(data: ReceiptData): string {
 }
 
 export function receiptToIntentUrl(content: string): string {
-  // Convert string to base64. 
-  // Since our ESC/POS string might have non-ASCII bytes, we should be careful.
-  // But for now, standard btoa(unescape(encodeURIComponent(s))) pattern.
+  // Convert string to base64, then URI-encode it to ensure the custom scheme works in browsers.
   const base64 = btoa(unescape(encodeURIComponent(content)))
-  return `rawbt:base64,${base64}`
+  return `rawbt:base64,${encodeURIComponent(base64)}`
 }

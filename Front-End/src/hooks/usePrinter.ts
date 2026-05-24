@@ -3,6 +3,37 @@ import { useSettings } from '../contexts/SettingsContext'
 import { printerService } from '../services/printer'
 import { buildReceipt, type ReceiptData, receiptToIntentUrl } from '../utils/escpos'
 
+function openIntentUrl(url: string): boolean {
+  try {
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.style.display = 'none'
+    anchor.target = '_self'
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    return true
+  } catch (err) {
+    console.warn('[usePrinter] anchor click failed, falling back to location assignment', err)
+  }
+
+  try {
+    window.location.href = url
+    return true
+  } catch (err) {
+    console.error('[usePrinter] location assignment failed for intent URL', err)
+  }
+
+  try {
+    const opened = window.open(url, '_self')
+    return Boolean(opened)
+  } catch (err) {
+    console.error('[usePrinter] window.open failed for intent URL', err)
+  }
+
+  return false
+}
+
 export function usePrinter() {
   const { settings } = useSettings()
   const [isConnecting, setIsConnecting] = useState(false)
@@ -37,18 +68,12 @@ export function usePrinter() {
         const content = buildReceipt({ ...data, paperSize })
         const url = receiptToIntentUrl(content)
         console.log('[usePrinter] intent URL generated:', url.slice(0, 120) + (url.length>120? '...':''))
-        try {
-          const opened = window.open(url)
-          if (!opened) {
-            console.error('[usePrinter] failed to open intent (popup blocked)')
-            throw new Error('INTENT_OPEN_FAILED')
-          }
-          console.log('[usePrinter] intent opened successfully')
-        } catch (err) {
-          console.error('[usePrinter] error opening intent:', err)
-          // Rethrow so callers can handle fallback UI
-          throw err
+        const opened = openIntentUrl(url)
+        if (!opened) {
+          console.error('[usePrinter] failed to open RawBT intent URL')
+          throw new Error('INTENT_OPEN_FAILED')
         }
+        console.log('[usePrinter] RawBT intent URL opened successfully')
       } else {
         console.log('[usePrinter] using browser print')
         window.print()
