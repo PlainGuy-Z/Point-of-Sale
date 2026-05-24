@@ -275,6 +275,7 @@ export async function buildAppState(shopId: string) {
        FROM coffeepos.products p
        LEFT JOIN coffeepos.categories c ON p.category_id = c.id
        WHERE p.shop_id = $1::uuid
+         AND p.is_available = true
        ORDER BY p.name ASC`,
       [shopId]
     ),

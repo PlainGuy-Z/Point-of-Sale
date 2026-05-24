@@ -56,15 +56,15 @@ export default function CartItemEditPanel({
   return (
     <>
       {/* Header */}
-      <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+      <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-slate-200'}`}>
         <button
           onClick={onClose}
-          className={`p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-gray-100 text-stone-500'}`}
+          className={`p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-slate-100 text-stone-500'}`}
         >
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>
+          <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>
             Edit Item
           </h3>
           <p className={`text-xs ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
@@ -80,7 +80,7 @@ export default function CartItemEditPanel({
           <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
             Quantity
           </label>
-          <div className={`flex items-center gap-3 p-1 rounded-2xl w-fit ${isDark ? 'bg-stone-900' : 'bg-gray-100'}`}>
+          <div className={`flex items-center gap-3 p-1 rounded-2xl w-fit ${isDark ? 'bg-stone-900' : 'bg-slate-50'}`}>
             <button
               onClick={() => handleQuantityChange(-1)}
               disabled={quantity <= 1}
@@ -92,7 +92,7 @@ export default function CartItemEditPanel({
             >
               <Minus size={16} />
             </button>
-            <span className={`w-8 text-center font-black text-base ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            <span className={`w-8 text-center font-black text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {quantity}
             </span>
             <button
@@ -122,7 +122,7 @@ export default function CartItemEditPanel({
             className={`w-full px-4 py-3 rounded-2xl border text-sm resize-none focus:outline-none transition-all ${
               isDark
                 ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500 focus:ring-2 focus:ring-amber-500/40'
-                : 'bg-white border-gray-200 text-gray-800 placeholder-stone-400 focus:ring-2 focus:ring-teal-500/40'
+                : 'bg-white border-slate-200 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-teal-200/70'
             }`}
             rows={3}
           />
@@ -143,7 +143,7 @@ export default function CartItemEditPanel({
                 className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none transition-all ${
                   isDark
                     ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500 focus:ring-2 focus:ring-amber-500/40'
-                    : 'bg-white border-gray-200 text-gray-800 placeholder-stone-400 focus:ring-2 focus:ring-teal-500/40'
+                    : 'bg-white border-slate-200 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-teal-200/70'
                 }`}
               />
             </div>
@@ -163,7 +163,7 @@ export default function CartItemEditPanel({
                 className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none transition-all ${
                   isDark
                     ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500 focus:ring-2 focus:ring-amber-500/40'
-                    : 'bg-white border-gray-200 text-gray-800 placeholder-stone-400 focus:ring-2 focus:ring-teal-500/40'
+                    : 'bg-white border-slate-200 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-teal-200/70'
                 }`}
               />
             </div>
@@ -183,7 +183,7 @@ export default function CartItemEditPanel({
                       : 'bg-teal-500 text-white shadow-md shadow-teal-500/20'
                     : isDark
                       ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
-                      : 'bg-gray-100 border border-gray-200 text-gray-600 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700'
+                      : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700'
                     }`}
                 >
                   +{p >= 1000 ? `${p / 1000}k` : p}
@@ -209,7 +209,7 @@ export default function CartItemEditPanel({
       </div>
 
       {/* Footer Actions */}
-      <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-gray-100'}`}>
+      <div className={`flex-shrink-0 p-4 border-t flex gap-2 ${isDark ? 'border-stone-900' : 'border-slate-200'}`}>
         <button
           onClick={onRemove}
           className={`flex items-center justify-center p-3 rounded-2xl border text-red-500 transition-all ${

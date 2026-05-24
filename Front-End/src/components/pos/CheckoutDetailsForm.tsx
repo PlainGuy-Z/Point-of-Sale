@@ -133,10 +133,10 @@ export default function CheckoutDetailsForm({
                 onChange={(e) => onTableNumberChange(e.target.value)}
                 placeholder="e.g., 5, A1, Window-3"
                 maxLength={20}
-                className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} transition ${
+                className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-200/70'} transition ${
                   isDark
                     ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
-                    : 'bg-white border-[#CBD5E1] text-[#0F172A] placeholder-[#94A3B8]'
+                    : 'bg-white border-slate-200 text-slate-900 placeholder-slate-500'
                 }`}
               />
               <p className={`text-xs mt-1 ${isDark ? 'text-stone-500' : 'text-[#64748B]'}`}>
@@ -159,10 +159,10 @@ export default function CheckoutDetailsForm({
               onChange={(e) => onOrderDescriptionChange(e.target.value)}
               placeholder="e.g., 'ASAP', 'Birthday order', 'Special setup for event', etc."
               maxLength={200}
-              className={`w-full px-4 py-2.5 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-500'} transition ${
+              className={`w-full px-4 py-2.5 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-amber-500' : 'focus:ring-teal-200/70'} transition ${
                 isDark
                   ? 'bg-stone-900 border-stone-800 text-stone-100 placeholder-stone-500'
-                  : 'bg-white border-[#CBD5E1] text-[#0F172A] placeholder-[#94A3B8]'
+                  : 'bg-white border-slate-200 text-slate-900 placeholder-slate-500'
               }`}
               rows={3}
             />

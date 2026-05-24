@@ -145,12 +145,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteProduct = useCallback(async (id: string) => {
     setIsServiceLoading(true);
     try {
-      // Optimistic: immediately remove from UI
+      // Optimistic: immediately remove from UI while backend processes the delete
       setState(prev => ({
         ...prev,
         products: prev.products.filter(p => p.id !== id),
       }));
-      await appApi.deleteProduct(id);
+      const fullState = await appApi.deleteProduct(id);
+      setState(prev => ({
+        ...prev,
+        products: fullState.products,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
     } catch (e) {
       // Rollback on failure: re-fetch products
       await refreshState();
@@ -391,4 +397,4 @@ export function useApp() {
   const context = useContext(AppContext);
   if (!context) throw new Error('useApp must be used within AppProvider');
   return context;
-}
+}

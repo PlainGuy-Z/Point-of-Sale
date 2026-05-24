@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Plus, Package, Trophy, Lock } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import type { Product } from '../../types';
@@ -24,16 +23,6 @@ export default function ProductGrid({
   const { format } = useCurrencyFormatter();
   const { transactions } = useApp();
 
-  const salesMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const transaction of transactions) {
-      for (const item of transaction.items) {
-        map.set(item.productId, (map.get(item.productId) || 0) + item.quantity);
-      }
-    }
-    return map;
-  }, [transactions]);
-
   return (
     <div className={`grid ${isMobileLandscape ? 'grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4'}`}>
       {products.map((product, index) => {
@@ -42,7 +31,7 @@ export default function ProductGrid({
         const isDisabled = isUnavailable || isOutOfStock;
         const { price: priceToShow, isPromoActive, discountPercent } = getEffectivePrice(product);
         
-        const totalSold = salesMap.get(product.id) || product.salesCount || product.recentSalesCount || 0;
+        const totalSold = product.recentSalesCount ?? 0;
         
         // Tentukan apakah produk ini best seller (untuk styling saja)
         const isBestSeller = product.isBestSeller || false;
@@ -60,7 +49,7 @@ export default function ProductGrid({
               h-full rounded-3xl border p-4 text-left transition-all group relative flex flex-col justify-between overflow-hidden
               ${isDark
                 ? 'bg-stone-950 border-stone-800 hover:border-amber-500/40'
-                : 'bg-white border-teal-500/30 hover:border-teal-600 shadow-sm'
+                : 'bg-white border-slate-200 hover:border-teal-500 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-200/70'
               }
               ${isDisabled ? 'opacity-60 cursor-not-allowed grayscale-[0.5]' : ''}
               animate-in
@@ -108,7 +97,7 @@ export default function ProductGrid({
             <div className={`
               w-full aspect-square rounded-3xl mb-4 flex items-center justify-center
               overflow-hidden relative
-              ${isDark ? 'bg-stone-950' : 'bg-stone-50'}
+              ${isDark ? 'bg-stone-950' : 'bg-slate-100'}
               ${isOutOfStock ? 'animate-pulse-subtle' : ''}
             `}>
               {product.image ? (
@@ -199,7 +188,7 @@ export default function ProductGrid({
                     flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold
                     ${isDark 
                       ? 'bg-stone-900/70 text-stone-200' 
-                      : 'bg-gray-200 text-gray-800'
+                      : 'bg-slate-100 text-slate-700'
                     }
                   `}>
                     <span>

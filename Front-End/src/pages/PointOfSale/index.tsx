@@ -680,7 +680,7 @@ export default function PointOfSale() {
       ? isDark ? 'bg-red-900/15 border-red-800/30' : 'bg-red-50 border border-red-200'
       : isManual
         ? isDark ? 'bg-amber-900/10 border-amber-800/20' : 'bg-blue-50 border border-blue-200'
-        : isDark ? 'bg-stone-900/60 border-stone-800' : 'bg-[#F8FAFC] border border-[#E2E8F0]';
+        : isDark ? 'bg-stone-900/60 border-stone-800' : 'bg-white border border-gray-200 shadow-sm';
 
     return (
       <div
@@ -730,14 +730,14 @@ export default function PointOfSale() {
                       </span>
                     )}
                   </div>
-                  <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
+                  <p className={`font-bold text-sm truncate mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {itemName}
                     {item.description && (
                       <span className="font-normal italic opacity-60"> — {item.description}</span>
                     )}
                   </p>
                   {item.variantName && (
-                    <p className={`text-[10px] font-medium mt-0.5 ${isDark ? 'text-amber-400/80' : 'text-amber-600/80'}`}>
+                    <p className={`text-[10px] font-medium mt-0.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
                       + {item.variantName} ({format(item.variantPrice || 0)})
                     </p>
                   )}
@@ -749,7 +749,7 @@ export default function PointOfSale() {
                     )}
                     <span className={`text-xs font-black ${isPromoItem
                       ? isDark ? 'text-red-400' : 'text-red-600 font-black'
-                      : isDark ? 'text-amber-400' : 'text-teal-700 font-black'
+                      : isDark ? 'text-amber-400' : 'text-teal-800 font-black'
                       }`}>
                       {format(basePrice)}
                     </span>
@@ -769,13 +769,14 @@ export default function PointOfSale() {
                       transition-all active:scale-90 disabled:opacity-30 select-none
                       ${isDark
                         ? 'bg-stone-800 hover:bg-amber-500 hover:text-white text-stone-300'
-                        : 'bg-[#F1F5F9] hover:bg-teal-500 hover:text-white text-[#475569]'}
+                        : 'bg-gray-100 hover:bg-teal-500 hover:text-white text-gray-700'
+                      }
                     `}
                     style={{ minWidth: 32, minHeight: 32 }}
                   >
                     −
                   </button>
-                  <span className={`w-7 text-center text-sm font-black tabular-nums select-none ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
+                  <span className={`w-7 text-center text-sm font-black tabular-nums select-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {item.quantity}
                   </span>
                   <button
@@ -786,7 +787,8 @@ export default function PointOfSale() {
                       transition-all active:scale-90 disabled:opacity-30 select-none
                       ${isDark
                         ? 'bg-stone-800 hover:bg-amber-500 hover:text-white text-stone-300'
-                        : 'bg-[#F1F5F9] hover:bg-teal-500 hover:text-white text-[#475569]'}
+                        : 'bg-gray-100 hover:bg-teal-500 hover:text-white text-gray-700'
+                      }
                     `}
                     style={{ minWidth: 32, minHeight: 32 }}
                   >
@@ -812,7 +814,7 @@ export default function PointOfSale() {
                     transition-all active:scale-90
                     ${isDark
                       ? 'text-stone-700 hover:text-red-400 hover:bg-red-400/10'
-                      : 'text-[#CBD5E1] hover:text-red-500 hover:bg-red-50'}
+                      : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}
                   `}
                 >
                   <Trash2 size={13} />
@@ -983,7 +985,7 @@ export default function PointOfSale() {
                 onClick={quickPayCart}
                 disabled={!canPay}
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wide transition-all duration-200 active:scale-[0.97] ${canPay
-                  ? isDark ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25 hover:bg-amber-600' : 'bg-teal-500 text-white shadow-lg shadow-teal-500/25 hover:bg-teal-600'
+                  ? isDark ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25 hover:bg-amber-600' : 'bg-teal-600 text-white shadow-lg shadow-teal-500/25 hover:bg-teal-700'
                   : isDark ? 'bg-stone-900 text-stone-700 cursor-not-allowed' : 'bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed'
                   }`}
               >
@@ -997,7 +999,7 @@ export default function PointOfSale() {
                   ? isDark ? 'border-stone-900 text-stone-700 cursor-not-allowed' : 'border-[#E2E8F0] text-[#CBD5E1] cursor-not-allowed'
                   : isDark
                     ? 'border-stone-800 text-stone-200 hover:border-amber-500/40 hover:text-amber-400'
-                    : 'border border-[#E2E8F0] text-[#0F172A] hover:border-teal-300 hover:text-teal-700'
+                    : 'bg-white border border-slate-200 text-slate-900 hover:border-teal-300 hover:text-teal-700 shadow-sm'
                   }`}
               >
                 <ReceiptText size={15} />
@@ -1171,14 +1173,14 @@ export default function PointOfSale() {
       {/* ── Panel: MANUAL ITEM ────────────────────────────────────────────── */}
       {panel === 'manual' && (
         <>
-          <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-[#E2E8F0]'}`}>
+          <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3.5 border-b ${isDark ? 'border-stone-900' : 'border-gray-200'}`}>
             <button
-              onClick={() => { resetManualForm(); setPanel('cart'); }}
-              className={`p-2 rounded-xl transition-colors active:scale-90 ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-[#F1F5F9] text-[#475569]'}`}
+                  onClick={() => { resetManualForm(); setPanel('cart'); }}
+                  className={`p-2 rounded-xl transition-colors active:scale-90 ${isDark ? 'hover:bg-stone-900 text-stone-400' : 'hover:bg-gray-50 text-slate-700'}`}
             >
               <ArrowLeft size={16} />
             </button>
-            <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
+                <h3 className={`font-black text-sm uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Item Manual
             </h3>
           </div>
@@ -1194,34 +1196,34 @@ export default function PointOfSale() {
                 placeholder="Nama item..."
                 value={manualItemName}
                 onChange={e => setManualItemName(e.target.value)}
-                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
+                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border border-gray-200 text-slate-900 placeholder-slate-400 shadow-sm'}`}
               />
             </div>
             <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Deskripsi (opsional)</label>
+              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-slate-600'}`}>Deskripsi (opsional)</label>
               <input
                 type="text"
                 value={manualItemDescription}
                 onChange={e => setManualItemDescription(e.target.value)}
                 placeholder="e.g. Pedas sekali, Tanpa bawang"
-                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
+                className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border border-gray-200 text-slate-900 placeholder-slate-400 shadow-sm'}`}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Variant</label>
+                <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-slate-600'}`}>Variant</label>
                 <input
                   type="text"
                   placeholder="e.g. Extra Keju"
                   value={manualItemVariantName}
                   onChange={e => setManualItemVariantName(e.target.value)}
-                  className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A] placeholder-[#94A3B8]'}`}
+                  className={`w-full p-3 rounded-2xl border outline-none text-sm transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border border-gray-200 text-slate-900 placeholder-slate-400 shadow-sm'}`}
                 />
               </div>
               <div>
-                <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Harga Variant (Rp)</label>
+                <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-slate-600'}`}>Harga Variant (Rp)</label>
                 <div className="relative">
-                  <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>Rp</span>
+                  <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? 'text-stone-400' : 'text-slate-400'}`}>Rp</span>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -1231,7 +1233,7 @@ export default function PointOfSale() {
                       const raw = e.target.value.replace(/\D/g, '');
                       setManualItemVariantPrice(raw);
                     }}
-                    className={`w-full pl-10 pr-3 py-3 rounded-2xl border outline-none text-sm font-black text-right transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A]'}`}
+                    className={`w-full pl-10 pr-3 py-3 rounded-2xl border outline-none text-sm font-black text-right transition-all focus:ring-2 focus:ring-teal-200/70 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border border-slate-200 text-slate-900 placeholder-slate-500'}`}
                   />
                 </div>
               </div>
@@ -1247,7 +1249,7 @@ export default function PointOfSale() {
                       ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
                       : isDark
                         ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
-                        : 'bg-[#F1F5F9] border border-[#E2E8F0] text-[#475569] hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700'
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 shadow-sm'
                     }`}
                   >
                     {p >= 1000000 ? `${p / 1000000}jt` : `${p / 1000}k`}
@@ -1258,7 +1260,7 @@ export default function PointOfSale() {
             <div>
               <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-amber-400' : 'text-teal-600'}`}>Harga (Rp) *</label>
               <div className="relative">
-                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? 'text-stone-400' : 'text-[#94A3B8]'}`}>Rp</span>
+                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? 'text-stone-400' : 'text-slate-400'}`}>Rp</span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -1268,7 +1270,7 @@ export default function PointOfSale() {
                     const raw = e.target.value.replace(/\D/g, '');
                     setManualItemPrice(raw);
                   }}
-                  className={`w-full pl-10 pr-3 py-3 rounded-2xl border outline-none text-sm font-black text-right transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border-[#E2E8F0] text-[#0F172A]'}`}
+                  className={`w-full pl-10 pr-3 py-3 rounded-2xl border outline-none text-sm font-black text-right transition-all focus:ring-2 focus:ring-teal-500/40 ${isDark ? 'bg-stone-900 border-stone-800 text-white placeholder-stone-500' : 'bg-white border border-gray-200 text-slate-900'}`}
                 />
               </div>
               <div className="flex gap-2 mt-2 overflow-x-auto horizontal-scrollbar-thin pb-1">
@@ -1278,12 +1280,12 @@ export default function PointOfSale() {
                     <button
                       key={p}
                       onClick={() => setManualItemPrice(p.toString())}
-                      className={`flex-shrink-0 px-4 py-2 rounded-2xl text-[10px] font-black transition-all active:scale-95 ${isSelected
-                        ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
-                        : isDark
-                          ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
-                          : 'bg-[#F1F5F9] border border-[#E2E8F0] text-[#475569] hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700'
-                        }`}
+                        className={`flex-shrink-0 px-4 py-2 rounded-2xl text-[10px] font-black transition-all active:scale-95 ${isSelected
+                          ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                          : isDark
+                            ? 'bg-stone-900 border border-stone-800 text-stone-300 hover:border-amber-500/40 hover:text-amber-400'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 shadow-sm'
+                          }`}
                     >
                       {p >= 1000000 ? `${p / 1000000}jt` : `${p / 1000}k`}
                     </button>
@@ -1291,20 +1293,20 @@ export default function PointOfSale() {
                 })}
               </div>
             </div>
-            <div>
-              <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-[#94A3B8]'}`}>Jumlah</label>
-              <div className={`flex items-center gap-3 p-1 rounded-2xl w-fit ${isDark ? 'bg-stone-900' : 'bg-[#F1F5F9]'}`}>
-                <button
-                  onClick={() => setManualItemQuantity(q => Math.max(1, q - 1))}
-                  className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-[#475569] hover:bg-teal-500 hover:text-white shadow-sm'}`}
-                >−</button>
-                <span className={`w-10 text-center font-black text-base ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>{manualItemQuantity}</span>
-                <button
-                  onClick={() => setManualItemQuantity(q => q + 1)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-[#475569] hover:bg-teal-500 hover:text-white shadow-sm'}`}
-                >+</button>
+              <div>
+                <label className={`text-[10px] font-black uppercase block mb-1.5 ${isDark ? 'text-stone-500' : 'text-slate-600'}`}>Jumlah</label>
+                <div className={`flex items-center gap-3 p-1 rounded-2xl w-fit ${isDark ? 'bg-stone-900' : 'bg-white border border-gray-200'}`}>
+                  <button
+                    onClick={() => setManualItemQuantity(q => Math.max(1, q - 1))}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-slate-700 hover:bg-teal-500 hover:text-white shadow-sm'}`}
+                  >−</button>
+                  <span className={`w-10 text-center font-black text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>{manualItemQuantity}</span>
+                  <button
+                    onClick={() => setManualItemQuantity(q => q + 1)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-lg transition-all active:scale-90 ${isDark ? 'bg-stone-800 text-stone-200 hover:bg-amber-500 hover:text-white' : 'bg-white text-slate-700 hover:bg-teal-500 hover:text-white shadow-sm'}`}
+                  >+</button>
+                </div>
               </div>
-            </div>
             {manualItemPrice && Number(manualItemPrice) > 0 && (
               <div className={`flex items-center justify-between p-3 rounded-2xl ${isDark ? 'bg-amber-900/20 border border-amber-800/30' : 'bg-[#F0FDFA] border border-[#99F6E4]'}`}>
                 <span className={`text-xs font-bold ${isDark ? 'text-amber-400' : 'text-teal-700'}`}>Total ({manualItemQuantity}×)</span>
@@ -1419,7 +1421,7 @@ export default function PointOfSale() {
                     placeholder="Cari menu..."
                     className={`w-full pl-10 pr-4 py-3 min-h-[44px] rounded-2xl border-2 outline-none text-sm transition-all shadow-sm ${isDark
                       ? 'bg-stone-900 border-stone-800 text-white focus:border-amber-500'
-                      : 'bg-white border-[#CBD5E1] text-[#0F172A] placeholder-[#64748B] focus:border-teal-500'
+                      : 'bg-white border-slate-200 text-slate-900 placeholder-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-200/70'
                       }`}
                     value={search}
                     onChange={e => setSearch(e.target.value)}

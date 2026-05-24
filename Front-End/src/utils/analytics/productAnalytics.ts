@@ -79,8 +79,6 @@ export function getBestSellersByPeriod(
         const cutoffDate = new Date(startOfToday);
         cutoffDate.setDate(startOfToday.getDate() - (periodDays - 1));
 
-        console.log(`Filtering from: ${cutoffDate.toLocaleString('id-ID')}`); // Pastikan muncul jam 00:00
-
         const recentTransactions = validTransactions.filter(t => {
           const transactionDate = safeParseDate(t.date);
           return transactionDate >= cutoffDate;
@@ -319,8 +317,9 @@ function calculateRecentSales(
   transactions: Transaction[],
   days: number
 ): number {
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - days);
+  const now = new Date();
+  const cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  cutoffDate.setDate(cutoffDate.getDate() - (days - 1));
   
   return transactions
     .filter(t => safeParseDate(t.date) >= cutoffDate)

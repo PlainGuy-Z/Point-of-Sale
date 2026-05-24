@@ -40,7 +40,7 @@ export function MobileProductCard({ product, isDark, onAdd, rank, totalSold = 0 
       className={`min-h-[280px] flex flex-col justify-between rounded-2xl overflow-hidden border transition-all ${
         isDark 
           ? 'bg-stone-950 border-stone-800' 
-          : 'bg-white border-[#E2E8F0] shadow-sm hover:shadow-md hover:border-teal-200'
+          : 'bg-white border-slate-200 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.16)] hover:shadow-[0_16px_44px_-24px_rgba(15,23,42,0.12)] hover:border-teal-300'
       } shadow-black/5`}
     >
       <div className={`relative h-[110px] ${isDark ? 'bg-stone-800' : 'bg-[#F1F5F9]'}`}>

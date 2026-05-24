@@ -16,6 +16,11 @@ function fmt(n: number): string {
   return String(Math.round(n));
 }
 
+function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 const PRESETS: { key: PresetKey; label: string }[] = [
   { key: 'today', label: 'Hari Ini' },
   { key: 'yesterday', label: 'Kemarin' },
@@ -37,8 +42,8 @@ export default function SalesReport() {
   const [txPage, setTxPage] = useState(1);
   const [expandedTx, setExpandedTx] = useState<string | null>(null);
 
-  const cStart = useMemo(() => customStart ? new Date(customStart) : undefined, [customStart]);
-  const cEnd = useMemo(() => customEnd ? new Date(customEnd) : undefined, [customEnd]);
+  const cStart = useMemo(() => customStart ? parseLocalDate(customStart) : undefined, [customStart]);
+  const cEnd = useMemo(() => customEnd ? parseLocalDate(customEnd) : undefined, [customEnd]);
 
   const {
     filtered, summary, isSingleDay, hourlyData, dailyData, peakHour,
