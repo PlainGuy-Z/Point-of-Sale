@@ -27,15 +27,30 @@ export function usePrinter() {
     try {
       const method = settings?.print_method || 'browser'
       const paperSize = (settings?.receipt_paper_size || '80mm') as '58mm'|'80mm'
+      console.log('[usePrinter] print method:', method)
       
       if (method === 'rawbt' && settings?.rawbt_ip) {
         const content = buildReceipt({ ...data, paperSize })
+        console.log('[usePrinter] forwarding to RawBT IP:', settings.rawbt_ip)
         await printerService.printRawBT(settings.rawbt_ip, content)
       } else if (method === 'rawbt_intent') {
         const content = buildReceipt({ ...data, paperSize })
         const url = receiptToIntentUrl(content)
-        window.location.href = url
+        console.log('[usePrinter] intent URL generated:', url.slice(0, 120) + (url.length>120? '...':''))
+        try {
+          const opened = window.open(url)
+          if (!opened) {
+            console.error('[usePrinter] failed to open intent (popup blocked)')
+            throw new Error('INTENT_OPEN_FAILED')
+          }
+          console.log('[usePrinter] intent opened successfully')
+        } catch (err) {
+          console.error('[usePrinter] error opening intent:', err)
+          // Rethrow so callers can handle fallback UI
+          throw err
+        }
       } else {
+        console.log('[usePrinter] using browser print')
         window.print()
       }
     } finally {

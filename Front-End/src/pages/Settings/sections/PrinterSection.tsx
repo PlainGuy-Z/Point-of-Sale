@@ -27,6 +27,7 @@ import { usePrinter } from '../../../hooks/usePrinter';
 import { useToast } from '../../../hooks/useToast';
 import SettingsCard from '../components/SettingsCard';
 import SettingsInput from '../components/SettingsInput';
+import { buildReceipt, receiptToIntentUrl, type ReceiptData } from '../../../utils/escpos';
 
 export default function PrinterSection() {
   const { theme } = useTheme();
@@ -106,6 +107,49 @@ export default function PrinterSection() {
     }
     return isDark ? 'border-stone-800 hover:border-stone-700' : 'border-gray-200 hover:border-gray-300';
   };
+
+  const onTestIntent = async () => {
+    // Build same test data as Test Print
+    const data: ReceiptData = {
+      shopName: settings?.shop_name || 'SmartPOS',
+      shopAddress: settings?.address,
+      shopPhone: settings?.phone,
+      cashierName: 'System Test',
+      transactionId: `TEST-${Date.now()}`,
+      createdAt: new Date(),
+      orderType: 'dine_in',
+      items: [
+        { name: 'Test Americano', quantity: 1, price: 25000, subtotal: 25000 },
+        { name: 'Test Caffe Latte', quantity: 2, price: 28000, subtotal: 56000 }
+      ],
+      subtotal: 81000,
+      tax: localSettings.receipt_show_tax ? 8910 : 0,
+      taxRate: 11,
+      grandTotal: localSettings.receipt_show_tax ? 89910 : 81000,
+      paymentMethod: 'cash',
+      receiptFooter: localSettings.receipt_footer,
+      paperSize: localSettings.receipt_paper_size as '58mm' | '80mm'
+    }
+
+    try {
+      console.log('[PrinterSection] Test Intent: building content')
+      const content = buildReceipt(data)
+      const url = receiptToIntentUrl(content)
+      console.log('[PrinterSection] Test Intent URL created:', url.slice(0,120) + (url.length>120? '...':''))
+      const opened = window.open(url)
+      if (!opened) {
+        console.error('[PrinterSection] Failed to open intent (popup blocked)')
+        showToast('Gagal membuka intent. Pastikan RawBT terinstall dan service aktif.', 'error')
+        const tryFallback = window.confirm('Gagal membuka RawBT intent. Ingin mencoba cetak via browser sebagai fallback?')
+        if (tryFallback) window.print()
+        return
+      }
+      showToast('Intent dikirim ke RawBT. Periksa aplikasi RawBT pada perangkat Android.', 'success')
+    } catch (err) {
+      console.error('[PrinterSection] Error creating/launching intent:', err)
+      showToast('Gagal membuat atau membuka intent. Pastikan RawBT terinstall.', 'error')
+    }
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto pb-24">
@@ -465,7 +509,21 @@ export default function PrinterSection() {
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          {localSettings.print_method !== 'browser' && (
+          {localSettings.print_method === 'rawbt_intent' ? (
+            <button
+              type="button"
+              onClick={onTestIntent}
+              disabled={isPrinting}
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold border shadow-sm transition-all active:scale-95 ${
+                isDark 
+                  ? 'border-stone-700 text-stone-200 hover:bg-stone-800' 
+                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {isPrinting ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
+              Test Print Android (RawBT Intent)
+            </button>
+          ) : localSettings.print_method === 'rawbt' ? (
             <button
               type="button"
               onClick={() => {
@@ -500,7 +558,7 @@ export default function PrinterSection() {
               {isPrinting ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
               Test Print
             </button>
-          )}
+          ) : null}
 
           <button
             type="button"

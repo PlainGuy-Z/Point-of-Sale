@@ -27,14 +27,18 @@ printerRouter.post('/test', validateBody(TestSchema),
       'Printer terhubung!\n\n\n' +
       '\x1D\x56\x41'                     // Cut paper
     
+    console.log('[printer/test] attempting POST to RawBT', { ip, url })
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: testContent,
       signal: AbortSignal.timeout(5000),  // 5s timeout
     })
-    
+    console.log('[printer/test] RawBT response status:', response.status)
     if (!response.ok) {
+      let bodyText = ''
+      try { bodyText = await response.text() } catch (_) { /* ignore */ }
+      console.error('[printer/test] RawBT returned error body:', bodyText)
       throw new HttpError(502, 'PRINTER_ERROR', 
         'RawBT merespons dengan error')
     }
@@ -59,19 +63,24 @@ printerRouter.post('/print', validateBody(PrintSchema),
     const targetIp = ip.includes(':') ? ip : `${ip}:40213`
     const url = `http://${targetIp}/rawbt`
     
+    console.log('[printer/print] forwarding print to RawBT', { ip, url })
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: content,
       signal: AbortSignal.timeout(10000),
     })
-    
+    console.log('[printer/print] RawBT response status:', response.status)
     if (!response.ok) {
+      let bodyText = ''
+      try { bodyText = await response.text() } catch (_) { /* ignore */ }
+      console.error('[printer/print] RawBT returned error body:', bodyText)
       throw new HttpError(502, 'PRINTER_ERROR', 'Gagal mengirim ke printer')
     }
     
     res.json({ success: true })
   } catch (err: any) {
+    console.error('[printer/print] error sending to RawBT:', err?.stack || err)
     if (err.name === 'TimeoutError') {
       next(new HttpError(503, 'PRINTER_TIMEOUT', 'Printer timeout'))
       return
