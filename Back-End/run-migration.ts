@@ -12,8 +12,10 @@ const pool = new Pool({
 
 async function main() {
   try {
-    const sql = fs.readFileSync(path.join(process.cwd(), 'migrations', 'sprint6-settings.sql'), 'utf-8');
-    console.log('Running migration...');
+    const migrationFile = process.argv[2] || 'migrations/sprint6-settings.sql';
+    const filePath = path.join(process.cwd(), migrationFile);
+    const sql = fs.readFileSync(filePath, 'utf-8');
+    console.log(`Running migration: ${migrationFile}`);
     await pool.query(sql);
     console.log('Migration successful!');
   } catch (err) {

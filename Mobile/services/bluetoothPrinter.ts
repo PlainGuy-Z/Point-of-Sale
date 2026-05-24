@@ -22,8 +22,14 @@ export const bluetoothPrinter = {
     });
   },
 
-  saveDevice: async (device: BluetoothDevice) => {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(device));
+  saveDevice: async (device: BluetoothDevice): Promise<boolean> => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(device));
+      return true;
+    } catch (err) {
+      console.error('Failed saving selected printer:', err);
+      return false;
+    }
   },
 
   getSavedDevice: async (): Promise<BluetoothDevice | null> => {

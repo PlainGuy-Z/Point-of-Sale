@@ -110,7 +110,7 @@ export default function CashierSettings() {
           {showDevices && devices.length > 0 && (
             <View style={{ gap: 6, marginBottom: 12 }}>
               {devices.map(d => (
-                <TouchableOpacity key={d.address} onPress={() => { selectDevice(d); setShowDevices(false); }}
+                <TouchableOpacity key={d.address} onPress={async () => { const ok = await selectDevice(d); setShowDevices(false); if (!ok) Alert.alert('Gagal', 'Gagal menyimpan pengaturan printer.'); }}
                   style={{
                     backgroundColor: c.bgInput, borderRadius: 10, padding: 10,
                     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -129,7 +129,7 @@ export default function CashierSettings() {
           <Text style={{ color: c.textSecondary, fontSize: 11, fontWeight: '600', marginBottom: 6 }}>Ukuran Kertas</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {(['58mm', '80mm'] as const).map(size => (
-              <TouchableOpacity key={size} onPress={() => changePaperSize(size)} style={{
+              <TouchableOpacity key={size} onPress={async () => { const ok = await changePaperSize(size); if (!ok) Alert.alert('Gagal', 'Gagal menyimpan ukuran kertas.'); }} style={{
                 flex: 1, backgroundColor: paperSize === size ? c.accent : c.bgInput,
                 borderRadius: 10, paddingVertical: 10, alignItems: 'center',
               }}>

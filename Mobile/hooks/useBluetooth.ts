@@ -29,15 +29,35 @@ export function useBluetooth() {
     }
   }, []);
 
-  const selectDevice = useCallback(async (device: BluetoothDevice) => {
+  const selectDevice = useCallback(async (device: BluetoothDevice): Promise<boolean> => {
+    const prev = selectedDevice;
     setSelectedDevice(device);
-    await bluetoothPrinter.saveDevice(device);
-  }, []);
+    try {
+      const ok = await bluetoothPrinter.saveDevice(device);
+      if (!ok) {
+        setSelectedDevice(prev ?? null);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error saving device:', err);
+      setSelectedDevice(prev ?? null);
+      return false;
+    }
+  }, [selectedDevice]);
 
-  const changePaperSize = useCallback(async (size: '58mm' | '80mm') => {
+  const changePaperSize = useCallback(async (size: '58mm' | '80mm'): Promise<boolean> => {
+    const prev = paperSize;
     setPaperSize(size);
-    await AsyncStorage.setItem('paper_size', size);
-  }, []);
+    try {
+      await AsyncStorage.setItem('paper_size', size);
+      return true;
+    } catch (err) {
+      console.error('Failed saving paper size:', err);
+      setPaperSize(prev);
+      return false;
+    }
+  }, [paperSize]);
 
   const testPrint = useCallback(async () => {
     if (!selectedDevice) return;

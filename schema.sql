@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS coffeepos.shop_settings (
   auto_disable_zero_stock   BOOLEAN DEFAULT false,
   created_at                TIMESTAMPTZ DEFAULT now(),
   updated_at                TIMESTAMPTZ DEFAULT now(),
-  print_method              TEXT DEFAULT 'browser' CHECK (print_method IN ('browser', 'rawbt', 'network')),
+  print_method              TEXT DEFAULT 'browser' CHECK (print_method IN ('browser', 'rawbt', 'network', 'rawbt_intent')),
   rawbt_ip                  TEXT,
   currency_format           TEXT DEFAULT 'Rp' CHECK (currency_format IN ('Rp', 'IDR')),
   date_format               TEXT DEFAULT 'DD/MM/YYYY' CHECK (date_format IN ('DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD')),

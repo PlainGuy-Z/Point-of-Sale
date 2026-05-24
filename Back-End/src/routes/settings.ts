@@ -97,7 +97,7 @@ settingsRouter.put('/', async (req: Request, res: Response): Promise<void> => {
     }
 
     const body = updateSettingsSchema.parse(req.body);
-    
+
     await pool.query('BEGIN');
 
     // Update shop name and slug if provided
