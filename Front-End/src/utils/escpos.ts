@@ -147,7 +147,42 @@ export function buildReceipt(data: ReceiptData): string {
 }
 
 export function receiptToIntentUrl(content: string): string {
-  // Convert string to base64, then URI-encode it to ensure the custom scheme works in browsers.
-  const base64 = btoa(unescape(encodeURIComponent(content)))
-  return `rawbt:base64,${encodeURIComponent(base64)}`
+  // Convert content (UTF-8 + ESC/POS bytes) to a proper base64 string
+  // 1) Encode to UTF-8 bytes
+  const encoder = new TextEncoder()
+  const bytes = encoder.encode(content)
+  // 2) Convert bytes to binary string suitable for btoa
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  // 3) Create base64
+  let base64 = ''
+  try {
+    base64 = btoa(binary)
+  } catch (err) {
+    // Fallback: try previous UTF-8 trick
+    base64 = btoa(unescape(encodeURIComponent(content)))
+  }
+
+  // Clean base64: remove whitespace/newlines and any accidental data URI prefixes
+  base64 = base64.replace(/\s+/g, '')
+  if (base64.startsWith('data:')) {
+    const comma = base64.indexOf(',')
+    if (comma !== -1) base64 = base64.slice(comma + 1)
+  }
+
+  // Debug logs to help diagnose "wrong base64" issues in RawBT
+  try {
+    // Raw content length (characters), base64 length, first 50 chars, and intent prefix
+    console.log('[escpos] raw content length:', content.length)
+    console.log('[escpos] base64 length:', base64.length)
+    console.log('[escpos] base64 start(50):', base64.slice(0, 50))
+    console.log('[escpos] intent url prefix:', 'rawbt:base64,' + base64.slice(0, 20))
+  } catch (e) {
+    // ignore logging errors
+  }
+
+  // Return pure base64 (do NOT URI-encode) so RawBT receives raw Base64 characters like + / =
+  return `rawbt:base64,${base64}`
 }

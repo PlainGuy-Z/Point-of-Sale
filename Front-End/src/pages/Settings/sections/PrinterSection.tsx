@@ -109,34 +109,13 @@ export default function PrinterSection() {
   };
 
   const onTestIntent = async () => {
-    // Build same test data as Test Print
-    const data: ReceiptData = {
-      shopName: settings?.shop_name || 'SmartPOS',
-      shopAddress: settings?.address,
-      shopPhone: settings?.phone,
-      cashierName: 'System Test',
-      transactionId: `TEST-${Date.now()}`,
-      createdAt: new Date(),
-      orderType: 'dine_in',
-      items: [
-        { name: 'Test Americano', quantity: 1, price: 25000, subtotal: 25000 },
-        { name: 'Test Caffe Latte', quantity: 2, price: 28000, subtotal: 56000 }
-      ],
-      subtotal: 81000,
-      tax: localSettings.receipt_show_tax ? 8910 : 0,
-      taxRate: 11,
-      grandTotal: localSettings.receipt_show_tax ? 89910 : 81000,
-      paymentMethod: 'cash',
-      receiptFooter: localSettings.receipt_footer,
-      paperSize: localSettings.receipt_paper_size as '58mm' | '80mm'
-    }
-
+    // First send a very simple test payload to quickly validate RawBT base64 handling
+    const simple = 'TEST RAWBT\nHello SmartPOS\n\n\n'
     try {
-      console.log('[PrinterSection] Test Intent: building content')
-      const content = buildReceipt(data)
-      const url = receiptToIntentUrl(content)
-      console.log('[PrinterSection] Test Intent URL created:', url.slice(0,120) + (url.length>120? '...':''))
-      const opened = window.open(url)
+      console.log('[PrinterSection] Test Intent: sending simple test payload')
+      const testUrl = receiptToIntentUrl(simple)
+      console.log('[PrinterSection] Test Intent URL (simple):', testUrl.slice(0, 120) + (testUrl.length > 120 ? '...' : ''))
+      const opened = window.open(testUrl)
       if (!opened) {
         console.error('[PrinterSection] Failed to open intent (popup blocked)')
         showToast('Gagal membuka intent. Pastikan RawBT terinstall dan service aktif.', 'error')
@@ -144,9 +123,9 @@ export default function PrinterSection() {
         if (tryFallback) window.print()
         return
       }
-      showToast('Intent dikirim ke RawBT. Periksa aplikasi RawBT pada perangkat Android.', 'success')
+      showToast('Test print intent dikirim ke RawBT. Periksa aplikasi RawBT pada perangkat Android.', 'success')
     } catch (err) {
-      console.error('[PrinterSection] Error creating/launching intent:', err)
+      console.error('[PrinterSection] Error creating/launching simple intent:', err)
       showToast('Gagal membuat atau membuka intent. Pastikan RawBT terinstall.', 'error')
     }
   }
