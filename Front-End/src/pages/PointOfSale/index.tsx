@@ -49,11 +49,32 @@ const useResponsive = () => {
     
     handler(); // Init
     
+    // Use both resize/orientationchange and matchMedia for more reliable detection
     window.addEventListener('resize', handler);
     window.addEventListener('orientationchange', handler);
+
+    let mql: MediaQueryList | null = null
+    try {
+      if (typeof window !== 'undefined' && 'matchMedia' in window) {
+        mql = window.matchMedia('(orientation: landscape)')
+        const mmHandler = (ev: MediaQueryListEvent) => handler()
+        // Older API uses addListener
+        if (mql.addEventListener) mql.addEventListener('change', mmHandler)
+        else if ((mql as any).addListener) (mql as any).addListener(mmHandler)
+      }
+    } catch (e) {
+      // ignore
+    }
+
     return () => {
       window.removeEventListener('resize', handler);
       window.removeEventListener('orientationchange', handler);
+      if (mql) {
+        try {
+          if (mql.removeEventListener) mql.removeEventListener('change', handler as any)
+          else if ((mql as any).removeListener) (mql as any).removeListener(handler as any)
+        } catch (e) {}
+      }
     };
   }, []);
 

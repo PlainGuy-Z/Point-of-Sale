@@ -54,11 +54,31 @@ export default function Layout() {
     
     handleResize(); // Init on mount
 
+    // Use both resize/orientationchange and matchMedia for more reliable detection
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
+
+    let mql: MediaQueryList | null = null
+    try {
+      if (typeof window !== 'undefined' && 'matchMedia' in window) {
+        mql = window.matchMedia('(orientation: landscape)')
+        const mmHandler = (_ev: MediaQueryListEvent) => handleResize()
+        if (mql.addEventListener) mql.addEventListener('change', mmHandler)
+        else if ((mql as any).addListener) (mql as any).addListener(mmHandler)
+      }
+    } catch (e) {
+      // ignore
+    }
+
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
+      if (mql) {
+        try {
+          if (mql.removeEventListener) mql.removeEventListener('change', handleResize as any)
+          else if ((mql as any).removeListener) (mql as any).removeListener(handleResize as any)
+        } catch (e) {}
+      }
     };
   }, [isMobileOpen]);
 
