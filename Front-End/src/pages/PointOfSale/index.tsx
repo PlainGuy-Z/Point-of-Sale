@@ -569,6 +569,7 @@ export default function PointOfSale() {
 
   const handlePrintReceipt = useCallback(async (tx: Transaction) => {
     const method = settings?.print_method || 'browser';
+    console.log('[POS] handlePrintReceipt called, selected print method:', method);
 
     if ((method === 'rawbt' && settings?.rawbt_ip) || method === 'rawbt_intent') {
       try {
@@ -600,11 +601,22 @@ export default function PointOfSale() {
           paperSize: (settings?.receipt_paper_size || '58mm') as '58mm' | '80mm'
         });
       } catch (err) {
-        console.error('RawBT print failed, fallback to browser:', err);
-        window.print();
+        if (method === 'rawbt_intent') {
+          // rawbt_intent: NEVER fallback to window.print()
+          console.error('[POS] RawBT intent print failed — NOT falling back to browser.', err);
+          console.warn('[POS] Reason: print_method is rawbt_intent, browser fallback is disabled');
+        } else {
+          // rawbt network proxy failed — fallback to browser
+          console.error('[POS] RawBT network print failed, falling back to browser print:', err);
+          console.log('[POS] fallback browser print triggered. Reason: rawbt network proxy failed');
+          window.print();
+        }
       }
-    } else {
+    } else if (method === 'browser') {
+      console.log('[POS] using browser print (window.print)');
       window.print();
+    } else {
+      console.warn('[POS] unknown print method, skipping print:', method);
     }
   }, [settings, rawPrint, user]);
 
@@ -624,9 +636,10 @@ export default function PointOfSale() {
       setSheetState('collapsed');
       await refreshShift();
 
-      // ✅ AUTO PRINT
+      // ✅ AUTO PRINT — call directly (no setTimeout) so Android treats it as user action
       if (settings?.receipt_auto_print) {
-        setTimeout(() => handlePrintReceipt(transaction), 100);
+        console.log('[POS] checkout auto print triggered, print method:', settings?.print_method || 'browser');
+        handlePrintReceipt(transaction);
       }
     } catch (error) {
       const err = error as unknown;

@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useSettings } from '../../../contexts/SettingsContext';
-import { usePrinter } from '../../../hooks/usePrinter';
+import { usePrinter, openIntentUrl } from '../../../hooks/usePrinter';
 import { useToast } from '../../../hooks/useToast';
 import SettingsCard from '../components/SettingsCard';
 import SettingsInput from '../components/SettingsInput';
@@ -109,23 +109,22 @@ export default function PrinterSection() {
   };
 
   const onTestIntent = async () => {
-    // First send a very simple test payload to quickly validate RawBT base64 handling
+    // Use the same RawBT intent mechanism as checkout auto-print
     const simple = 'TEST RAWBT\nHello SmartPOS\n\n\n'
     try {
-      console.log('[PrinterSection] Test Intent: sending simple test payload')
+      console.log('[PrinterSection] Test Intent: generating rawbt intent')
       const testUrl = receiptToIntentUrl(simple)
-      console.log('[PrinterSection] Test Intent URL (simple):', testUrl.slice(0, 120) + (testUrl.length > 120 ? '...' : ''))
-      const opened = window.open(testUrl)
+      console.log('[PrinterSection] rawbt intent generated, url length:', testUrl.length)
+      const opened = openIntentUrl(testUrl)
       if (!opened) {
-        console.error('[PrinterSection] Failed to open intent (popup blocked)')
+        console.error('[PrinterSection] rawbt intent open failed — all strategies exhausted')
         showToast('Gagal membuka intent. Pastikan RawBT terinstall dan service aktif.', 'error')
-        const tryFallback = window.confirm('Gagal membuka RawBT intent. Ingin mencoba cetak via browser sebagai fallback?')
-        if (tryFallback) window.print()
         return
       }
+      console.log('[PrinterSection] rawbt intent opened successfully')
       showToast('Test print intent dikirim ke RawBT. Periksa aplikasi RawBT pada perangkat Android.', 'success')
     } catch (err) {
-      console.error('[PrinterSection] Error creating/launching simple intent:', err)
+      console.error('[PrinterSection] Error creating/launching intent:', err)
       showToast('Gagal membuat atau membuka intent. Pastikan RawBT terinstall.', 'error')
     }
   }

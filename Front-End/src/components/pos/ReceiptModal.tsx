@@ -114,7 +114,14 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
             background: white !important;
             box-shadow: none !important;
             border: none !important;
+            border-radius: 0 !important;
             font-family: ui-monospace, monospace;
+          }
+          /* FIX: Hapus batasan tinggi agar semua item tercetak lengkap */
+          .print-receipt-area,
+          .print-receipt-area * {
+            max-height: none !important;
+            overflow: visible !important;
           }
           .print-hidden {
             display: none !important;

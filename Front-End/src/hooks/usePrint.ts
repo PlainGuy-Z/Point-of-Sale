@@ -21,8 +21,20 @@ export function usePrint() {
   const { print: rawPrint } = usePrinter();
   const [snap, setSnap] = useState<PrintReceiptSnapshot | null>(null);
 
+  // Browser-only: trigger window.print() when snap is set AND method is browser
   useEffect(() => {
     if (!snap) return undefined;
+    const method = settings?.print_method || 'browser';
+
+    // Only trigger window.print() for browser method
+    if (method !== 'browser') {
+      console.log('[usePrint] snap set but print_method is', method, '— skipping window.print()');
+      // Clear snap after a short delay (no print dialog needed)
+      const clear = window.setTimeout(() => setSnap(null), 500);
+      return () => window.clearTimeout(clear);
+    }
+
+    console.log('[usePrint] browser print triggered via snap');
     const onAfter = () => setSnap(null);
     window.addEventListener('afterprint', onAfter);
     const fallback = window.setTimeout(() => setSnap(null), 5000);
@@ -34,10 +46,11 @@ export function usePrint() {
       window.clearTimeout(fallback);
       window.removeEventListener('afterprint', onAfter);
     };
-  }, [snap]);
+  }, [snap, settings?.print_method]);
 
   const printReceipt = useCallback(async (transaction: HistoryTransaction, shop: ShopMini) => {
     const method = settings?.print_method || 'browser';
+    console.log('[usePrint] printReceipt called, selected print method:', method);
     
     if (method === 'rawbt' || method === 'rawbt_intent') {
       try {
@@ -69,16 +82,25 @@ export function usePrint() {
           paperSize: (settings?.receipt_paper_size || '58mm') as '58mm' | '80mm'
         });
       } catch (err) {
-        console.error('RawBT print failed, falling back to browser:', err);
-        // Fallback to browser if raw print fails
-        setSnap({
-          transaction,
-          shopName: shop.name,
-          shopAddress: shop.address,
-          shopPhone: shop.phone,
-        });
+        if (method === 'rawbt_intent') {
+          // rawbt_intent: NEVER fallback to browser print
+          console.error('[usePrint] RawBT intent print failed — NOT falling back to browser.', err);
+          console.warn('[usePrint] Reason: print_method is rawbt_intent, browser fallback is disabled');
+        } else {
+          // rawbt (network proxy): fallback to browser print
+          console.error('[usePrint] RawBT network print failed, falling back to browser print:', err);
+          console.log('[usePrint] fallback browser print triggered. Reason: rawbt network proxy failed');
+          setSnap({
+            transaction,
+            shopName: shop.name,
+            shopAddress: shop.address,
+            shopPhone: shop.phone,
+          });
+        }
       }
     } else {
+      // browser method
+      console.log('[usePrint] using browser print via snap');
       setSnap({
         transaction,
         shopName: shop.name,
@@ -90,3 +112,4 @@ export function usePrint() {
 
   return { snap, printReceipt };
 }
+

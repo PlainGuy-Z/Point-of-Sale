@@ -1,6 +1,6 @@
 import { appApi } from './appApi'
 
-export type PrintMethod = 'browser' | 'rawbt' | 'network'
+export type PrintMethod = 'browser' | 'rawbt' | 'network' | 'rawbt_intent'
 
 export const printerService = {
 
