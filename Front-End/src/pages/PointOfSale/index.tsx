@@ -583,11 +583,15 @@ export default function PointOfSale() {
           orderType: tx.orderType === 'dine-in' ? 'dine_in' : 'takeaway',
           tableNumber: tx.tableNumber || undefined,
           customerName: tx.customerName || undefined,
+          notes: tx.notes || undefined,
           items: tx.items.map(it => ({
             name: it.name,
             quantity: it.quantity,
             price: it.price,
-            subtotal: it.price * it.quantity
+            subtotal: it.price * it.quantity,
+            description: it.description,
+            variantName: it.variantName,
+            variantPrice: it.variantPrice
           })),
           subtotal: tx.subtotal || tx.total,
           tax: tx.tax || 0,

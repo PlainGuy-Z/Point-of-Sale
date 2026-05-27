@@ -338,11 +338,15 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
                     orderType: transaction.orderType === 'dine-in' ? 'dine_in' : 'takeaway',
                     tableNumber: transaction.tableNumber || undefined,
                     customerName: transaction.customerName || undefined,
+                    notes: transaction.notes || undefined,
                     items: transaction.items.map(it => ({
                       name: it.note || it.name || 'Item',
                       quantity: it.quantity,
                       price: it.price,
-                      subtotal: it.price * it.quantity
+                      subtotal: it.price * it.quantity,
+                      description: it.description,
+                      variantName: it.variantName,
+                      variantPrice: it.variantPrice
                     })),
                     subtotal: transaction.subtotal || transaction.total,
                     tax: transaction.tax || 0,

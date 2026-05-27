@@ -50,6 +50,9 @@ export interface ReceiptData {
     quantity: number
     price: number
     subtotal: number
+    description?: string
+    variantName?: string
+    variantPrice?: number
   }>
   subtotal: number
   tax: number
@@ -61,6 +64,7 @@ export interface ReceiptData {
   change?: number
   receiptFooter?: string
   paperSize: PaperSize
+  notes?: string
 }
 
 export function buildReceipt(data: ReceiptData): string {
@@ -92,6 +96,9 @@ export function buildReceipt(data: ReceiptData): string {
   if (data.customerName) {
     doc += formatTwoColumns('Pelanggan', data.customerName, W) + FEED_LINE
   }
+  if (data.notes) {
+    doc += `Catatan: ${data.notes}`.substring(0, W) + FEED_LINE
+  }
   doc += separator(W, '-') + FEED_LINE
 
   // Items
@@ -102,6 +109,22 @@ export function buildReceipt(data: ReceiptData): string {
     }`
     const subTotal = new Intl.NumberFormat('id-ID').format(item.subtotal)
     doc += formatTwoColumns('  ' + qtyPrice, subTotal, W) + FEED_LINE
+
+    if (item.variantName) {
+      const varPrice = item.variantPrice || 0;
+      const varStr = `  + ${item.variantName}`;
+      if (varPrice > 0) {
+        const varPriceStr = new Intl.NumberFormat('id-ID').format(varPrice);
+        doc += formatTwoColumns(varStr.substring(0, W - varPriceStr.length - 2), varPriceStr, W) + FEED_LINE;
+      } else {
+        doc += varStr.substring(0, W) + FEED_LINE;
+      }
+    }
+    
+    if (item.description) {
+      // ESC 4 enables italics, ESC 5 disables italics
+      doc += ESC + '4' + `  Catatan: ${item.description}`.substring(0, W) + ESC + '5' + FEED_LINE
+    }
   }
   doc += separator(W, '-') + FEED_LINE
 
