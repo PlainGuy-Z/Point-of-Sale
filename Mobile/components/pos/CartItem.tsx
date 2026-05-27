@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Trash2 } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -26,6 +26,9 @@ export default function CartItem({
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
 
+  const { width: ww, height: wh } = useWindowDimensions();
+  const isLandscape = ww > wh;
+
   const isManual = item.productId.startsWith('manual-');
   const isPromoItem = item.isPromo && item.originalPrice;
   const basePrice = item.price + (item.variantPrice || 0);
@@ -43,7 +46,7 @@ export default function CartItem({
       ? isDark ? 'rgba(245,158,11,0.2)' : '#bfdbfe'
       : c.borderLight;
 
-  const renderRightActions = (_progress: Animated.AnimatedInterpolation, _dragX: Animated.AnimatedInterpolation) => (
+  const renderRightActions = (_progress: Animated.AnimatedInterpolation<number>, _dragX: Animated.AnimatedInterpolation<number>) => (
     <TouchableOpacity
       onPress={() => onRemove(index)}
       style={{
@@ -62,9 +65,9 @@ export default function CartItem({
           backgroundColor: cardBg,
           borderWidth: 1,
           borderColor,
-          borderRadius: 16,
-          padding: 14,
-          marginBottom: 8,
+          borderRadius: isLandscape ? 12 : 16,
+          padding: isLandscape ? 10 : 14,
+          marginBottom: isLandscape ? 6 : 8,
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
@@ -101,7 +104,7 @@ export default function CartItem({
           </View>
 
           {/* Name + instruction */}
-          <Text style={{ color: c.text, fontSize: 14, fontWeight: '700' }} numberOfLines={2}>
+          <Text style={{ color: c.text, fontSize: isLandscape ? 12 : 14, fontWeight: '700' }} numberOfLines={2}>
             {item.name || item.note || 'Item'}
             {item.description ? (
               <Text style={{ fontWeight: '400', fontStyle: 'italic', color: c.textSecondary }}>
@@ -126,7 +129,7 @@ export default function CartItem({
             )}
             <Text style={{
               color: isPromoItem ? c.error : c.accent,
-              fontSize: 12, fontWeight: '800',
+              fontSize: isLandscape ? 11 : 12, fontWeight: '800',
             }}>
               {formatRupiah(basePrice)}
             </Text>
@@ -162,12 +165,13 @@ export default function CartItem({
           {/* Line total */}
           <Text style={{
             color: isPromoItem ? c.error : c.accent,
-            fontWeight: '800', fontSize: 14,
+            fontWeight: '800', fontSize: isLandscape ? 12 : 14,
           }}>
             {formatRupiah(lineTotal)}
           </Text>
         </View>
       </View>
     </View>
+    </Swipeable>
   );
 }

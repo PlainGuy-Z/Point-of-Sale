@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView, Switch, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView, Switch, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { ArrowLeft, CreditCard } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
@@ -21,6 +21,18 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment }: Ch
     setOrderType, setTableNumber, setCustomerName, setOrderNote, setApplyTax,
     subtotal, taxAmount, total, cartIsEmpty,
   } = usePOSCart();
+
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  };
+
+  const handleOrderTypeSelect = (type: 'dine-in' | 'take-away') => {
+    dismissKeyboard();
+    setOrderType(type);
+  };
 
   if (cartIsEmpty) return null;
 
@@ -58,7 +70,7 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment }: Ch
               {(['dine-in', 'take-away'] as const).map(type => (
                 <TouchableOpacity
                   key={type}
-                  onPress={() => setOrderType(type)}
+                  onPress={() => handleOrderTypeSelect(type)}
                   style={{
                     flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
                     backgroundColor: checkoutData.orderType === type ? c.accent : c.bgInput,
@@ -87,6 +99,16 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment }: Ch
                   placeholder="Nomor Meja"
                   placeholderTextColor={c.textMuted}
                   keyboardType="number-pad"
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                  onSubmitEditing={dismissKeyboard}
+                  enterKeyHint="done"
+                  onKeyPress={(event: any) => {
+                    if (event.nativeEvent?.key === 'Enter') {
+                      event.preventDefault?.();
+                      dismissKeyboard();
+                    }
+                  }}
                   style={{
                     backgroundColor: c.bgInput, borderWidth: 1, borderColor: c.border,
                     borderRadius: 12, color: c.text, padding: 12, fontSize: 14, marginBottom: 20,
@@ -104,6 +126,16 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment }: Ch
               onChangeText={setCustomerName}
               placeholder="Nama customer"
               placeholderTextColor={c.textMuted}
+              returnKeyType="done"
+              blurOnSubmit={true}
+              onSubmitEditing={dismissKeyboard}
+              enterKeyHint="done"
+              onKeyPress={(event: any) => {
+                if (event.nativeEvent?.key === 'Enter') {
+                  event.preventDefault?.();
+                  dismissKeyboard();
+                }
+              }}
               style={{
                 backgroundColor: c.bgInput, borderWidth: 1, borderColor: c.border,
                 borderRadius: 12, color: c.text, padding: 12, fontSize: 14, marginBottom: 20,

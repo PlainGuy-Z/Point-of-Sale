@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
 import { Coffee, Award, Plus, TrendingUp } from 'lucide-react-native';
 import { formatRupiahShort } from '../../utils/currency';
 import { getEffectivePrice } from '../../utils/priceUtils';
@@ -33,9 +33,12 @@ export default function ProductCard({
   const isPromo = priceInfo.isPromoActive;
   const recentSales = product.recentSalesCount || 0;
 
+  const { width: ww, height: wh } = useWindowDimensions();
+  const isLandscape = ww > wh;
+
   const isCompact = variant === 'compact';
   const cardWidth = isCompact ? 150 : undefined;
-  const imageHeight = isCompact ? 100 : 120;
+  const imageHeight = isCompact ? 100 : (isLandscape ? 90 : 120);
 
   return (
     <TouchableOpacity
@@ -113,8 +116,8 @@ export default function ProductCard({
       </View>
 
       {/* INFO AREA */}
-      <View style={{ padding: isCompact ? 8 : 10 }}>
-        <Text numberOfLines={1} style={{ color: c.text, fontSize: isCompact ? 12 : 13, fontWeight: '700', marginBottom: 2 }}>
+      <View style={{ padding: isCompact ? 8 : (isLandscape ? 8 : 10) }}>
+        <Text numberOfLines={1} style={{ color: c.text, fontSize: isCompact || isLandscape ? 12 : 13, fontWeight: '700', marginBottom: 2 }}>
           {product.name}
         </Text>
         <Text style={{ color: c.textSecondary, fontSize: 9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
@@ -139,7 +142,7 @@ export default function ProductCard({
                 {formatRupiahShort(product.price)}
               </Text>
             )}
-            <Text style={{ color: isPromo ? c.error : c.accent, fontSize: isCompact ? 13 : 14, fontWeight: '900' }}>
+            <Text style={{ color: isPromo ? c.error : c.accent, fontSize: isCompact || isLandscape ? 13 : 14, fontWeight: '900' }}>
               {formatRupiahShort(displayPrice)}
             </Text>
           </View>

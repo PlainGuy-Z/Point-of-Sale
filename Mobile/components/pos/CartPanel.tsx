@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { ShoppingCart, PlusCircle, Trash2, Zap, ReceiptText, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
@@ -23,6 +23,8 @@ export default function CartPanel({
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
+  const { width: ww, height: wh } = useWindowDimensions();
+  const isLandscape = ww > wh;
   const {
     cart, clearCart, updateQuantity, removeAtIndex,
     subtotal, taxAmount, total, cartIsEmpty, totalQuantity,
@@ -33,7 +35,7 @@ export default function CartPanel({
     <View style={{
       flex: 1,
       backgroundColor: c.bgCard,
-      borderRadius: 16,
+      borderRadius: isLandscape ? 12 : 16,
       borderWidth: 1,
       borderColor: c.borderLight,
       overflow: 'hidden',
@@ -41,22 +43,22 @@ export default function CartPanel({
       {/* Header */}
       <View style={{
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingVertical: 14,
+        paddingHorizontal: isLandscape ? 10 : 16, paddingVertical: isLandscape ? 8 : 14,
         borderBottomWidth: 1, borderBottomColor: c.border,
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: isLandscape ? 6 : 10 }}>
           <View style={{
-            width: 32, height: 32, borderRadius: 10,
+            width: isLandscape ? 24 : 32, height: isLandscape ? 24 : 32, borderRadius: isLandscape ? 7 : 10,
             backgroundColor: c.accentBg, alignItems: 'center', justifyContent: 'center',
           }}>
-            <ShoppingCart size={16} color={c.accent} />
+            <ShoppingCart size={isLandscape ? 12 : 16} color={c.accent} />
           </View>
           <View>
-            <Text style={{ color: c.text, fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <Text style={{ color: c.text, fontSize: isLandscape ? 11 : 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Shopping Cart
             </Text>
             {!cartIsEmpty && (
-              <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '600' }}>
+              <Text style={{ color: c.textMuted, fontSize: isLandscape ? 9 : 10, fontWeight: '600' }}>
                 {totalQuantity} item dipilih
               </Text>
             )}
@@ -64,38 +66,38 @@ export default function CartPanel({
         </View>
         {!cartIsEmpty && (
           <TouchableOpacity onPress={clearCart}>
-            <Trash2 size={16} color={c.textMuted} />
+            <Trash2 size={isLandscape ? 13 : 16} color={c.textMuted} />
           </TouchableOpacity>
         )}
       </View>
 
       {/* Content */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: isLandscape ? 8 : 12 }}>
         {cartIsEmpty ? (
           /* Empty state */
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: isLandscape ? 30 : 60 }}>
             <View style={{
-              width: 64, height: 64, borderRadius: 20,
+              width: isLandscape ? 44 : 64, height: isLandscape ? 44 : 64, borderRadius: isLandscape ? 14 : 20,
               backgroundColor: c.accentBg, alignItems: 'center', justifyContent: 'center',
-              marginBottom: 16,
+              marginBottom: isLandscape ? 10 : 16,
             }}>
-              <ShoppingCart size={28} color={c.accent} />
+              <ShoppingCart size={isLandscape ? 20 : 28} color={c.accent} />
             </View>
-            <Text style={{ color: c.text, fontSize: 16, fontWeight: '800', marginBottom: 6 }}>
+            <Text style={{ color: c.text, fontSize: isLandscape ? 13 : 16, fontWeight: '800', marginBottom: 4 }}>
               Keranjang kosong
             </Text>
-            <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'center', maxWidth: 200, marginBottom: 24 }}>
+            <Text style={{ color: c.textMuted, fontSize: isLandscape ? 10 : 12, textAlign: 'center', maxWidth: 200, marginBottom: isLandscape ? 14 : 24 }}>
               Pilih menu untuk memulai transaksi
             </Text>
             <TouchableOpacity
               onPress={onManualItem}
               style={{
-                flexDirection: 'row', alignItems: 'center', gap: 8,
-                backgroundColor: c.accent, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14,
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                backgroundColor: c.accent, paddingHorizontal: isLandscape ? 14 : 20, paddingVertical: isLandscape ? 8 : 12, borderRadius: 12,
               }}
             >
-              <PlusCircle size={14} color={c.textInverse} />
-              <Text style={{ color: c.textInverse, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' }}>
+              <PlusCircle size={isLandscape ? 12 : 14} color={c.textInverse} />
+              <Text style={{ color: c.textInverse, fontSize: isLandscape ? 10 : 12, fontWeight: '900', textTransform: 'uppercase' }}>
                 Item Custom
               </Text>
             </TouchableOpacity>
@@ -106,13 +108,13 @@ export default function CartPanel({
             <TouchableOpacity
               onPress={onManualItem}
               style={{
-                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
                 borderWidth: 1, borderColor: c.border, borderStyle: 'dashed',
-                borderRadius: 14, paddingVertical: 10, marginBottom: 10,
+                borderRadius: 12, paddingVertical: isLandscape ? 6 : 10, marginBottom: isLandscape ? 6 : 10,
               }}
             >
-              <PlusCircle size={13} color={c.textMuted} />
-              <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '600' }}>
+              <PlusCircle size={isLandscape ? 11 : 13} color={c.textMuted} />
+              <Text style={{ color: c.textMuted, fontSize: isLandscape ? 10 : 12, fontWeight: '600' }}>
                 Tambah Item Manual
               </Text>
             </TouchableOpacity>
@@ -136,57 +138,57 @@ export default function CartPanel({
       {!cartIsEmpty && (
         <View style={{
           borderTopWidth: 1, borderTopColor: c.border,
-          padding: 14,
+          padding: isLandscape ? 8 : 14,
         }}>
           {/* Summary */}
-          <View style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ color: c.textSecondary, fontSize: 12 }}>Subtotal</Text>
-              <Text style={{ color: c.text, fontSize: 12, fontWeight: '600' }}>{formatRupiah(subtotal)}</Text>
+          <View style={{ marginBottom: isLandscape ? 6 : 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+              <Text style={{ color: c.textSecondary, fontSize: isLandscape ? 10 : 12 }}>Subtotal</Text>
+              <Text style={{ color: c.text, fontSize: isLandscape ? 10 : 12, fontWeight: '600' }}>{formatRupiah(subtotal)}</Text>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ color: c.textSecondary, fontSize: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+              <Text style={{ color: c.textSecondary, fontSize: isLandscape ? 10 : 12 }}>
                 PPN 11% {!checkoutData.applyTax && '(off)'}
               </Text>
               <Text style={{
                 color: checkoutData.applyTax ? c.text : c.textMuted,
-                fontSize: 12, fontWeight: '600',
+                fontSize: isLandscape ? 10 : 12, fontWeight: '600',
                 textDecorationLine: checkoutData.applyTax ? 'none' : 'line-through',
               }}>
                 {formatRupiah(taxAmount)}
               </Text>
             </View>
             <View style={{
-              height: 1, backgroundColor: c.border, marginVertical: 6,
+              height: 1, backgroundColor: c.border, marginVertical: isLandscape ? 4 : 6,
             }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ color: c.text, fontSize: 16, fontWeight: '900' }}>Total</Text>
-              <Text style={{ color: c.accent, fontSize: 16, fontWeight: '900' }}>{formatRupiah(total)}</Text>
+              <Text style={{ color: c.text, fontSize: isLandscape ? 13 : 16, fontWeight: '900' }}>Total</Text>
+              <Text style={{ color: c.accent, fontSize: isLandscape ? 13 : 16, fontWeight: '900' }}>{formatRupiah(total)}</Text>
             </View>
           </View>
 
           {/* Action buttons */}
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
             <TouchableOpacity
               onPress={onQuickPay}
               style={{
-                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-                backgroundColor: c.accent, borderRadius: 14, paddingVertical: 14,
+                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+                backgroundColor: c.accent, borderRadius: isLandscape ? 10 : 14, paddingVertical: isLandscape ? 9 : 14,
               }}
             >
-              <Zap size={14} color={c.textInverse} />
-              <Text style={{ color: c.textInverse, fontSize: 13, fontWeight: '900' }}>Quick Pay</Text>
+              <Zap size={isLandscape ? 12 : 14} color={c.textInverse} />
+              <Text style={{ color: c.textInverse, fontSize: isLandscape ? 11 : 13, fontWeight: '900' }}>Quick Pay</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onCheckout}
               style={{
-                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-                borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 14,
+                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+                borderWidth: 1, borderColor: c.border, borderRadius: isLandscape ? 10 : 14, paddingVertical: isLandscape ? 9 : 14,
               }}
             >
-              <ReceiptText size={14} color={c.text} />
-              <Text style={{ color: c.text, fontSize: 13, fontWeight: '900' }}>Checkout</Text>
-              <ChevronRight size={12} color={c.textSecondary} />
+              <ReceiptText size={isLandscape ? 12 : 14} color={c.text} />
+              <Text style={{ color: c.text, fontSize: isLandscape ? 11 : 13, fontWeight: '900' }}>Checkout</Text>
+              <ChevronRight size={isLandscape ? 10 : 12} color={c.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>

@@ -330,7 +330,7 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                     : 'from-gray-400 to-gray-500 cursor-not-allowed'
                 }`}
               >
-                <CheckCircle className="w-5 h-5 landscape:w-4 landscape:h-4" />
+                <CheckCircle className="w-5 h-5 landscape:w-4 landscape:h-9" />
                 PROCESS TRANSACTION
               </button>
 

@@ -142,21 +142,21 @@ export default function POSScreen() {
   const renderSearchBar = () => (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: 8,
-      paddingHorizontal: 16, marginBottom: 10, marginTop: 8,
+      paddingHorizontal: isLandscape ? 8 : 16, marginBottom: isLandscape ? 6 : 10, marginTop: isLandscape ? 4 : 8,
     }}>
       <View style={{
         flex: 1, flexDirection: 'row', alignItems: 'center',
         backgroundColor: c.bgCard, borderWidth: 2, borderColor: c.borderLight,
-        borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, gap: 8,
-        maxWidth: isLandscape ? 520 : undefined,
+        borderRadius: 20, paddingHorizontal: isLandscape ? 10 : 14, paddingVertical: isLandscape ? 7 : 10, gap: 8,
+        maxWidth: isLandscape ? 320 : undefined,
       }}>
-        <Search size={16} color={c.textSecondary} strokeWidth={2} />
+        <Search size={isLandscape ? 14 : 16} color={c.textSecondary} strokeWidth={2} />
         <TextInput
           placeholder="Cari menu..."
           placeholderTextColor={c.textMuted}
           value={search}
           onChangeText={setSearch}
-          style={{ flex: 1, color: c.text, fontSize: 14, fontWeight: '500' }}
+          style={{ flex: 1, color: c.text, fontSize: isLandscape ? 12 : 14, fontWeight: '500' }}
         />
       </View>
 
@@ -182,7 +182,7 @@ export default function POSScreen() {
   const renderTrendingBar = () => (
     <View style={{
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: 16, marginBottom: 12, marginTop: 4,
+      paddingHorizontal: isLandscape ? 8 : 16, marginBottom: isLandscape ? 6 : 12, marginTop: isLandscape ? 2 : 4,
     }}>
       {/* Trending selector */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -245,7 +245,7 @@ export default function POSScreen() {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 8 }}
+      contentContainerStyle={{ paddingHorizontal: 8, gap: 6, paddingBottom: 6 }}
     >
       {['Semua', ...(categories || [])].map(cat => {
         const isActive = selectedCategory === cat;
@@ -254,14 +254,14 @@ export default function POSScreen() {
             key={cat}
             onPress={() => setSelectedCategory(cat)}
             style={{
-              paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+              paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
               backgroundColor: isActive ? c.accent : c.bgCard,
               borderWidth: isActive ? 0 : 1, borderColor: c.borderLight,
             }}
           >
             <Text style={{
               color: isActive ? c.textInverse : c.textSecondary,
-              fontSize: 12, fontWeight: isActive ? '900' : '600',
+              fontSize: 11, fontWeight: isActive ? '900' : '600',
             }}>
               {cat}
             </Text>
@@ -411,7 +411,7 @@ export default function POSScreen() {
                   <Text style={{ color: c.accent, fontWeight: '800' }}>Tutup</Text>
                 </TouchableOpacity>
               </View>
-              <ScrollView contentContainerStyle={{ paddingHorizontal: 12 }}>
+              <ScrollView contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 100 }}>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                   {categoryModal.products.map((p) => (
                     <View key={p.id} style={{ width: '50%' }}>
@@ -426,6 +426,8 @@ export default function POSScreen() {
                   ))}
                 </View>
               </ScrollView>
+              {/* FloatingCart inside category modal so user can access cart */}
+              <FloatingCart onPress={() => { setCategoryModal(null); setShowCartModal(true); }} />
             </SafeAreaView>
           </Modal>
         )}
@@ -491,13 +493,13 @@ export default function POSScreen() {
   // ══════════════════════════════════════════════════════════════════════════
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
-      <View style={{ flex: 1, flexDirection: 'row', gap: 12, padding: 12 }}>
+      <View style={{ flex: 1, flexDirection: 'row', gap: 6, padding: 6 }}>
         {/* LEFT — Product Grid */}
         <View style={{ flex: 1, minWidth: 0 }}>
           {/* Header */}
           <Text style={{
-            fontSize: 20, fontWeight: '900', color: c.text, letterSpacing: -0.5,
-            marginBottom: 8, paddingHorizontal: 4,
+            fontSize: 16, fontWeight: '900', color: c.text, letterSpacing: -0.5,
+            marginBottom: 4, paddingHorizontal: 4,
           }}>
             Menu <Text style={{ color: c.accent }}>Explorer</Text>
           </Text>
@@ -511,7 +513,7 @@ export default function POSScreen() {
             data={sortedProducts}
             keyExtractor={item => item.id}
             numColumns={3}
-            contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: 20 }}
+            contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={{ alignItems: 'center', paddingVertical: 60 }}>
@@ -534,7 +536,7 @@ export default function POSScreen() {
         </View>
 
         {/* RIGHT — Cart Panel */}
-        <View style={{ width: windowWidth * 0.28, maxWidth: 320, minWidth: 220 }}>
+        <View style={{ width: windowWidth * 0.24, maxWidth: 260, minWidth: 200 }}>
           <CartPanel
             onManualItem={() => setShowManualModal(true)}
             onEditItem={handleEditItem}

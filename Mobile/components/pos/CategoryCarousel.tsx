@@ -13,7 +13,7 @@ interface CategoryCarouselProps {
   onViewAll?: (carousel: CategoryCarouselData) => void;
 }
 
-export default function CategoryCarousel({ carousel }: CategoryCarouselProps) {
+export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarouselProps) {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
