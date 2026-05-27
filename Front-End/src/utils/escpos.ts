@@ -69,7 +69,7 @@ export interface ReceiptData {
 
 export function buildReceipt(data: ReceiptData): string {
   const W = getLineWidth(data.paperSize)
-  let doc = INIT
+  let doc = '' // Removed INIT to prevent stray characters at the top of the print
 
   // Header
   doc += ALIGN_CENTER
@@ -90,6 +90,11 @@ export function buildReceipt(data: ReceiptData): string {
   doc += formatTwoColumns('Kasir', data.cashierName, W) + FEED_LINE
   doc += formatTwoColumns('No. Trx', 
     data.transactionId.slice(-8).toUpperCase(), W) + FEED_LINE
+
+  // Tipe Pesanan
+  const orderTypeLabel = data.orderType === 'dine_in' ? 'Dine In' : 'Take Away'
+  doc += formatTwoColumns('Tipe Pesanan', orderTypeLabel, W) + FEED_LINE
+
   if (data.tableNumber) {
     doc += formatTwoColumns('Meja', data.tableNumber, W) + FEED_LINE
   }
