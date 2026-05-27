@@ -320,22 +320,26 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
           >
             Salin Struk
           </button>
-          {settings?.print_method === 'rawbt_intent' ? (
-            <a
-              href={(() => {
+          <button
+            onClick={() => {
+              const method = settings?.print_method || 'browser';
+              console.log('[ReceiptModal] Print clicked, method:', method);
+
+              if (method === 'rawbt_intent') {
+                // SYNCHRONOUS — no async/await, preserves user gesture
                 try {
-                  const content = buildReceipt({
+                  const receiptContent = buildReceipt({
                     shopName: settings?.shop_name || 'STORE',
                     shopAddress: settings?.address,
                     shopPhone: settings?.phone,
                     cashierName: transaction.cashierName || 'Kasir',
                     transactionId: transaction.id,
-                    createdAt: transaction.date,
+                    createdAt: transaction.date instanceof Date ? transaction.date : new Date(transaction.date),
                     orderType: transaction.orderType === 'dine-in' ? 'dine_in' : 'takeaway',
                     tableNumber: transaction.tableNumber || undefined,
                     customerName: transaction.customerName || undefined,
                     items: transaction.items.map(it => ({
-                      name: it.name,
+                      name: it.note || it.name || 'Item',
                       quantity: it.quantity,
                       price: it.price,
                       subtotal: it.price * it.quantity
@@ -351,23 +355,27 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
                     receiptFooter: settings?.receipt_footer,
                     paperSize: (settings?.receipt_paper_size || '58mm') as '58mm' | '80mm'
                   });
-                  return receiptToIntentUrl(content);
-                } catch (e) {
-                  return '#';
+                  const intentUrl = receiptToIntentUrl(receiptContent);
+                  console.log('[ReceiptModal] rawbt intent generated, length:', intentUrl.length);
+                  // Navigate synchronously — this IS the user click
+                  window.location.href = intentUrl;
+                  console.log('[ReceiptModal] rawbt intent opened via location.href');
+                } catch (err) {
+                  console.error('[ReceiptModal] rawbt intent error:', err);
+                  alert('Gagal membuat struk untuk RawBT. Periksa console untuk detail.');
                 }
-              })()}
-              className={`flex-1 flex items-center justify-center py-3 text-xs rounded-xl border font-bold transition-all ${isDark ? 'border-amber-500/60 text-amber-500 hover:bg-amber-500 hover:text-stone-900' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm border-teal-700'}`}
-            >
-              Print
-            </a>
-          ) : (
-            <button
-              onClick={onPrint}
-              className={`flex-1 py-3 text-xs rounded-xl border font-bold transition-all ${isDark ? 'border-amber-500/60 text-amber-500 hover:bg-amber-500 hover:text-stone-900' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm border-teal-700'}`}
-            >
-              Print
-            </button>
-          )}
+              } else if (method === 'browser') {
+                console.log('[ReceiptModal] browser print (window.print)');
+                window.print();
+              } else {
+                // rawbt network or other — use the onPrint callback
+                if (onPrint) onPrint();
+              }
+            }}
+            className={`flex-1 py-3 text-xs rounded-xl border font-bold transition-all ${isDark ? 'border-amber-500/60 text-amber-500 hover:bg-amber-500 hover:text-stone-900' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm border-teal-700'}`}
+          >
+            Print
+          </button>
         </div>
       </div>
     </div>
