@@ -12,6 +12,7 @@ interface StatCardProps {
   gradient?: [string, string];
   isDark: boolean;
   style?: any;
+  compact?: boolean;
 }
 
 export default function StatCardRN({
@@ -24,23 +25,24 @@ export default function StatCardRN({
   gradient,
   isDark,
   style,
+  compact = false,
 }: StatCardProps) {
   const getLightIconBg = (t: string) => {
     const tl = t.toLowerCase();
-    if (tl.includes('pendapatan') || tl.includes('revenue')) return '#f0fdf4'; // teal-50 approx
-    if (tl.includes('transaksi')) return '#eff6ff'; // blue-50
-    if (tl.includes('pelanggan')) return '#faf5ff'; // purple-50
-    if (tl.includes('tiket') || tl.includes('rata-rata')) return '#ecfdf5'; // emerald-50
-    return '#f8fafc'; // slate-50
+    if (tl.includes('pendapatan') || tl.includes('revenue')) return '#f0fdf4';
+    if (tl.includes('transaksi')) return '#eff6ff';
+    if (tl.includes('pelanggan')) return '#faf5ff';
+    if (tl.includes('tiket') || tl.includes('rata-rata')) return '#ecfdf5';
+    return '#f8fafc';
   };
 
   const getLightIconColor = (t: string) => {
     const tl = t.toLowerCase();
-    if (tl.includes('pendapatan') || tl.includes('revenue')) return '#0d9488'; // teal-600
-    if (tl.includes('transaksi')) return '#2563eb'; // blue-600
-    if (tl.includes('pelanggan')) return '#9333ea'; // purple-600
-    if (tl.includes('tiket') || tl.includes('rata-rata')) return '#059669'; // emerald-600
-    return '#475569'; // slate-600
+    if (tl.includes('pendapatan') || tl.includes('revenue')) return '#0d9488';
+    if (tl.includes('transaksi')) return '#2563eb';
+    if (tl.includes('pelanggan')) return '#9333ea';
+    if (tl.includes('tiket') || tl.includes('rata-rata')) return '#059669';
+    return '#475569';
   };
 
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
@@ -60,49 +62,30 @@ export default function StatCardRN({
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      className="rounded-3xl border p-5 overflow-hidden"
       style={[{
+        borderRadius: 20,
+        borderWidth: 1,
+        padding: compact ? 14 : 20,
+        overflow: 'hidden',
         backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
         borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
       }, style]}
     >
-      <View className="flex-row items-center justify-between mb-4">
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: compact ? 10 : 16 }}>
         <View style={{
-          padding: 8,
-          borderRadius: 16,
+          padding: compact ? 6 : 8,
+          borderRadius: compact ? 12 : 16,
           backgroundColor: isDark ? '#252525' : getLightIconBg(title),
         }}>
           <View style={{
-            padding: 8,
-            borderRadius: 12,
+            padding: compact ? 6 : 8,
+            borderRadius: compact ? 8 : 12,
             backgroundColor: isDark ? '#111' : '#fff',
           }}>
-            <Icon size={24} color={isDark ? '#d6d3d1' : getLightIconColor(title)} />
+            <Icon size={compact ? 18 : 24} color={isDark ? '#d6d3d1' : getLightIconColor(title)} />
           </View>
         </View>
-      </View>
 
-      <Text style={{
-        fontSize: 28,
-        fontWeight: '900',
-        color: isDark ? '#ffffff' : '#0f172a',
-        letterSpacing: -0.5,
-        marginBottom: 8,
-      }}>
-        {value}
-      </Text>
-
-      <View className="flex-row items-center justify-between gap-2">
-        <Text style={{
-          fontSize: 11,
-          fontWeight: '600',
-          textTransform: 'uppercase',
-          letterSpacing: 0.5,
-          color: isDark ? '#78716c' : '#94a3b8',
-          flex: 1,
-        }} numberOfLines={1}>
-          {title}
-        </Text>
         {trendValue && (
           <View style={{
             flexDirection: 'row',
@@ -115,10 +98,52 @@ export default function StatCardRN({
             borderWidth: 1,
             borderColor: trendBorder,
           }}>
-            <TrendIcon size={12} color={trendColor} />
-            <Text style={{ fontSize: 10, fontWeight: '900', color: trendColor }}>
+            <TrendIcon size={10} color={trendColor} />
+            <Text style={{ fontSize: 9, fontWeight: '900', color: trendColor }}>
               {trendValue}
             </Text>
+          </View>
+        )}
+      </View>
+
+      <Text
+        style={{
+          fontSize: compact ? 20 : 28,
+          fontWeight: '900',
+          color: isDark ? '#ffffff' : '#0f172a',
+          letterSpacing: -0.5,
+          marginBottom: compact ? 6 : 8,
+        }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {value}
+      </Text>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Text style={{
+          fontSize: compact ? 10 : 11,
+          fontWeight: '600',
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+          color: isDark ? '#78716c' : '#94a3b8',
+          flex: 1,
+        }} numberOfLines={1}>
+          {title}
+        </Text>
+        {!trendValue && (
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 3,
+            paddingHorizontal: 6,
+            paddingVertical: 3,
+            borderRadius: 999,
+            backgroundColor: trendBg,
+            borderWidth: 1,
+            borderColor: trendBorder,
+          }}>
+            <TrendIcon size={10} color={trendColor} />
           </View>
         )}
       </View>
@@ -130,7 +155,7 @@ export default function StatCardRN({
       )}
 
       <View style={{
-        marginTop: 16,
+        marginTop: compact ? 10 : 16,
         height: 4,
         borderRadius: 999,
         backgroundColor: isDark ? '#2a2a2a' : '#f1f5f9',

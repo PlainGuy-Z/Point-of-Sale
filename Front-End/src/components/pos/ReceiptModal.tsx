@@ -4,6 +4,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import type { Transaction } from '../../types';
 import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 import { useDateFormatter } from '../../hooks/useDateFormatter';
+import { buildReceipt, receiptToIntentUrl } from '../../utils/escpos';
 
 interface ReceiptTransaction extends Transaction {
   customerName?: string;
@@ -319,12 +320,54 @@ Pembayaran: ${transaction.paymentMethod?.toUpperCase()}
           >
             Salin Struk
           </button>
-          <button
-            onClick={onPrint}
-            className={`flex-1 py-3 text-xs rounded-xl border font-bold transition-all ${isDark ? 'border-amber-500/60 text-amber-500 hover:bg-amber-500 hover:text-stone-900' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm border-teal-700'}`}
-          >
-            Print
-          </button>
+          {settings?.print_method === 'rawbt_intent' ? (
+            <a
+              href={(() => {
+                try {
+                  const content = buildReceipt({
+                    shopName: settings?.shop_name || 'STORE',
+                    shopAddress: settings?.address,
+                    shopPhone: settings?.phone,
+                    cashierName: transaction.cashierName || 'Kasir',
+                    transactionId: transaction.id,
+                    createdAt: transaction.date,
+                    orderType: transaction.orderType === 'dine-in' ? 'dine_in' : 'takeaway',
+                    tableNumber: transaction.tableNumber || undefined,
+                    customerName: transaction.customerName || undefined,
+                    items: transaction.items.map(it => ({
+                      name: it.name,
+                      quantity: it.quantity,
+                      price: it.price,
+                      subtotal: it.price * it.quantity
+                    })),
+                    subtotal: transaction.subtotal || transaction.total,
+                    tax: transaction.tax || 0,
+                    taxRate: transaction.taxRate || 0,
+                    serviceCharge: transaction.service_charge,
+                    grandTotal: transaction.total,
+                    paymentMethod: transaction.paymentMethod,
+                    amountPaid: transaction.cashReceived || undefined,
+                    change: transaction.change || undefined,
+                    receiptFooter: settings?.receipt_footer,
+                    paperSize: (settings?.receipt_paper_size || '58mm') as '58mm' | '80mm'
+                  });
+                  return receiptToIntentUrl(content);
+                } catch (e) {
+                  return '#';
+                }
+              })()}
+              className={`flex-1 flex items-center justify-center py-3 text-xs rounded-xl border font-bold transition-all ${isDark ? 'border-amber-500/60 text-amber-500 hover:bg-amber-500 hover:text-stone-900' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm border-teal-700'}`}
+            >
+              Print
+            </a>
+          ) : (
+            <button
+              onClick={onPrint}
+              className={`flex-1 py-3 text-xs rounded-xl border font-bold transition-all ${isDark ? 'border-amber-500/60 text-amber-500 hover:bg-amber-500 hover:text-stone-900' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm border-teal-700'}`}
+            >
+              Print
+            </button>
+          )}
         </div>
       </div>
     </div>

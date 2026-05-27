@@ -24,7 +24,7 @@ export default function ProductGrid({
   const { transactions } = useApp();
 
   return (
-    <div className={`grid ${isMobileLandscape ? 'grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4'}`}>
+    <div className={`grid ${isMobileLandscape ? 'grid-cols-4 lg:grid-cols-5 gap-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-3'}`}>
       {products.map((product, index) => {
         const isUnavailable = product.isAvailable === false;
         const isOutOfStock = checkOutOfStock(product);
@@ -46,7 +46,7 @@ export default function ProductGrid({
             onClick={() => onAddToCart(product.id)}
             disabled={isDisabled}
             className={`
-              h-full rounded-3xl border p-4 text-left transition-all group relative flex flex-col justify-between overflow-hidden
+              h-full rounded-3xl border p-2.5 md:p-3 text-left transition-all group relative flex flex-col justify-between overflow-hidden
               ${isDark
                 ? 'bg-stone-950 border-stone-800 hover:border-amber-500/40'
                 : 'bg-white border-slate-200 hover:border-teal-500 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-200/70'
@@ -95,7 +95,7 @@ export default function ProductGrid({
 
             {/* Area Gambar Produk */}
             <div className={`
-              w-full aspect-square rounded-3xl mb-4 flex items-center justify-center
+              w-full aspect-[4/3] md:aspect-square rounded-2xl md:rounded-3xl mb-2.5 flex items-center justify-center
               overflow-hidden relative
               ${isDark ? 'bg-stone-950' : 'bg-slate-100'}
               ${isOutOfStock ? 'animate-pulse-subtle' : ''}
@@ -146,7 +146,7 @@ export default function ProductGrid({
               </h3>
               
               <p className={`
-                text-[10px] font-bold uppercase tracking-wider mb-2
+                text-[10px] font-bold uppercase tracking-wider mb-1
                 ${isDark ? 'text-stone-500' : 'text-stone-500 font-bold'}
               `}>
                 {product.category}

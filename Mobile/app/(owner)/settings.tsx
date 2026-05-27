@@ -23,7 +23,7 @@ const settingsItems = [
 export default function OwnerSettings() {
   const router = useRouter();
   const { logout } = useAuth();
-  const { openSidebar } = useSidebar();
+  const { openSidebar, toggleSidebar, isLandscape, isSidebarOpen } = useSidebar();
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
@@ -45,9 +45,11 @@ export default function OwnerSettings() {
           <Settings size={22} color={c.accent} strokeWidth={2} />
           <Text style={{ color: c.text, fontSize: 20, fontWeight: '900' }}>Settings</Text>
         </View>
-        <TouchableOpacity onPress={openSidebar} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Menu size={24} color={c.accent} strokeWidth={2} />
-        </TouchableOpacity>
+        {!isSidebarOpen && (
+          <TouchableOpacity onPress={isLandscape ? toggleSidebar : openSidebar} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Menu size={24} color={c.accent} strokeWidth={2} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 40 }}>

@@ -1,8 +1,9 @@
 import '../global.css';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { AuthProvider } from '../contexts/AuthContext';
 import { AppProvider } from '../contexts/AppContext';
 import { ShiftProvider } from '../contexts/ShiftContext';
@@ -31,6 +32,13 @@ function ThemedStack() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    async function unlockOrientation() {
+      await ScreenOrientation.unlockAsync();
+    }
+    void unlockOrientation();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>

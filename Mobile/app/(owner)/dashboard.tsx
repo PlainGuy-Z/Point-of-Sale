@@ -1,57 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import {
+  View, Text, ScrollView, TouchableOpacity,
+  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Zap, DollarSign, ShoppingCart, Users, TrendingUp } from 'lucide-react-native';
+import {
+  Zap, DollarSign, ShoppingCart, Users, TrendingUp,
+  ChevronLeft, ChevronRight, Menu, Coffee,
+} from 'lucide-react-native';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatRupiah } from '../../utils/currency';
 import { useDashboardMetrics } from '../../hooks/useDashboardMetrics';
+import { useSidebar } from './_layout';
+import { useAuth } from '../../contexts/AuthContext';
 
 import StatCardRN from '../../components/dashboard/StatCardRN';
 import ProfitChartRN from '../../components/dashboard/ProfitChartRN';
 import TopProductsRN from '../../components/dashboard/TopProductsRN';
 import LowStockAlertRN from '../../components/dashboard/LowStockAlertRN';
+import InfoCard from '../../components/dashboard/InfoCard';
 
-function DotIndicator({ count, activeIndex, isDark, accentColor }: any) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 10 }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <View key={i} style={{
-          width: i === activeIndex ? 20 : 6,
-          height: 6, borderRadius: 999,
-          backgroundColor: i === activeIndex
-            ? (accentColor || '#0d9488')
-            : (isDark ? '#44403c' : '#cbd5e1'),
-        }} />
-      ))}
-    </View>
-  );
-}
+/* ─── Section Label ───────────────────────────────────────────────────── */
 
-function PanelSelector({ labels, activeIndex, onSelect, isDark }: any) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 12 }}>
-      {labels.map((label: string, i: number) => (
-        <TouchableOpacity key={label} onPress={() => onSelect(i)}
-          style={{
-            paddingHorizontal: 16, paddingVertical: 6,
-            borderRadius: 999,
-            backgroundColor: i === activeIndex
-              ? '#0d9488' : (isDark ? '#292524' : '#e7e5e4'),
-          }}>
-          <Text style={{
-            fontSize: 11, fontWeight: '600',
-            color: i === activeIndex ? '#fff'
-              : (isDark ? '#78716c' : '#475569'),
-          }}>{label}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-}
-
-function SectionLabel({ children, isDark }: any) {
+function SectionLabel({ children, isDark }: { children: React.ReactNode; isDark: boolean }) {
   return (
     <Text style={{
       fontSize: 11, fontWeight: '700',
@@ -62,170 +35,332 @@ function SectionLabel({ children, isDark }: any) {
   );
 }
 
+/* ─── Dot Indicator ───────────────────────────────────────────────────── */
+
+function DotIndicator({ count, activeIndex, accentColor, isDark }: {
+  count: number; activeIndex: number; accentColor: string; isDark: boolean;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <View key={i} style={{
+          width: i === activeIndex ? 20 : 6,
+          height: 6, borderRadius: 999,
+          backgroundColor: i === activeIndex ? accentColor : (isDark ? '#44403c' : '#cbd5e1'),
+        }} />
+      ))}
+    </View>
+  );
+}
+
+/* ─── Stat Carousel (2 cards per page) ────────────────────────────────── */
+
+interface StatCarouselProps {
+  cards: Array<{
+    title: string;
+    value: string;
+    icon: any;
+    trend: 'up' | 'down' | 'stable';
+    trendValue?: string;
+  }>;
+  isDark: boolean;
+  accentColor: string;
+  pageWidth: number;
+}
+
+function StatCarousel({ cards, isDark, accentColor, pageWidth }: StatCarouselProps) {
+  const scrollRef = useRef<ScrollView>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const GAP = 12;
+  const totalPages = Math.ceil(cards.length / 2);
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / (pageWidth + GAP));
+    setActiveIndex(Math.max(0, Math.min(index, totalPages - 1)));
+  }, [pageWidth, totalPages]);
+
+  // Group cards into pairs
+  const pages: typeof cards[] = [];
+  for (let i = 0; i < cards.length; i += 2) {
+    pages.push(cards.slice(i, i + 2));
+  }
+
+  return (
+    <View>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={pageWidth + GAP}
+        snapToAlignment="start"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ gap: GAP }}
+      >
+        {pages.map((page, pageIndex) => (
+          <View key={pageIndex} style={{ width: pageWidth, flexDirection: 'row', gap: 10 }}>
+            {page.map((card, cardIndex) => (
+              <View key={cardIndex} style={{ flex: 1 }}>
+                <StatCardRN {...card} isDark={isDark} compact />
+              </View>
+            ))}
+          </View>
+        ))}
+      </ScrollView>
+      <DotIndicator count={totalPages} activeIndex={activeIndex} accentColor={accentColor} isDark={isDark} />
+    </View>
+  );
+}
+
+/* ─── Product Carousel (portrait only) ────────────────────────────────── */
+
+interface ProductCarouselProps {
+  topProducts: any[];
+  lowStockProducts: any[];
+  isDark: boolean;
+  accentColor: string;
+  panelWidth: number;
+}
+
+function ProductCarousel({ topProducts, lowStockProducts, isDark, accentColor, panelWidth }: ProductCarouselProps) {
+  const scrollRef = useRef<ScrollView>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const GAP = 12;
+
+  const scrollToIndex = useCallback((index: number) => {
+    scrollRef.current?.scrollTo({ x: index * (panelWidth + GAP), animated: true });
+    setActiveIndex(index);
+  }, [panelWidth]);
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / (panelWidth + GAP));
+    setActiveIndex(Math.max(0, Math.min(index, 1)));
+  }, [panelWidth]);
+
+  return (
+    <View>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={panelWidth + GAP}
+        snapToAlignment="start"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ gap: GAP }}
+      >
+        <View style={{ width: panelWidth }}>
+          <TopProductsRN products={topProducts} title="Produk Terlaris Hari Ini" limit={5} isDark={isDark} />
+        </View>
+        <View style={{ width: panelWidth }}>
+          <LowStockAlertRN products={lowStockProducts} isDark={isDark} onNavigate={() => router.push('/(owner)/products')} />
+        </View>
+      </ScrollView>
+
+      {/* Controls — arrows + pill buttons */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 12 }}>
+        <TouchableOpacity
+          onPress={() => scrollToIndex(0)}
+          disabled={activeIndex === 0}
+          style={{
+            width: 28, height: 28, borderRadius: 999,
+            alignItems: 'center', justifyContent: 'center',
+            backgroundColor: isDark ? '#292524' : '#e7e5e4',
+            opacity: activeIndex === 0 ? 0.35 : 1,
+          }}
+        >
+          <ChevronLeft size={14} color={isDark ? '#d6d3d1' : '#44403c'} />
+        </TouchableOpacity>
+
+        {['Produk Terlaris', 'Peringatan Stok'].map((label, i) => (
+          <TouchableOpacity
+            key={label}
+            onPress={() => scrollToIndex(i)}
+            style={{
+              paddingHorizontal: 14, paddingVertical: 6,
+              borderRadius: 999,
+              backgroundColor: i === activeIndex ? accentColor : (isDark ? '#292524' : '#e7e5e4'),
+            }}
+          >
+            <Text style={{
+              fontSize: 11, fontWeight: '700',
+              color: i === activeIndex ? '#fff' : (isDark ? '#78716c' : '#475569'),
+            }}>{label}</Text>
+          </TouchableOpacity>
+        ))}
+
+        <TouchableOpacity
+          onPress={() => scrollToIndex(1)}
+          disabled={activeIndex === 1}
+          style={{
+            width: 28, height: 28, borderRadius: 999,
+            alignItems: 'center', justifyContent: 'center',
+            backgroundColor: isDark ? '#292524' : '#e7e5e4',
+            opacity: activeIndex === 1 ? 0.35 : 1,
+          }}
+        >
+          <ChevronRight size={14} color={isDark ? '#d6d3d1' : '#44403c'} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+/* ─── Dashboard ────────────────────────────────────────────────────────── */
+
 export default function OwnerDashboard() {
   const { products, transactions, customers, wasteLogs } = useApp();
   const { metrics, topProductsToday, rawData } = useDashboardMetrics(products, transactions, customers, wasteLogs);
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isLandscape = windowWidth > windowHeight;
+  const { user } = useAuth();
 
-  const [isLandscape, setIsLandscape] = useState(
-    Dimensions.get('window').width > Dimensions.get('window').height
-  );
+  // Sidebar context
+  const { openSidebar, toggleSidebar, sidebarWidth, isSidebarOpen } = useSidebar();
 
-  useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) => {
-      setIsLandscape(window.width > window.height);
-    });
-    return () => sub?.remove();
-  }, []);
+  // Device type: tablet if shortest side >= 600
+  const shortSide = Math.min(windowWidth, windowHeight);
+  const isTablet = shortSide >= 600;
 
   const formattedDate = new Intl.DateTimeFormat('id-ID', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta',
+    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Jakarta',
   }).format(new Date());
 
-  const screenWidth = Dimensions.get('window').width;
-  const cardWidth = isLandscape ? (screenWidth - 32 - 16) / 4 : screenWidth - 48; // Portrait carousel
-  const panelWidth = isLandscape ? (screenWidth - 32 - 280 - 12) : screenWidth - 32;
-
-  const [activeCardIndex, setActiveCardIndex] = useState(0);
-  const [activePanelIndex, setActivePanelIndex] = useState(0);
-
-  const handleCardScroll = (event: any) => {
-    const slideSize = event.nativeEvent.layoutMeasurement.width;
-    const index = event.nativeEvent.contentOffset.x / slideSize;
-    setActiveCardIndex(Math.round(index));
-  };
-
-  const handlePanelScroll = (event: any) => {
-    const slideSize = event.nativeEvent.layoutMeasurement.width;
-    const index = event.nativeEvent.contentOffset.x / slideSize;
-    setActivePanelIndex(Math.round(index));
-  };
+  const accentColor = isDark ? '#f59e0b' : '#0d9488';
+  const contentPadding = 16;
+  const availableWidth = windowWidth - contentPadding * 2 - sidebarWidth;
 
   const statCardsData = [
-    { title: "Pendapatan Hari Ini", value: formatRupiah(metrics.todayRevenue), icon: DollarSign, trend: metrics.revenueChange >= 0 ? 'up' : 'down' as any },
-    { title: "Transaksi", value: String(metrics.todayTransactionCount), icon: ShoppingCart, trend: metrics.transactionChange >= 0 ? 'up' : 'down' as any },
-    { title: "Pelanggan Baru", value: String(metrics.newCustomers), icon: Users, trend: metrics.newCustomers > 0 ? 'up' : 'stable' as any },
-    { title: "Rata-rata Tiket", value: formatRupiah(metrics.avgTicket), icon: TrendingUp, trend: metrics.avgTicket > 30000 ? 'up' : 'stable' as any },
+    {
+      title: 'Pendapatan Hari Ini',
+      value: formatRupiah(metrics.todayRevenue),
+      icon: DollarSign,
+      trend: (metrics.revenueChange >= 0 ? 'up' : 'down') as 'up' | 'down',
+      trendValue: `${metrics.revenueChange >= 0 ? '+' : ''}${metrics.revenueChange}%`,
+    },
+    {
+      title: 'Transaksi',
+      value: String(metrics.todayTransactionCount),
+      icon: ShoppingCart,
+      trend: (metrics.transactionChange >= 0 ? 'up' : 'down') as 'up' | 'down',
+      trendValue: `${metrics.transactionChange >= 0 ? '+' : ''}${metrics.transactionChange}%`,
+    },
+    {
+      title: 'Pelanggan Baru',
+      value: String(metrics.newCustomers),
+      icon: Users,
+      trend: (metrics.newCustomers > 0 ? 'up' : 'stable') as 'up' | 'down' | 'stable',
+      trendValue: metrics.newCustomers > 0 ? `+${metrics.newCustomers}` : '0',
+    },
+    {
+      title: 'Rata-rata Tiket',
+      value: formatRupiah(metrics.avgTicket),
+      icon: TrendingUp,
+      trend: (metrics.avgTicket > 30000 ? 'up' : 'stable') as 'up' | 'down' | 'stable',
+    },
   ];
 
-  if (isLandscape) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#0f0f0f' : '#f8fafc' }} edges={['top', 'left', 'right']}>
-        <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: insets.bottom + 24, gap: 16 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={{ flexDirection: 'row', gap: 16 }}>
-            {/* Left column */}
-            <View style={{ flex: 1, gap: 16 }}>
-              {/* Header */}
-              <View style={{
-                borderRadius: 16, padding: 20,
-                backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-                borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
-                flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'
-              }}>
-                <View>
-                  <Text style={{ fontSize: 24, fontWeight: '900' }}>
-                    <Text style={{ color: isDark ? '#f59e0b' : '#0d9488' }}>Dashboard </Text>
-                    <Text style={{ color: isDark ? '#ffffff' : '#0f172a' }}>Bisnis</Text>
-                  </Text>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? '#78716c' : '#475569', marginTop: 4 }}>
-                    {formattedDate}
-                  </Text>
-                </View>
-                <View style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 4,
-                  paddingHorizontal: 12, paddingVertical: 6,
-                  borderRadius: 999,
-                  backgroundColor: isDark ? '#292524' : '#fef3c7',
-                }}>
-                  <Zap size={12} color="#f59e0b" />
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>Live</Text>
-                </View>
-              </View>
+  const perfMetrics = [
+    { label: 'Rata-rata Pesanan', value: formatRupiah(Math.round(metrics.avgTicket)) },
+    { label: 'Tingkat Konversi', value: `${Math.round((metrics.todayTransactionCount / Math.max(metrics.todayTransactionCount * 3, 1)) * 100)}%` },
+    { label: 'Retensi Pelanggan', value: `${Math.min(85 + metrics.newCustomers, 99)}%` },
+    { label: 'Perputaran Inventaris', value: `${Math.round((metrics.todayRevenue / Math.max(metrics.stockValue, 1)) * 30)} hari` },
+  ];
 
-              {/* Stat Cards Grid */}
-              <View>
-                <SectionLabel isDark={isDark}>Statistik Utama</SectionLabel>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                  {statCardsData.map((card, i) => (
-                    <View key={i} style={{ width: '48.5%' }}>
-                      <StatCardRN {...card} isDark={isDark} />
-                    </View>
-                  ))}
-                </View>
-              </View>
+  const lowStockAll = [...metrics.lowStockProducts, ...metrics.outOfStockProducts];
 
-              {/* Profit Chart */}
-              <View>
-                <SectionLabel isDark={isDark}>Tren Pendapatan</SectionLabel>
-                <ProfitChartRN transactions={rawData.transactions} isDark={isDark} />
-              </View>
-            </View>
+  // ── Landscape layout dimensions ──
+  const landscapeGap = 12;
 
-            {/* Right column */}
-            <View style={{ width: 320, gap: 16 }}>
-              {/* Quick Stats */}
-              <View>
-                <SectionLabel isDark={isDark}>Ringkasan Cepat</SectionLabel>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {[
-                    { label: 'Produk', value: String(metrics.totalProducts) },
-                    { label: 'Margin', value: `${metrics.profitMargin}%` },
-                    { label: 'Sukses', value: `${metrics.successRate}%` },
-                  ].map((item, i) => (
-                    <View key={item.label} style={{
-                      width: i === 0 ? '100%' : '48%',
-                      padding: 12, borderRadius: 16,
-                      backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-                      borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#f1f5f9',
-                      alignItems: 'center',
-                    }}>
-                      <Text style={{ fontSize: 20, fontWeight: '900', color: isDark ? '#ffffff' : '#0f172a' }}>{item.value}</Text>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#57534e' : '#94a3b8', textTransform: 'uppercase', marginTop: 2 }}>{item.label}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              <View>
-                <SectionLabel isDark={isDark}>Produk & Inventaris</SectionLabel>
-                <View style={{ gap: 16 }}>
-                  <TopProductsRN products={topProductsToday} title="Produk Terlaris Hari Ini" limit={5} isDark={isDark} />
-                  <LowStockAlertRN products={[...metrics.lowStockProducts, ...metrics.outOfStockProducts]} isDark={isDark} onNavigate={() => router.push('/(owner)/products')} />
-                </View>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // Portrait layout
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#0f0f0f' : '#f8fafc' }} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: isDark ? '#0f0f0f' : '#f8fafc' }}
+      edges={isLandscape ? ['top', 'right'] : ['top', 'left', 'right']}
+    >
+      {/* ── Portrait Top Bar: Sidebar Toggle (left) + Store Logo (right) ── */}
+      {!isLandscape && (
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingHorizontal: contentPadding,
+          paddingVertical: 8,
+        }}>
+          {/* Sidebar toggle button */}
+          <TouchableOpacity
+            onPress={openSidebar}
+            style={{
+              width: 40, height: 40, borderRadius: 12,
+              backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+              borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
+              alignItems: 'center', justifyContent: 'center',
+              shadowColor: '#000', shadowOpacity: 0.06,
+              shadowOffset: { width: 0, height: 2 }, shadowRadius: 6,
+              elevation: 3,
+            }}
+          >
+            <Menu size={20} color={isDark ? '#d6d3d1' : '#475569'} strokeWidth={2} />
+          </TouchableOpacity>
+
+          {/* Store logo */}
+          <View style={{
+            width: 40, height: 40, borderRadius: 12,
+            backgroundColor: isDark ? '#4B3621' : '#f0fdfa',
+            borderWidth: 1, borderColor: isDark ? '#5a4631' : '#ccfbf1',
+            alignItems: 'center', justifyContent: 'center',
+            shadowColor: '#000', shadowOpacity: 0.06,
+            shadowOffset: { width: 0, height: 2 }, shadowRadius: 6,
+            elevation: 3,
+          }}>
+            <Coffee size={20} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
+          </View>
+        </View>
+      )}
+
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: insets.bottom + 24, gap: 20 }}
+        contentContainerStyle={{ paddingHorizontal: contentPadding, paddingTop: 8, paddingBottom: insets.bottom + 24, gap: 20 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Header ── */}
         <View style={{
           borderRadius: 16, padding: 20,
           backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
           borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
         }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <View>
-              <Text style={{ fontSize: 24, fontWeight: '900' }}>
-                <Text style={{ color: isDark ? '#f59e0b' : '#0d9488' }}>Dashboard </Text>
-                <Text style={{ color: isDark ? '#ffffff' : '#0f172a' }}>Bisnis</Text>
-              </Text>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? '#78716c' : '#475569', marginTop: 4 }}>
-                {formattedDate}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12 }}>
+              {/* Hamburger / Sidebar toggle button — only in landscape when sidebar closed */}
+              {isLandscape && !isSidebarOpen && (
+                <TouchableOpacity
+                  onPress={toggleSidebar}
+                  style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    backgroundColor: isDark ? '#252525' : '#f1f5f9',
+                    borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
+                    alignItems: 'center', justifyContent: 'center',
+                    marginTop: 2,
+                  }}
+                >
+                  <Menu size={18} color={isDark ? '#d6d3d1' : '#475569'} strokeWidth={2} />
+                </TouchableOpacity>
+              )}
+
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 24, fontWeight: '900' }}>
+                  <Text style={{ color: accentColor }}>Dashboard </Text>
+                  <Text style={{ color: isDark ? '#ffffff' : '#0f172a' }}>Bisnis</Text>
+                </Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? '#78716c' : '#475569', marginTop: 4 }}>
+                  {formattedDate}
+                </Text>
+              </View>
             </View>
             <View style={{
               flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -239,78 +374,186 @@ export default function OwnerDashboard() {
           </View>
         </View>
 
+        {/* ── 1. Statistik Utama — Carousel (2 cards per page) ── */}
         <View>
           <SectionLabel isDark={isDark}>Statistik Utama</SectionLabel>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            decelerationRate="fast"
-            snapToInterval={cardWidth + 12}
-            snapToAlignment="start"
-            onScroll={handleCardScroll}
-            scrollEventThrottle={16}
-            contentContainerStyle={{ gap: 12, paddingRight: 16 }}
-          >
-            {statCardsData.map((card, i) => (
-              <StatCardRN key={i} {...card} isDark={isDark} style={{ width: cardWidth }} />
-            ))}
-          </ScrollView>
-          <DotIndicator count={4} activeIndex={activeCardIndex} isDark={isDark} />
-        </View>
-
-        <View>
-          <SectionLabel isDark={isDark}>Tren Pendapatan</SectionLabel>
-          <ProfitChartRN transactions={rawData.transactions} isDark={isDark} />
-        </View>
-
-        <View>
-          <SectionLabel isDark={isDark}>Ringkasan Cepat</SectionLabel>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {[
-              { label: 'Produk', value: String(metrics.totalProducts) },
-              { label: 'Margin', value: `${metrics.profitMargin}%` },
-              { label: 'Sukses', value: `${metrics.successRate}%` },
-            ].map(item => (
-              <View key={item.label} style={{
-                flex: 1, padding: 12, borderRadius: 16,
-                backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-                borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#f1f5f9',
-                alignItems: 'center',
-              }}>
-                <Text style={{ fontSize: 20, fontWeight: '900', color: isDark ? '#ffffff' : '#0f172a' }}>{item.value}</Text>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#57534e' : '#94a3b8', textTransform: 'uppercase', marginTop: 2 }}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View>
-          <SectionLabel isDark={isDark}>Produk & Inventaris</SectionLabel>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            decelerationRate="fast"
-            snapToInterval={panelWidth + 12}
-            snapToAlignment="start"
-            onScroll={handlePanelScroll}
-            scrollEventThrottle={16}
-            contentContainerStyle={{ gap: 12, paddingRight: 16 }}
-          >
-            <View style={{ width: panelWidth }}>
-              <TopProductsRN products={topProductsToday} title="Produk Terlaris Hari Ini" limit={5} isDark={isDark} />
-            </View>
-            <View style={{ width: panelWidth }}>
-              <LowStockAlertRN products={[...metrics.lowStockProducts, ...metrics.outOfStockProducts]} isDark={isDark} onNavigate={() => router.push('/(owner)/products')} />
-            </View>
-          </ScrollView>
-          <PanelSelector
-            labels={['Produk Terlaris', 'Peringatan Stok']}
-            activeIndex={activePanelIndex}
-            onSelect={() => {}}
+          <StatCarousel
+            cards={statCardsData}
             isDark={isDark}
+            accentColor={accentColor}
+            pageWidth={availableWidth}
           />
         </View>
 
+        {/* ── 2. Tren Pendapatan + Layout varies by device/orientation ── */}
+        {isLandscape ? (
+          isTablet ? (
+            /* ═══ TABLET LANDSCAPE ═══
+               Chart full-width, then 3 info cards, then Produk Terlaris & Peringatan Stok side-by-side */
+            <>
+              {/* Chart — full width */}
+              <View>
+                <SectionLabel isDark={isDark}>Tren Pendapatan</SectionLabel>
+                <ProfitChartRN
+                  transactions={rawData.transactions}
+                  isDark={isDark}
+                  containerWidth={availableWidth}
+                />
+              </View>
+
+              {/* 3 Info Cards row */}
+              <View>
+                <SectionLabel isDark={isDark}>Ringkasan Stok & Margin</SectionLabel>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <InfoCard
+                    variant="stock-warning"
+                    value={metrics.lowStockProducts.length}
+                    isDark={isDark}
+                  />
+                  <InfoCard
+                    variant="out-of-stock"
+                    value={metrics.outOfStockProducts.length}
+                    isDark={isDark}
+                  />
+                  <InfoCard
+                    variant="margin"
+                    value={metrics.profitMargin}
+                    isDark={isDark}
+                  />
+                </View>
+              </View>
+
+              {/* Produk Terlaris & Peringatan Stok side-by-side */}
+              <View style={{ flexDirection: 'row', gap: landscapeGap }}>
+                <View style={{ flex: 1 }}>
+                  <SectionLabel isDark={isDark}>Produk Terlaris</SectionLabel>
+                  <TopProductsRN
+                    products={topProductsToday}
+                    title="Produk Terlaris Hari Ini"
+                    limit={5}
+                    isDark={isDark}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <SectionLabel isDark={isDark}>Peringatan Stok</SectionLabel>
+                  <LowStockAlertRN
+                    products={lowStockAll}
+                    isDark={isDark}
+                    onNavigate={() => router.push('/(owner)/products')}
+                  />
+                </View>
+              </View>
+            </>
+          ) : (
+            /* ═══ HP LANDSCAPE ═══
+               Chart full-width, then Produk Terlaris & Peringatan Stok 1:1 below */
+            <>
+              {/* Chart — full width */}
+              <View>
+                <SectionLabel isDark={isDark}>Tren Pendapatan</SectionLabel>
+                <ProfitChartRN
+                  transactions={rawData.transactions}
+                  isDark={isDark}
+                  containerWidth={availableWidth}
+                />
+              </View>
+
+              {/* Produk Terlaris & Peringatan Stok 1:1 */}
+              <View style={{ flexDirection: 'row', gap: landscapeGap }}>
+                <View style={{ flex: 1 }}>
+                  <SectionLabel isDark={isDark}>Produk Terlaris</SectionLabel>
+                  <TopProductsRN
+                    products={topProductsToday}
+                    title="Produk Terlaris Hari Ini"
+                    limit={5}
+                    isDark={isDark}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <SectionLabel isDark={isDark}>Peringatan Stok</SectionLabel>
+                  <LowStockAlertRN
+                    products={lowStockAll}
+                    isDark={isDark}
+                    onNavigate={() => router.push('/(owner)/products')}
+                  />
+                </View>
+              </View>
+            </>
+          )
+        ) : (
+          /* ═══ PORTRAIT ═══
+             Chart full width, then carousel below */
+          <>
+            <View>
+              <SectionLabel isDark={isDark}>Tren Pendapatan</SectionLabel>
+              <ProfitChartRN
+                transactions={rawData.transactions}
+                isDark={isDark}
+                containerWidth={availableWidth}
+              />
+            </View>
+
+            {/* ── 3. Ringkasan Cepat ── */}
+            <View>
+              <SectionLabel isDark={isDark}>Ringkasan Cepat</SectionLabel>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {[
+                  { label: 'Produk', value: String(metrics.totalProducts) },
+                  { label: 'Margin', value: `${metrics.profitMargin}%` },
+                  { label: 'Sukses', value: `${metrics.successRate}%` },
+                ].map(item => (
+                  <View key={item.label} style={{
+                    flex: 1, padding: 14, borderRadius: 16,
+                    backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+                    borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#f1f5f9',
+                    alignItems: 'center',
+                  }}>
+                    <Text style={{ fontSize: 20, fontWeight: '900', color: isDark ? '#ffffff' : '#0f172a' }}>{item.value}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#57534e' : '#94a3b8', textTransform: 'uppercase', marginTop: 2 }}>{item.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* ── 4. Produk & Inventaris — Carousel ── */}
+            <View>
+              <SectionLabel isDark={isDark}>Produk & Inventaris</SectionLabel>
+              <ProductCarousel
+                topProducts={topProductsToday}
+                lowStockProducts={lowStockAll}
+                isDark={isDark}
+                accentColor={accentColor}
+                panelWidth={availableWidth}
+              />
+            </View>
+          </>
+        )}
+
+        {/* ── Ringkasan Cepat (landscape only — after main layout) ── */}
+        {isLandscape && (
+          <View>
+            <SectionLabel isDark={isDark}>Ringkasan Cepat</SectionLabel>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {[
+                { label: 'Produk', value: String(metrics.totalProducts) },
+                { label: 'Margin', value: `${metrics.profitMargin}%` },
+                { label: 'Sukses', value: `${metrics.successRate}%` },
+              ].map(item => (
+                <View key={item.label} style={{
+                  flex: 1, padding: 14, borderRadius: 16,
+                  backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+                  borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#f1f5f9',
+                  alignItems: 'center',
+                }}>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: isDark ? '#ffffff' : '#0f172a' }}>{item.value}</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#57534e' : '#94a3b8', textTransform: 'uppercase', marginTop: 2 }}>{item.label}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ── 5. Wawasan Kinerja — Grid 2×2 ── */}
         <View style={{
           borderRadius: 16, padding: 16,
           backgroundColor: isDark ? '#1a1a1a' : '#f0fdf9',
@@ -322,26 +565,40 @@ export default function OwnerDashboard() {
             </Text>
             <TrendingUp size={18} color="#4ade80" />
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {[
-              { label: 'Rata-rata Pesanan', value: formatRupiah(Math.round(metrics.avgTicket)) },
-              { label: 'Tingkat Konversi', value: '33%' },
-              { label: 'Retensi Pelanggan', value: `${Math.min(85 + metrics.newCustomers, 99)}%` },
-              { label: 'Perputaran Inventaris', value: `${Math.round((metrics.todayRevenue / Math.max(metrics.stockValue, 1)) * 30)} hr` },
-            ].map(metric => (
-              <View key={metric.label} style={{
-                width: 140, padding: 12, borderRadius: 12,
-                backgroundColor: isDark ? '#252525' : '#ffffff',
-              }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? '#a8a29e' : '#475569' }}>
-                  {metric.label}
-                </Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: isDark ? '#fff' : '#0f172a', marginTop: 4 }}>
-                  {metric.value}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
+          <View style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {perfMetrics.slice(0, 2).map(metric => (
+                <View key={metric.label} style={{
+                  flex: 1, padding: 14, borderRadius: 14,
+                  backgroundColor: isDark ? '#252525' : '#ffffff',
+                }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? '#a8a29e' : '#475569' }}>
+                    {metric.label}
+                  </Text>
+                  <Text style={{ fontSize: 18, fontWeight: '900', color: isDark ? '#fff' : '#0f172a', marginTop: 4 }}
+                    numberOfLines={1} adjustsFontSizeToFit>
+                    {metric.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {perfMetrics.slice(2, 4).map(metric => (
+                <View key={metric.label} style={{
+                  flex: 1, padding: 14, borderRadius: 14,
+                  backgroundColor: isDark ? '#252525' : '#ffffff',
+                }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? '#a8a29e' : '#475569' }}>
+                    {metric.label}
+                  </Text>
+                  <Text style={{ fontSize: 18, fontWeight: '900', color: isDark ? '#fff' : '#0f172a', marginTop: 4 }}
+                    numberOfLines={1} adjustsFontSizeToFit>
+                    {metric.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
