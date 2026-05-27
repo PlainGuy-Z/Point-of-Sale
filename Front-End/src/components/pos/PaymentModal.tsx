@@ -243,12 +243,12 @@ export default function PaymentModal({ total, onClose, onConfirm }: PaymentModal
                       {rawCashValue ? format(Number(rawCashValue)) : format(0)}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 landscape:gap-1">
+                  <div className="grid grid-cols-2 gap-3 landscape:gap-3">
                     {quickAmounts().map((amount) => (
                       <button 
                         key={amount} 
                         onClick={() => handleQuickCash(amount)} 
-                        className={`py-2.5 px-3 landscape:py-1.5 landscape:px-2 rounded-xl text-xs sm:text-sm landscape:text-xs font-bold border ${isDark ? 'bg-stone-950 border-stone-800 text-stone-200 hover:bg-[#1a1614]' : 'bg-white border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
+                        className={`py-3.5 px-3 sm:py-4 landscape:py-3.5 rounded-xl text-sm sm:text-base landscape:text-base font-black border transition-all active:scale-[0.98] ${isDark ? 'bg-stone-950 border-stone-800 text-stone-200 hover:bg-[#1a1614]' : 'bg-white border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
                       >
                         {format(amount)}
                       </button>

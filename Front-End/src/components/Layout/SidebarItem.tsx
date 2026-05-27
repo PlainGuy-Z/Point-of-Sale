@@ -31,12 +31,12 @@ export default function SidebarItem({
       {/* Icon */}
       <div
         className={`flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
-          isCollapsed ? 'w-5 h-5' : 'w-5 h-5'
+          isCollapsed ? 'w-6 h-6' : 'w-6 h-6'
         }`}
       >
         {Icon && (
           <Icon
-            className={`w-[18px] h-[18px] transition-colors duration-200 ${
+            className={`w-[20px] h-[20px] transition-colors duration-200 ${
               isActive
                 ? 'text-teal-700'
                 : isDark
@@ -50,7 +50,7 @@ export default function SidebarItem({
       {/* Label */}
       {!isCollapsed && (
         <span
-          className={`text-[13px] font-semibold truncate flex-1 min-w-0 text-left transition-colors duration-200 ${
+          className={`text-[15px] font-bold truncate flex-1 min-w-0 text-left transition-colors duration-200 ${
             isActive
               ? isDark
                 ? 'text-amber-200'
@@ -82,7 +82,7 @@ export default function SidebarItem({
 
   const baseClasses = `
     group relative flex items-center transition-all duration-200 rounded-xl
-    ${isCollapsed ? 'w-10 h-10 mx-auto justify-center p-0' : 'w-full px-3 py-2 gap-2.5'}
+    ${isCollapsed ? 'w-10 h-10 mx-auto justify-center p-0' : 'w-full px-3 py-3 gap-3'}
   `;
 
   const stateClasses = isActive
