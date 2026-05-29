@@ -1,42 +1,18 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Stack } from 'expo-router';
-import { View, useWindowDimensions } from 'react-native';
+import { Stack, usePathname } from 'expo-router';
+import { View, useWindowDimensions, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Menu } from 'lucide-react-native';
 import OwnerSidebar, {
   SIDEBAR_EXPANDED_WIDTH,
   SIDEBAR_COLLAPSED_WIDTH,
 } from '../../components/navigation/OwnerDrawerContent';
-import { createContext, useContext } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
-
-// Sidebar context — consumed by sub-screens (e.g. dashboard hamburger button)
-interface SidebarContextValue {
-  openSidebar: () => void;
-  closeSidebar: () => void;
-  toggleSidebar: () => void;
-  /** Whether the sidebar is expanded (landscape inline mode) */
-  isSidebarExpanded: boolean;
-  /** Whether the device is currently in landscape orientation */
-  isLandscape: boolean;
-  /** Current sidebar width (0 in portrait when closed, collapsed/expanded in landscape) */
-  sidebarWidth: number;
-  /** Whether the sidebar is open/expanded */
-  isSidebarOpen: boolean;
-}
-
-const SidebarContext = createContext<SidebarContextValue>({
-  openSidebar: () => {},
-  closeSidebar: () => {},
-  toggleSidebar: () => {},
-  isSidebarExpanded: false,
-  isLandscape: false,
-  sidebarWidth: 0,
-  isSidebarOpen: false,
-});
-
-export const useSidebar = () => useContext(SidebarContext);
+import { SidebarContext, SidebarContextValue } from '../../contexts/SidebarContext';
 
 export default function OwnerLayout() {
+  const insets = useSafeAreaInsets();
   const [sidebarVisible, setSidebarVisible] = useState(false);       // portrait overlay
   const [sidebarExpanded, setSidebarExpanded] = useState(false);      // landscape inline
   const { effectiveTheme } = useTheme();
@@ -44,6 +20,8 @@ export default function OwnerLayout() {
   const c = getColors(isDark);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
+  const pathname = usePathname();
+  const isDashboardOrPos = pathname.includes('dashboard') || pathname.includes('pos');
 
   const currentSidebarWidth = isLandscape
     ? (sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_COLLAPSED_WIDTH)
@@ -92,42 +70,86 @@ export default function OwnerLayout() {
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      <View style={{ flex: 1, flexDirection: isLandscape ? 'row' : 'column', backgroundColor: c.bg }}>
-        {/* Landscape: inline persistent sidebar */}
-        {isLandscape && (
-          <OwnerSidebar
-            visible={true}
-            onClose={closeSidebar}
-            inline={true}
-            collapsed={!sidebarExpanded}
-            onToggleCollapse={toggleSidebar}
-          />
-        )}
+      <View style={{ flex: 1, backgroundColor: c.bg }}>
+        <View style={{ flex: 1, flexDirection: isLandscape ? 'row' : 'column', backgroundColor: c.bg }}>
+          {/* Landscape: inline persistent sidebar */}
+          {isLandscape && (
+            <OwnerSidebar
+              visible={true}
+              onClose={closeSidebar}
+              inline={true}
+              collapsed={!sidebarExpanded}
+              onToggleCollapse={toggleSidebar}
+            />
+          )}
 
-        {/* Main content area */}
-        <View style={{ flex: 1, backgroundColor: c.bg }}>
-          <Stack screenOptions={screenOptions}>
-            <Stack.Screen name="dashboard" />
-            <Stack.Screen name="pos" />
-            <Stack.Screen name="settings" />
-            <Stack.Screen name="transactions" />
-            <Stack.Screen name="shifts" />
-            <Stack.Screen name="sales-report" />
-            <Stack.Screen name="products" />
-            <Stack.Screen name="inventory" />
-            <Stack.Screen name="waste-log" />
-            <Stack.Screen name="members" />
-            <Stack.Screen name="loyalty" />
-            <Stack.Screen name="insights" />
-            <Stack.Screen name="users" />
-            <Stack.Screen name="help" />
-            <Stack.Screen name="more" />
-          </Stack>
+          {/* Main content area */}
+          <View style={{ flex: 1, backgroundColor: c.bg, position: 'relative' }}>
+            <Stack screenOptions={screenOptions}>
+              <Stack.Screen name="dashboard" />
+              <Stack.Screen name="pos" />
+              <Stack.Screen name="settings" />
+              <Stack.Screen name="shop-settings" />
+              <Stack.Screen name="transactions" />
+              <Stack.Screen name="shifts" />
+              <Stack.Screen name="sales-report" />
+              <Stack.Screen name="products" />
+              <Stack.Screen name="inventory" />
+              <Stack.Screen name="waste-log" />
+              <Stack.Screen name="members" />
+              <Stack.Screen name="loyalty" />
+              <Stack.Screen name="insights" />
+              <Stack.Screen name="users" />
+              <Stack.Screen name="help" />
+              <Stack.Screen name="more" />
+            </Stack>
+
+            {/* Global Floating Sidebar Toggle Button in Portrait */}
+            {!isLandscape && !sidebarVisible && !isDashboardOrPos && (
+              <TouchableOpacity
+                onPress={openSidebar}
+                activeOpacity={0.7}
+                style={{
+                  position: 'absolute',
+                  top: insets.top + 8,
+                  left: 12,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: c.bgCard,
+                  borderWidth: 1,
+                  borderColor: c.border,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.1,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowRadius: 6,
+                  elevation: 4,
+                  zIndex: 9999,
+                }}
+              >
+                <Menu size={20} color={c.text} strokeWidth={2} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Portrait: overlay sidebar */}
+          {!isLandscape && (
+            <OwnerSidebar visible={sidebarVisible} onClose={closeSidebar} />
+          )}
         </View>
-
-        {/* Portrait: overlay sidebar */}
-        {!isLandscape && (
-          <OwnerSidebar visible={sidebarVisible} onClose={closeSidebar} />
+        {isLandscape && insets.bottom > 0 && (
+          <View style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: insets.bottom,
+            backgroundColor: c.bgCard,
+            borderTopWidth: 1,
+            borderTopColor: c.border,
+          }} />
         )}
       </View>
     </SidebarContext.Provider>

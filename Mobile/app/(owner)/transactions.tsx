@@ -1,6 +1,6 @@
 import React from 'react';
-import HistoryScreen from '../../components/transactions/HistoryScreen';
+import OwnerHistoryScreen from '../../components/transactions/OwnerHistoryScreen';
 
 export default function OwnerTransactions() {
-  return <HistoryScreen />;
+  return <OwnerHistoryScreen />;
 }

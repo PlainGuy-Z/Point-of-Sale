@@ -7,6 +7,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { usePOSCart } from '../../contexts/POSCartContext';
 import { formatRupiah } from '../../utils/currency';
+import { useApp } from '../../contexts/AppContext';
 import CartItem from './CartItem';
 import CartItemEditModal from './CartItemEditModal';
 import AddManualItemModal from './AddManualItemModal';
@@ -30,6 +31,7 @@ export default function CartScreen() {
     checkout: checkoutData,
     editingItemIndex, setEditingItemIndex,
   } = usePOSCart();
+  const { settings } = useApp();
 
   const [showManualModal, setShowManualModal] = useState(false);
   const [showCheckoutSheet, setShowCheckoutSheet] = useState(false);
@@ -97,10 +99,14 @@ export default function CartScreen() {
               <Text style={{ color: c.textSecondary, fontSize: 13 }}>Subtotal</Text>
               <Text style={{ color: c.text, fontSize: 13, fontWeight: '600' }}>{formatRupiah(subtotal)}</Text>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text style={{ color: c.textSecondary, fontSize: 13 }}>PPN 11%</Text>
-              <Text style={{ color: c.text, fontSize: 13, fontWeight: '600' }}>{formatRupiah(taxAmount)}</Text>
-            </View>
+            {checkoutData.applyTax && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                <Text style={{ color: c.textSecondary, fontSize: 13 }}>
+                  {settings?.tax_label || settings?.taxLabel || 'PPN'} {settings?.tax_rate ?? settings?.taxRate ?? 11}%
+                </Text>
+                <Text style={{ color: c.text, fontSize: 13, fontWeight: '600' }}>{formatRupiah(taxAmount)}</Text>
+              </View>
+            )}
             <View style={{ height: 1, backgroundColor: c.border, marginVertical: 8 }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ color: c.text, fontSize: 18, fontWeight: '900' }}>Total</Text>

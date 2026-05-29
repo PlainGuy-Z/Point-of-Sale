@@ -1,143 +1,408 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Modal, ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity, FlatList,
+  ActivityIndicator, RefreshControl, Alert, StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Inbox } from 'lucide-react-native';
-import { useApp } from '../../contexts/AppContext';
+import { Search, Inbox, AlertCircle } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
-import { formatRupiah, formatRupiahShort } from '../../utils/currency';
-import type { Transaction } from '../../types';
+import { formatFullDate } from '../../utils/dateFormatter';
+import { historyApi } from '../../services/historyApi';
+import { ApiError } from '../../services/api';
+import type { HistoryTransaction, HistoryTransactionStatus } from '../../types/historyTransaction';
+import TransactionCard from './TransactionCard';
+import TransactionDetailSheet from './TransactionDetailSheet';
+import VoidRequestModal from './VoidRequestModal';
 
-const filters = [
-  { label: 'Hari Ini', days: 0 },
-  { label: 'Kemarin', days: 1 },
-  { label: '7 Hari', days: 7 },
-  { label: '30 Hari', days: 30 },
+const LIMIT = 20;
+
+const STATUS_FILTERS: Array<{ key: 'all' | HistoryTransactionStatus; label: string }> = [
+  { key: 'all', label: 'Semua' },
+  { key: 'completed', label: 'Selesai' },
+  { key: 'pending_void', label: 'Pending Void' },
+  { key: 'voided', label: 'Dibatalkan' },
+];
+
+const SORT_OPTIONS: Array<{ key: 'desc' | 'asc'; label: string }> = [
+  { key: 'desc', label: 'Terbaru' },
+  { key: 'asc', label: 'Terlama' },
 ];
 
 export default function HistoryScreen() {
-  const { transactions } = useApp();
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
-  const [filterIdx, setFilterIdx] = useState(0);
-  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
-  const filtered = useMemo(() => {
-    const now = new Date();
-    const f = filters[filterIdx];
-    if (f.days === 0) {
-      const todayStr = now.toDateString();
-      return transactions.filter(t => new Date(t.date).toDateString() === todayStr);
+  // Data state
+  const [rows, setRows] = useState<HistoryTransaction[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Filters
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<'all' | HistoryTransactionStatus>('all');
+  const [sort, setSort] = useState<'desc' | 'asc'>('desc');
+
+  // Detail/void state
+  const [detail, setDetail] = useState<HistoryTransaction | null>(null);
+  const [voidTarget, setVoidTarget] = useState<HistoryTransaction | null>(null);
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+
+  const todayLabel = useMemo(() => formatFullDate(new Date()), []);
+
+  const load = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+
+    try {
+      const res = await historyApi.getTransactions({
+        page,
+        limit: LIMIT,
+        sort,
+        status: status !== 'all' ? status : undefined,
+        q: search.trim() || undefined,
+      });
+      setRows(res.data);
+      setTotal(res.pagination.total);
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Gagal memuat transaksi.';
+      setError(msg);
+      setRows([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    if (f.days === 1) {
-      const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
-      return transactions.filter(t => new Date(t.date).toDateString() === yesterday.toDateString());
-    }
-    const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - f.days);
-    return transactions.filter(t => new Date(t.date) >= cutoff);
-  }, [transactions, filterIdx]);
+  }, [page, sort, status, search]);
 
-  const totalAmount = useMemo(() => filtered.reduce((s, t) => s + t.total, 0), [filtered]);
+  useEffect(() => { void load(); }, [load]);
 
-  const methodLabel: Record<string, string> = { cash: 'Tunai', card: 'Kartu', qris: 'QRIS' };
+  // Reset page when filters change
+  useEffect(() => { setPage(1); }, [status, sort, search]);
 
-  const renderItem = ({ item }: { item: Transaction }) => (
-    <TouchableOpacity onPress={() => setSelectedTx(item)} style={{
-      backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.border,
-      borderRadius: 16, padding: 14, marginBottom: 12, marginHorizontal: 16,
-    }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-        <Text style={{ color: c.textSecondary, fontSize: 12 }}>
-          {new Intl.DateTimeFormat('id-ID', { timeStyle: 'short' }).format(new Date(item.date))}
-        </Text>
-        <Text style={{ color: c.accent, fontWeight: '800', fontSize: 14 }}>{formatRupiah(item.total)}</Text>
-      </View>
-      <Text style={{ color: c.text, fontSize: 13, marginBottom: 4 }} numberOfLines={1}>
-        {item.items.slice(0, 3).map(i => `${i.name} x${i.quantity}`).join(', ')}
-      </Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={{ backgroundColor: c.bgInput, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-          <Text style={{ color: c.textSecondary, fontSize: 10, fontWeight: '600' }}>
-            {methodLabel[item.paymentMethod] || item.paymentMethod}
-          </Text>
-        </View>
-        {item.cashierName && <Text style={{ color: c.textMuted, fontSize: 11 }}>{item.cashierName}</Text>}
-      </View>
-    </TouchableOpacity>
-  );
+  const handleRefresh = useCallback(() => { void load(true); }, [load]);
+
+  const showFeedback = (msg: string) => {
+    setFeedbackMsg(msg);
+    setTimeout(() => setFeedbackMsg(null), 3000);
+  };
+
+  const handleVoidSuccess = () => {
+    setVoidTarget(null);
+    setDetail(null);
+    showFeedback('Permintaan void dikirim ke Owner');
+    void load();
+  };
+
+  const hasMore = total > LIMIT;
+
+  // ── Render ──
+  const renderCard = useCallback(({ item }: { item: HistoryTransaction }) => (
+    <TransactionCard
+      transaction={item}
+      isDark={isDark}
+      onDetail={setDetail}
+    />
+  ), [isDark]);
+
+  const keyExtractor = useCallback((item: HistoryTransaction) => item.id, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      <Text style={{ color: c.text, fontSize: 20, fontWeight: '900', paddingHorizontal: 16, paddingVertical: 12 }}>
-        Riwayat Transaksi
-      </Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
+      {/* Header */}
+      <View style={styles.headerSection}>
+        <Text style={[styles.titleText, { color: c.text }]}>
+          Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
+        </Text>
+        <Text style={[styles.subtitleText, { color: c.textSecondary }]}>
+          Transaksi Hari Ini — {todayLabel}
+        </Text>
+      </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 8 }}>
-        {filters.map((f, i) => (
-          <TouchableOpacity key={f.label} onPress={() => setFilterIdx(i)} style={{
-            backgroundColor: filterIdx === i ? c.accent : c.bgCard,
-            borderWidth: filterIdx === i ? 0 : 1, borderColor: c.border,
-            borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8,
-          }}>
-            <Text style={{
-              color: filterIdx === i ? c.textInverse : c.textSecondary,
-              fontSize: 13, fontWeight: '600',
-            }}>{f.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <Text style={{ color: c.textSecondary, fontSize: 12, paddingHorizontal: 16, paddingVertical: 8 }}>
-        {filtered.length} transaksi • {formatRupiahShort(totalAmount)}
-      </Text>
-
-      <FlatList data={filtered} renderItem={renderItem} keyExtractor={item => item.id}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={{ alignItems: 'center', paddingTop: 60 }}>
-            <Inbox size={48} color={c.textMuted} strokeWidth={1.5} />
-            <Text style={{ color: c.textSecondary, fontSize: 14, marginTop: 12 }}>Belum ada transaksi</Text>
-          </View>
-        }
-      />
-
-      {/* Detail Modal */}
-      <Modal visible={!!selectedTx} transparent animationType="slide">
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{
-            backgroundColor: c.bgCard,
-            borderTopLeftRadius: 24, borderTopRightRadius: 24,
-            padding: 24, maxHeight: '80%',
-          }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-              <Text style={{ color: c.text, fontSize: 18, fontWeight: '800' }}>Detail Transaksi</Text>
-              <TouchableOpacity onPress={() => setSelectedTx(null)}>
-                <Text style={{ color: c.textMuted, fontSize: 22 }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            {selectedTx && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={{ color: c.textSecondary, fontSize: 12, marginBottom: 12 }}>
-                  #{selectedTx.id.slice(-8).toUpperCase()} • {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selectedTx.date))}
-                </Text>
-                {selectedTx.items.map((item, idx) => (
-                  <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
-                    <Text style={{ color: c.text, fontSize: 13, flex: 1 }}>{item.name} x{item.quantity}</Text>
-                    <Text style={{ color: c.text, fontSize: 13, fontWeight: '600' }}>{formatRupiah(item.price * item.quantity)}</Text>
-                  </View>
-                ))}
-                <View style={{ height: 1, backgroundColor: c.border, marginVertical: 12 }} />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ color: c.text, fontSize: 16, fontWeight: '900' }}>Total</Text>
-                  <Text style={{ color: c.accent, fontSize: 16, fontWeight: '900' }}>{formatRupiah(selectedTx.total)}</Text>
-                </View>
-              </ScrollView>
-            )}
-          </View>
+      {/* Feedback */}
+      {feedbackMsg && (
+        <View style={[styles.feedbackBar, { backgroundColor: c.successBg }]}>
+          <Text style={[styles.feedbackText, { color: c.success }]}>{feedbackMsg}</Text>
         </View>
-      </Modal>
+      )}
+
+      {/* Filters */}
+      <View style={[styles.filterBox, { backgroundColor: c.bgCard, borderColor: c.border }]}>
+        {/* Search */}
+        <View style={[styles.searchRow, { backgroundColor: c.bgInput, borderColor: c.border }]}>
+          <Search size={16} color={c.textMuted} />
+          <TextInput
+            style={[styles.searchInput, { color: c.text }]}
+            placeholder="Cari nama pelanggan atau ID transaksi"
+            placeholderTextColor={c.textMuted}
+            value={search}
+            onChangeText={setSearch}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+        </View>
+
+        {/* Status chips */}
+        <View style={styles.chipRow}>
+          {STATUS_FILTERS.map((f) => {
+            const active = status === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                onPress={() => setStatus(f.key)}
+                style={[
+                  styles.chip,
+                  active
+                    ? { backgroundColor: c.accent }
+                    : { borderWidth: 1, borderColor: c.border },
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.chipText,
+                  { color: active ? '#fff' : c.textSecondary },
+                ]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Sort */}
+        <View style={styles.chipRow}>
+          {SORT_OPTIONS.map((s) => {
+            const active = sort === s.key;
+            return (
+              <TouchableOpacity
+                key={s.key}
+                onPress={() => setSort(s.key)}
+                style={[
+                  styles.chip,
+                  active
+                    ? { backgroundColor: c.accent }
+                    : { borderWidth: 1, borderColor: c.border },
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.chipText,
+                  { color: active ? '#fff' : c.textSecondary },
+                ]}>
+                  {s.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Content */}
+      {loading && !refreshing ? (
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color={c.accent} />
+          <Text style={[styles.stateText, { color: c.textMuted }]}>Memuat transaksi...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.centerState}>
+          <AlertCircle size={40} color={c.error} strokeWidth={1.5} />
+          <Text style={[styles.stateText, { color: c.error }]}>{error}</Text>
+          <TouchableOpacity
+            style={[styles.retryBtn, { borderColor: c.accent }]}
+            onPress={() => void load()}
+          >
+            <Text style={[styles.retryText, { color: c.accent }]}>Coba Lagi</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={rows}
+          renderItem={renderCard}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={c.accent}
+              colors={[c.accent]}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.centerState}>
+              <Inbox size={48} color={c.textMuted} strokeWidth={1.5} />
+              <Text style={[styles.stateTitle, { color: c.text }]}>Belum ada transaksi</Text>
+              <Text style={[styles.stateText, { color: c.textSecondary }]}>
+                Mulai shift dan proses transaksi di POS
+              </Text>
+            </View>
+          }
+          ListFooterComponent={
+            hasMore && !loading ? (
+              <View style={styles.paginationRow}>
+                <TouchableOpacity
+                  disabled={page <= 1}
+                  onPress={() => setPage((p) => Math.max(1, p - 1))}
+                  style={[styles.pageBtn, { borderColor: c.border, opacity: page <= 1 ? 0.4 : 1 }]}
+                >
+                  <Text style={[styles.pageBtnText, { color: c.text }]}>Sebelumnya</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  disabled={page * LIMIT >= total}
+                  onPress={() => setPage((p) => p + 1)}
+                  style={[styles.pageBtn, { borderColor: c.border, opacity: page * LIMIT >= total ? 0.4 : 1 }]}
+                >
+                  <Text style={[styles.pageBtnText, { color: c.text }]}>Berikutnya</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
+          }
+        />
+      )}
+
+      {/* Detail Sheet */}
+      {detail && (
+        <TransactionDetailSheet
+          transaction={detail}
+          userRole="cashier"
+          visible={!!detail}
+          onClose={() => setDetail(null)}
+          onVoidRequest={() => setVoidTarget(detail)}
+        />
+      )}
+
+      {/* Void Request Modal */}
+      {voidTarget && (
+        <VoidRequestModal
+          transaction={voidTarget}
+          visible={!!voidTarget}
+          onClose={() => setVoidTarget(null)}
+          onSuccess={handleVoidSuccess}
+          isDark={isDark}
+        />
+      )}
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  headerSection: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  titleText: {
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  subtitleText: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  feedbackBar: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  feedbackText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  filterBox: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+    gap: 8,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 40,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    paddingVertical: 0,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  centerState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 32,
+    gap: 8,
+  },
+  stateTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  stateText: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginTop: 8,
+  },
+  retryText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 20,
+  },
+  paginationRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 12,
+    paddingBottom: 10,
+  },
+  pageBtn: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  pageBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+});

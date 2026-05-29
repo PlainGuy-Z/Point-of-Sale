@@ -129,6 +129,9 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
          VALUES ($1::uuid, $2, $3, $4, 'owner')
          RETURNING id::text, name, email, role, shop_id::text`, [shop.id, body.email, passwordHash, body.ownerName]);
             const user = userResult.rows[0];
+            // Create default shop settings for the new shop with tax disabled
+            await client.query(`INSERT INTO coffeepos.shop_settings (shop_id, tax_enabled)
+         VALUES ($1::uuid, $2)`, [shop.id, false]);
             // Mark token as used
             await client.query(`UPDATE coffeepos.registration_tokens 
          SET is_used = true, used_at = now() 

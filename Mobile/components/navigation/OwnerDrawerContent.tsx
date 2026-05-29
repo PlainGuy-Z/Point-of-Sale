@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Pressable, Modal, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Pressable, Modal, useWindowDimensions, Image } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -7,6 +7,7 @@ import { getColors } from '../../utils/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getNavigation } from '../../data/navigation';
 import { appApi } from '../../services/appApi';
+import { useApp } from '../../contexts/AppContext';
 import * as LucideIcons from 'lucide-react-native';
 import {
   Coffee, ChevronLeft, ChevronRight, LogOut, Sun, Moon,
@@ -15,8 +16,8 @@ import {
 
 /* ─── Constants ─────────────────────────────────────────────────────── */
 
-export const SIDEBAR_EXPANDED_WIDTH = 200;
-export const SIDEBAR_COLLAPSED_WIDTH = 60;
+export const SIDEBAR_EXPANDED_WIDTH = 155;
+export const SIDEBAR_COLLAPSED_WIDTH = 50;
 
 // Helper to resolve icon components dynamically and safely
 const getIconComponent = (key: string) => {
@@ -70,15 +71,18 @@ export default function OwnerSidebar({
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { settings } = useApp();
   const { effectiveTheme, toggleTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
   const insets = useSafeAreaInsets();
 
-  const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
+  const sidebarWidth = inline
+    ? (collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH)
+    : 280;
 
   // Animation refs for overlay mode
-  const slideAnim = useRef(new Animated.Value(-SIDEBAR_EXPANDED_WIDTH)).current;
+  const slideAnim = useRef(new Animated.Value(inline ? -SIDEBAR_EXPANDED_WIDTH : -280)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // Dynamic Navigation data
@@ -208,7 +212,7 @@ export default function OwnerSidebar({
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slideAnim, { toValue: -SIDEBAR_EXPANDED_WIDTH, duration: 250, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: inline ? -SIDEBAR_EXPANDED_WIDTH : -280, duration: 250, useNativeDriver: true }),
         Animated.timing(opacityAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
       ]).start();
     }
@@ -223,10 +227,32 @@ export default function OwnerSidebar({
 
   const renderNavigationList = (isCollapsedLocal: boolean) => {
     return navigation.sections.map((section, idx) => {
-      // Main section (Dashboard) has no label and is not an accordion
-      if (section.label === null) {
+      // Main section (Dashboard) has no accordion sub-menu popover
+      if (section.id === 'main' || section.label === null) {
         return (
-          <View key={section.id} style={{ marginBottom: 8 }}>
+          <View key={section.id} style={{ marginBottom: 8, alignItems: isCollapsedLocal ? 'center' : 'stretch' }}>
+            {!isCollapsedLocal && section.label && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginHorizontal: sz.navMarginH,
+                  paddingHorizontal: 12,
+                  paddingBottom: 10,
+                }}
+              >
+                <Text style={{
+                  color: isDark ? '#64748b' : '#94a3b8',
+                  fontSize: sz.sectionFontSize * 0.9,
+                  fontWeight: '800',
+                  textTransform: 'uppercase',
+                  letterSpacing: 1.2,
+                  flex: 1,
+                }} numberOfLines={1}>
+                  {section.label}
+                </Text>
+              </View>
+            )}
             {section.items.map((item) => {
               const isActive = pathname.includes(item.route);
               const IconComp = getIconComponent(item.route);
@@ -235,19 +261,27 @@ export default function OwnerSidebar({
                 <TouchableOpacity
                   key={item.route}
                   onPress={() => handleNav(item.route)}
-                  style={{
+                  style={isCollapsedLocal ? {
+                    width: sz.navCollapsedBtnSize,
+                    height: sz.navCollapsedBtnSize,
+                    borderRadius: sz.navCollapsedBtnRadius,
+                    backgroundColor: isActive ? c.accentBg : 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                  } : {
                     flexDirection: 'row',
                     alignItems: 'center',
-                    justifyContent: isCollapsedLocal ? 'center' : 'flex-start',
-                    paddingHorizontal: isCollapsedLocal ? 0 : sz.navPadH,
+                    justifyContent: 'center',
+                    paddingHorizontal: sz.navPadH,
                     paddingVertical: sz.navPadV,
-                    borderRadius: (!isCollapsedLocal && isActive) ? 999 : sz.navBorderRadius,
-                    gap: isCollapsedLocal ? 0 : sz.navGap,
+                    borderRadius: isActive ? 999 : sz.navBorderRadius,
+                    gap: sz.navGap,
                     position: 'relative',
                     backgroundColor: isActive ? (isDark ? 'rgba(20,184,166,0.15)' : 'rgba(13,148,136,0.08)') : 'transparent',
-                    borderLeftWidth: (!isCollapsedLocal && isActive) ? 4 : 0,
+                    borderLeftWidth: isActive ? 4 : 0,
                     borderLeftColor: isActive ? c.accent : 'transparent',
-                    marginLeft: (!isCollapsedLocal && !isActive) ? (sz.navMarginH + 4) : sz.navMarginH,
+                    marginLeft: isActive ? sz.navMarginH : (sz.navMarginH + 4),
                     marginRight: sz.navMarginH,
                   }}
                 >
@@ -559,7 +593,7 @@ export default function OwnerSidebar({
               {selectedPopoverSection.label}
             </Text>
           </View>
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight, paddingRight: 4 }}>
+          <ScrollView showsVerticalScrollIndicator={true} style={{ maxHeight, paddingRight: 4 }}>
             <View style={{ gap: 6 }}>
               {selectedPopoverSection.items.map((item: any) => {
                 const isActive = pathname.includes(item.route);
@@ -667,7 +701,7 @@ export default function OwnerSidebar({
             </View>
 
             {/* Sub-menu items */}
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={true}>
               <View style={{ gap: 8 }}>
                 {selectedBottomSheetSection?.items.map((item: any) => {
                   const isActive = pathname.includes(item.route);
@@ -736,7 +770,7 @@ export default function OwnerSidebar({
           backgroundColor: c.bg,
           borderRightWidth: 1,
           borderRightColor: c.borderLight,
-          paddingTop: insets.top,
+paddingTop: (Math.max(insets.top - 20, 2) + (insets.top > 0 ? insets.top : 16)) / 2,
         }}>
           {/* ═══ TOP ZONE: Logo + Store Name ═══ */}
           <View style={{
@@ -749,57 +783,77 @@ export default function OwnerSidebar({
             minHeight: sz.headerMinH,
           }}>
             {collapsed ? (
-              /* Collapsed: only logo icon */
-              <View style={{
-                width: sz.logoSize, height: sz.logoSize, borderRadius: sz.logoRadius,
-                backgroundColor: isDark ? '#4B3621' : '#f0fdfa',
-                alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Coffee size={sz.logoIconSize} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
+              /* Collapsed: logo icon + collapse button below it */
+              <View style={{ alignItems: 'center', gap: sz.toggleMarginTop + 4 }}>
+                <View style={{
+                  width: sz.logoSize, height: sz.logoSize, borderRadius: sz.logoRadius,
+                  backgroundColor: isDark ? '#4B3621' : '#f0fdfa',
+                  alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden',
+                }}>
+                  {settings?.logo_url ? (
+                    <Image
+                      source={{ uri: settings.logo_url.startsWith('http') ? settings.logo_url : `${process.env.EXPO_PUBLIC_API_URL}${settings.logo_url}` }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Coffee size={sz.logoIconSize} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
+                  )}
+                </View>
+                <TouchableOpacity
+                  onPress={onToggleCollapse}
+                  style={{
+                    width: sz.toggleSize, height: sz.toggleSize, borderRadius: sz.toggleRadius,
+                    backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.borderLight,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <ChevronRight size={sz.toggleIconSize} color={c.textSecondary} strokeWidth={2} />
+                </TouchableOpacity>
               </View>
             ) : (
-              /* Expanded: logo + name + collapse button */
+              /* Expanded: logo + name + collapse button on the right */
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: isPhoneLandscape ? 6 : 10, width: '100%' }}>
                 <View style={{
                   width: sz.logoSize, height: sz.logoSize, borderRadius: sz.logoRadius,
                   backgroundColor: isDark ? '#4B3621' : '#f0fdfa',
                   alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden',
                 }}>
-                  <Coffee size={sz.logoIconSize} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
+                  {settings?.logo_url ? (
+                    <Image
+                      source={{ uri: settings.logo_url.startsWith('http') ? settings.logo_url : `${process.env.EXPO_PUBLIC_API_URL}${settings.logo_url}` }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Coffee size={sz.logoIconSize} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: c.text, fontSize: sz.shopNameSize, fontWeight: '800', letterSpacing: -0.3 }} numberOfLines={1}>
                     {user?.shop?.name || 'SmartPOS'}
                   </Text>
-                  <Text style={{ color: c.textSecondary, fontSize: sz.posLabelSize, marginTop: 1 }}>POS System</Text>
+                  <Text style={{ color: c.textSecondary, fontSize: sz.posLabelSize, marginTop: 1 }}>SmartPOS</Text>
                 </View>
+                <TouchableOpacity
+                  onPress={onToggleCollapse}
+                  style={{
+                    width: sz.toggleSize, height: sz.toggleSize, borderRadius: sz.toggleRadius,
+                    backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.borderLight,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <ChevronLeft size={sz.toggleIconSize} color={c.textSecondary} strokeWidth={2} />
+                </TouchableOpacity>
               </View>
             )}
           </View>
 
-          {/* Toggle collapse button */}
-          <TouchableOpacity
-            onPress={onToggleCollapse}
-            style={{
-              alignSelf: collapsed ? 'center' : 'flex-end',
-              marginTop: sz.toggleMarginTop,
-              marginBottom: isPhoneLandscape ? 1 : 2,
-              marginHorizontal: collapsed ? 0 : sz.navMarginH,
-              width: sz.toggleSize, height: sz.toggleSize, borderRadius: sz.toggleRadius,
-              backgroundColor: c.bgCard,
-              borderWidth: 1, borderColor: c.borderLight,
-              alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            {collapsed
-              ? <ChevronRight size={sz.toggleIconSize} color={c.textSecondary} strokeWidth={2} />
-              : <ChevronLeft size={sz.toggleIconSize} color={c.textSecondary} strokeWidth={2} />
-            }
-          </TouchableOpacity>
-
           {/* ═══ MIDDLE ZONE: Navigation items + Logout at bottom ═══ */}
-          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-            <View style={{ paddingVertical: isPhoneLandscape ? 2 : 8 }}>
+          <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
+            <View style={{ paddingTop: isPhoneLandscape ? 4 : 16, paddingBottom: isPhoneLandscape ? 2 : 8 }}>
               {renderNavigationList(collapsed)}
             </View>
             {/* Logout button at the bottom of navigation */}
@@ -872,7 +926,7 @@ export default function OwnerSidebar({
 
   /* ─── OVERLAY (Portrait drawer) ────────────────────────────────────── */
 
-  if (!visible && (slideAnim as any)._value === -SIDEBAR_EXPANDED_WIDTH) return null;
+  if (!visible && (slideAnim as any)._value === (inline ? -SIDEBAR_EXPANDED_WIDTH : -280)) return null;
 
   return (
     <>
@@ -885,7 +939,7 @@ export default function OwnerSidebar({
         {/* Sidebar panel */}
         <Animated.View style={{
           flex: 1, position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: SIDEBAR_EXPANDED_WIDTH,
+          width: 280,
           backgroundColor: c.bg,
           borderRightWidth: 1, borderRightColor: c.borderLight,
           transform: [{ translateX: slideAnim }],
@@ -901,14 +955,23 @@ export default function OwnerSidebar({
               width: 38, height: 38, borderRadius: 10,
               backgroundColor: isDark ? '#4B3621' : '#f0fdfa',
               alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
             }}>
-              <Coffee size={18} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
+              {settings?.logo_url ? (
+                <Image
+                  source={{ uri: settings.logo_url.startsWith('http') ? settings.logo_url : `${process.env.EXPO_PUBLIC_API_URL}${settings.logo_url}` }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Coffee size={18} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ color: c.text, fontSize: 16, fontWeight: '800', letterSpacing: -0.3 }}>
                 {user?.shop?.name || 'SmartPOS'}
               </Text>
-              <Text style={{ color: c.textSecondary, fontSize: 11, marginTop: 1 }}>POS System</Text>
+              <Text style={{ color: c.textSecondary, fontSize: 11, marginTop: 1 }}>SmartPOS</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={{
               width: 32, height: 32, borderRadius: 9,
@@ -920,7 +983,7 @@ export default function OwnerSidebar({
           </View>
 
           {/* ═══ MIDDLE ZONE: Navigation + Logout at bottom ═══ */}
-          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
             <View style={{ paddingVertical: 8 }}>
               {renderNavigationList(false)}
             </View>

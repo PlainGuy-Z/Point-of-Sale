@@ -2,12 +2,14 @@ import * as SecureStore from 'expo-secure-store';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
-export class ApiError extends Error {
-  readonly status: number;
-  readonly code?: string;
+export class ApiError {
+  name = 'ApiError';
+  message: string;
+  status: number;
+  code?: string;
 
   constructor(status: number, message: string, code?: string) {
-    super(message);
+    this.message = message;
     this.status = status;
     this.code = code;
   }

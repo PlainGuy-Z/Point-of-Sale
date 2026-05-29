@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useContext } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent,
+  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -13,7 +13,7 @@ import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatRupiah } from '../../utils/currency';
 import { useDashboardMetrics } from '../../hooks/useDashboardMetrics';
-import { useSidebar } from './_layout';
+import { SidebarContext } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 import StatCardRN from '../../components/dashboard/StatCardRN';
@@ -213,7 +213,7 @@ function ProductCarousel({ topProducts, lowStockProducts, isDark, accentColor, p
 /* ─── Dashboard ────────────────────────────────────────────────────────── */
 
 export default function OwnerDashboard() {
-  const { products, transactions, customers, wasteLogs } = useApp();
+  const { products, transactions, customers, wasteLogs, settings } = useApp();
   const { metrics, topProductsToday, rawData } = useDashboardMetrics(products, transactions, customers, wasteLogs);
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
@@ -223,7 +223,7 @@ export default function OwnerDashboard() {
   const { user } = useAuth();
 
   // Sidebar context
-  const { openSidebar, toggleSidebar, sidebarWidth, isSidebarOpen } = useSidebar();
+  const { openSidebar, toggleSidebar, sidebarWidth, isSidebarOpen } = useContext(SidebarContext);
 
   // Device type: tablet if shortest side >= 600
   const shortSide = Math.min(windowWidth, windowHeight);
@@ -318,8 +318,17 @@ export default function OwnerDashboard() {
             shadowColor: '#000', shadowOpacity: 0.06,
             shadowOffset: { width: 0, height: 2 }, shadowRadius: 6,
             elevation: 3,
+            overflow: 'hidden',
           }}>
-            <Coffee size={20} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
+            {settings?.logo_url ? (
+              <Image
+                source={{ uri: settings.logo_url.startsWith('http') ? settings.logo_url : `${process.env.EXPO_PUBLIC_API_URL}${settings.logo_url}` }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
+            ) : (
+              <Coffee size={20} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
+            )}
           </View>
         </View>
       )}

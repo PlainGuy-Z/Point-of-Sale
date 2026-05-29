@@ -24,7 +24,7 @@ const ownerNavigation: Navigation = {
   sections: [
     {
       id: 'main',
-      label: null,
+      label: 'MENU UTAMA',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard', route: 'dashboard' },
       ],
@@ -36,7 +36,16 @@ const ownerNavigation: Navigation = {
       items: [
         { id: 'pos', label: 'Point of Sale', icon: 'ShoppingCart', route: 'pos' },
         { id: 'sales-report', label: 'Laporan Penjualan', icon: 'BarChart2', route: 'sales-report' },
-        { id: 'waste-log', label: 'Waste Log', icon: 'Trash2', route: 'waste-log' },
+      ],
+    },
+    {
+      id: 'reports',
+      label: 'LAPORAN & ANALITIK',
+      collapsedIcon: 'BarChart3',
+      items: [
+        { id: 'transactions', label: 'Riwayat Transaksi', icon: 'Receipt', route: 'transactions' },
+        { id: 'business-insights', label: 'Business Intelligence', icon: 'BrainCircuit', route: 'insights' },
+        { id: 'shifts', label: 'Laporan Shift', icon: 'ClipboardList', route: 'shifts' },
       ],
     },
     {
@@ -46,6 +55,7 @@ const ownerNavigation: Navigation = {
       items: [
         { id: 'product-management', label: 'Manajemen Produk', icon: 'Package', route: 'products' },
         { id: 'inventory', label: 'Inventory & Biaya', icon: 'Layers', route: 'inventory' },
+        { id: 'waste-log', label: 'Waste Log', icon: 'Trash2', route: 'waste-log' },
       ],
     },
     {
@@ -58,21 +68,10 @@ const ownerNavigation: Navigation = {
       ],
     },
     {
-      id: 'reports',
-      label: 'LAPORAN & ANALITIK',
-      collapsedIcon: 'BarChart3',
-      items: [
-        { id: 'business-insights', label: 'Business Intelligence', icon: 'BrainCircuit', route: 'insights' },
-        { id: 'transactions', label: 'Riwayat Transaksi', icon: 'Receipt', route: 'transactions' },
-        { id: 'shifts', label: 'Laporan Shift', icon: 'ClipboardList', route: 'shifts' },
-      ],
-    },
-    {
       id: 'management',
       label: 'MANAJEMEN',
       collapsedIcon: 'Settings',
       items: [
-        { id: 'users', label: 'Manajemen Kasir', icon: 'UserCheck', route: 'users' },
         { id: 'settings', label: 'Settings', icon: 'Settings', route: 'settings' },
         { id: 'help', label: 'Help Center', icon: 'HelpCircle', route: 'help' },
       ],
@@ -87,24 +86,10 @@ const cashierNavigation: Navigation = {
       id: 'main',
       label: null,
       items: [
-        { id: 'pos', label: 'Point of Sale', icon: 'ShoppingCart', route: 'pos' },
-      ],
-    },
-    {
-      id: 'daily',
-      label: 'HARIAN',
-      collapsedIcon: 'ShoppingCart',
-      items: [
-        { id: 'sales-report', label: 'Laporan Penjualan', icon: 'BarChart2', route: 'sales-report' },
-      ],
-    },
-    {
-      id: 'management',
-      label: 'MANAJEMEN',
-      collapsedIcon: 'Settings',
-      items: [
-        { id: 'settings', label: 'Settings', icon: 'Settings', route: 'settings' },
-        { id: 'shifts', label: 'Shifts', icon: 'Clock', route: 'shifts' },
+        { id: 'pos', label: 'Kasir', icon: 'ShoppingCart', route: 'pos' },
+        { id: 'shift', label: 'Shift', icon: 'Clock', route: 'shift' },
+        { id: 'history', label: 'Riwayat', icon: 'List', route: 'history' },
+        { id: 'settings', label: 'Pengaturan', icon: 'Settings', route: 'settings' },
       ],
     },
   ],

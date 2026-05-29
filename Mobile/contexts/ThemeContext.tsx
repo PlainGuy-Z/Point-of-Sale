@@ -15,21 +15,19 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemTheme = useColorScheme() as 'light' | 'dark';
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setThemeState] = useState<Theme>('light');
+  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load theme from AsyncStorage on mount
+  // Set default theme to light on mount
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const saved = await AsyncStorage.getItem('coffee-pos-theme') as Theme | null;
-        if (mounted && saved && ['light', 'dark', 'system'].includes(saved)) {
-          setThemeState(saved);
-        }
+        setThemeState('light');
+        await AsyncStorage.setItem('coffee-pos-theme', 'light');
       } catch (err) {
-        console.error('Failed to load theme:', err);
+        console.error('Failed to save default light theme:', err);
       } finally {
         if (mounted) setIsLoading(false);
       }

@@ -10,7 +10,8 @@ export function useLayout() {
   const { width, height } = useWindowDimensions();
   
   const isLandscape = width > height;
-  const isTablet = width >= 768;
+  const minDimension = Math.min(width, height);
+  const isTablet = minDimension >= 768;
   
   const mode: LayoutMode = 
     isTablet && isLandscape  ? 'tablet-landscape' :

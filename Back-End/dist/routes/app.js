@@ -114,6 +114,19 @@ async function ensureCategory(categoryName, shopId, client) {
 }
 /* ─── buildAppState ─────────────────────────────────────────── */
 export async function buildAppState(shopId) {
+    // Fetch shop settings and shop info
+    const [shopRes, settingsRes] = await Promise.all([
+        pool.query(`SELECT name, address FROM coffeepos.shops WHERE id = $1::uuid`, [shopId]),
+        pool.query(`SELECT * FROM coffeepos.shop_settings WHERE shop_id = $1::uuid`, [shopId])
+    ]);
+    let settingsRow = settingsRes.rows[0];
+    if (!settingsRow) {
+        // If settings don't exist yet, insert defaults
+        await pool.query(`INSERT INTO coffeepos.shop_settings (shop_id, tax_enabled) VALUES ($1::uuid, false) ON CONFLICT (shop_id) DO NOTHING`, [shopId]);
+        const refetched = await pool.query(`SELECT * FROM coffeepos.shop_settings WHERE shop_id = $1::uuid`, [shopId]);
+        settingsRow = refetched.rows[0];
+    }
+    const shopRow = shopRes.rows[0];
     const products = await pool.query(`SELECT p.id::text, p.name, p.description, p.price,
             c.name as category, p.stock, p.min_stock, p.cost,
             p.image, p.discount, p.is_promo, p.promo_price,
@@ -121,6 +134,7 @@ export async function buildAppState(shopId) {
      FROM coffeepos.products p
      LEFT JOIN coffeepos.categories c ON p.category_id = c.id
      WHERE p.shop_id = $1::uuid
+       AND p.is_available = true
      ORDER BY p.name ASC`, [shopId]);
     // [FIX-3] Replaced correlated subqueries with LEFT JOIN aggregation to eliminate N+1
     const txQuery = await pool.query(`
@@ -138,7 +152,7 @@ export async function buildAppState(shopId) {
       t.status,
       ss.tax_rate AS tax_rate,
       'dine-in'::text AS order_type,
-      NULL::text AS order_note,
+      t.notes::text AS order_note,
       COALESCE(cost_agg.cost_total, 0) AS cost,
       (t.subtotal - COALESCE(cost_agg.cost_total, 0)) AS profit
     FROM coffeepos.transactions t
@@ -247,14 +261,18 @@ export async function buildAppState(shopId) {
         })),
         customers: [],
         settings: {
-            storeName: 'Coffee Shop',
-            address: 'Jl. Utama No. 123',
-            taxRate: 11,
+            storeName: shopRow?.name || 'Coffee Shop',
+            address: settingsRow?.address || shopRow?.address || 'Jl. Utama No. 123',
+            tax_enabled: settingsRow?.tax_enabled === true,
+            taxEnabled: settingsRow?.tax_enabled === true,
+            tax_rate: settingsRow?.tax_rate !== undefined ? Number(settingsRow.tax_rate) : 11,
+            taxRate: settingsRow?.tax_rate !== undefined ? Number(settingsRow.tax_rate) : 11,
+            tax_label: settingsRow?.tax_label || 'PPN',
             currency: 'IDR',
             currencyPosition: 'before',
             decimalPlaces: 0,
             thousandsSeparator: 'comma',
-            receiptFooter: 'Terima kasih telah berbelanja!'
+            receiptFooter: settingsRow?.receipt_footer || 'Terima kasih telah berbelanja!'
         },
         categories,
         categoriesWithId: cats.rows.map(r => ({ id: r.id, name: r.name }))

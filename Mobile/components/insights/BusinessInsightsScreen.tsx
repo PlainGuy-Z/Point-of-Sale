@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BrainCircuit, TrendingUp, BarChart2, DollarSign, Package,
@@ -11,6 +11,8 @@ import { getColors } from '../../utils/theme';
 import { formatRupiah, formatRupiahShort } from '../../utils/currency';
 
 export default function BusinessInsightsScreen() {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isLandscape = windowWidth > windowHeight;
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
@@ -80,7 +82,7 @@ export default function BusinessInsightsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+      <View style={{ paddingLeft: isLandscape ? 16 : 60, paddingRight: 16, paddingVertical: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <BrainCircuit size={22} color={c.accent} strokeWidth={2} />
           <Text style={{ color: c.text, fontSize: 22, fontWeight: '900' }}>

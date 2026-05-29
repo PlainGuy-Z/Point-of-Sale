@@ -166,6 +166,16 @@ export interface BusinessSettings {
   currencyPosition: 'before' | 'after' | 'before-space' | 'after-space';
   decimalPlaces: 0 | 2;
   thousandsSeparator: 'comma' | 'dot' | 'space' | 'none';
+  tax_enabled?: boolean;
+  taxEnabled?: boolean;
+  tax_rate?: number;
+  taxRate?: number;
+  tax_label?: string;
+  taxLabel?: string;
+  logo_url?: string;
+  phone?: string;
+  open_time?: string;
+  close_time?: string;
 }
 
 // ==================== SERVICE TYPES ====================

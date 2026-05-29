@@ -7,7 +7,25 @@
     "scheme": "smartpos",
     "userInterfaceStyle": "dark",
     "platforms": ["android"],
+    "newArchEnabled": true,
     "icon": "./assets/icon.png",
+
+    "ios": {
+      "supportsTablet": true
+    },
+
+    "androidStatusBar": {
+      "translucent": true,
+      "backgroundColor": "#00000000",
+      "barStyle": "light-content"
+    },
+
+    "androidNavigationBar": {
+      "visible": "sticky-immersive",
+      "backgroundColor": "#00000000",
+      "barStyle": "light-content"
+    },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -23,15 +41,21 @@
         "BLUETOOTH_SCAN"
       ]
     },
+
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#111111"
     },
+
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-screen-orientation"
     ],
-    "experiments": { "typedRoutes": true }
+
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

@@ -243,6 +243,7 @@ export async function buildAppState(shopId) {
        FROM coffeepos.products p
        LEFT JOIN coffeepos.categories c ON p.category_id = c.id
        WHERE p.shop_id = $1::uuid
+         AND p.is_available = true
        ORDER BY p.name ASC`, [shopId]),
         pool.query(`SELECT
          t.id::text AS id,
@@ -262,7 +263,7 @@ export async function buildAppState(shopId) {
          t.cashier_name,
          ss.tax_rate AS tax_rate,
          'dine-in'::text AS order_type,
-         NULL::text AS order_note,
+         t.notes::text AS order_note,
          (
            SELECT COALESCE(
              json_agg(

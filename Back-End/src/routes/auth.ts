@@ -356,9 +356,11 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
     const result = await pool.query(
       `SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
-              s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
+              s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug,
+              COALESCE(ss.logo_url, s.logo_url) AS logo_url
        FROM coffeepos.users u
        JOIN coffeepos.shops s ON s.id = u.shop_id
+       LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = u.shop_id
        WHERE u.id = $1::uuid`,
       [req.user!.id]
     );
@@ -380,7 +382,8 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
         shop: {
           id: user.shop_id,
           name: user.shop_name,
-          slug: user.shop_slug
+          slug: user.shop_slug,
+          logo_url: user.logo_url
         }
       }
     });
@@ -433,9 +436,11 @@ authRouter.put('/me', authenticateToken, validateBody(UpdateMeSchema), async (re
     const result = await pool.query(
       `SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
-              s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
+              s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug,
+              COALESCE(ss.logo_url, s.logo_url) AS logo_url
        FROM coffeepos.users u
        JOIN coffeepos.shops s ON s.id = u.shop_id
+       LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = u.shop_id
        WHERE u.id = $1::uuid`,
       [req.user!.id]
     );
@@ -452,7 +457,8 @@ authRouter.put('/me', authenticateToken, validateBody(UpdateMeSchema), async (re
         shop: {
           id: row.shop_id,
           name: row.shop_name,
-          slug: row.shop_slug
+          slug: row.shop_slug,
+          logo_url: row.logo_url
         }
       }
     });

@@ -9,6 +9,7 @@ import { AppProvider } from '../contexts/AppContext';
 import { ShiftProvider } from '../contexts/ShiftContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { getColors } from '../utils/theme';
+import { PrinterProvider } from '../contexts/PrinterContext';
 
 function ThemedStack() {
   const { effectiveTheme } = useTheme();
@@ -19,7 +20,8 @@ function ThemedStack() {
     <>
       <StatusBar
         style={isDark ? 'light' : 'dark'}
-        backgroundColor={c.bg}
+        backgroundColor="transparent"
+        translucent={true}
       />
       <Stack
         screenOptions={{
@@ -45,7 +47,9 @@ export default function RootLayout() {
         <ThemeProvider>
           <AppProvider>
             <ShiftProvider>
-              <ThemedStack />
+              <PrinterProvider>
+                <ThemedStack />
+              </PrinterProvider>
             </ShiftProvider>
           </AppProvider>
         </ThemeProvider>

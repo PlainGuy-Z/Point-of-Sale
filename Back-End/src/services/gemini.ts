@@ -298,7 +298,7 @@ export async function buildAppState(shopId: string) {
          t.cashier_name,
          ss.tax_rate AS tax_rate,
          'dine-in'::text AS order_type,
-         NULL::text AS order_note,
+         t.notes::text AS order_note,
          (
            SELECT COALESCE(
              json_agg(

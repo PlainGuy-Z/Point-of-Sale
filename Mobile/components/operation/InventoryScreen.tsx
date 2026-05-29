@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Layers, DollarSign, TrendingUp, Package } from 'lucide-react-native';
 import { useApp } from '../../contexts/AppContext';
@@ -8,6 +8,8 @@ import { getColors } from '../../utils/theme';
 import { formatRupiah, formatRupiahShort } from '../../utils/currency';
 
 export default function InventoryScreen() {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isLandscape = windowWidth > windowHeight;
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
@@ -42,7 +44,7 @@ export default function InventoryScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+      <View style={{ paddingLeft: isLandscape ? 16 : 60, paddingRight: 16, paddingVertical: 12 }}>
         <Text style={{ color: c.text, fontSize: 22, fontWeight: '900' }}>
           Inventory & <Text style={{ color: c.accent }}>Biaya</Text>
         </Text>

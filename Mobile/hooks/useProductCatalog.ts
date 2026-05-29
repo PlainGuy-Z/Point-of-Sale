@@ -32,7 +32,7 @@ export function useProductCatalog(
       products,
       transactions,
       bestSellerPeriod,
-      5,
+      3,
       1
     );
 

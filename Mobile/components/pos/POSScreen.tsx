@@ -1,11 +1,13 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, useWindowDimensions, Modal } from 'react-native';
+import React, { useState, useCallback, useContext } from 'react';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, useWindowDimensions, Modal, Image } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, TrendingUp, Flame, Award, PlusCircle, Package, Menu } from 'lucide-react-native';
+import { Search, TrendingUp, Flame, Award, PlusCircle, Package, Menu, ChevronDown, SlidersHorizontal } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { SidebarContext } from '../../contexts/SidebarContext';
 import { getColors } from '../../utils/theme';
 import { usePOSCart } from '../../contexts/POSCartContext';
 import { useProductCatalog } from '../../hooks/useProductCatalog';
@@ -41,6 +43,7 @@ export default function POSScreen() {
 
   const { products, transactions, categories, checkout: appCheckout } = useApp();
   const { user } = useAuth();
+  const { openSidebar } = useContext(SidebarContext);
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
@@ -58,6 +61,7 @@ export default function POSScreen() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [bestSellerPeriod, setBestSellerPeriod] = useState(3);
+  const [showTrendingDropdown, setShowTrendingDropdown] = useState(false);
 
   // ── Modals ────────────────────────────────────────────────────────────────
   const [showManualModal, setShowManualModal] = useState(false);
@@ -142,7 +146,7 @@ export default function POSScreen() {
   const renderSearchBar = () => (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: 8,
-      paddingHorizontal: isLandscape ? 8 : 16, marginBottom: isLandscape ? 6 : 10, marginTop: isLandscape ? 4 : 8,
+      paddingHorizontal: isLandscape ? 8 : 16, marginBottom: isLandscape ? 4 : 6, marginTop: isLandscape ? 0 : 2,
     }}>
       <View style={{
         flex: 1, flexDirection: 'row', alignItems: 'center',
@@ -173,6 +177,20 @@ export default function POSScreen() {
           <PlusCircle size={18} color={c.textSecondary} strokeWidth={2} />
         </TouchableOpacity>
       )}
+
+      {/* Category filter button (portrait) */}
+      {!isLandscape && (
+        <TouchableOpacity
+          onPress={() => setShowSidebar(true)}
+          style={{
+            width: 44, height: 44, borderRadius: 14,
+            backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.borderLight,
+            alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <SlidersHorizontal size={18} color={c.textSecondary} strokeWidth={2} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -182,7 +200,7 @@ export default function POSScreen() {
   const renderTrendingBar = () => (
     <View style={{
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: isLandscape ? 8 : 16, marginBottom: isLandscape ? 6 : 12, marginTop: isLandscape ? 2 : 4,
+      paddingHorizontal: isLandscape ? 8 : 16, marginBottom: isLandscape ? 4 : 6, marginTop: isLandscape ? 0 : 2,
     }}>
       {/* Trending selector */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -245,7 +263,8 @@ export default function POSScreen() {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: 8, gap: 6, paddingBottom: 6 }}
+      contentContainerStyle={{ paddingHorizontal: 8, gap: 6, paddingTop: 8, paddingBottom: 8, alignItems: 'center' }}
+      style={{ maxHeight: 46, marginBottom: 6 }}
     >
       {['Semua', ...(categories || [])].map(cat => {
         const isActive = selectedCategory === cat;
@@ -254,15 +273,26 @@ export default function POSScreen() {
             key={cat}
             onPress={() => setSelectedCategory(cat)}
             style={{
-              paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+              height: 28,
+              paddingHorizontal: 12,
+              borderRadius: 14,
               backgroundColor: isActive ? c.accent : c.bgCard,
-              borderWidth: isActive ? 0 : 1, borderColor: c.borderLight,
+              borderWidth: isActive ? 0 : 1,
+              borderColor: c.borderLight,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <Text style={{
-              color: isActive ? c.textInverse : c.textSecondary,
-              fontSize: 11, fontWeight: isActive ? '900' : '600',
-            }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                color: isActive ? c.textInverse : c.textSecondary,
+                fontSize: 11,
+                fontWeight: isActive ? '900' : '600',
+                includeFontPadding: false,
+                textAlignVertical: 'center',
+              }}
+            >
               {cat}
             </Text>
           </TouchableOpacity>
@@ -276,26 +306,28 @@ export default function POSScreen() {
   // ══════════════════════════════════════════════════════════════════════════
   const renderPortraitCartModal = () => (
     <Modal visible={showCartModal} transparent animationType="slide">
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-        <TouchableOpacity
-          style={{ flex: 1 }}
-          activeOpacity={1}
-          onPress={() => setShowCartModal(false)}
-        />
-        <View style={{
-          backgroundColor: c.bgCard,
-          borderTopLeftRadius: 24, borderTopRightRadius: 24,
-          maxHeight: '85%',
-          borderWidth: 1, borderColor: c.border,
-        }}>
-          <CartPanel
-            onManualItem={() => { setShowCartModal(false); setShowManualModal(true); }}
-            onEditItem={(idx) => { setShowCartModal(false); handleEditItem(idx); }}
-            onCheckout={() => handleCheckout()}
-            onQuickPay={() => handleQuickPay()}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setShowCartModal(false)}
           />
+          <View style={{
+            backgroundColor: c.bgCard,
+            borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            height: '75%',
+            borderWidth: 1, borderColor: c.border,
+          }}>
+            <CartPanel
+              onManualItem={() => { setShowCartModal(false); setShowManualModal(true); }}
+              onEditItem={(idx) => { setShowCartModal(false); handleEditItem(idx); }}
+              onCheckout={() => handleCheckout()}
+              onQuickPay={() => handleQuickPay()}
+            />
+          </View>
         </View>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 
@@ -308,10 +340,10 @@ export default function POSScreen() {
         {/* Header with navbar: left menu, title, right logo+shop name */}
         <View style={{
           flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-          paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4,
+          paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4,
         }}>
           <TouchableOpacity
-            onPress={() => setShowSidebar(true)}
+            onPress={openSidebar}
             style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
           >
             <Menu size={20} color={c.text} strokeWidth={2} />
@@ -328,9 +360,11 @@ export default function POSScreen() {
                 backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.borderLight,
                 overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Text style={{ color: c.accent, fontSize: 14, fontWeight: '900' }}>
-                  {user?.shop?.name?.charAt(0) || 'S'}
-                </Text>
+                <Image
+                  source={{ uri: user.shop.logo_url.startsWith('http') ? user.shop.logo_url : `${process.env.EXPO_PUBLIC_API_URL}${user.shop.logo_url}` }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
               </View>
             ) : (
               <View style={{
@@ -356,9 +390,10 @@ export default function POSScreen() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
+            paddingTop: 10,
             paddingBottom: cartIsEmpty ? 20 : 100,
           }}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
         >
           {categoryCarousels.length === 0 ||
             categoryCarousels.every(cr => cr.products.length === 0) ? (
@@ -393,11 +428,33 @@ export default function POSScreen() {
         <SidebarModal
           visible={showSidebar}
           onClose={() => setShowSidebar(false)}
+          selectedCategory={selectedCategory}
           onSelectCategory={(cat) => {
             setSelectedCategory(cat);
             setShowSidebar(false);
-            const found = categoryCarousels.find(cr => cr.categoryName === cat);
-            if (found && !isLandscape) setCategoryModal({ title: cat, products: found.products });
+            
+            // Filter all available products for the selected category
+            const filtered = products.filter(p => {
+              const isAvailable = p.isAvailable !== false && p.stock !== 0;
+              if (!isAvailable) return false;
+              
+              const matchesCategory = cat === 'Semua' || p.category === cat;
+              const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+              
+              return matchesCategory && matchesSearch;
+            });
+
+            // Sort products (Promo first, then alphabetical)
+            const sorted = [...filtered].sort((a, b) => {
+              const aPromo = a.isPromo && a.promoPrice ? 1 : 0;
+              const bPromo = b.isPromo && b.promoPrice ? 1 : 0;
+              if (bPromo !== aPromo) return bPromo - aPromo;
+              return a.name.localeCompare(b.name);
+            });
+
+            if (!isLandscape) {
+              setCategoryModal({ title: cat, products: sorted });
+            }
           }}
         />
 
@@ -460,7 +517,7 @@ export default function POSScreen() {
         />
 
         {showPaymentModal && (
-          <Modal visible={showPaymentModal} animationType="slide">
+          <Modal visible={showPaymentModal} animationType="fade" transparent={true}>
             <PaymentScreen
               onClose={() => setShowPaymentModal(false)}
               onSuccess={(tx) => {
@@ -477,7 +534,7 @@ export default function POSScreen() {
         )}
 
         {showSuccessModal && (
-          <Modal visible={showSuccessModal} animationType="slide">
+          <Modal visible={showSuccessModal} animationType="fade" transparent={true}>
             <PaymentSuccessScreen
               transaction={completedTransaction || undefined}
               onClose={() => setShowSuccessModal(false)}
@@ -492,29 +549,161 @@ export default function POSScreen() {
   // LANDSCAPE LAYOUT
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
-      <View style={{ flex: 1, flexDirection: 'row', gap: 6, padding: 6 }}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top > 0 ? Math.max(insets.top - 10, 6) : 8}}>
+      <View style={{ flex: 1, flexDirection: 'row', gap: 14, paddingHorizontal: 6, paddingVertical: 2 }}>
         {/* LEFT — Product Grid */}
         <View style={{ flex: 1, minWidth: 0 }}>
-          {/* Header */}
-          <Text style={{
-            fontSize: 16, fontWeight: '900', color: c.text, letterSpacing: -0.5,
-            marginBottom: 4, paddingHorizontal: 4,
+          {/* Header Row */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 8,
+            marginBottom: 4,
+            marginTop: 0,
           }}>
-            Menu <Text style={{ color: c.accent }}>Explorer</Text>
-          </Text>
+            <Text style={{
+              fontSize: 16, fontWeight: '900', color: c.text, letterSpacing: -0.5,
+            }}>
+              Menu <Text style={{ color: c.accent }}>Explorer</Text>
+            </Text>
 
-          {renderSearchBar()}
+            {/* Small Compact Search Bar */}
+            <View style={{
+              flexDirection: 'row', alignItems: 'center',
+              backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.borderLight,
+              borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, gap: 6,
+              width: 180,
+            }}>
+              <Search size={12} color={c.textSecondary} strokeWidth={2} />
+              <TextInput
+                placeholder="Cari menu..."
+                placeholderTextColor={c.textMuted}
+                value={search}
+                onChangeText={setSearch}
+                style={{ flex: 1, color: c.text, fontSize: 11, fontWeight: '500', padding: 0 }}
+              />
+            </View>
+          </View>
+
+          {/* Categories Carousel */}
           {renderCategoryPills()}
-          {renderTrendingBar()}
 
-          {/* Product grid */}
+          {/* Trending Bar with single Border selector & Promo Badge */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 8,
+            marginBottom: 6,
+            marginTop: 0,
+            position: 'relative',
+            zIndex: 50,
+          }}>
+            {/* Single Border Trending Dropdown */}
+            <View style={{ position: 'relative' }}>
+              <TouchableOpacity
+                onPress={() => setShowTrendingDropdown(!showTrendingDropdown)}
+                activeOpacity={0.8}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  backgroundColor: c.bgCard,
+                  borderWidth: 1,
+                  borderColor: c.border,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 10,
+                }}
+              >
+                <TrendingUp size={11} color={c.accent} strokeWidth={2} />
+                <Text style={{
+                  color: c.textSecondary,
+                  fontSize: 11,
+                  fontWeight: '700',
+                }}>
+                  Trend: {bestSellerPeriod} Hari
+                </Text>
+                <ChevronDown size={11} color={c.textSecondary} />
+              </TouchableOpacity>
+
+              {showTrendingDropdown && (
+                <View style={{
+                  position: 'absolute',
+                  top: 28,
+                  left: 0,
+                  backgroundColor: c.bgCard,
+                  borderWidth: 1,
+                  borderColor: c.border,
+                  borderRadius: 10,
+                  padding: 4,
+                  width: 120,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.15,
+                  shadowRadius: 5,
+                  shadowOffset: { width: 0, height: 2 },
+                  elevation: 5,
+                  zIndex: 100,
+                }}>
+                  {TRENDING_PERIODS.map(p => (
+                    <TouchableOpacity
+                      key={p.value}
+                      onPress={() => {
+                        setBestSellerPeriod(p.value);
+                        setShowTrendingDropdown(false);
+                      }}
+                      style={{
+                        paddingVertical: 8,
+                        paddingHorizontal: 10,
+                        backgroundColor: bestSellerPeriod === p.value ? c.accentBg : 'transparent',
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text style={{
+                        color: bestSellerPeriod === p.value ? c.accent : c.textSecondary,
+                        fontSize: 11,
+                        fontWeight: '600',
+                      }}>
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Promo Text Badge (Shown if and only if promo products count > 0) */}
+            {promoProductsCount > 0 && (
+              <View style={{
+                backgroundColor: c.errorBg,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: c.error,
+              }}>
+                <Text style={{
+                  color: c.error,
+                  fontSize: 9,
+                  fontWeight: '900',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}>
+                  promo
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Product grid - 4 Columns in Landscape */}
           <FlatList
             data={sortedProducts}
             keyExtractor={item => item.id}
-            numColumns={3}
+            numColumns={4}
+            key="landscape-grid-4-cols"
             contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
             ListEmptyComponent={
               <View style={{ alignItems: 'center', paddingVertical: 60 }}>
                 <Package size={40} color={c.textMuted} strokeWidth={1.5} />
@@ -535,43 +724,54 @@ export default function POSScreen() {
           />
         </View>
 
-        {/* RIGHT — Cart Panel */}
-        <View style={{ width: windowWidth * 0.24, maxWidth: 260, minWidth: 200 }}>
+        {/* RIGHT — Cart Panel with fixed 1:3 screen width & Inline Modals */}
+        <View style={{
+          width: windowWidth / 3,
+          height: '100%',
+          position: 'relative',
+          overflow: 'hidden',
+          borderLeftWidth: 1,
+          borderLeftColor: c.borderLight,
+        }}>
           <CartPanel
             onManualItem={() => setShowManualModal(true)}
             onEditItem={handleEditItem}
             onCheckout={handleCheckout}
             onQuickPay={handleQuickPay}
           />
+
+          {/* Inline Modals for Landscape (rendered overlaying the Cart area) */}
+          <AddManualItemModal
+            visible={showManualModal}
+            onClose={() => setShowManualModal(false)}
+            onAdd={handleManualAdd}
+            onQuickPay={handleManualQuickPay}
+            inline={true}
+          />
+
+          {editingItem && (
+            <CartItemEditModal
+              visible={editingItemIndex !== null}
+              item={editingItem}
+              onSave={handleEditSave}
+              onRemove={handleEditRemove}
+              onClose={() => setEditingItemIndex(null)}
+              inline={true}
+            />
+          )}
+
+          <CheckoutSheet
+            visible={showCheckoutSheet}
+            onClose={() => setShowCheckoutSheet(false)}
+            onProceedPayment={handleProceedPayment}
+            inline={true}
+          />
         </View>
       </View>
 
-      {/* Modals */}
-      <AddManualItemModal
-        visible={showManualModal}
-        onClose={() => setShowManualModal(false)}
-        onAdd={handleManualAdd}
-        onQuickPay={handleManualQuickPay}
-      />
-
-      {editingItem && (
-        <CartItemEditModal
-          visible={editingItemIndex !== null}
-          item={editingItem}
-          onSave={handleEditSave}
-          onRemove={handleEditRemove}
-          onClose={() => setEditingItemIndex(null)}
-        />
-      )}
-
-      <CheckoutSheet
-        visible={showCheckoutSheet}
-        onClose={() => setShowCheckoutSheet(false)}
-        onProceedPayment={handleProceedPayment}
-      />
-
+      {/* Payment Modals (always modal sheets) */}
       {showPaymentModal && (
-        <Modal visible={showPaymentModal} animationType="slide">
+        <Modal visible={showPaymentModal} animationType="fade" transparent={true}>
           <PaymentScreen
             onClose={() => setShowPaymentModal(false)}
             onSuccess={(tx) => {
@@ -588,13 +788,13 @@ export default function POSScreen() {
       )}
 
       {showSuccessModal && (
-        <Modal visible={showSuccessModal} animationType="slide">
+        <Modal visible={showSuccessModal} animationType="fade" transparent={true}>
           <PaymentSuccessScreen
             transaction={completedTransaction || undefined}
             onClose={() => setShowSuccessModal(false)}
           />
         </Modal>
       )}
-    </SafeAreaView>
+    </View>
   );
 }

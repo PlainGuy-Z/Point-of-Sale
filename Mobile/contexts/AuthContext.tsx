@@ -11,6 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,6 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshUser = useCallback(async (): Promise<AuthUser> => {
+    const { user: me } = await authApi.me();
+    setUser(me);
+    return me;
+  }, []);
+
   const value = useMemo<AuthContextType>(
     () => ({
       user,
@@ -75,8 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: status === 'authenticated',
       login,
       logout,
+      refreshUser,
     }),
-    [user, status, login, logout]
+    [user, status, login, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

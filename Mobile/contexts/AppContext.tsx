@@ -15,6 +15,12 @@ interface AppContextType {
   isServiceLoading: boolean;
   checkout: (params: CheckoutParams) => Promise<Transaction>;
   refreshState: () => Promise<void>;
+  updateSettings: (settings: Partial<BusinessSettings>) => Promise<BusinessSettings>;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (product: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  addCategory: (name: string) => Promise<void>;
+  deleteCategory: (name: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -119,14 +125,127 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const updateSettings = useCallback(async (newSettings: Partial<BusinessSettings>): Promise<BusinessSettings> => {
+    setIsServiceLoading(true);
+    try {
+      const next = await appApi.updateSettings(newSettings);
+      setState(next);
+      return next.settings;
+    } catch (e) {
+      console.error('Failed to update settings:', e);
+      throw e;
+    } finally {
+      setIsServiceLoading(false);
+    }
+  }, []);
+
+  const addProduct = useCallback(async (product: Omit<Product, 'id'>) => {
+    setIsServiceLoading(true);
+    try {
+      const fullState = await appApi.addProduct(product);
+      setState(prev => ({
+        ...prev,
+        products: fullState.products,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
+    } finally {
+      setIsServiceLoading(false);
+    }
+  }, []);
+
+  const updateProduct = useCallback(async (product: Product) => {
+    setIsServiceLoading(true);
+    try {
+      const fullState = await appApi.updateProduct(product);
+      setState(prev => ({
+        ...prev,
+        products: fullState.products,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
+    } finally {
+      setIsServiceLoading(false);
+    }
+  }, []);
+
+  const deleteProduct = useCallback(async (id: string) => {
+    setIsServiceLoading(true);
+    try {
+      // Optimistic update
+      setState(prev => ({
+        ...prev,
+        products: prev.products.filter(p => p.id !== id),
+      }));
+      const fullState = await appApi.deleteProduct(id);
+      setState(prev => ({
+        ...prev,
+        products: fullState.products,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
+    } catch (e) {
+      // Rollback
+      await refreshState();
+      throw e;
+    } finally {
+      setIsServiceLoading(false);
+    }
+  }, [refreshState]);
+
+  const addCategory = useCallback(async (name: string) => {
+    setIsServiceLoading(true);
+    try {
+      const fullState = await appApi.addCategory(name);
+      setState(prev => ({
+        ...prev,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
+    } finally {
+      setIsServiceLoading(false);
+    }
+  }, []);
+
+  const deleteCategory = useCallback(async (name: string) => {
+    setIsServiceLoading(true);
+    try {
+      const fullState = await appApi.deleteCategory(name);
+      setState(prev => ({
+        ...prev,
+        categories: fullState.categories,
+        categoriesWithId: fullState.categoriesWithId,
+      }));
+    } finally {
+      setIsServiceLoading(false);
+    }
+  }, []);
+
   const value = useMemo<AppContextType>(
     () => ({
       ...state,
       isServiceLoading,
       checkout,
       refreshState,
+      updateSettings,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      addCategory,
+      deleteCategory,
     }),
-    [state, isServiceLoading, checkout, refreshState]
+    [
+      state,
+      isServiceLoading,
+      checkout,
+      refreshState,
+      updateSettings,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      addCategory,
+      deleteCategory,
+    ]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

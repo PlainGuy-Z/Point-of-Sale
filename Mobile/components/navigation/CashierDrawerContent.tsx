@@ -5,9 +5,11 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getNavigation } from '../../data/navigation';
@@ -85,6 +87,7 @@ export default function CashierDrawerContent(props: any) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { settings } = useApp();
   const insets = useSafeAreaInsets();
   const { effectiveTheme, toggleTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
@@ -121,15 +124,23 @@ export default function CashierDrawerContent(props: any) {
     >
       {/* STORE HEADER */}
       <View style={[styles.header, { borderBottomColor: borderColor }]}>
-        <View style={[styles.logoBox, isDark ? styles.logoBoxDark : styles.logoBoxLight]}>
-          <Coffee size={18} color={isDark ? '#ffffff' : '#0f172a'} strokeWidth={2} />
+        <View style={[styles.logoBox, isDark ? styles.logoBoxDark : styles.logoBoxLight, { overflow: 'hidden' }]}>
+          {settings?.logo_url ? (
+            <Image
+              source={{ uri: settings.logo_url.startsWith('http') ? settings.logo_url : `${process.env.EXPO_PUBLIC_API_URL}${settings.logo_url}` }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Coffee size={18} color={isDark ? '#ffffff' : '#0f172a'} strokeWidth={2} />
+          )}
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.shopName, { color: textColor }]}>
             {user?.shop?.name || 'SmartPOS'}
           </Text>
           <Text style={isDark ? styles.posSystemTextDark : styles.posSystemTextLight}>
-            POS System
+            SmartPOS
           </Text>
         </View>
         <TouchableOpacity
@@ -145,7 +156,7 @@ export default function CashierDrawerContent(props: any) {
       </View>
 
       <ScrollView
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
         contentContainerStyle={{ paddingBottom: 20 }}
       >
         {navigation.sections.map((section, idx) => (

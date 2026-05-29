@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import type { CartItemWithInput, Product } from '../types';
+import { useApp } from './AppContext';
 import { getEffectivePrice } from '../utils/priceUtils';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ const defaultCheckout: CheckoutData = {
   tableNumber: '',
   customerName: '',
   orderNote: '',
-  applyTax: true,
+  applyTax: false,
 };
 
 const POSCartContext = createContext<POSCartContextValue | undefined>(undefined);
@@ -65,10 +66,23 @@ const POSCartContext = createContext<POSCartContextValue | undefined>(undefined)
 // ─── Provider ───────────────────────────────────────────────────────────────────
 
 export function POSCartProvider({ children }: { children: React.ReactNode }) {
+  const { settings } = useApp();
   const [cart, setCart] = useState<CartItemWithInput[]>([]);
-  const [checkoutData, setCheckoutData] = useState<CheckoutData>(defaultCheckout);
+  const [checkoutData, setCheckoutData] = useState<CheckoutData>(() => ({
+    ...defaultCheckout,
+    applyTax: settings?.tax_enabled ?? settings?.taxEnabled ?? false,
+  }));
   const [panel, setPanel] = useState<CartPanel>('cart');
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+
+  // Sync applyTax with business settings when they load or update
+  useEffect(() => {
+    const taxEnabled = settings?.tax_enabled ?? settings?.taxEnabled ?? false;
+    setCheckoutData(prev => ({
+      ...prev,
+      applyTax: taxEnabled,
+    }));
+  }, [settings?.tax_enabled, settings?.taxEnabled]);
 
   // ── Cart operations ─────────────────────────────────────────────────────────
 
@@ -175,10 +189,13 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
 
   const resetCheckout = useCallback(() => {
     setCart([]);
-    setCheckoutData(defaultCheckout);
+    setCheckoutData({
+      ...defaultCheckout,
+      applyTax: settings?.tax_enabled ?? settings?.taxEnabled ?? false,
+    });
     setPanel('cart');
     setEditingItemIndex(null);
-  }, []);
+  }, [settings?.tax_enabled, settings?.taxEnabled]);
 
   // ── Computed ────────────────────────────────────────────────────────────────
 
@@ -187,9 +204,10 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
     [cart]
   );
 
+  const taxRate = settings?.tax_rate ?? settings?.taxRate ?? 11;
   const taxAmount = useMemo(
-    () => (checkoutData.applyTax ? Math.round(subtotal * 0.11) : 0),
-    [subtotal, checkoutData.applyTax]
+    () => (checkoutData.applyTax ? Math.round(subtotal * (taxRate / 100)) : 0),
+    [subtotal, checkoutData.applyTax, taxRate]
   );
 
   const total = subtotal + taxAmount;

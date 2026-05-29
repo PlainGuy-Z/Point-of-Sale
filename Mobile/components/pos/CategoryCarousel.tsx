@@ -32,7 +32,7 @@ export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarous
   // ── "Lihat Semua" grid mode ───────────────────────────────────────────────
   if (showAll) {
     return (
-      <View style={{ marginBottom: 20 }}>
+      <View style={{ marginBottom: 20, paddingTop: 6 }}>
         {/* Header */}
         <View style={{
           flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -87,7 +87,7 @@ export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarous
 
   // ── Carousel mode ─────────────────────────────────────────────────────────
   return (
-    <View style={{ marginBottom: 20 }}>
+    <View style={{ marginBottom: 20, paddingTop: 6 }}>
       {/* Header */}
       <View style={{
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -133,7 +133,7 @@ export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarous
         keyExtractor={(item) => item.id}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 6, gap: 10 }}
         renderItem={({ item }) => (
           <ProductCard
             product={item}

@@ -32,6 +32,12 @@ export const authApi = {
 
   me: async (): Promise<{ user: AuthUser }> =>
     http<{ user: AuthUser }>('/auth/me'),
+
+  updateProfile: async (data: { name?: string; shop_name?: string }): Promise<{ user: AuthUser }> =>
+    http<{ user: AuthUser }>('/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };
 
 export { ApiError };
