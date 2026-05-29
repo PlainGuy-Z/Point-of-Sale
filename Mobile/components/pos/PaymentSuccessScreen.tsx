@@ -1,13 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Alert, ActivityIndicator
+  StyleSheet, SafeAreaView, Alert, ActivityIndicator,
+  Animated
 } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
-import Animated, {
-  useSharedValue, useAnimatedStyle,
-  withSpring, withDelay, FadeInDown
-} from 'react-native-reanimated'
 import { Feather } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useApp } from '../../contexts/AppContext'
@@ -32,6 +29,25 @@ export default function PaymentSuccessScreen({
   onClose,
 }: PaymentSuccessScreenProps) {
   if (!transaction) return null
+
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(50)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [])
 
   const router = useRouter()
   const { settings, products } = useApp()
@@ -309,11 +325,14 @@ export default function PaymentSuccessScreen({
   return (
     <View style={styles.overlay}>
       <Animated.View 
-        entering={FadeInDown.delay(100).springify()}
         style={[
           styles.modalCard,
           isLandscape && styles.modalCardLandscape,
-          themeStyles.modalCard
+          themeStyles.modalCard,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }
         ]}
       >
         {/* Header */}
