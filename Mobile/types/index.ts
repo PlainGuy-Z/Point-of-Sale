@@ -94,6 +94,14 @@ export interface Transaction {
   orderNote?: string;
 }
 
+export interface ShiftTransaction {
+  id: string;
+  created_at: string;
+  customer_name?: string;
+  total_amount?: number;
+  payment_method?: string;
+}
+
 // ==================== WASTE LOG TYPES ====================
 export interface WasteLog {
   id: string;
@@ -249,6 +257,7 @@ export interface Shift {
   current_total_sales?: number;
   current_total_transactions?: number;
   current_expected_cash?: number;
+  transactions?: ShiftTransaction[];
 }
 
 // ==================== SETTINGS TYPES ====================

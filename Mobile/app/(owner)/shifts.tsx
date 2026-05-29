@@ -1,6 +1,6 @@
 import React from 'react';
-import ShiftScreen from '../../components/shift/ShiftScreen';
+import LaporanShift from '../../components/shift/LaporanShift';
 
 export default function OwnerShifts() {
-  return <ShiftScreen />;
+  return <LaporanShift />;
 }

@@ -15,32 +15,47 @@ export default function CashierLayout() {
   const c = getColors(isDark);
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isPortrait = windowHeight >= windowWidth;
   const isLandscape = windowWidth > windowHeight;
-  
-  const [sidebarVisible, setSidebarVisible] = useState(false);       // portrait overlay
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);    // landscape inline
+
+  /**
+   * CASHIER LAYOUT STRUCTURE
+   * ========================
+   *
+   * PORTRAIT MODE (height >= width):
+   * - NO sidebar at all (not even overlay)
+   * - Bottom navigation bar shows (4 items: POS, Shift, History, Settings)
+   * - Safe area: insets.bottom for Android navigation bar
+   *
+   * LANDSCAPE MODE (width > height):
+   * - Sidebar shown inline (collapsible)
+   * - Bottom bar hidden (display: none)
+   * - Sidebar can collapse/expand
+   *
+   * NO DASHBOARD FOR CASHIER:
+   * - dashboard.tsx file has been removed entirely
+   * - No route, no tab, no menu item for dashboard
+   * - Cashier default route: /(cashier)/pos
+   */
+
+  // Sidebar state only relevant for landscape mode
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const openSidebar = useCallback(() => {
     if (isLandscape) {
       setSidebarCollapsed(false);
-    } else {
-      setSidebarVisible(true);
     }
   }, [isLandscape]);
 
   const closeSidebar = useCallback(() => {
     if (isLandscape) {
       setSidebarCollapsed(true);
-    } else {
-      setSidebarVisible(false);
     }
   }, [isLandscape]);
 
   const toggleSidebar = useCallback(() => {
     if (isLandscape) {
       setSidebarCollapsed(prev => !prev);
-    } else {
-      setSidebarVisible(prev => !prev);
     }
   }, [isLandscape]);
 
@@ -53,13 +68,14 @@ export default function CashierLayout() {
     isSidebarExpanded: !sidebarCollapsed,
     isLandscape,
     sidebarWidth,
-    isSidebarOpen: isLandscape ? true : sidebarVisible,
-  }), [openSidebar, closeSidebar, toggleSidebar, sidebarCollapsed, isLandscape, sidebarWidth, sidebarVisible]);
+    isSidebarOpen: isLandscape,
+  }), [openSidebar, closeSidebar, toggleSidebar, sidebarCollapsed, isLandscape, sidebarWidth]);
 
   return (
     <SidebarContext.Provider value={contextValue}>
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         <View style={{ flex: 1, flexDirection: isLandscape ? 'row' : 'column', backgroundColor: c.bg }}>
+          {/* LANDSCAPE MODE: INLINE SIDEBAR */}
           {isLandscape && (
             <CashierSidebar
               visible={true}
@@ -75,6 +91,10 @@ export default function CashierLayout() {
               screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
+                  // BOTTOM NAVIGATION BAR - CASHIER PORTRAIT MODE ONLY
+                  // - Only visible in portrait (display: flex)
+                  // - Hidden in landscape (display: none), sidebar used instead
+                  // - Safe area: paddingBottom uses insets.bottom for Android nav bar
                   backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
                   borderTopWidth: 1,
                   borderTopColor: c.border,
@@ -95,12 +115,10 @@ export default function CashierLayout() {
                 },
               }}
             >
-              <Tabs.Screen
-                name="dashboard"
-                options={{
-                  href: null,
-                }}
-              />
+              {/* ============================================== */}
+              {/* CASHIER BOTTOM BAR TABS (Portrait mode)        */}
+              {/* Landscape: tabs hidden, sidebar used instead    */}
+              {/* ============================================== */}
               <Tabs.Screen
                 name="pos"
                 options={{
@@ -132,6 +150,7 @@ export default function CashierLayout() {
             </Tabs>
           </View>
         </View>
+        {/* Landscape bottom notch safe area spacer */}
         {isLandscape && insets.bottom > 0 && (
           <View style={{
             position: 'absolute',
@@ -144,15 +163,7 @@ export default function CashierLayout() {
             borderTopColor: c.border,
           }} />
         )}
-
-        {/* Portrait: overlay sidebar */}
-        {!isLandscape && (
-          <CashierSidebar
-            visible={sidebarVisible}
-            onClose={closeSidebar}
-            inline={false}
-          />
-        )}
+        {/* NO PORTRAIT SIDEBAR - Cashier portrait uses only bottom bar */}
       </View>
     </SidebarContext.Provider>
   );

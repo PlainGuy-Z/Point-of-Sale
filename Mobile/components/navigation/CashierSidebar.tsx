@@ -74,6 +74,9 @@ export default function CashierSidebar({
   }, [visible, inline]);
 
   const menuItems = [
+    // CASHIER MENU ITEMS: Only role-appropriate screens
+    // Dashboard is intentionally excluded (no hr: null)
+    // Order matches bottom bar: POS, Shift, History, Settings
     { id: 'pos', label: 'Kasir', icon: ShoppingCart, route: '/(cashier)/pos' },
     { id: 'shift', label: 'Shift', icon: Clock, route: '/(cashier)/shift' },
     { id: 'history', label: 'Riwayat', icon: List, route: '/(cashier)/history' },

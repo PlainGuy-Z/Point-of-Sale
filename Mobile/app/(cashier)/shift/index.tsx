@@ -1,6 +1,6 @@
 import React from 'react';
-import ShiftScreen from '../../../components/shift/ShiftScreen';
+import CashierShiftHub from '../../../components/shift/CashierShiftHub';
 
 export default function CashierShift() {
-  return <ShiftScreen />;
+  return <CashierShiftHub />;
 }

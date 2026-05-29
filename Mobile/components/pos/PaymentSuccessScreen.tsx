@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useApp } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { useShift } from '../../contexts/ShiftContext'
 import { useLayout } from '../../hooks/useLayout'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getColors } from '../../utils/theme'
@@ -35,6 +36,7 @@ export default function PaymentSuccessScreen({
   const router = useRouter()
   const { settings, products } = useApp()
   const { user } = useAuth()
+  const { refreshShift } = useShift()
   const { isLandscape } = useLayout()
   const { effectiveTheme } = useTheme()
   const isDark = effectiveTheme === 'dark'
@@ -155,7 +157,16 @@ export default function PaymentSuccessScreen({
     setTimeout(() => setIsCopied(false), 2000)
   }, [receiptData])
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    try {
+      // Refresh shift context to update totals (only for cashier)
+      if (user?.role === 'cashier') {
+        await refreshShift()
+      }
+    } catch (err) {
+      console.error('Failed to refresh shift:', err)
+    }
+    
     if (onClose) {
       onClose()
     } else {

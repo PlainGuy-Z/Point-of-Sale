@@ -13,6 +13,8 @@ interface AppContextType {
   categories: string[];
   categoriesWithId: { id: string; name: string }[];
   isServiceLoading: boolean;
+  serviceError: string | null;
+  clearServiceError: () => void;
   checkout: (params: CheckoutParams) => Promise<Transaction>;
   refreshState: () => Promise<void>;
   updateSettings: (settings: Partial<BusinessSettings>) => Promise<BusinessSettings>;
@@ -47,14 +49,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     categoriesWithId: [],
   });
   const [isServiceLoading, setIsServiceLoading] = useState(false);
+  const [serviceError, setServiceError] = useState<string | null>(null);
+
+  const clearServiceError = useCallback(() => {
+    setServiceError(null);
+  }, []);
 
   const refreshState = useCallback(async () => {
     try {
       setIsServiceLoading(true);
+      setServiceError(null);
       const next = await appApi.getAppState();
       setState(next);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load state:', e);
+      setServiceError(e?.message || 'Gagal memuat data dari server. Periksa koneksi internet Anda.');
     } finally {
       setIsServiceLoading(false);
     }
@@ -71,16 +80,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         categories: [],
         categoriesWithId: [],
       });
+      setServiceError(null);
       return;
     }
     let mounted = true;
     (async () => {
       try {
         setIsServiceLoading(true);
+        setServiceError(null);
         const next = await appApi.getAppState();
         if (mounted) setState(next);
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to load state from backend:', e);
+        if (mounted) {
+          setServiceError(e?.message || 'Gagal terhubung ke server backend.');
+        }
       } finally {
         if (mounted) setIsServiceLoading(false);
       }
@@ -225,6 +239,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ...state,
       isServiceLoading,
+      serviceError,
+      clearServiceError,
       checkout,
       refreshState,
       updateSettings,
@@ -237,6 +253,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [
       state,
       isServiceLoading,
+      serviceError,
+      clearServiceError,
       checkout,
       refreshState,
       updateSettings,

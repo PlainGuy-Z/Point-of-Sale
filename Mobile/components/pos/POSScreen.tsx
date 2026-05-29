@@ -1,12 +1,13 @@
 import React, { useState, useCallback, useContext } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, useWindowDimensions, Modal, Image } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, useWindowDimensions, Modal, Image, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, TrendingUp, Flame, Award, PlusCircle, Package, Menu, ChevronDown, SlidersHorizontal } from 'lucide-react-native';
+import { Search, TrendingUp, Flame, Award, PlusCircle, Package, Menu, ChevronDown, SlidersHorizontal, AlertCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useShift } from '../../contexts/ShiftContext';
 import { SidebarContext } from '../../contexts/SidebarContext';
 import { getColors } from '../../utils/theme';
 import { usePOSCart } from '../../contexts/POSCartContext';
@@ -41,8 +42,9 @@ export default function POSScreen() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
 
-  const { products, transactions, categories, checkout: appCheckout } = useApp();
-  const { user } = useAuth();
+  const { products, transactions, categories, checkout: appCheckout, serviceError, refreshState, isServiceLoading } = useApp();
+  const { user, isCashier } = useAuth();
+  const { activeShift } = useShift();
   const { openSidebar } = useContext(SidebarContext);
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
@@ -70,6 +72,7 @@ export default function POSScreen() {
   const [showCartModal, setShowCartModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showShiftValidationModal, setShowShiftValidationModal] = useState(false);
   const [categoryModal, setCategoryModal] = useState<null | { title: string; products: any[] }>(null);
   const [completedTransaction, setCompletedTransaction] = useState<Transaction | null>(null);
 
@@ -113,22 +116,41 @@ export default function POSScreen() {
   const handleManualQuickPay = useCallback((item: CartItemWithInput) => {
     addCustomItem(item);
     setShowManualModal(false);
+
+    if (isCashier && !activeShift) {
+      setShowShiftValidationModal(true);
+      return;
+    }
+
     setShowPaymentModal(true);
-  }, [addCustomItem]);
+  }, [addCustomItem, isCashier, activeShift]);
 
   // ── Quick Pay ─────────────────────────────────────────────────────────────
   const handleQuickPay = useCallback(() => {
     if (cartIsEmpty) return;
+
+    if (isCashier && !activeShift) {
+      setShowShiftValidationModal(true);
+      return;
+    }
+
     setShowCartModal(false);
     setShowPaymentModal(true);
-  }, [cartIsEmpty]);
+  }, [cartIsEmpty, isCashier, activeShift]);
 
   // ── Checkout flow ─────────────────────────────────────────────────────────
   const handleCheckout = useCallback(() => {
     if (cartIsEmpty) return;
+
+    // Validate shift for cashier
+    if (isCashier && !activeShift) {
+      setShowShiftValidationModal(true);
+      return;
+    }
+
     setShowCartModal(false);
     setShowCheckoutSheet(true);
-  }, [cartIsEmpty]);
+  }, [cartIsEmpty, isCashier, activeShift]);
 
   const handleProceedPayment = useCallback(() => {
     setShowCheckoutSheet(false);
@@ -140,7 +162,98 @@ export default function POSScreen() {
     setEditingItemIndex(index);
   }, [setEditingItemIndex]);
 
+  // ── Initial Loading State ──────────────────────────────────────────────────
+  if (products.length === 0 && isServiceLoading && !serviceError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }} edges={['top', 'bottom']}>
+        <ActivityIndicator size="large" color={c.accent} />
+        <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 16 }}>
+          Memuat menu dan data POS...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
+  // ── Network Error UI ──────────────────────────────────────────────────────
+  const renderNetworkError = () => (
+    <View style={{
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+      backgroundColor: c.bg,
+    }}>
+      <View style={{
+        backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#fee2e2',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fca5a5',
+      }}>
+        <AlertCircle size={40} color={c.error} strokeWidth={2} />
+      </View>
+      
+      <Text style={{ fontSize: 20, fontWeight: '900', color: c.text, marginBottom: 8, textAlign: 'center' }}>
+        Koneksi Server Gagal
+      </Text>
+      
+      <Text style={{ fontSize: 13, color: c.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 24, maxWidth: 300 }}>
+        Aplikasi tidak dapat menghubungi server backend. Pastikan server menyala dan terhubung ke jaringan yang sama.
+      </Text>
+      
+      {serviceError && (
+        <View style={{
+          backgroundColor: c.bgCard,
+          borderWidth: 1,
+          borderColor: c.border,
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 24,
+          width: '100%',
+          maxWidth: 320,
+        }}>
+          <Text style={{ fontSize: 10, color: c.textMuted, fontFamily: 'monospace', textAlign: 'center' }}>
+            {serviceError}
+          </Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        onPress={() => refreshState()}
+        disabled={isServiceLoading}
+        activeOpacity={0.8}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          backgroundColor: c.accent,
+          paddingVertical: 14,
+          paddingHorizontal: 32,
+          borderRadius: 14,
+          width: '100%',
+          maxWidth: 240,
+          shadowColor: c.accent,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
+          elevation: 3,
+        }}
+      >
+        {isServiceLoading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>Coba Hubungkan Kembali</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
   // SEARCH BAR
   // ══════════════════════════════════════════════════════════════════════════
   const renderSearchBar = () => (
@@ -342,12 +455,16 @@ export default function POSScreen() {
           flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
           paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4,
         }}>
-          <TouchableOpacity
-            onPress={openSidebar}
-            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Menu size={20} color={c.text} strokeWidth={2} />
-          </TouchableOpacity>
+          {!isCashier ? (
+            <TouchableOpacity
+              onPress={openSidebar}
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Menu size={20} color={c.text} strokeWidth={2} />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 40 }} />
+          )}
 
           <Text style={{ fontSize: 20, fontWeight: '900', color: c.text, letterSpacing: -0.5 }}>
             Menu <Text style={{ color: c.accent }}>Explorer</Text>
@@ -386,41 +503,45 @@ export default function POSScreen() {
         {renderSearchBar()}
         {renderTrendingBar()}
 
-        {/* Category carousels */}
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingTop: 10,
-            paddingBottom: cartIsEmpty ? 20 : 100,
-          }}
-          showsVerticalScrollIndicator={true}
-        >
-          {categoryCarousels.length === 0 ||
-            categoryCarousels.every(cr => cr.products.length === 0) ? (
-            <View style={{
-              alignItems: 'center', justifyContent: 'center',
-              paddingVertical: 80, paddingHorizontal: 20,
-            }}>
-              <Package size={48} color={c.textMuted} strokeWidth={1.5} />
-              <Text style={{ color: c.textSecondary, fontSize: 14, fontWeight: '600', marginTop: 12 }}>
-                {search ? 'Tidak ada hasil pencarian' : 'Tidak ada produk'}
-              </Text>
-              <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' }}>
-                {search ? `Coba kata kunci lain "${search}"` : 'Produk akan muncul di sini'}
-              </Text>
-            </View>
-          ) : (
-            categoryCarousels
-              .filter(cr => cr.products.length > 0)
-              .map(cr => (
-                <CategoryCarousel
-                  key={cr.categoryName}
-                  carousel={cr}
-                  onViewAll={(carousel) => setCategoryModal({ title: carousel.categoryName, products: carousel.products })}
-                />
-              ))
-          )}
-        </ScrollView>
+        {products.length === 0 && serviceError ? (
+          renderNetworkError()
+        ) : (
+          /* Category carousels */
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              paddingTop: 10,
+              paddingBottom: cartIsEmpty ? 20 : 100,
+            }}
+            showsVerticalScrollIndicator={true}
+          >
+            {categoryCarousels.length === 0 ||
+              categoryCarousels.every(cr => cr.products.length === 0) ? (
+              <View style={{
+                alignItems: 'center', justifyContent: 'center',
+                paddingVertical: 80, paddingHorizontal: 20,
+              }}>
+                <Package size={48} color={c.textMuted} strokeWidth={1.5} />
+                <Text style={{ color: c.textSecondary, fontSize: 14, fontWeight: '600', marginTop: 12 }}>
+                  {search ? 'Tidak ada hasil pencarian' : 'Tidak ada produk'}
+                </Text>
+                <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' }}>
+                  {search ? `Coba kata kunci lain "${search}"` : 'Produk akan muncul di sini'}
+                </Text>
+              </View>
+            ) : (
+              categoryCarousels
+                .filter(cr => cr.products.length > 0)
+                .map(cr => (
+                  <CategoryCarousel
+                    key={cr.categoryName}
+                    carousel={cr}
+                    onViewAll={(carousel) => setCategoryModal({ title: carousel.categoryName, products: carousel.products })}
+                  />
+                ))
+            )}
+          </ScrollView>
+        )}
 
         {/* Floating cart */}
         <FloatingCart onPress={() => setShowCartModal(true)} />
@@ -539,6 +660,105 @@ export default function POSScreen() {
               transaction={completedTransaction || undefined}
               onClose={() => setShowSuccessModal(false)}
             />
+          </Modal>
+        )}
+
+        {showShiftValidationModal && (
+          <Modal visible={showShiftValidationModal} transparent animationType="fade">
+            <View style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              padding: 16,
+            }}>
+              <View style={{
+                backgroundColor: c.bgCard,
+                borderWidth: 1,
+                borderColor: c.border,
+                borderRadius: 16,
+                padding: 24,
+                maxWidth: 320,
+                alignItems: 'center',
+              }}>
+                <View style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 12,
+                  backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.1)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}>
+                  <AlertCircle size={28} color={c.error} strokeWidth={1.5} />
+                </View>
+
+                <Text style={{
+                  color: c.text,
+                  fontSize: 16,
+                  fontWeight: '900',
+                  textAlign: 'center',
+                  marginBottom: 8,
+                }}>
+                  Buka Shift Terlebih Dahulu
+                </Text>
+
+                <Text style={{
+                  color: c.textSecondary,
+                  fontSize: 13,
+                  textAlign: 'center',
+                  lineHeight: 20,
+                  marginBottom: 20,
+                }}>
+                  Anda harus membuka shift sebelum melakukan transaksi. Catat modal awal kas di laci.
+                </Text>
+
+                <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+                  <TouchableOpacity
+                    onPress={() => setShowShiftValidationModal(false)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: c.bgInput,
+                      borderWidth: 1,
+                      borderColor: c.border,
+                      borderRadius: 8,
+                      paddingVertical: 10,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{
+                      color: c.text,
+                      fontWeight: '600',
+                      fontSize: 13,
+                    }}>
+                      Batalkan
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowShiftValidationModal(false);
+                      router.push('/shift');
+                    }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: c.accent,
+                      borderRadius: 8,
+                      paddingVertical: 10,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{
+                      color: c.textInverse,
+                      fontWeight: '800',
+                      fontSize: 13,
+                    }}>
+                      Buka Shift
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </Modal>
         )}
       </SafeAreaView>
@@ -697,31 +917,35 @@ export default function POSScreen() {
           </View>
 
           {/* Product grid - 4 Columns in Landscape */}
-          <FlatList
-            data={sortedProducts}
-            keyExtractor={item => item.id}
-            numColumns={4}
-            key="landscape-grid-4-cols"
-            contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
-            showsVerticalScrollIndicator={true}
-            ListEmptyComponent={
-              <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-                <Package size={40} color={c.textMuted} strokeWidth={1.5} />
-                <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 10 }}>
-                  {search ? 'Tidak ada hasil' : 'Tidak ada produk'}
-                </Text>
-              </View>
-            }
-            renderItem={({ item }) => (
-              <ProductCard
-                product={item}
-                onAdd={addToCart}
-                onRemove={(id) => removeFromCart(id)}
-                cartQuantity={getCartQty(item.id)}
-                variant="full"
-              />
-            )}
-          />
+          {products.length === 0 && serviceError ? (
+            renderNetworkError()
+          ) : (
+            <FlatList
+              data={sortedProducts}
+              keyExtractor={item => item.id}
+              numColumns={4}
+              key="landscape-grid-4-cols"
+              contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
+              showsVerticalScrollIndicator={true}
+              ListEmptyComponent={
+                <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                  <Package size={40} color={c.textMuted} strokeWidth={1.5} />
+                  <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 10 }}>
+                    {search ? 'Tidak ada hasil' : 'Tidak ada produk'}
+                  </Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <ProductCard
+                  product={item}
+                  onAdd={addToCart}
+                  onRemove={(id) => removeFromCart(id)}
+                  cartQuantity={getCartQty(item.id)}
+                  variant="full"
+                />
+              )}
+            />
+          )}
         </View>
 
         {/* RIGHT — Cart Panel with fixed 1:3 screen width & Inline Modals */}
@@ -793,6 +1017,106 @@ export default function POSScreen() {
             transaction={completedTransaction || undefined}
             onClose={() => setShowSuccessModal(false)}
           />
+        </Modal>
+      )}
+
+      {/* Shift Validation Modal */}
+      {showShiftValidationModal && (
+        <Modal visible={showShiftValidationModal} transparent animationType="fade">
+          <View style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            padding: 16,
+          }}>
+            <View style={{
+              backgroundColor: c.bgCard,
+              borderWidth: 1,
+              borderColor: c.border,
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 320,
+              alignItems: 'center',
+            }}>
+              <View style={{
+                width: 56,
+                height: 56,
+                borderRadius: 12,
+                backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.1)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}>
+                <AlertCircle size={28} color={c.error} strokeWidth={1.5} />
+              </View>
+
+              <Text style={{
+                color: c.text,
+                fontSize: 16,
+                fontWeight: '900',
+                textAlign: 'center',
+                marginBottom: 8,
+              }}>
+                Buka Shift Terlebih Dahulu
+              </Text>
+
+              <Text style={{
+                color: c.textSecondary,
+                fontSize: 13,
+                textAlign: 'center',
+                lineHeight: 20,
+                marginBottom: 20,
+              }}>
+                Anda harus membuka shift sebelum melakukan transaksi. Catat modal awal kas di laci.
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+                <TouchableOpacity
+                  onPress={() => setShowShiftValidationModal(false)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: c.bgInput,
+                    borderWidth: 1,
+                    borderColor: c.border,
+                    borderRadius: 8,
+                    paddingVertical: 10,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{
+                    color: c.text,
+                    fontWeight: '600',
+                    fontSize: 13,
+                  }}>
+                    Batalkan
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowShiftValidationModal(false);
+                    router.push('/shift');
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: c.accent,
+                    borderRadius: 8,
+                    paddingVertical: 10,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{
+                    color: c.textInverse,
+                    fontWeight: '800',
+                    fontSize: 13,
+                  }}>
+                    Buka Shift
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Modal>
       )}
     </View>
