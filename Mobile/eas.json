@@ -10,20 +10,30 @@
     },
     "preview": {
       "distribution": "internal",
+      "cache": {
+        "disabled": true
+      },
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://159.223.81.179"
+        "EXPO_PUBLIC_API_URL": "http://159.223.81.179",
+        "EAS_BUILD_DISABLE_NPM_CACHE": "1",
+        "EAS_BUILD_DISABLE_MAVEN_CACHE": "1"
       }
     },
     "production": {
       "autoIncrement": true,
+      "cache": {
+        "disabled": true
+      },
       "android": {
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://159.223.81.179"
+        "EXPO_PUBLIC_API_URL": "http://159.223.81.179",
+        "EAS_BUILD_DISABLE_NPM_CACHE": "1",
+        "EAS_BUILD_DISABLE_MAVEN_CACHE": "1"
       }
     }
   },
