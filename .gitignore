@@ -1,3 +1,4 @@
 Mobile/.env
 Mobile/.env.local
 Mobile/.env.production
+Mobile/android/local.properties

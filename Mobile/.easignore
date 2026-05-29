@@ -10,4 +10,4 @@ android/app/build
 android/build
 android/.gradle
 
-.git
+.gitandroid/local.properties
