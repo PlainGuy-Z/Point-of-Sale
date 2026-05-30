@@ -1,3 +1,15 @@
+diff --git a/node_modules/react-native-thermal-receipt-printer-image-qr/android/build.gradle b/node_modules/react-native-thermal-receipt-printer-image-qr/android/build.gradle
+index 1908273..ee3c8e1 100644
+--- a/node_modules/react-native-thermal-receipt-printer-image-qr/android/build.gradle
++++ b/node_modules/react-native-thermal-receipt-printer-image-qr/android/build.gradle
+@@ -1,6 +1,7 @@
+ apply plugin: 'com.android.library'
+ 
+ android {
++    namespace 'com.pinmi.react.printer'
+     compileSdkVersion = 32
+     buildToolsVersion = "32.0.0"
+ 
 diff --git a/node_modules/react-native-thermal-receipt-printer-image-qr/android/src/main/java/com/pinmi/react/printer/RNBLEPrinterModule.java b/node_modules/react-native-thermal-receipt-printer-image-qr/android/src/main/java/com/pinmi/react/printer/RNBLEPrinterModule.java
 index f83cb65..21d2261 100644
 --- a/node_modules/react-native-thermal-receipt-printer-image-qr/android/src/main/java/com/pinmi/react/printer/RNBLEPrinterModule.java
