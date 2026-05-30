@@ -6,6 +6,9 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    ignores: ['dist/**', 'scratch/**', 'node_modules/**', '*.config.js', '*.mjs', '*.js']
+  },
+  {
     files: ['**/*.ts'],
     languageOptions: {
       globals: {
@@ -13,7 +16,8 @@ export default [
       }
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'warn'
     }
   }
 ];

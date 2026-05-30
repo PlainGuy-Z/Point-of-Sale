@@ -204,7 +204,7 @@ export async function buildAppState(shopId: string) {
 
   // STEP 2 — Fetch ALL items for those transactions in ONE query
   const txIds = txQuery.rows.map(r => r.id);
-  let itemsMap = new Map<string, any[]>();
+  const itemsMap = new Map<string, any[]>();
   
   if (txIds.length > 0) {
     const itemsQuery = await pool.query(`

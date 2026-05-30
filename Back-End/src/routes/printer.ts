@@ -37,7 +37,7 @@ printerRouter.post('/test', validateBody(TestSchema),
     console.log('[printer/test] RawBT response status:', response.status)
     if (!response.ok) {
       let bodyText = ''
-      try { bodyText = await response.text() } catch (_) { /* ignore */ }
+      try { bodyText = await response.text() } catch { /* ignore */ }
       console.error('[printer/test] RawBT returned error body:', bodyText)
       throw new HttpError(502, 'PRINTER_ERROR', 
         'RawBT merespons dengan error')
@@ -73,7 +73,7 @@ printerRouter.post('/print', validateBody(PrintSchema),
     console.log('[printer/print] RawBT response status:', response.status)
     if (!response.ok) {
       let bodyText = ''
-      try { bodyText = await response.text() } catch (_) { /* ignore */ }
+      try { bodyText = await response.text() } catch { /* ignore */ }
       console.error('[printer/print] RawBT returned error body:', bodyText)
       throw new HttpError(502, 'PRINTER_ERROR', 'Gagal mengirim ke printer')
     }
