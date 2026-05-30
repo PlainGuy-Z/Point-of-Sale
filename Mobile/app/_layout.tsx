@@ -10,6 +10,7 @@ import { ShiftProvider } from '../contexts/ShiftContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { getColors } from '../utils/theme';
 import { PrinterProvider } from '../contexts/PrinterContext';
+import { AIProvider } from '../contexts/AIContext';
 
 function ThemedStack() {
   const { effectiveTheme } = useTheme();
@@ -48,7 +49,9 @@ export default function RootLayout() {
           <AppProvider>
             <ShiftProvider>
               <PrinterProvider>
-                <ThemedStack />
+                <AIProvider>
+                  <ThemedStack />
+                </AIProvider>
               </PrinterProvider>
             </ShiftProvider>
           </AppProvider>

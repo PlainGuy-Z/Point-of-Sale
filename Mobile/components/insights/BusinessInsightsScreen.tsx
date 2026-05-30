@@ -1,173 +1,248 @@
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, useWindowDimensions, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  BrainCircuit, TrendingUp, BarChart2, DollarSign, Package,
-  ShoppingCart, Users, AlertTriangle,
-} from 'lucide-react-native';
-import { useApp } from '../../contexts/AppContext';
+import { BrainCircuit, RefreshCw, BarChart2, Bot, PieChart } from 'lucide-react-native';
+
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
-import { formatRupiah, formatRupiahShort } from '../../utils/currency';
+import { aiApi, SummaryResponse, ForecastResponse, WasteResponse } from '../../services/aiApi';
+import { api } from '../../services/api';
+
+import StatCards from './StatCards';
+import RevenueChart from './RevenueChart';
+import WastePanel from './WastePanel';
+import ShiftPanel from './ShiftPanel';
+import MenuMatrix from './MenuMatrix';
+import AIChatPanel from './AIChatPanel';
 
 export default function BusinessInsightsScreen() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
+  const isTablet = windowWidth >= 768;
+  const isSmallLandscape = isLandscape && windowHeight < 400;
+
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
-  const { products, transactions, customers, wasteLogs } = useApp();
 
-  const now = new Date();
-  const todayTx = useMemo(() =>
-    transactions.filter(t => new Date(t.date).toDateString() === now.toDateString()),
-    [transactions]
-  );
-  const weekTx = useMemo(() => {
-    const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7);
-    return transactions.filter(t => new Date(t.date) >= cutoff);
-  }, [transactions]);
+  const [activeTab, setActiveTab] = useState<'Metrik' | 'AI Chat' | 'Charts'>('Metrik');
+  
+  // Data State
+  const [summary, setSummary] = useState<SummaryResponse | null>(null);
+  const [forecast, setForecast] = useState<ForecastResponse | null>(null);
+  const [waste, setWaste] = useState<WasteResponse | null>(null);
+  const [shifts, setShifts] = useState<any[]>([]);
+  const [wasteDays, setWasteDays] = useState<7 | 14 | 30>(30);
 
-  const todayRevenue = todayTx.reduce((s, t) => s + t.total, 0);
-  const weekRevenue = weekTx.reduce((s, t) => s + t.total, 0);
-  const todayProfit = todayTx.reduce((s, t) => s + t.profit, 0);
-  const weekProfit = weekTx.reduce((s, t) => s + t.profit, 0);
-  const avgDailyRev = weekTx.length > 0 ? weekRevenue / 7 : 0;
-  const profitMargin = weekRevenue > 0 ? Math.round((weekProfit / weekRevenue) * 100) : 0;
+  // Loading & Error State
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isWasteLoading, setIsWasteLoading] = useState(false);
+  
+  const [summaryError, setSummaryError] = useState(false);
+  const [forecastError, setForecastError] = useState(false);
 
-  // Top products
-  const topProducts = useMemo(() => {
-    const map: Record<string, { name: string; qty: number; rev: number }> = {};
-    weekTx.forEach(t => t.items.forEach(i => {
-      if (!map[i.productId]) map[i.productId] = { name: i.name, qty: 0, rev: 0 };
-      map[i.productId].qty += i.quantity;
-      map[i.productId].rev += i.price * i.quantity;
-    }));
-    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 5);
-  }, [weekTx]);
+  const fetchAll = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setIsRefreshing(true);
+    else setInitialLoading(true);
 
-  const wasteLoss = wasteLogs.reduce((s, w) => s + w.costLoss, 0);
-  const lowStock = products.filter(p => p.stock > 0 && p.stock <= p.minStock && p.stock !== -1);
+    setSummaryError(false);
+    setForecastError(false);
 
-  const insights = [
-    {
-      title: 'Performa Penjualan',
-      desc: todayRevenue > avgDailyRev
-        ? 'Penjualan hari ini di atas rata-rata! Pertahankan.'
-        : 'Penjualan hari ini di bawah rata-rata. Coba promosi.',
-      icon: TrendingUp,
-      color: todayRevenue > avgDailyRev ? c.success : c.warning,
-    },
-    {
-      title: 'Margin Keuntungan',
-      desc: profitMargin > 40
-        ? `Margin ${profitMargin}% sangat sehat.`
-        : `Margin ${profitMargin}% bisa ditingkatkan.`,
-      icon: DollarSign,
-      color: profitMargin > 40 ? c.success : c.warning,
-    },
-    ...(lowStock.length > 0 ? [{
-      title: 'Peringatan Stok',
-      desc: `${lowStock.length} produk stoknya rendah. Segera restok.`,
-      icon: AlertTriangle,
-      color: c.error,
-    }] : []),
-    ...(wasteLoss > 0 ? [{
-      title: 'Kerugian Waste',
-      desc: `Total waste ${formatRupiahShort(wasteLoss)}. Review SOP penyimpanan.`,
-      icon: Package,
-      color: c.warning,
-    }] : []),
-  ];
+    try {
+      const [sumRes, foreRes, shiftRes] = await Promise.allSettled([
+        aiApi.fetchSummary(),
+        aiApi.fetchForecast(),
+        api.get<any>('/shifts?limit=5').catch(() => null) // graceful failure for shifts
+      ]);
+
+      if (sumRes.status === 'fulfilled') setSummary(sumRes.value);
+      else setSummaryError(true);
+
+      if (foreRes.status === 'fulfilled') setForecast(foreRes.value);
+      else setForecastError(true);
+
+      if (shiftRes.status === 'fulfilled' && shiftRes.value?.data) {
+        setShifts(Array.isArray(shiftRes.value.data) ? shiftRes.value.data : []);
+      }
+    } finally {
+      if (isRefresh) setIsRefreshing(false);
+      else setInitialLoading(false);
+    }
+  }, []);
+
+  const fetchWaste = useCallback(async (days: 7 | 14 | 30) => {
+    setIsWasteLoading(true);
+    try {
+      const w = await aiApi.fetchWasteAnalysis(days);
+      setWaste(w);
+    } catch {
+      setWaste(null);
+    } finally {
+      setIsWasteLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  useEffect(() => {
+    fetchWaste(wasteDays);
+  }, [wasteDays, fetchWaste]);
+
+  // UI rendering
+  const renderTabButton = (title: 'Metrik' | 'AI Chat' | 'Charts', Icon: any) => {
+    const isActive = activeTab === title;
+    return (
+      <TouchableOpacity
+        onPress={() => setActiveTab(title)}
+        style={{
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          paddingVertical: 12,
+          borderBottomWidth: 3,
+          borderBottomColor: isActive ? c.accent : 'transparent',
+          backgroundColor: isActive ? c.bgCard : 'transparent'
+        }}
+      >
+        <Icon size={16} color={isActive ? c.accent : c.textMuted} />
+        <Text style={{
+          color: isActive ? c.accent : c.textMuted,
+          fontSize: 13,
+          fontWeight: isActive ? '800' : '600'
+        }}>{title}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderContent = () => {
+    if (initialLoading) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={c.accent} />
+          <Text style={{ marginTop: 12, color: c.textMuted, fontSize: 13 }}>Menganalisis data bisnis...</Text>
+        </View>
+      );
+    }
+
+    if (activeTab === 'Metrik') {
+      return (
+        <ScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: isSmallLandscape ? 20 : 100 }}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => fetchAll(true)} />}
+        >
+          {summaryError && (
+            <View style={{ backgroundColor: c.errorBg, padding: 12, borderRadius: 12, marginBottom: 16 }}>
+              <Text style={{ color: c.error, fontSize: 12 }}>Gagal memuat ringkasan. Tarik ke bawah untuk memuat ulang.</Text>
+            </View>
+          )}
+          
+          <StatCards summary={summary} />
+          
+          {!forecastError ? (
+            <RevenueChart forecast={forecast} />
+          ) : (
+            <View style={{ backgroundColor: c.bgCard, padding: 20, borderRadius: 16, marginBottom: 16, alignItems: 'center' }}>
+              <Text style={{ color: c.textSecondary, fontSize: 12 }}>Gagal memuat prediksi revenue.</Text>
+            </View>
+          )}
+
+          <WastePanel
+            waste={waste}
+            selectedDays={wasteDays}
+            onDaysChange={setWasteDays}
+            isLoading={isWasteLoading}
+          />
+          
+          <ShiftPanel
+            shifts={shifts}
+            activeCount={summary?.active_shifts_count || 0}
+          />
+        </ScrollView>
+      );
+    }
+
+    if (activeTab === 'AI Chat') {
+      return (
+        <View style={{ flex: 1, padding: 16, paddingBottom: isSmallLandscape ? 10 : 30 }}>
+          <AIChatPanel />
+        </View>
+      );
+    }
+
+    if (activeTab === 'Charts') {
+      return (
+        <ScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: isSmallLandscape ? 20 : 100 }}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => fetchAll(true)} />}
+        >
+          <MenuMatrix />
+        </ScrollView>
+      );
+    }
+
+    return null;
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={{ paddingLeft: isLandscape ? 16 : 60, paddingRight: 16, paddingVertical: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <BrainCircuit size={22} color={c.accent} strokeWidth={2} />
-          <Text style={{ color: c.text, fontSize: 22, fontWeight: '900' }}>
-            Business <Text style={{ color: c.accent }}>Intelligence</Text>
-          </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top', 'left', 'right']}>
+      {/* Header */}
+      <View style={{
+        paddingLeft: isLandscape ? 16 : 60,
+        paddingRight: 16,
+        paddingTop: isSmallLandscape ? 6 : 12,
+        paddingBottom: isSmallLandscape ? 6 : 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: c.bg,
+        borderBottomWidth: 1,
+        borderBottomColor: c.borderLight
+      }}>
+        <View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <BrainCircuit size={22} color={c.accent} strokeWidth={2} />
+            <Text style={{ color: c.text, fontSize: 20, fontWeight: '900' }}>
+              Business <Text style={{ color: c.accent }}>Intelligence</Text>
+            </Text>
+          </View>
+          {!isSmallLandscape && (
+            <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}>
+              Analytics, forecast, dan AI advisor
+            </Text>
+          )}
         </View>
-        <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}>
-          Analisis bisnis dan rekomendasi cerdas
-        </Text>
+        <TouchableOpacity
+          onPress={() => fetchAll(true)}
+          disabled={isRefreshing || initialLoading}
+          style={{
+            padding: 8,
+            backgroundColor: c.bgCard,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: c.border,
+            opacity: isRefreshing || initialLoading ? 0.5 : 1
+          }}
+        >
+          <RefreshCw size={18} color={c.text} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}>
-        {/* KPI Cards */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          {[
-            { label: 'Revenue Hari Ini', value: formatRupiahShort(todayRevenue), color: c.accent },
-            { label: 'Revenue Minggu', value: formatRupiahShort(weekRevenue), color: c.accent },
-            { label: 'Profit Margin', value: `${profitMargin}%`, color: c.success },
-            { label: 'Avg Daily', value: formatRupiahShort(avgDailyRev), color: c.accent },
-          ].map(kpi => (
-            <View key={kpi.label} style={{
-              width: '47%', backgroundColor: c.bgCard, borderWidth: 1,
-              borderColor: c.border, borderRadius: 16, padding: 16,
-            }}>
-              <Text style={{ color: c.textSecondary, fontSize: 11 }}>{kpi.label}</Text>
-              <Text style={{ color: kpi.color, fontSize: 20, fontWeight: '900', marginTop: 4 }}>{kpi.value}</Text>
-            </View>
-          ))}
-        </View>
+      {/* Tabs */}
+      <View style={{ flexDirection: 'row', backgroundColor: c.bg, borderBottomWidth: 1, borderBottomColor: c.borderLight }}>
+        {renderTabButton('Metrik', BarChart2)}
+        {renderTabButton('AI Chat', Bot)}
+        {renderTabButton('Charts', PieChart)}
+      </View>
 
-        {/* AI Insights */}
-        <Text style={{ color: c.text, fontSize: 16, fontWeight: '700' }}>Insight & Rekomendasi</Text>
-        {insights.map((ins, i) => (
-          <View key={i} style={{
-            backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.border,
-            borderRadius: 14, padding: 14, flexDirection: 'row', gap: 12,
-          }}>
-            <View style={{
-              width: 36, height: 36, borderRadius: 10,
-              backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-              alignItems: 'center', justifyContent: 'center',
-            }}>
-              <ins.icon size={18} color={ins.color} strokeWidth={2} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: c.text, fontSize: 13, fontWeight: '700' }}>{ins.title}</Text>
-              <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 2, lineHeight: 18 }}>{ins.desc}</Text>
-            </View>
-          </View>
-        ))}
-
-        {/* Top Products */}
-        {topProducts.length > 0 && (
-          <View>
-            <Text style={{ color: c.text, fontSize: 16, fontWeight: '700', marginBottom: 12 }}>
-              Produk Terlaris (7 Hari)
-            </Text>
-            {topProducts.map((p, i) => (
-              <View key={i} style={{
-                backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.border,
-                borderRadius: 14, padding: 14, marginBottom: 8,
-                flexDirection: 'row', alignItems: 'center', gap: 12,
-              }}>
-                <View style={{
-                  width: 28, height: 28, borderRadius: 14,
-                  backgroundColor: i < 3 ? c.accentBg : (isDark ? '#222' : '#f1f5f9'),
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    color: i < 3 ? c.accent : c.textMuted,
-                    fontSize: 11, fontWeight: '800',
-                  }}>#{i + 1}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: c.text, fontSize: 13, fontWeight: '700' }}>{p.name}</Text>
-                  <Text style={{ color: c.textSecondary, fontSize: 11 }}>{p.qty} terjual</Text>
-                </View>
-                <Text style={{ color: c.accent, fontSize: 13, fontWeight: '800' }}>
-                  {formatRupiahShort(p.rev)}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+      {/* Content */}
+      <View style={{ flex: 1 }}>
+        {renderContent()}
+      </View>
     </SafeAreaView>
   );
 }
