@@ -75,6 +75,7 @@ export default function POSScreen() {
   const [showShiftValidationModal, setShowShiftValidationModal] = useState(false);
   const [categoryModal, setCategoryModal] = useState<null | { title: string; products: any[] }>(null);
   const [completedTransaction, setCompletedTransaction] = useState<Transaction | null>(null);
+  const [landscapeGridWidth, setLandscapeGridWidth] = useState(0);
 
   // ── Product catalog (with sorting and analytics) ──────────────────────────
   const { sortedProducts, promoProductsCount, bestSellerCount } = useProductCatalog(
@@ -772,7 +773,15 @@ export default function POSScreen() {
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top > 0 ? Math.max(insets.top - 10, 6) : 8}}>
       <View style={{ flex: 1, flexDirection: 'row', gap: 14, paddingHorizontal: 6, paddingVertical: 2 }}>
         {/* LEFT — Product Grid */}
-        <View style={{ flex: 1, minWidth: 0 }}>
+        <View 
+          style={{ flex: 1, minWidth: 0 }}
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w > 0 && Math.abs(w - landscapeGridWidth) > 5) {
+              setLandscapeGridWidth(w);
+            }
+          }}
+        >
           {/* Header Row */}
           <View style={{
             flexDirection: 'row',
@@ -924,7 +933,7 @@ export default function POSScreen() {
               data={sortedProducts}
               keyExtractor={item => item.id}
               numColumns={4}
-              key={`landscape-grid-4-cols-${windowWidth}`}
+              key={`landscape-grid-4-cols-${Math.floor(landscapeGridWidth)}`}
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
               columnWrapperStyle={{ justifyContent: 'space-between' }}
               showsVerticalScrollIndicator={true}
