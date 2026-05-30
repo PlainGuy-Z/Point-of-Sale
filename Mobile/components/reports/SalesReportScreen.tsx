@@ -531,7 +531,7 @@ export default function SalesReportScreen() {
                         key={index}
                         onPress={() => setSelectedBarIndex(isSelected ? null : index)}
                         activeOpacity={0.8}
-                        style={{ alignItems: 'center', minWidth: 40 }}
+                        style={{ alignItems: 'center', minWidth: chartData.length > 7 ? 56 : (windowWidth - 80) / chartData.length }}
                       >
                         {isSelected && (
                           <Text style={{ color: c.accent, fontSize: 9, fontWeight: '900', marginBottom: 4, fontFamily: 'monospace' }}>

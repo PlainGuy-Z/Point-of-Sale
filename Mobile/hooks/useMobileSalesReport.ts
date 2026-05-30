@@ -256,18 +256,26 @@ export function useMobileSalesReport(
       e.count += 1;
       map.set(key, e);
     });
-    return Array.from(map.entries())
+      return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, d]) => {
         const [year, month, day] = date.split('-').map(Number);
         const localDate = new Date(year, month - 1, day);
+        
+        let labelStr = '';
+        if (preset === '7days') {
+          labelStr = localDate.toLocaleDateString('id-ID', { weekday: 'short' });
+        } else {
+          labelStr = localDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        }
+
         return {
           date,
-          label: localDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+          label: labelStr,
           ...d,
         };
       });
-  }, [filtered, isSingleDay, range]);
+  }, [filtered, isSingleDay, range, preset]);
 
   const peakHour = useMemo(() => {
     if (hourlyData.length === 0) return null;
