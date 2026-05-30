@@ -17,7 +17,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://159.223.81.179",
+        "EXPO_PUBLIC_API_URL": "https://api.smartposcafe.my.id",
         "EAS_BUILD_DISABLE_NPM_CACHE": "1",
         "EAS_BUILD_DISABLE_MAVEN_CACHE": "1"
       }
@@ -31,7 +31,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://159.223.81.179",
+        "EXPO_PUBLIC_API_URL": "https://api.smartposcafe.my.id",
         "EAS_BUILD_DISABLE_NPM_CACHE": "1",
         "EAS_BUILD_DISABLE_MAVEN_CACHE": "1"
       }

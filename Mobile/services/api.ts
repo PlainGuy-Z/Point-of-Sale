@@ -27,6 +27,9 @@ export async function http<T>(
   const token = await SecureStore.getItemAsync('auth_token');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${BASE_URL}${cleanPath}`;
+  
+  console.log("MOBILE API BASE URL:", process.env.EXPO_PUBLIC_API_URL);
+  console.log("REQUEST URL:", url);
 
   // Timeout: abort request after the configured interval to avoid indefinite hanging
   const controller = new AbortController();
