@@ -113,6 +113,34 @@ async function ensureCategory(categoryName, shopId, client) {
     return inserted.rows[0].id;
 }
 /* ─── buildAppState ─────────────────────────────────────────── */
+export async function getProductsState(shopId) {
+    const products = await pool.query(`SELECT p.id::text, p.name, p.description, p.price,
+            c.name as category, p.stock, p.min_stock, p.cost,
+            p.image, p.discount, p.is_promo, p.promo_price,
+            p.promo_label, p.promo_start, p.promo_end, p.is_available
+     FROM coffeepos.products p
+     LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+     WHERE p.shop_id = $1::uuid
+       AND p.is_deleted = false
+     ORDER BY p.name ASC`, [shopId]);
+    return products.rows.map((p) => ({
+        ...p,
+        category: p.category || 'Uncategorized',
+        stock: Number(p.stock),
+        minStock: Number(p.min_stock ?? 5),
+        price: Number(p.price),
+        cost: p.cost === null ? undefined : Number(p.cost),
+        discount: Number(p.discount ?? 0),
+        isPromo: Boolean(p.is_promo),
+        promoPrice: p.promo_price ? Number(p.promo_price) : undefined,
+        promoLabel: p.promo_label ?? undefined,
+        promoStart: p.promo_start ?? undefined,
+        promoEnd: p.promo_end ?? undefined,
+        isAvailable: p.is_available !== false,
+        unit: 'pcs',
+        image: p.image || null
+    }));
+}
 export async function buildAppState(shopId) {
     // Fetch shop settings and shop info
     const [shopRes, settingsRes] = await Promise.all([
@@ -127,15 +155,7 @@ export async function buildAppState(shopId) {
         settingsRow = refetched.rows[0];
     }
     const shopRow = shopRes.rows[0];
-    const products = await pool.query(`SELECT p.id::text, p.name, p.description, p.price,
-            c.name as category, p.stock, p.min_stock, p.cost,
-            p.image, p.discount, p.is_promo, p.promo_price,
-            p.promo_label, p.promo_start, p.promo_end, p.is_available
-     FROM coffeepos.products p
-     LEFT JOIN coffeepos.categories c ON p.category_id = c.id
-     WHERE p.shop_id = $1::uuid
-       AND p.is_available = true
-     ORDER BY p.name ASC`, [shopId]);
+    const productsData = await getProductsState(shopId);
     // [FIX-3] Replaced correlated subqueries with LEFT JOIN aggregation to eliminate N+1
     const txQuery = await pool.query(`
     SELECT
@@ -168,11 +188,11 @@ export async function buildAppState(shopId) {
     WHERE t.shop_id = $1::uuid
       AND COALESCE(t.status::text, 'completed') <> 'voided'
     ORDER BY t.created_at DESC
-    LIMIT 200
+    LIMIT 10000
   `, [shopId]);
     // STEP 2 — Fetch ALL items for those transactions in ONE query
     const txIds = txQuery.rows.map(r => r.id);
-    let itemsMap = new Map();
+    const itemsMap = new Map();
     if (txIds.length > 0) {
         const itemsQuery = await pool.query(`
       SELECT
@@ -217,23 +237,7 @@ export async function buildAppState(shopId) {
     ]);
     const categories = cats.rows.map(r => r.name);
     return {
-        products: products.rows.map((p) => ({
-            ...p,
-            category: p.category || 'Uncategorized',
-            stock: Number(p.stock),
-            minStock: Number(p.min_stock ?? 5),
-            price: Number(p.price),
-            cost: p.cost === null ? undefined : Number(p.cost),
-            discount: Number(p.discount ?? 0),
-            isPromo: Boolean(p.is_promo),
-            promoPrice: p.promo_price ? Number(p.promo_price) : undefined,
-            promoLabel: p.promo_label ?? undefined,
-            promoStart: p.promo_start ?? undefined,
-            promoEnd: p.promo_end ?? undefined,
-            isAvailable: p.is_available !== false,
-            unit: 'pcs',
-            image: p.image || null
-        })),
+        products: productsData,
         transactions: txQuery.rows.map((t) => ({
             id: t.id,
             date: new Date(t.date).toISOString(),
@@ -291,6 +295,7 @@ appRouter.get('/export/products', requireOwner, async (req, res, next) => {
        FROM coffeepos.products p
        LEFT JOIN coffeepos.categories c ON p.category_id = c.id
        WHERE p.shop_id = $1::uuid
+         AND p.is_deleted = false
        ORDER BY p.name ASC`, [shopId]);
         const headers = ['Name', 'Description', 'Price', 'Category', 'Stock', 'Cost', 'Available'];
         const csv = [
@@ -473,7 +478,7 @@ appRouter.delete('/products/:id', requireRole('owner'), async (req, res, next) =
         const { id } = req.params;
         const shopId = req.user.shop_id;
         const result = await pool.query(`UPDATE coffeepos.products
-       SET is_available = false,
+       SET is_deleted = true,
            updated_at = now()
        WHERE id = $1::uuid AND shop_id = $2::uuid`, [id, shopId]);
         if (result.rowCount === 0)

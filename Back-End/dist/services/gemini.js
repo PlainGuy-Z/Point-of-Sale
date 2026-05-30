@@ -40,7 +40,7 @@ if (!geminiApiKey) {
     throw new Error('Missing GEMINI_API_KEY environment variable');
 }
 const genAI = new GoogleGenerativeAI(geminiApiKey);
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL_NAME });
 export async function generateChatResponse(messages, context) {
     if (messages.length === 0) {
         throw new Error('Messages array cannot be empty');

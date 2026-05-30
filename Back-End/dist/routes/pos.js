@@ -4,7 +4,7 @@ import { withTransaction } from '../db/with-transaction.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { CreateTransactionRequestSchema, QuoteRequestSchema } from './pos.schemas.js';
-import { buildAppState } from './app.js';
+import { getProductsState } from './app.js';
 import crypto from 'node:crypto';
 async function getShopSettings(shopId) {
     const { rows } = await pool.query(`SELECT tax_enabled, tax_rate, tax_inclusive,
@@ -312,10 +312,10 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
                 orderNote: body.orderNote ?? undefined
             };
         });
-        const appState = await buildAppState(shopId);
+        const updatedProducts = await getProductsState(shopId);
         res.status(201).json({
             transaction: result,
-            appState
+            appState: { products: updatedProducts }
         });
     }
     catch (err) {

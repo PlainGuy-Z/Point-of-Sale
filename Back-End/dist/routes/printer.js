@@ -34,7 +34,7 @@ printerRouter.post('/test', validateBody(TestSchema), async (req, res, next) => 
             try {
                 bodyText = await response.text();
             }
-            catch (_) { /* ignore */ }
+            catch { /* ignore */ }
             console.error('[printer/test] RawBT returned error body:', bodyText);
             throw new HttpError(502, 'PRINTER_ERROR', 'RawBT merespons dengan error');
         }
@@ -68,7 +68,7 @@ printerRouter.post('/print', validateBody(PrintSchema), async (req, res, next) =
             try {
                 bodyText = await response.text();
             }
-            catch (_) { /* ignore */ }
+            catch { /* ignore */ }
             console.error('[printer/print] RawBT returned error body:', bodyText);
             throw new HttpError(502, 'PRINTER_ERROR', 'Gagal mengirim ke printer');
         }

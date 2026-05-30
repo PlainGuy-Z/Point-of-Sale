@@ -16,12 +16,12 @@ import rateLimit from 'express-rate-limit';
 export const authRouter = Router();
 // [FIX-9] Rate limiters for auth endpoints
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // max 10 attempts per 15 min per IP
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 10, // max 10 attempts per 1 minute per IP
     message: {
         error: {
             code: 'RATE_LIMITED',
-            message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.'
+            message: 'Terlalu banyak percobaan login. Coba lagi dalam 1 menit.'
         }
     },
     standardHeaders: true,

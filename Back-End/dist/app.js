@@ -17,6 +17,9 @@ import { publicRouter } from './routes/public.js';
 import { authenticateToken } from './middleware/auth.js';
 export function createApp() {
     const app = express();
+    // Set trust proxy to trust the first proxy (e.g. Nginx, Cloudflare)
+    // This resolves ERR_ERL_UNEXPECTED_X_FORWARDED_FOR from express-rate-limit
+    app.set('trust proxy', 1);
     app.disable('x-powered-by');
     app.use(helmet({
         crossOriginResourcePolicy: false,
@@ -35,7 +38,7 @@ export function createApp() {
                 origin.includes('point-of-sale')) {
                 return callback(null, true);
             }
-            if (origin.startsWith('http://localhost:')) {
+            if (origin.startsWith('http://localhost:') || origin.startsWith('http://192.168.') || origin.startsWith('http://10.') || origin.startsWith('http://172.')) {
                 return callback(null, true);
             }
             console.warn(`[CORS] Blocked origin: ${origin}`);
@@ -75,7 +78,10 @@ export function createApp() {
             if (origin &&
                 !allowed.includes(origin) &&
                 !origin.endsWith('.vercel.app') &&
-                !origin.startsWith('http://localhost:')) {
+                !origin.startsWith('http://localhost:') &&
+                !origin.startsWith('http://192.168.') &&
+                !origin.startsWith('http://10.') &&
+                !origin.startsWith('http://172.')) {
                 return res.status(403).json({
                     error: { code: 'CSRF_BLOCKED', message: 'Invalid origin' },
                 });
