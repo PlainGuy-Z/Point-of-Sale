@@ -107,7 +107,7 @@ export default function PaymentSuccessScreen({
         variantPrice,
         description,
         subtotal: (price + variantPrice) * item.quantity,
-        notes: item.note || undefined
+        notes: description || undefined
       }
     })
   }, [transaction.items, products])
