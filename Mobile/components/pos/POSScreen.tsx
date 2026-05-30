@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useContext } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, useWindowDimensions, Modal, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, useWindowDimensions, Modal, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, TrendingUp, Flame, Award, PlusCircle, Package, Menu, ChevronDown, SlidersHorizontal, AlertCircle } from 'lucide-react-native';
@@ -931,6 +931,7 @@ export default function POSScreen() {
           ) : (
             <FlatList
               data={sortedProducts}
+              refreshControl={<RefreshControl refreshing={isServiceLoading} onRefresh={refreshState} />}
               keyExtractor={item => item.id}
               numColumns={4}
               key={`landscape-grid-4-cols-${Math.floor(landscapeGridWidth)}`}

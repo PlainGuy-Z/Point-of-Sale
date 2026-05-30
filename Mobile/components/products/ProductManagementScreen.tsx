@@ -15,6 +15,7 @@ import {
   Platform,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -74,6 +75,8 @@ export default function ProductManagementScreen() {
     deleteProduct,
     addCategory,
     deleteCategory,
+    isServiceLoading,
+    refreshState,
   } = useApp();
 
   // Screen State
@@ -1168,6 +1171,7 @@ export default function ProductManagementScreen() {
           <FlatList
             key={isTablet ? (isLandscape ? 'grid-3' : 'grid-2') : (isLandscape ? 'grid-2' : 'list')}
             data={filteredProducts}
+            refreshControl={<RefreshControl refreshing={isServiceLoading} onRefresh={refreshState} />}
             renderItem={renderProductCard}
             keyExtractor={(item) => item.id}
             numColumns={isTablet ? (isLandscape ? 3 : 2) : (isLandscape ? 2 : 1)}
@@ -1241,6 +1245,7 @@ export default function ProductManagementScreen() {
           <FlatList
             key={isTablet && isLandscape ? 'cat-grid' : 'cat-list'}
             data={categoriesStats}
+            refreshControl={<RefreshControl refreshing={isServiceLoading} onRefresh={refreshState} />}
             renderItem={renderCategoryCard}
             keyExtractor={(item) => item.name}
             numColumns={isTablet && isLandscape ? 2 : 1}
