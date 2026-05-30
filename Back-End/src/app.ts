@@ -18,6 +18,10 @@ import { authenticateToken } from './middleware/auth.js';
 
 export function createApp() {
   const app = express();
+  
+  // Set trust proxy to trust the first proxy (e.g. Nginx, Cloudflare)
+  // This resolves ERR_ERL_UNEXPECTED_X_FORWARDED_FOR from express-rate-limit
+  app.set('trust proxy', 1);
 
   app.disable('x-powered-by');
 
