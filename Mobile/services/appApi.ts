@@ -43,11 +43,11 @@ export function normalizeAppStateWire(wire: AppStateWire): AppDataState {
 
 export const appApi = {
   get: async <T = unknown>(path: string): Promise<T> => http<T>(path),
-  post: async <T = unknown>(path: string, body?: unknown): Promise<T> =>
-    http<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
-  put: async <T = unknown>(path: string, body?: unknown): Promise<T> =>
-    http<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
-  delete: async <T = unknown>(path: string): Promise<T> => http<T>(path, { method: 'DELETE' }),
+  post: async <T = unknown>(path: string, body?: unknown, timeoutMs?: number): Promise<T> =>
+    http<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }, timeoutMs),
+  put: async <T = unknown>(path: string, body?: unknown, timeoutMs?: number): Promise<T> =>
+    http<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }, timeoutMs),
+  delete: async <T = unknown>(path: string, timeoutMs?: number): Promise<T> => http<T>(path, { method: 'DELETE' }, timeoutMs),
 
   getAppState: async (): Promise<AppDataState> =>
     normalizeAppStateWire(await http<AppStateWire>('/app/state')),
@@ -68,7 +68,7 @@ export const appApi = {
     normalizeAppStateWire(await http<AppStateWire>('/app/waste-logs', { method: 'POST', body: JSON.stringify(waste) })),
 
   updateSettings: async (settings: unknown): Promise<AppDataState> =>
-    normalizeAppStateWire(await http<AppStateWire>('/app/settings', { method: 'PUT', body: JSON.stringify(settings) })),
+    normalizeAppStateWire(await http<AppStateWire>('/app/settings', { method: 'PUT', body: JSON.stringify(settings) }, 30000)),
 
   addCategory: async (name: string): Promise<AppDataState> =>
     normalizeAppStateWire(await http<AppStateWire>('/app/categories', { method: 'POST', body: JSON.stringify({ name }) })),

@@ -6,6 +6,7 @@ import { getEffectivePrice } from '../../utils/priceUtils';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import type { Product } from '../../types';
+import { resolveImageUrl } from '../../utils/image';
 
 interface ProductCardProps {
   product: Product;
@@ -46,7 +47,10 @@ export default function ProductCard({
       activeOpacity={0.85}
       style={{
         width: isCompact ? cardWidth : undefined,
-        flex: isCompact ? undefined : 1,
+        flex: isCompact || isLandscape ? undefined : 1,
+        flexBasis: isLandscape && !isCompact ? '23%' : undefined,
+        maxWidth: isLandscape && !isCompact ? '23%' : undefined,
+        alignSelf: isLandscape && !isCompact ? 'flex-start' : undefined,
         backgroundColor: c.bgCard,
         borderRadius: 16,
         borderWidth: 1,
@@ -60,7 +64,7 @@ export default function ProductCard({
       <View style={{ height: imageHeight, position: 'relative', backgroundColor: c.bgInput }}>
         {product.image ? (
           <Image
-            source={{ uri: product.image }}
+            source={{ uri: resolveImageUrl(product.image) }}
             style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />

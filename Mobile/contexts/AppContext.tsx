@@ -17,7 +17,7 @@ interface AppContextType {
   clearServiceError: () => void;
   checkout: (params: CheckoutParams) => Promise<Transaction>;
   refreshState: () => Promise<void>;
-  updateSettings: (settings: Partial<BusinessSettings>) => Promise<BusinessSettings>;
+  updateSettings: (settings: Partial<BusinessSettings> & { shop_name?: string }) => Promise<BusinessSettings>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -28,8 +28,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const defaultSettings: BusinessSettings = {
-  storeName: 'Coffee Shop',
-  address: 'Jl. Utama No. 123',
+  storeName: 'Default Store',
+  address: 'Jl. Example No. 123',
   currency: 'IDR',
   currencyPosition: 'before',
   decimalPlaces: 0,
@@ -139,7 +139,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const updateSettings = useCallback(async (newSettings: Partial<BusinessSettings>): Promise<BusinessSettings> => {
+  const updateSettings = useCallback(async (newSettings: Partial<BusinessSettings> & { shop_name?: string }): Promise<BusinessSettings> => {
     setIsServiceLoading(true);
     try {
       const next = await appApi.updateSettings(newSettings);

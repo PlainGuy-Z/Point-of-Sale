@@ -926,6 +926,7 @@ export default function POSScreen() {
               numColumns={4}
               key="landscape-grid-4-cols"
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
+              columnWrapperStyle={{ justifyContent: 'space-between' }}
               showsVerticalScrollIndicator={true}
               ListEmptyComponent={
                 <View style={{ alignItems: 'center', paddingVertical: 60 }}>

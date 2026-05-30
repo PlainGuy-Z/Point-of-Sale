@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity, Pressable,
   StyleSheet, SafeAreaView, Alert, ActivityIndicator,
   Animated
 } from 'react-native'
@@ -323,7 +323,7 @@ export default function PaymentSuccessScreen({
   }
 
   return (
-    <View style={styles.overlay}>
+    <Pressable style={styles.overlay} onPress={handleClose}>
       <Animated.View 
         style={[
           styles.modalCard,
@@ -335,7 +335,8 @@ export default function PaymentSuccessScreen({
           }
         ]}
       >
-        {/* Header */}
+        <Pressable onPress={() => {}} style={styles.modalInner}>
+          {/* Header */}
         <View style={[styles.header, themeStyles.header]}>
           <Text style={[styles.headerTitle, themeStyles.headerTitle]}>
             {settings?.storeName?.toUpperCase() || 'SMARTPOS'}
@@ -553,6 +554,7 @@ export default function PaymentSuccessScreen({
             )}
           </View>
         </ScrollView>
+        </Pressable>
 
         {/* Action buttons (Sticky at bottom) */}
         <View style={[styles.actionFooter, themeStyles.actionFooter]}>
@@ -577,7 +579,7 @@ export default function PaymentSuccessScreen({
           </TouchableOpacity>
         </View>
       </Animated.View>
-    </View>
+    </Pressable>
   )
 }
 
@@ -606,6 +608,9 @@ const styles = StyleSheet.create({
   modalCardLandscape: {
     maxWidth: 300,
     maxHeight: '90%',
+  },
+  modalInner: {
+    width: '100%',
   },
   header: {
     paddingHorizontal: 12,

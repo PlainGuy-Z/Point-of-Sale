@@ -17,7 +17,8 @@ export class ApiError {
 
 export async function http<T>(
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
+  timeoutMs = 10000
 ): Promise<T> {
   if (!BASE_URL) {
     throw new ApiError(0, 'API base URL not configured (EXPO_PUBLIC_API_URL)', 'NO_BASE_URL');
@@ -27,9 +28,8 @@ export async function http<T>(
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${BASE_URL}${cleanPath}`;
 
-  // Timeout: abort request after 10s to avoid indefinite hanging
+  // Timeout: abort request after the configured interval to avoid indefinite hanging
   const controller = new AbortController();
-  const timeoutMs = 10000; // 10 seconds
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   let res: Response;
@@ -72,16 +72,16 @@ export async function http<T>(
 }
 
 export const api = {
-  get: <T>(path: string) => http<T>(path),
-  post: <T>(path: string, body?: unknown) =>
+  get: <T>(path: string, timeoutMs?: number) => http<T>(path, {}, timeoutMs),
+  post: <T>(path: string, body?: unknown, timeoutMs?: number) =>
     http<T>(path, {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
-    }),
-  put: <T>(path: string, body?: unknown) =>
+    }, timeoutMs),
+  put: <T>(path: string, body?: unknown, timeoutMs?: number) =>
     http<T>(path, {
       method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
-    }),
-  delete: <T>(path: string) => http<T>(path, { method: 'DELETE' }),
+    }, timeoutMs),
+  delete: <T>(path: string, timeoutMs?: number) => http<T>(path, { method: 'DELETE' }, timeoutMs),
 };

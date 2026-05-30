@@ -41,25 +41,33 @@ export const networkPrinterBackend: PrinterBackend & {
     }
 
     return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        try { client.destroy() } catch {}
-        resolve(false)
-      }, 5000)
+      let timeout: any = null
+      let client: any = null
 
-      const client = tcp.createConnection(
-        { host, port, timeout: 5000 },
-        () => {
-          clearTimeout(timeout)
-          client.destroy()
+      try {
+        client = new tcp.Socket()
+
+        timeout = setTimeout(() => {
+          try { client.destroy() } catch {}
+          resolve(false)
+        }, 5000)
+
+        client.on('error', () => {
+          if (timeout) clearTimeout(timeout)
+          try { client.destroy() } catch {}
+          resolve(false)
+        })
+
+        client.connect({ host, port, timeout: 5000 }, () => {
+          if (timeout) clearTimeout(timeout)
+          try { client.destroy() } catch {}
           resolve(true)
-        }
-      )
-
-      client.on('error', () => {
-        clearTimeout(timeout)
-        try { client.destroy() } catch {}
+        })
+      } catch (err) {
+        if (timeout) clearTimeout(timeout)
+        try { if (client) client.destroy() } catch {}
         resolve(false)
-      })
+      }
     })
   },
 
@@ -70,31 +78,39 @@ export const networkPrinterBackend: PrinterBackend & {
     }
 
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        try { client.destroy() } catch {}
-        reject(new Error('Timeout: printer tidak merespons dalam 10 detik.'))
-      }, 10000)
+      let timeout: any = null
+      let client: any = null
 
-      const client = tcp.createConnection(
-        { host, port, timeout: 10000 },
-        () => {
+      try {
+        client = new tcp.Socket()
+
+        timeout = setTimeout(() => {
+          try { client.destroy() } catch {}
+          reject(new Error('Timeout: printer tidak merespons dalam 10 detik.'))
+        }, 10000)
+
+        client.on('error', (err: any) => {
+          if (timeout) clearTimeout(timeout)
+          try { client.destroy() } catch {}
+          reject(new Error(`Network error: ${err.message}`))
+        })
+
+        client.connect({ host, port, timeout: 10000 }, () => {
           client.write(escposData, 'binary', (err: any) => {
-            clearTimeout(timeout)
-            client.destroy()
+            if (timeout) clearTimeout(timeout)
+            try { client.destroy() } catch {}
             if (err) {
               reject(new Error(`Gagal mengirim data: ${err.message}`))
             } else {
               resolve()
             }
           })
-        }
-      )
-
-      client.on('error', (err: any) => {
-        clearTimeout(timeout)
-        try { client.destroy() } catch {}
-        reject(new Error(`Network error: ${err.message}`))
-      })
+        })
+      } catch (err) {
+        if (timeout) clearTimeout(timeout)
+        try { if (client) client.destroy() } catch {}
+        reject(err instanceof Error ? err : new Error(String(err)))
+      }
     })
   },
 

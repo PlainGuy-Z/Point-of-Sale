@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -33,12 +34,14 @@ import {
   Info,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { useLayout } from '../../hooks/useLayout';
 import { formatRupiah } from '../../utils/currency';
 import type { Product } from '../../types';
+import { resolveImageUrl } from '../../utils/image';
 
 // Array of background colors for categories
 const CATEGORY_COLORS = [
@@ -103,6 +106,7 @@ export default function ProductManagementScreen() {
   const [formPromoStart, setFormPromoStart] = useState('');
   const [formPromoEnd, setFormPromoEnd] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -248,6 +252,37 @@ export default function ProductManagementScreen() {
     );
   };
 
+  const uploadFile = async (uri: string): Promise<{ url: string }> => {
+    const token = await SecureStore.getItemAsync('auth_token');
+    let filename = uri.split('/').pop() || 'product.jpg';
+    if (!filename.includes('.')) {
+      filename = `${filename}.jpg`;
+    }
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri,
+      name: filename,
+      type,
+    } as any);
+
+    const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/app/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Upload gagal dengan status HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  };
+
   // Image Selection Handler
   const handleSelectImage = async (mode: 'library' | 'camera') => {
     try {
@@ -262,8 +297,7 @@ export default function ProductManagementScreen() {
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
           aspect: [1, 1],
-          quality: 0.5,
-          base64: true,
+          quality: 0.7,
         });
       } else {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -274,13 +308,21 @@ export default function ProductManagementScreen() {
         result = await ImagePicker.launchCameraAsync({
           allowsEditing: true,
           aspect: [1, 1],
-          quality: 0.5,
-          base64: true,
+          quality: 0.7,
         });
       }
 
-      if (!result.canceled && result.assets && result.assets[0].base64) {
-        setPreviewImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      if (!result.canceled && result.assets && result.assets[0].uri) {
+        const uri = result.assets[0].uri;
+        setIsUploading(true);
+        try {
+          const { url } = await uploadFile(uri);
+          setPreviewImage(url);
+        } catch (err: any) {
+          Alert.alert('Upload Gagal', err.message || 'Gagal mengupload gambar.');
+        } finally {
+          setIsUploading(false);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -468,7 +510,7 @@ export default function ProductManagementScreen() {
             }}
           >
             {item.image ? (
-              <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} />
+              <Image source={{ uri: resolveImageUrl(item.image) }} style={{ width: '100%', height: '100%' }} />
             ) : (
               <Package size={isSmallLandscape ? 18 : 28} color={c.textMuted} strokeWidth={1.5} />
             )}
@@ -704,9 +746,14 @@ export default function ProductManagementScreen() {
         }}
       >
         {previewImage ? (
-          <Image source={{ uri: previewImage }} style={{ width: '100%', height: '100%' }} />
+          <Image source={{ uri: resolveImageUrl(previewImage) }} style={{ width: '100%', height: '100%' }} />
         ) : (
           <Package size={isSmallLandscape ? 24 : 44} color={c.textMuted} strokeWidth={1.2} />
+        )}
+        {isUploading && (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }]}>
+            <ActivityIndicator size="small" color="#fff" />
+          </View>
         )}
       </View>
 

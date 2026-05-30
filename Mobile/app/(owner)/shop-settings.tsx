@@ -20,7 +20,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
-import { authApi } from '../../services/authApi';
+
+import { resolveImageUrl } from '../../utils/image';
 
 export default function ShopSettingsScreen() {
   const router = useRouter();
@@ -65,7 +66,10 @@ export default function ShopSettingsScreen() {
 
   const uploadFile = async (uri: string): Promise<{ url: string }> => {
     const token = await SecureStore.getItemAsync('auth_token');
-    const filename = uri.split('/').pop() || 'logo.jpg';
+    let filename = uri.split('/').pop() || 'logo.jpg';
+    if (!filename.includes('.')) {
+      filename = `${filename}.jpg`;
+    }
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : `image/jpeg`;
 
@@ -126,20 +130,14 @@ export default function ShopSettingsScreen() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // 1. Update shop name via auth update profile
-      if (form.shop_name !== user?.shop?.name) {
-        await authApi.updateProfile({ shop_name: form.shop_name });
-      }
-
-      // 2. Update address, phone, and hours in settings
       await updateSettings({
+        shop_name: form.shop_name,
         address: form.address,
         phone: form.phone,
         open_time: form.open_time,
         close_time: form.close_time,
       });
 
-      // 3. Sync local user data
       await refreshUser();
 
       setIsDirty(false);
@@ -153,9 +151,7 @@ export default function ShopSettingsScreen() {
   };
 
   const logoUrl = settings?.logo_url || user?.shop?.logo_url;
-  const resolvedLogoUrl = logoUrl
-    ? (logoUrl.startsWith('http') ? logoUrl : `${process.env.EXPO_PUBLIC_API_URL}${logoUrl}`)
-    : null;
+  const resolvedLogoUrl = logoUrl ? resolveImageUrl(logoUrl) : null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>

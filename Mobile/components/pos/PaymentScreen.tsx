@@ -770,7 +770,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
         }}
       >
         {showNumpad && (
-          <View style={{ gap: 6, flex: useSplit ? 1 : undefined }}>
+          <View style={{ gap: 6 }}>
             {useSplit && (
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingRight: 4 }}>
                 <TouchableOpacity onPress={handleClear} style={{ paddingVertical: 2, paddingHorizontal: 6 }}>
@@ -778,7 +778,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
                 </TouchableOpacity>
               </View>
             )}
-            {renderNumpad(useSplit)}
+            {renderNumpad(false)}
           </View>
         )}
         {!showNumpad && <View style={{ flex: 1 }} />}
