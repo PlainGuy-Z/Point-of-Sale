@@ -131,7 +131,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setState(prev => ({
         ...prev,
         products: normalized.products,
-        transactions: [transaction, ...prev.transactions.slice(0, 199)],
+        transactions: [transaction, ...prev.transactions.slice(0, 9999)],
       }));
       return transaction;
     } finally {
