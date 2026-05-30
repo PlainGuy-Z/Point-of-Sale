@@ -113,7 +113,7 @@ export default function PaymentSuccessScreen({
   }, [transaction.items, products])
 
   // Build receipt data from transaction
-  const receiptData: PrintReceiptData = {
+  const receiptData: PrintReceiptData = useMemo(() => ({
     shopName: settings?.storeName || 'SmartPOS',
     shopAddress: settings?.address,
     shopPhone: (settings as any)?.phone,
@@ -137,7 +137,7 @@ export default function PaymentSuccessScreen({
     change: transaction.change,
     receiptFooter: settings?.receiptFooter,
     paperSize: config.paperSize,
-  }
+  }), [settings, user, transaction, resolvedItems, config.paperSize])
 
   const handlePrint = useCallback(async () => {
     setIsPrinting(true)
@@ -160,10 +160,15 @@ export default function PaymentSuccessScreen({
 
   // Trigger auto print if enabled
   useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>
     if (config.autoPrint && !autoPrintTriggered.current) {
       autoPrintTriggered.current = true
-      handlePrint()
+      // Delay auto-print slightly to allow animation to settle
+      timeout = setTimeout(() => {
+        handlePrint()
+      }, 500)
     }
+    return () => clearTimeout(timeout)
   }, [config.autoPrint, handlePrint])
 
   const handleCopy = useCallback(async () => {
@@ -351,7 +356,6 @@ export default function PaymentSuccessScreen({
           </TouchableOpacity>
         </View>
 
-        {/* Content (Scrollable) */}
         <ScrollView 
           style={styles.contentScroll} 
           contentContainerStyle={styles.contentScrollContent}
@@ -611,6 +615,7 @@ const styles = StyleSheet.create({
   },
   modalInner: {
     width: '100%',
+    flexShrink: 1,
   },
   header: {
     paddingHorizontal: 12,
@@ -644,6 +649,7 @@ const styles = StyleSheet.create({
   },
   contentScroll: {
     width: '100%',
+    flexShrink: 1,
   },
   contentScrollContent: {
     paddingHorizontal: 12,
