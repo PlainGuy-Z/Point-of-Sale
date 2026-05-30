@@ -219,7 +219,7 @@ export async function buildAppState(shopId: string) {
     WHERE t.shop_id = $1::uuid
       AND COALESCE(t.status::text, 'completed') <> 'voided'
     ORDER BY t.created_at DESC
-    LIMIT 200
+    LIMIT 10000
   `, [shopId]);
 
   // STEP 2 — Fetch ALL items for those transactions in ONE query
