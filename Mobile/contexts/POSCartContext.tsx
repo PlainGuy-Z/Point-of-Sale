@@ -111,7 +111,6 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
         originalPrice: priceInfo.isPromoActive ? product.price : undefined,
         promoLabel: product.promoLabel,
         image: product.image ?? undefined,
-        note: product.name,
       };
       return [...prev, newItem];
     });

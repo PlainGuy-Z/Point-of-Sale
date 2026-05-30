@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
@@ -30,6 +30,7 @@ export default function ShopSettingsScreen() {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
+  const insets = useSafeAreaInsets();
 
   const { settings, updateSettings, isServiceLoading } = useApp();
   const { user, refreshUser } = useAuth();
@@ -348,7 +349,9 @@ export default function ShopSettingsScreen() {
           backgroundColor: c.bgCard,
           borderTopWidth: 1,
           borderTopColor: c.border,
-          padding: 16,
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          paddingBottom: Math.max(insets.bottom, 16),
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',

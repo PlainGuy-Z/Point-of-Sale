@@ -43,7 +43,6 @@ export default function AddManualItemModal({ visible, onClose, onAdd, onQuickPay
       name: cleanName,
       quantity,
       price,
-      note: cleanName,
       description: description.trim() || undefined,
       variantName: variantName.trim() || undefined,
       variantPrice: variantPrice > 0 ? variantPrice : undefined,
