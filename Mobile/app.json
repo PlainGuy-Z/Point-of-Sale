@@ -9,7 +9,7 @@
     "platforms": [
       "android"
     ],
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true
