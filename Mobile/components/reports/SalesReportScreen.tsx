@@ -521,6 +521,11 @@ export default function SalesReportScreen() {
               </View>
             ) : (
               <View>
+                {chartData.length > 7 && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 4, paddingRight: 10 }}>
+                    <Text style={{ color: c.textMuted, fontSize: 10, fontStyle: 'italic' }}>← Geser untuk melihat selengkapnya →</Text>
+                  </View>
+                )}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ gap: 14, paddingRight: 10, alignItems: 'flex-end', height: 160 }}>
                   {chartData.map((d, index) => {

@@ -395,6 +395,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '92%',
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
   },
   handle: {
     width: 40,
