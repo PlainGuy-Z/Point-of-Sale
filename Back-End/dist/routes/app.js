@@ -272,7 +272,11 @@ export async function buildAppState(shopId) {
             currencyPosition: 'before',
             decimalPlaces: 0,
             thousandsSeparator: 'comma',
-            receiptFooter: settingsRow?.receipt_footer || 'Terima kasih telah berbelanja!'
+            receiptFooter: settingsRow?.receipt_footer || 'Terima kasih telah berbelanja!',
+            logo_url: settingsRow?.logo_url || null,
+            phone: settingsRow?.phone || null,
+            open_time: settingsRow?.open_time || '08:00',
+            close_time: settingsRow?.close_time || '22:00'
         },
         categories,
         categoriesWithId: cats.rows.map(r => ({ id: r.id, name: r.name }))
@@ -515,5 +519,93 @@ appRouter.post('/upload', upload.single('file'), (req, res) => {
     catch (err) {
         console.error('[Upload] Error:', err);
         res.status(500).json({ message: 'Internal server error during upload' });
+    }
+});
+const updateSettingsSchema = z.object({
+    shop_name: z.string().min(2).optional(),
+    phone: z.string().optional().nullable(),
+    address: z.string().optional().nullable(),
+    logo_url: z.string().optional().nullable(),
+    open_time: z.string().optional(),
+    close_time: z.string().optional(),
+    tax_enabled: z.boolean().optional(),
+    tax_rate: z.number().min(0).max(100).optional(),
+    tax_label: z.string().optional(),
+    tax_inclusive: z.boolean().optional(),
+    service_charge_enabled: z.boolean().optional(),
+    service_charge_rate: z.number().min(0).max(100).optional(),
+    service_charge_label: z.string().optional(),
+    receipt_footer: z.string().optional().nullable(),
+    receipt_show_logo: z.boolean().optional(),
+    receipt_paper_size: z.enum(['58mm', '80mm']).optional(),
+    receipt_auto_print: z.boolean().optional(),
+    receipt_show_tax: z.boolean().optional(),
+    print_method: z.enum(['browser', 'rawbt', 'network', 'rawbt_intent']).optional(),
+    rawbt_ip: z.string().optional().nullable(),
+    default_order_type: z.enum(['dine_in', 'takeaway']).optional(),
+    require_customer_name: z.boolean().optional(),
+    require_table_number: z.boolean().optional(),
+    payment_cash: z.boolean().optional(),
+    payment_qris: z.boolean().optional(),
+    payment_transfer: z.boolean().optional(),
+    low_stock_threshold: z.number().min(0).optional(),
+    auto_disable_zero_stock: z.boolean().optional(),
+    currency_format: z.enum(['Rp', 'IDR']).optional(),
+    date_format: z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']).optional(),
+    language: z.enum(['id', 'en']).optional()
+});
+// PUT /app/settings
+appRouter.put('/settings', requireRole('owner'), validateBody(updateSettingsSchema), async (req, res, next) => {
+    try {
+        const shopId = req.user.shop_id;
+        const body = req.body;
+        await pool.query('BEGIN');
+        // Update shop name if provided
+        if (body.shop_name) {
+            let slug = body.shop_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+            let isUnique = false;
+            let count = 0;
+            while (!isUnique) {
+                const currentSlug = count === 0 ? slug : `${slug}-${count}`;
+                const check = await pool.query('SELECT id FROM coffeepos.shops WHERE slug = $1 AND id != $2::uuid', [currentSlug, shopId]);
+                if (check.rowCount === 0) {
+                    slug = currentSlug;
+                    isUnique = true;
+                }
+                else {
+                    count++;
+                }
+            }
+            await pool.query('UPDATE coffeepos.shops SET name = $1, slug = $2 WHERE id = $3', [body.shop_name, slug, shopId]);
+        }
+        // Build UPDATE query for shop_settings dynamically based on provided fields
+        const updateFields = [];
+        const values = [];
+        let paramIndex = 1;
+        for (const [key, value] of Object.entries(body)) {
+            if (key !== 'shop_name' && value !== undefined) {
+                updateFields.push(`${key} = $${paramIndex}`);
+                values.push(value);
+                paramIndex++;
+            }
+        }
+        if (updateFields.length > 0) {
+            updateFields.push(`updated_at = NOW()`);
+            const query = `
+        INSERT INTO coffeepos.shop_settings (shop_id) 
+        VALUES ($${paramIndex}) 
+        ON CONFLICT (shop_id) DO UPDATE SET 
+        ${updateFields.join(', ')}
+        RETURNING *
+      `;
+            values.push(shopId);
+            await pool.query(query, values);
+        }
+        await pool.query('COMMIT');
+        res.json(await buildAppState(shopId));
+    }
+    catch (error) {
+        await pool.query('ROLLBACK');
+        next(error);
     }
 });
