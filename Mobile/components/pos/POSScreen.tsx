@@ -42,6 +42,10 @@ export default function POSScreen() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
 
+  // Calculate dynamic columns for landscape grid
+  const gridContainerWidth = isLandscape ? windowWidth * (2/3) - 20 : windowWidth;
+  const numColumns = isLandscape ? Math.max(2, Math.floor(gridContainerWidth / 140)) : 2;
+
   const { products, transactions, categories, checkout: appCheckout, serviceError, refreshState, isServiceLoading } = useApp();
   const { user, isCashier } = useAuth();
   const { activeShift } = useShift();
@@ -916,15 +920,15 @@ export default function POSScreen() {
             )}
           </View>
 
-          {/* Product grid - 4 Columns in Landscape */}
+          {/* Product grid - Dynamic Columns in Landscape */}
           {products.length === 0 && serviceError ? (
             renderNetworkError()
           ) : (
             <FlatList
               data={sortedProducts}
               keyExtractor={item => item.id}
-              numColumns={4}
-              key="landscape-grid-4-cols"
+              numColumns={numColumns}
+              key={`landscape-grid-${numColumns}`}
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
               columnWrapperStyle={{ justifyContent: 'space-between' }}
               showsVerticalScrollIndicator={true}

@@ -47,10 +47,8 @@ export default function ProductCard({
       activeOpacity={0.85}
       style={{
         width: isCompact ? cardWidth : undefined,
-        flex: isCompact || isLandscape ? undefined : 1,
-        flexBasis: isLandscape && !isCompact ? '23%' : undefined,
-        maxWidth: isLandscape && !isCompact ? '23%' : undefined,
-        alignSelf: isLandscape && !isCompact ? 'flex-start' : undefined,
+        flex: isCompact ? undefined : 1,
+        minWidth: !isCompact && isLandscape ? 130 : undefined,
         backgroundColor: c.bgCard,
         borderRadius: 16,
         borderWidth: 1,
