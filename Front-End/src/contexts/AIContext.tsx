@@ -90,8 +90,8 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
       // 2. Save to sessionStorage immediately
       sessionStorage.setItem(storageKey, serialise(updatedMessages));
 
-      // 3. Build API history — last 10 messages, mapped to ChatMessage format
-      const historyForApi: ChatMessage[] = updatedMessages
+      // 3. Build API history — last 10 messages, mapped to ChatMessage format (excluding the new userMsg)
+      const historyForApi: ChatMessage[] = messages
         .slice(-10)
         .map((msg) => ({
           role: msg.role === 'ai' ? 'model' as const : 'user' as const,

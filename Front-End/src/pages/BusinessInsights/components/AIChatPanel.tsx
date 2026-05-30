@@ -171,6 +171,15 @@ export default function AIChatPanel() {
               </div>
             )}
 
+            {/* Error display */}
+            {error && (
+              <div className="flex justify-center my-2">
+                <div className="bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-xl text-[11px] font-bold shadow-sm max-w-[85%] text-center">
+                  ⚠️ {error}
+                </div>
+              </div>
+            )}
+
             {/* Quick follow-up chips */}
             {messages.length > 0 && !isLoading && (
               <div className="flex gap-2 flex-wrap pt-2">
