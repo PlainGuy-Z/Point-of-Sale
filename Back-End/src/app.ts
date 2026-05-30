@@ -44,7 +44,7 @@ export function createApp() {
         return callback(null, true);
       }
 
-      if (origin.startsWith('http://localhost:')) {
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://192.168.') || origin.startsWith('http://10.') || origin.startsWith('http://172.')) {
         return callback(null, true);
       }
 
@@ -92,7 +92,10 @@ export function createApp() {
         origin &&
         !allowed.includes(origin) &&
         !origin.endsWith('.vercel.app') &&
-        !origin.startsWith('http://localhost:')
+        !origin.startsWith('http://localhost:') &&
+        !origin.startsWith('http://192.168.') &&
+        !origin.startsWith('http://10.') &&
+        !origin.startsWith('http://172.')
       ) {
         return res.status(403).json({
           error: { code: 'CSRF_BLOCKED', message: 'Invalid origin' },
