@@ -137,6 +137,37 @@ async function ensureCategory(
 
 /* ─── buildAppState ─────────────────────────────────────────── */
 
+export async function getProductsState(shopId: string) {
+  const products = await pool.query(
+    `SELECT p.id::text, p.name, p.description, p.price,
+            c.name as category, p.stock, p.min_stock, p.cost,
+            p.image, p.discount, p.is_promo, p.promo_price,
+            p.promo_label, p.promo_start, p.promo_end, p.is_available
+     FROM coffeepos.products p
+     LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+     WHERE p.shop_id = $1::uuid
+       AND p.is_deleted = false
+     ORDER BY p.name ASC`,
+    [shopId]
+  );
+  return products.rows.map((p) => ({
+    ...p,
+    category: p.category || 'Uncategorized',
+    stock: Number(p.stock),
+    minStock: Number(p.min_stock ?? 5),
+    price: Number(p.price),
+    cost: p.cost === null ? undefined : Number(p.cost),
+    discount: Number(p.discount ?? 0),
+    isPromo: Boolean(p.is_promo),
+    promoPrice: p.promo_price ? Number(p.promo_price) : undefined,
+    promoLabel: p.promo_label ?? undefined,
+    promoStart: p.promo_start ?? undefined,
+    promoEnd: p.promo_end ?? undefined,
+    isAvailable: p.is_available !== false,
+    unit: 'pcs',
+    image: p.image || null
+  }));
+}
 
 export async function buildAppState(shopId: string) {
   // Fetch shop settings and shop info
@@ -154,18 +185,7 @@ export async function buildAppState(shopId: string) {
   }
   const shopRow = shopRes.rows[0];
 
-  const products = await pool.query(
-    `SELECT p.id::text, p.name, p.description, p.price,
-            c.name as category, p.stock, p.min_stock, p.cost,
-            p.image, p.discount, p.is_promo, p.promo_price,
-            p.promo_label, p.promo_start, p.promo_end, p.is_available
-     FROM coffeepos.products p
-     LEFT JOIN coffeepos.categories c ON p.category_id = c.id
-     WHERE p.shop_id = $1::uuid
-       AND p.is_deleted = false
-     ORDER BY p.name ASC`,
-    [shopId]
-  );
+  const productsData = await getProductsState(shopId);
 
   // [FIX-3] Replaced correlated subqueries with LEFT JOIN aggregation to eliminate N+1
   const txQuery = await pool.query(`
@@ -259,23 +279,7 @@ export async function buildAppState(shopId: string) {
   const categories = cats.rows.map(r => r.name);
 
   return {
-    products: products.rows.map((p) => ({
-      ...p,
-      category: p.category || 'Uncategorized',
-      stock: Number(p.stock),
-      minStock: Number(p.min_stock ?? 5),
-      price: Number(p.price),
-      cost: p.cost === null ? undefined : Number(p.cost),
-      discount: Number(p.discount ?? 0),
-      isPromo: Boolean(p.is_promo),
-      promoPrice: p.promo_price ? Number(p.promo_price) : undefined,
-      promoLabel: p.promo_label ?? undefined,
-      promoStart: p.promo_start ?? undefined,
-      promoEnd: p.promo_end ?? undefined,
-      isAvailable: p.is_available !== false,
-      unit: 'pcs',
-      image: p.image || null
-    })),
+    products: productsData,
     transactions: txQuery.rows.map((t) => ({
       id: t.id,
       date: new Date(t.date).toISOString(),
