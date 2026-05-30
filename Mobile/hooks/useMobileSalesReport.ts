@@ -232,6 +232,22 @@ export function useMobileSalesReport(
   const dailyData: DailyData[] = useMemo(() => {
     if (isSingleDay) return [];
     const map = new Map<string, { revenue: number; count: number }>();
+    
+    // 1. Pre-populate all dates in the range
+    const current = new Date(range.start);
+    const end = new Date(range.end);
+    current.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    
+    // Limit to max 60 days to prevent excessive rendering on mobile
+    let daysCount = 0;
+    while (current <= end && daysCount < 60) {
+      const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+      map.set(key, { revenue: 0, count: 0 });
+      current.setDate(current.getDate() + 1);
+      daysCount++;
+    }
+
     filtered.forEach((t) => {
       const d = t.date instanceof Date ? t.date : new Date(t.date);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -251,7 +267,7 @@ export function useMobileSalesReport(
           ...d,
         };
       });
-  }, [filtered, isSingleDay]);
+  }, [filtered, isSingleDay, range]);
 
   const peakHour = useMemo(() => {
     if (hourlyData.length === 0) return null;
