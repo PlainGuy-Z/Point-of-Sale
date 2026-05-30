@@ -162,7 +162,7 @@ export async function buildAppState(shopId: string) {
      FROM coffeepos.products p
      LEFT JOIN coffeepos.categories c ON p.category_id = c.id
      WHERE p.shop_id = $1::uuid
-       AND p.is_available = true
+       AND p.is_deleted = false
      ORDER BY p.name ASC`,
     [shopId]
   );
@@ -335,6 +335,7 @@ appRouter.get('/export/products', requireOwner, async (req, res, next) => {
        FROM coffeepos.products p
        LEFT JOIN coffeepos.categories c ON p.category_id = c.id
        WHERE p.shop_id = $1::uuid
+         AND p.is_deleted = false
        ORDER BY p.name ASC`,
       [shopId]
     );
@@ -534,7 +535,7 @@ appRouter.delete('/products/:id', requireRole('owner'), async (req, res, next) =
     const shopId = req.user!.shop_id;
     const result = await pool.query(
       `UPDATE coffeepos.products
-       SET is_available = false,
+       SET is_deleted = true,
            updated_at = now()
        WHERE id = $1::uuid AND shop_id = $2::uuid`,
       [id, shopId]
