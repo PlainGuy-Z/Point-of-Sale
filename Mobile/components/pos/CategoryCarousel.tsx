@@ -74,7 +74,7 @@ export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarous
               <ProductCard
                 product={product}
                 onAdd={addToCart}
-                onRemove={(id) => removeFromCart(id)}
+                onRemove={removeFromCart}
                 cartQuantity={getCartQty(product.id)}
                 variant="full"
               />
@@ -138,7 +138,7 @@ export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarous
           <ProductCard
             product={item}
             onAdd={addToCart}
-            onRemove={(id) => removeFromCart(id)}
+            onRemove={removeFromCart}
             cartQuantity={getCartQty(item.id)}
             variant="compact"
           />

@@ -950,7 +950,7 @@ export default function POSScreen() {
                 <ProductCard
                   product={item}
                   onAdd={addToCart}
-                  onRemove={(id) => removeFromCart(id)}
+                  onRemove={removeFromCart}
                   cartQuantity={getCartQty(item.id)}
                   variant="full"
                 />

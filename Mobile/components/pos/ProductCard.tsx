@@ -17,7 +17,7 @@ interface ProductCardProps {
   variant?: 'compact' | 'full';
 }
 
-export default function ProductCard({
+function ProductCard({
   product,
   onAdd,
   onRemove,
@@ -257,3 +257,5 @@ export default function ProductCard({
     </TouchableOpacity>
   );
 }
+
+export default React.memo(ProductCard);
