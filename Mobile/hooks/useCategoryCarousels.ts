@@ -18,8 +18,13 @@ export function useCategoryCarousels(
   periodDays: number,
   searchTerm: string = ''
 ): CategoryCarousel[] {
+  // 1. Heavy computation: Analytics (Only recalculate if transactions change)
+  const salesMap = useMemo(() => {
+    return getRecentSalesMapByPeriod(transactions, periodDays);
+  }, [transactions, periodDays]);
+
+  // 2. Fast computation: UI Filtering & Grouping
   return useMemo(() => {
-    const salesMap = getRecentSalesMapByPeriod(transactions, periodDays);
     const searchLower = searchTerm.toLowerCase().trim();
 
     const availableProducts = products
@@ -94,5 +99,5 @@ export function useCategoryCarousels(
       },
       ...sortedCategories,
     ];
-  }, [products, transactions, periodDays, searchTerm]);
+  }, [products, salesMap, searchTerm]);
 }

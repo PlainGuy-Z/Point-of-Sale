@@ -26,17 +26,25 @@ export function useProductCatalog(
   selectedCategory: string,
   bestSellerPeriod: number = 3
 ): UseProductCatalogResult {
-  return useMemo(() => {
-    // 1. Update products with best seller status
-    const productsWithBestSeller = updateProductsWithBestSellerStatus(
+  // 1. Heavy computation: Analytics & Best Sellers (Only recalculate if transactions change)
+  const { productsWithBestSeller, topBestSellers } = useMemo(() => {
+    const enriched = updateProductsWithBestSellerStatus(
       products,
       transactions,
       bestSellerPeriod,
       3,
       1
     );
+    const top = getTopBestSellersForBanner(
+      transactions,
+      products,
+      bestSellerPeriod
+    );
+    return { productsWithBestSeller: enriched, topBestSellers: top };
+  }, [products, transactions, bestSellerPeriod]);
 
-    // 2. Filter products by search & category
+  // 2. Fast computation: UI Filtering & Sorting (Recalculate on search/category change)
+  return useMemo(() => {
     const filteredProducts = productsWithBestSeller.filter(product => {
       const matchesSearch = product.name
         .toLowerCase()
@@ -48,17 +56,8 @@ export function useProductCatalog(
       return matchesSearch && matchesCategory;
     });
 
-    // 3. Sort products with priorities
     const sortedProducts = sortProductsByPriority(filteredProducts);
 
-    // 4. Get top best sellers for banner
-    const topBestSellers = getTopBestSellersForBanner(
-      transactions,
-      products,
-      bestSellerPeriod
-    );
-
-    // 5. Count promo and best seller products
     const promoProductsCount = sortedProducts.filter(
       p => getEffectivePrice(p).isPromoActive
     ).length;
@@ -72,7 +71,7 @@ export function useProductCatalog(
       bestSellerCount,
       filteredProducts,
     };
-  }, [products, transactions, search, selectedCategory, bestSellerPeriod]);
+  }, [productsWithBestSeller, topBestSellers, search, selectedCategory]);
 }
 
 // ─── Sort helper ────────────────────────────────────────────────────────────────
