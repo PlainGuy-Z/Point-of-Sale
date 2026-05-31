@@ -15,7 +15,7 @@ interface CartItemProps {
   onRemove: (index: number) => void;
 }
 
-export default function CartItem({
+function CartItem({
   item,
   index,
   onEdit,
@@ -175,3 +175,5 @@ export default function CartItem({
     </Swipeable>
   );
 }
+
+export default React.memo(CartItem);
