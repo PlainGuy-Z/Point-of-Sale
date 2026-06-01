@@ -93,11 +93,11 @@ export function useBusinessInsights() {
     } catch (err: any) {
       setError(err.message || 'Gagal memuat Business Intelligence dari server');
       // Only nullify data if we don't have it yet, to preserve numerical data if AI fails on a retry
-      if (!data) setData(null);
+      setData((prev: any) => prev || null);
     } finally {
       setIsLoading(false);
     }
-  }, [currentRange, preset, forceAiForCustom, data]);
+  }, [currentRange, preset, forceAiForCustom]);
 
   const generateManualAi = useCallback(() => {
     setForceAiForCustom(true);

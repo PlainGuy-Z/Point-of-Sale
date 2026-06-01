@@ -40,8 +40,6 @@ export default function BusinessInsightsScreen() {
   const PRESETS: { key: BIPresetKey; label: string }[] = [
     { key: 'this_week', label: 'Minggu Ini' },
     { key: '7days', label: '7 Hari' },
-    { key: '30days', label: '30 Hari' },
-    { key: 'month', label: 'Bulan Ini' },
     { key: 'custom', label: 'Custom' },
   ];
 

@@ -16,7 +16,7 @@ import { useDashboardMetrics } from '../../hooks/useDashboardMetrics';
 import type { PresetKey } from '../../hooks/useMobileSalesReport';
 import { SidebarContext } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
-
+import { appApi } from '../../services/appApi';
 import StatCardRN from '../../components/dashboard/StatCardRN';
 import ProfitChartRN from '../../components/dashboard/ProfitChartRN';
 import TopProductsRN from '../../components/dashboard/TopProductsRN';
@@ -227,6 +227,28 @@ export default function OwnerDashboard() {
   const isLandscape = windowWidth > windowHeight;
   const { user } = useAuth();
 
+  const now = new Date();
+  const [chartDate, setChartDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
+  const [remoteChartData, setRemoteChartData] = useState<any[] | null>(null);
+
+  React.useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        const y = chartDate.getFullYear();
+        const m = String(chartDate.getMonth() + 1).padStart(2, '0');
+        const dim = new Date(y, chartDate.getMonth() + 1, 0).getDate();
+        const startStr = `${y}-${m}-01`;
+        const endStr = `${y}-${m}-${String(dim).padStart(2, '0')}`;
+        
+        const res = await appApi.get<any>(`/reports/dashboard?from=${startStr}&to=${endStr}&granularity=day`);
+        setRemoteChartData(res.chartData);
+      } catch (err) {
+        console.error('Failed to fetch chart data:', err);
+      }
+    };
+    fetchChartData();
+  }, [chartDate]);
+
   // Sidebar context
   const { openSidebar, toggleSidebar, sidebarWidth, isSidebarOpen } = useContext(SidebarContext);
 
@@ -281,11 +303,6 @@ export default function OwnerDashboard() {
 
   const lowStockAll = [...(metrics?.lowStockProducts || []), ...(metrics?.outOfStockProducts || [])];
 
-  const PRESETS: { key: PresetKey; label: string }[] = [
-    { key: 'today', label: 'Hari Ini' },
-    { key: '30days', label: '30 Hari' },
-    { key: 'month', label: 'Bulan Ini' },
-  ];
 
   // ── Landscape layout dimensions ──
   const landscapeGap = 12;
@@ -394,25 +411,6 @@ export default function OwnerDashboard() {
               </Text>
             </View>
           </View>
-
-          {/* Date Filter */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginTop: 16 }}>
-            {PRESETS.map(opt => (
-              <TouchableOpacity
-                key={opt.key}
-                onPress={() => setPreset(opt.key)}
-                style={{
-                  backgroundColor: preset === opt.key ? accentColor : (isDark ? '#2a2a2a' : '#f1f5f9'),
-                  borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8,
-                }}
-              >
-                <Text style={{
-                  color: preset === opt.key ? '#fff' : (isDark ? '#a8a29e' : '#475569'),
-                  fontSize: 13, fontWeight: preset === opt.key ? '700' : '600'
-                }}>{opt.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
         </View>
 
         {isLoading ? (
@@ -458,7 +456,10 @@ export default function OwnerDashboard() {
                   transactions={rawData.transactions}
                   isDark={isDark}
                   containerWidth={availableWidth}
-                  remoteChartData={chartData}
+                  remoteChartData={remoteChartData}
+                  selectedDate={chartDate}
+                  onPrevMonth={() => setChartDate(new Date(chartDate.getFullYear(), chartDate.getMonth() - 1, 1))}
+                  onNextMonth={() => setChartDate(new Date(chartDate.getFullYear(), chartDate.getMonth() + 1, 1))}
                 />
               </View>
 
@@ -516,7 +517,10 @@ export default function OwnerDashboard() {
                   transactions={rawData.transactions}
                   isDark={isDark}
                   containerWidth={availableWidth}
-                  remoteChartData={chartData}
+                  remoteChartData={remoteChartData}
+                  selectedDate={chartDate}
+                  onPrevMonth={() => setChartDate(new Date(chartDate.getFullYear(), chartDate.getMonth() - 1, 1))}
+                  onNextMonth={() => setChartDate(new Date(chartDate.getFullYear(), chartDate.getMonth() + 1, 1))}
                 />
               </View>
 
@@ -549,10 +553,13 @@ export default function OwnerDashboard() {
             <View>
               <SectionLabel isDark={isDark}>Tren Pendapatan</SectionLabel>
               <ProfitChartRN
-                transactions={rawData.transactions}
+                transactions={transactions}
                 isDark={isDark}
                 containerWidth={availableWidth}
-                remoteChartData={chartData}
+                remoteChartData={remoteChartData}
+                selectedDate={chartDate}
+                onPrevMonth={() => setChartDate(new Date(chartDate.getFullYear(), chartDate.getMonth() - 1, 1))}
+                onNextMonth={() => setChartDate(new Date(chartDate.getFullYear(), chartDate.getMonth() + 1, 1))}
               />
             </View>
 

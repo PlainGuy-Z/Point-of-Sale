@@ -12,27 +12,40 @@ interface ProfitChartRNProps {
   /** Outer width of this component's container (excluding its own padding/border) */
   containerWidth?: number;
   remoteChartData?: Array<{ value: number; label: string; date?: string; hour?: number; revenue?: number }> | null;
+  selectedDate?: Date;
+  onPrevMonth?: () => void;
+  onNextMonth?: () => void;
 }
 
-export default function ProfitChartRN({ transactions, isDark, containerWidth, remoteChartData }: ProfitChartRNProps) {
+export default function ProfitChartRN({ transactions, isDark, containerWidth, remoteChartData, selectedDate: propSelectedDate, onPrevMonth, onNextMonth }: ProfitChartRNProps) {
   const { width: windowWidth } = useWindowDimensions();
   // If no containerWidth given, assume full screen minus parent horizontal padding (16*2)
   const outerWidth = containerWidth ?? (windowWidth - 32);
   const isCompact = outerWidth < 380;
 
   const now = new Date();
-  const [selectedDate, setSelectedDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
+  const [internalDate, setInternalDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
+
+  const activeDate = propSelectedDate || internalDate;
 
   const prevMonth = () => {
-    setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1));
+    if (onPrevMonth) {
+      onPrevMonth();
+    } else {
+      setInternalDate(new Date(activeDate.getFullYear(), activeDate.getMonth() - 1, 1));
+    }
   };
   const nextMonth = () => {
-    setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1));
+    if (onNextMonth) {
+      onNextMonth();
+    } else {
+      setInternalDate(new Date(activeDate.getFullYear(), activeDate.getMonth() + 1, 1));
+    }
   };
 
-  const monthLabel = selectedDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-  const selectedYear = selectedDate.getFullYear();
-  const selectedMonthNum = selectedDate.getMonth() + 1;
+  const monthLabel = activeDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const selectedYear = activeDate.getFullYear();
+  const selectedMonthNum = activeDate.getMonth() + 1;
   const monthPrefix = `${selectedYear}-${String(selectedMonthNum).padStart(2, '0')}`;
 
   const { chartData, totalRevenue, maxRevenue, activeDays, daysInMonth } = useMemo(() => {
@@ -118,19 +131,15 @@ export default function ProfitChartRN({ transactions, isDark, containerWidth, re
           <Info size={isCompact ? 14 : 16} color={tealColor} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: isCompact ? 6 : 16 }}>
-          {!isRemote && (
-            <TouchableOpacity onPress={prevMonth} style={{ padding: 4 }}>
-              <ChevronLeft size={isCompact ? 16 : 20} color={tealColor} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={prevMonth} style={{ padding: 4 }}>
+            <ChevronLeft size={isCompact ? 16 : 20} color={tealColor} />
+          </TouchableOpacity>
           <Text style={{ fontWeight: '700', color: textColor, minWidth: isCompact ? 70 : 100, textAlign: 'center', fontSize: isCompact ? 11 : 14 }}>
-            {isRemote ? 'Tren Pilihan' : monthLabel}
+            {monthLabel}
           </Text>
-          {!isRemote && (
-            <TouchableOpacity onPress={nextMonth} style={{ padding: 4 }}>
-              <ChevronRight size={isCompact ? 16 : 20} color={tealColor} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={nextMonth} style={{ padding: 4 }}>
+            <ChevronRight size={isCompact ? 16 : 20} color={tealColor} />
+          </TouchableOpacity>
         </View>
       </View>
 
