@@ -101,5 +101,15 @@ export const aiApi = {
       console.error('Chat error:', error);
       throw error;
     }
+  },
+
+  fetchBusinessInsights: async (from: string, to: string, skipAi: boolean = false): Promise<any> => {
+    try {
+      const response = await api.get<{ data: any }>(`/reports/business-insights?from=${from}&to=${to}&skip_ai=${skipAi}`);
+      return response.data;
+    } catch (error) {
+      console.error('Business Insights error:', error);
+      throw error;
+    }
   }
 };

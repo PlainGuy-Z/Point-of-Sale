@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, useWindowDimensions, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BrainCircuit, RefreshCw, BarChart2, Bot, PieChart } from 'lucide-react-native';
+import { BrainCircuit, RefreshCw, BarChart2, Bot, PieChart, Info, AlertCircle } from 'lucide-react-native';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
-import { aiApi, SummaryResponse, ForecastResponse, WasteResponse } from '../../services/aiApi';
-import { api } from '../../services/api';
+import { useBusinessInsights, BIPresetKey } from '../../hooks/useBusinessInsights';
 
 import StatCards from './StatCards';
 import RevenueChart from './RevenueChart';
@@ -27,71 +26,25 @@ export default function BusinessInsightsScreen() {
 
   const [activeTab, setActiveTab] = useState<'Metrik' | 'AI Chat' | 'Charts'>('Metrik');
   
-  // Data State
-  const [summary, setSummary] = useState<SummaryResponse | null>(null);
-  const [forecast, setForecast] = useState<ForecastResponse | null>(null);
-  const [waste, setWaste] = useState<WasteResponse | null>(null);
-  const [shifts, setShifts] = useState<any[]>([]);
-  const [wasteDays, setWasteDays] = useState<7 | 14 | 30>(30);
+  const {
+    preset,
+    setPreset,
+    data,
+    isLoading,
+    error,
+    refetch,
+    generateManualAi
+  } = useBusinessInsights();
 
-  // Loading & Error State
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isWasteLoading, setIsWasteLoading] = useState(false);
-  
-  const [summaryError, setSummaryError] = useState(false);
-  const [forecastError, setForecastError] = useState(false);
+  // Helper map for presets
+  const PRESETS: { key: BIPresetKey; label: string }[] = [
+    { key: 'this_week', label: 'Minggu Ini' },
+    { key: '7days', label: '7 Hari' },
+    { key: '30days', label: '30 Hari' },
+    { key: 'month', label: 'Bulan Ini' },
+    { key: 'custom', label: 'Custom' },
+  ];
 
-  const fetchAll = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setIsRefreshing(true);
-    else setInitialLoading(true);
-
-    setSummaryError(false);
-    setForecastError(false);
-
-    try {
-      const [sumRes, foreRes, shiftRes] = await Promise.allSettled([
-        aiApi.fetchSummary(),
-        aiApi.fetchForecast(),
-        api.get<any>('/shifts?limit=5').catch(() => null) // graceful failure for shifts
-      ]);
-
-      if (sumRes.status === 'fulfilled') setSummary(sumRes.value);
-      else setSummaryError(true);
-
-      if (foreRes.status === 'fulfilled') setForecast(foreRes.value);
-      else setForecastError(true);
-
-      if (shiftRes.status === 'fulfilled' && shiftRes.value?.data) {
-        setShifts(Array.isArray(shiftRes.value.data) ? shiftRes.value.data : []);
-      }
-    } finally {
-      if (isRefresh) setIsRefreshing(false);
-      else setInitialLoading(false);
-    }
-  }, []);
-
-  const fetchWaste = useCallback(async (days: 7 | 14 | 30) => {
-    setIsWasteLoading(true);
-    try {
-      const w = await aiApi.fetchWasteAnalysis(days);
-      setWaste(w);
-    } catch {
-      setWaste(null);
-    } finally {
-      setIsWasteLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
-
-  useEffect(() => {
-    fetchWaste(wasteDays);
-  }, [wasteDays, fetchWaste]);
-
-  // UI rendering
   const renderTabButton = (title: 'Metrik' | 'AI Chat' | 'Charts', Icon: any) => {
     const isActive = activeTab === title;
     return (
@@ -120,11 +73,50 @@ export default function BusinessInsightsScreen() {
   };
 
   const renderContent = () => {
-    if (initialLoading) {
+    if (isLoading) {
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={c.accent} />
-          <Text style={{ marginTop: 12, color: c.textMuted, fontSize: 13 }}>Menganalisis data bisnis...</Text>
+          <Text style={{ marginTop: 12, color: c.textMuted, fontSize: 13 }}>Menganalisis insight bisnis...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <AlertCircle size={48} color={c.error} style={{ marginBottom: 16 }} />
+          <Text style={{ color: c.text, fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
+            Gagal Memuat Insight
+          </Text>
+          <Text style={{ color: c.textSecondary, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
+            {error}
+          </Text>
+          <TouchableOpacity
+            onPress={() => refetch()}
+            style={{
+              backgroundColor: c.accent,
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              borderRadius: 8
+            }}
+          >
+            <Text style={{ color: 'white', fontWeight: '700' }}>Coba Lagi</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (!data || data.summary.transactionCount === 0) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Info size={48} color={c.textMuted} style={{ marginBottom: 16 }} />
+          <Text style={{ color: c.text, fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
+            Tidak Ada Data
+          </Text>
+          <Text style={{ color: c.textSecondary, fontSize: 14, textAlign: 'center' }}>
+            Tidak ada transaksi pada periode ini untuk dianalisis.
+          </Text>
         </View>
       );
     }
@@ -133,34 +125,56 @@ export default function BusinessInsightsScreen() {
       return (
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: isSmallLandscape ? 20 : 100 }}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => fetchAll(true)} />}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
         >
-          {summaryError && (
-            <View style={{ backgroundColor: c.errorBg, padding: 12, borderRadius: 12, marginBottom: 16 }}>
-              <Text style={{ color: c.error, fontSize: 12 }}>Gagal memuat ringkasan. Tarik ke bawah untuk memuat ulang.</Text>
+          {/* AI Recommendation Alert */}
+          {data.recommendations === "Analisis AI dilewati." ? (
+            <View style={{ backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.borderLight, padding: 16, borderRadius: 12, marginBottom: 16, alignItems: 'center' }}>
+              <Bot size={24} color={c.textMuted} style={{ marginBottom: 8 }} />
+              <Text style={{ color: c.text, fontSize: 14, fontWeight: '600', marginBottom: 4 }}>Insight AI Belum Digenerate</Text>
+              <Text style={{ color: c.textSecondary, fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
+                Pilih untuk melihat analisis cerdas dan rekomendasi strategis khusus untuk rentang waktu ini.
+              </Text>
+              <TouchableOpacity
+                onPress={generateManualAi}
+                disabled={isLoading}
+                style={{
+                  backgroundColor: c.accent,
+                  paddingHorizontal: 20,
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                  opacity: isLoading ? 0.5 : 1
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: '700', fontSize: 13 }}>
+                  {isLoading ? "Sedang Memuat..." : "Generate AI Insight"}
+                </Text>
+              </TouchableOpacity>
             </View>
-          )}
-          
-          <StatCards summary={summary} />
-          
-          {!forecastError ? (
-            <RevenueChart forecast={forecast} />
-          ) : (
-            <View style={{ backgroundColor: c.bgCard, padding: 20, borderRadius: 16, marginBottom: 16, alignItems: 'center' }}>
-              <Text style={{ color: c.textSecondary, fontSize: 12 }}>Gagal memuat prediksi revenue.</Text>
+          ) : data.recommendations ? (
+            <View style={{ backgroundColor: c.accent + '20', borderWidth: 1, borderColor: c.accent + '50', padding: 16, borderRadius: 12, marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Bot size={18} color={c.accent} />
+                <Text style={{ color: c.accent, fontWeight: '800', fontSize: 14 }}>Rekomendasi AI</Text>
+              </View>
+              <Text style={{ color: c.text, fontSize: 13, lineHeight: 20 }}>
+                {data.recommendations}
+              </Text>
+              
+              {data.recommendations === "Gagal memuat rekomendasi AI. Harap coba lagi nanti." && (
+                <TouchableOpacity onPress={generateManualAi} style={{ marginTop: 12 }}>
+                  <Text style={{ color: c.accent, fontSize: 13, fontWeight: '700' }}>Coba Ulang AI</Text>
+                </TouchableOpacity>
+              )}
             </View>
-          )}
+          ) : null}
 
-          <WastePanel
-            waste={waste}
-            selectedDays={wasteDays}
-            onDaysChange={setWasteDays}
-            isLoading={isWasteLoading}
-          />
+          <StatCards summary={data.summary} stockAlerts={data.stockAlerts} topProduct={data.topProducts[0]} />
           
-          <ShiftPanel
-            shifts={shifts}
-            activeCount={summary?.active_shifts_count || 0}
+          <RevenueChart trendData={data.trendData} />
+          
+          <WastePanel
+            wasteInsights={data.wasteInsights}
           />
         </ScrollView>
       );
@@ -169,7 +183,7 @@ export default function BusinessInsightsScreen() {
     if (activeTab === 'AI Chat') {
       return (
         <View style={{ flex: 1, padding: 16, paddingBottom: isSmallLandscape ? 10 : 30 }}>
-          <AIChatPanel />
+          <AIChatPanel contextSnapshot={data.summary} />
         </View>
       );
     }
@@ -178,9 +192,9 @@ export default function BusinessInsightsScreen() {
       return (
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: isSmallLandscape ? 20 : 100 }}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => fetchAll(true)} />}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
         >
-          <MenuMatrix />
+          <MenuMatrix categoryPerformance={data.categoryPerformance} />
         </ScrollView>
       );
     }
@@ -196,40 +210,68 @@ export default function BusinessInsightsScreen() {
         paddingRight: 16,
         paddingTop: isSmallLandscape ? 6 : 12,
         paddingBottom: isSmallLandscape ? 6 : 12,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         backgroundColor: c.bg,
         borderBottomWidth: 1,
         borderBottomColor: c.borderLight
       }}>
-        <View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <BrainCircuit size={22} color={c.accent} strokeWidth={2} />
-            <Text style={{ color: c.text, fontSize: 20, fontWeight: '900' }}>
-              Business <Text style={{ color: c.accent }}>Intelligence</Text>
-            </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <BrainCircuit size={22} color={c.accent} strokeWidth={2} />
+              <Text style={{ color: c.text, fontSize: 20, fontWeight: '900' }}>
+                Business <Text style={{ color: c.accent }}>Intelligence</Text>
+              </Text>
+            </View>
+            {!isSmallLandscape && (
+              <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}>
+                Analytics, forecast, dan AI advisor dari Server
+              </Text>
+            )}
           </View>
-          {!isSmallLandscape && (
-            <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}>
-              Analytics, forecast, dan AI advisor
-            </Text>
-          )}
+          <TouchableOpacity
+            onPress={() => refetch()}
+            disabled={isLoading}
+            style={{
+              padding: 8,
+              backgroundColor: c.bgCard,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: c.border,
+              opacity: isLoading ? 0.5 : 1
+            }}
+          >
+            <RefreshCw size={18} color={c.text} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          onPress={() => fetchAll(true)}
-          disabled={isRefreshing || initialLoading}
-          style={{
-            padding: 8,
-            backgroundColor: c.bgCard,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: c.border,
-            opacity: isRefreshing || initialLoading ? 0.5 : 1
-          }}
-        >
-          <RefreshCw size={18} color={c.text} />
-        </TouchableOpacity>
+
+        {/* Date Filter Bar */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
+          {PRESETS.map((p) => {
+            const isActive = preset === p.key;
+            return (
+              <TouchableOpacity
+                key={p.key}
+                onPress={() => setPreset(p.key)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 16,
+                  backgroundColor: isActive ? c.accent : c.bgCard,
+                  borderWidth: 1,
+                  borderColor: isActive ? c.accent : c.border
+                }}
+              >
+                <Text style={{
+                  color: isActive ? 'white' : c.textSecondary,
+                  fontSize: 12,
+                  fontWeight: isActive ? '700' : '500'
+                }}>
+                  {p.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Tabs */}

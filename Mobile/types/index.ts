@@ -195,6 +195,9 @@ export interface AppDataState {
   settings: BusinessSettings;
   categories: string[];
   categoriesWithId: { id: string; name: string }[];
+  transactionsCacheFrom?: string | null;
+  transactionsCacheTo?: string | null;
+  transactionsLimit?: number;
 }
 
 export interface CheckoutParams {

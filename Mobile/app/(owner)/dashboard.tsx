@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useContext } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Image,
+  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Image, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -13,6 +13,7 @@ import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatRupiah } from '../../utils/currency';
 import { useDashboardMetrics } from '../../hooks/useDashboardMetrics';
+import type { PresetKey } from '../../hooks/useMobileSalesReport';
 import { SidebarContext } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -213,8 +214,12 @@ function ProductCarousel({ topProducts, lowStockProducts, isDark, accentColor, p
 /* ─── Dashboard ────────────────────────────────────────────────────────── */
 
 export default function OwnerDashboard() {
-  const { products, transactions, customers, wasteLogs, settings } = useApp();
-  const { metrics, topProductsToday, rawData } = useDashboardMetrics(products, transactions, customers, wasteLogs);
+  const { products, transactions, customers, wasteLogs, settings, transactionsCacheFrom, transactionsCacheTo } = useApp();
+  const {
+    metrics, topProductsToday, rawData, chartData,
+    isLoading, error, isCovered,
+    preset, setPreset, refetch
+  } = useDashboardMetrics(products, transactions, customers, wasteLogs, transactionsCacheFrom, transactionsCacheTo);
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const insets = useSafeAreaInsets();
@@ -239,42 +244,48 @@ export default function OwnerDashboard() {
 
   const statCardsData = [
     {
-      title: 'Pendapatan Hari Ini',
-      value: formatRupiah(metrics.todayRevenue),
+      title: 'Pendapatan',
+      value: formatRupiah(metrics?.currentRevenue || 0),
       icon: DollarSign,
-      trend: (metrics.revenueChange >= 0 ? 'up' : 'down') as 'up' | 'down',
-      trendValue: `${metrics.revenueChange >= 0 ? '+' : ''}${metrics.revenueChange}%`,
+      trend: ((metrics?.revenueChange || 0) >= 0 ? 'up' : 'down') as 'up' | 'down',
+      trendValue: `${(metrics?.revenueChange || 0) >= 0 ? '+' : ''}${metrics?.revenueChange || 0}%`,
     },
     {
       title: 'Transaksi',
-      value: String(metrics.todayTransactionCount),
+      value: String(metrics?.currentTransactionCount || 0),
       icon: ShoppingCart,
-      trend: (metrics.transactionChange >= 0 ? 'up' : 'down') as 'up' | 'down',
-      trendValue: `${metrics.transactionChange >= 0 ? '+' : ''}${metrics.transactionChange}%`,
+      trend: ((metrics?.transactionChange || 0) >= 0 ? 'up' : 'down') as 'up' | 'down',
+      trendValue: `${(metrics?.transactionChange || 0) >= 0 ? '+' : ''}${metrics?.transactionChange || 0}%`,
     },
     {
       title: 'Pelanggan Baru',
-      value: String(metrics.newCustomers),
+      value: metrics?.newCustomersAvailable === false ? 'N/A' : String(metrics?.newCustomers || 0),
       icon: Users,
-      trend: (metrics.newCustomers > 0 ? 'up' : 'stable') as 'up' | 'down' | 'stable',
-      trendValue: metrics.newCustomers > 0 ? `+${metrics.newCustomers}` : '0',
+      trend: ((metrics?.newCustomers || 0) > 0 ? 'up' : 'stable') as 'up' | 'down' | 'stable',
+      trendValue: (metrics?.newCustomers || 0) > 0 ? `+${metrics?.newCustomers}` : '0',
     },
     {
       title: 'Rata-rata Tiket',
-      value: formatRupiah(metrics.avgTicket),
+      value: formatRupiah(metrics?.avgTicket || 0),
       icon: TrendingUp,
-      trend: (metrics.avgTicket > 30000 ? 'up' : 'stable') as 'up' | 'down' | 'stable',
+      trend: ((metrics?.avgTicket || 0) > 30000 ? 'up' : 'stable') as 'up' | 'down' | 'stable',
     },
   ];
 
   const perfMetrics = [
-    { label: 'Rata-rata Pesanan', value: formatRupiah(Math.round(metrics.avgTicket)) },
-    { label: 'Tingkat Konversi', value: `${Math.round((metrics.todayTransactionCount / Math.max(metrics.todayTransactionCount * 3, 1)) * 100)}%` },
-    { label: 'Retensi Pelanggan', value: `${Math.min(85 + metrics.newCustomers, 99)}%` },
-    { label: 'Perputaran Inventaris', value: `${Math.round((metrics.todayRevenue / Math.max(metrics.stockValue, 1)) * 30)} hari` },
+    { label: 'Rata-rata Pesanan', value: formatRupiah(Math.round(metrics?.avgTicket || 0)) },
+    { label: 'Tingkat Konversi', value: `${Math.round(((metrics?.currentTransactionCount || 0) / Math.max((metrics?.currentTransactionCount || 0) * 3, 1)) * 100)}%` },
+    { label: 'Retensi Pelanggan', value: `${Math.min(85 + (metrics?.newCustomers || 0), 99)}%` },
+    { label: 'Perputaran Inventaris', value: `${Math.round(((metrics?.currentRevenue || 0) / Math.max(metrics?.stockValue || 1, 1)) * 30)} hari` },
   ];
 
-  const lowStockAll = [...metrics.lowStockProducts, ...metrics.outOfStockProducts];
+  const lowStockAll = [...(metrics?.lowStockProducts || []), ...(metrics?.outOfStockProducts || [])];
+
+  const PRESETS: { key: PresetKey; label: string }[] = [
+    { key: 'today', label: 'Hari Ini' },
+    { key: '30days', label: '30 Hari' },
+    { key: 'month', label: 'Bulan Ini' },
+  ];
 
   // ── Landscape layout dimensions ──
   const landscapeGap = 12;
@@ -375,15 +386,55 @@ export default function OwnerDashboard() {
               flexDirection: 'row', alignItems: 'center', gap: 4,
               paddingHorizontal: 12, paddingVertical: 6,
               borderRadius: 999,
-              backgroundColor: isDark ? '#292524' : '#fef3c7',
+              backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
             }}>
-              <Zap size={12} color="#f59e0b" />
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>Live</Text>
+              <Zap size={12} color={isCovered ? "#f59e0b" : "#3b82f6"} />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
+                {isCovered ? 'Live Cache' : 'Data Server'}
+              </Text>
             </View>
           </View>
+
+          {/* Date Filter */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginTop: 16 }}>
+            {PRESETS.map(opt => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => setPreset(opt.key)}
+                style={{
+                  backgroundColor: preset === opt.key ? accentColor : (isDark ? '#2a2a2a' : '#f1f5f9'),
+                  borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8,
+                }}
+              >
+                <Text style={{
+                  color: preset === opt.key ? '#fff' : (isDark ? '#a8a29e' : '#475569'),
+                  fontSize: 13, fontWeight: preset === opt.key ? '700' : '600'
+                }}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        {/* ── 1. Statistik Utama — Carousel (2 cards per page) ── */}
+        {isLoading ? (
+          <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color={accentColor} />
+            <Text style={{ color: isDark ? '#a8a29e' : '#64748b', marginTop: 12 }}>Memuat data server...</Text>
+          </View>
+        ) : error ? (
+          <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#ef4444', textAlign: 'center', marginBottom: 16 }}>{error}</Text>
+            <TouchableOpacity
+              onPress={refetch}
+              style={{
+                backgroundColor: accentColor, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Coba Lagi</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* ── 1. Statistik Utama — Carousel (2 cards per page) ── */}
         <View>
           <SectionLabel isDark={isDark}>Statistik Utama</SectionLabel>
           <StatCarousel
@@ -407,6 +458,7 @@ export default function OwnerDashboard() {
                   transactions={rawData.transactions}
                   isDark={isDark}
                   containerWidth={availableWidth}
+                  remoteChartData={chartData}
                 />
               </View>
 
@@ -416,17 +468,17 @@ export default function OwnerDashboard() {
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                   <InfoCard
                     variant="stock-warning"
-                    value={metrics.lowStockProducts.length}
+                    value={metrics?.lowStockProducts?.length || 0}
                     isDark={isDark}
                   />
                   <InfoCard
                     variant="out-of-stock"
-                    value={metrics.outOfStockProducts.length}
+                    value={metrics?.outOfStockProducts?.length || 0}
                     isDark={isDark}
                   />
                   <InfoCard
                     variant="margin"
-                    value={metrics.profitMargin}
+                    value={metrics?.profitMargin || 0}
                     isDark={isDark}
                   />
                 </View>
@@ -464,6 +516,7 @@ export default function OwnerDashboard() {
                   transactions={rawData.transactions}
                   isDark={isDark}
                   containerWidth={availableWidth}
+                  remoteChartData={chartData}
                 />
               </View>
 
@@ -499,6 +552,7 @@ export default function OwnerDashboard() {
                 transactions={rawData.transactions}
                 isDark={isDark}
                 containerWidth={availableWidth}
+                remoteChartData={chartData}
               />
             </View>
 
@@ -609,6 +663,8 @@ export default function OwnerDashboard() {
             </View>
           </View>
         </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

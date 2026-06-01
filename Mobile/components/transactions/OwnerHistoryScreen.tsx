@@ -20,6 +20,8 @@ import type {
   HistoryTransaction, HistoryTransactionStatus,
   TxSummaryToday, TxSummaryMonth,
 } from '../../types/historyTransaction';
+import { useApp } from '../../contexts/AppContext';
+import { Zap } from 'lucide-react-native';
 import TransactionCard from './TransactionCard';
 import TransactionDetailSheet from './TransactionDetailSheet';
 import VoidReviewModal from './VoidReviewModal';
@@ -62,6 +64,7 @@ export default function OwnerHistoryScreen() {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
+  const { transactions, transactionsCacheFrom, transactionsCacheTo } = useApp();
 
   // Summary data
   const [todaySumm, setTodaySumm] = useState<TxSummaryToday | null>(null);
@@ -80,13 +83,9 @@ export default function OwnerHistoryScreen() {
 
   // Filters
   const today = useMemo(() => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' }), []);
-  const monthStart = useMemo(() => {
-    const parts = today.split('-');
-    return `${parts[0]}-${parts[1]}-01`;
-  }, [today]);
 
-  const [dateFrom, setDateFrom] = useState(monthStart);
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
   const [cashierId, setCashierId] = useState('');
   const [status, setStatus] = useState<'all' | HistoryTransactionStatus>('all');
@@ -120,8 +119,40 @@ export default function OwnerHistoryScreen() {
     }
   }, [cashierId]);
 
+  // ── Compute isCovered ──
+  const isCovered = useMemo(() => {
+    if (search.trim() !== '') return false;
+    if (status !== 'all') return false;
+    if (cashierId !== '') return false;
+    if (payMethod !== '') return false;
+    if (page * LIMIT > transactions.length + LIMIT) return false;
+    
+    if (!transactionsCacheFrom || !transactionsCacheTo) return transactions.length === 0;
+    
+    if (!dateFrom && !dateTo) return true;
+    
+    const cFrom = new Date(transactionsCacheFrom);
+    const cTo = new Date(transactionsCacheTo);
+    cFrom.setHours(cFrom.getHours() - 1);
+    cTo.setHours(cTo.getHours() + 1);
+    
+    const dFrom = dateFrom ? new Date(dateFrom) : new Date('2000-01-01');
+    const dTo = dateTo ? new Date(dateTo) : new Date();
+    dTo.setHours(23, 59, 59, 999);
+    
+    return dFrom >= cFrom && dTo <= cTo;
+  }, [search, status, cashierId, payMethod, page, transactions.length, transactionsCacheFrom, transactionsCacheTo, dateFrom, dateTo]);
+
   // ── Load Rows ──
   const loadRows = useCallback(async (isRefresh = false) => {
+    if (isCovered && !isRefresh) {
+      setRows((transactions as unknown as HistoryTransaction[]).slice((page - 1) * LIMIT, page * LIMIT));
+      setTotal(transactions.length);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
@@ -147,7 +178,7 @@ export default function OwnerHistoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, status, search, dateFrom, dateTo, cashierId, payMethod]);
+  }, [page, status, search, dateFrom, dateTo, cashierId, payMethod, isCovered, transactions]);
 
   useEffect(() => { void loadSummaries(); }, [loadSummaries]);
   useEffect(() => { void loadRows(); }, [loadRows]);
@@ -172,7 +203,7 @@ export default function OwnerHistoryScreen() {
   };
 
   // ── Export CSV ──
-  const exportCsv = useCallback(async () => {
+  const doExport = async () => {
     setExporting(true);
     try {
       const canShare = await Sharing.isAvailableAsync();
@@ -213,7 +244,7 @@ export default function OwnerHistoryScreen() {
       }
 
       const csvContent = csvRows.join('\r\n');
-      const filename = `transaksi_${dateFrom}_${dateTo}.csv`;
+      const filename = `transaksi_${dateFrom || 'terbaru'}_${dateTo || 'terbaru'}.csv`;
       const fileUri = `${FileSystem.cacheDirectory}${filename}`;
       await FileSystem.writeAsStringAsync(fileUri, csvContent, { encoding: FileSystem.EncodingType.UTF8 });
       await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Export Transaksi' });
@@ -225,7 +256,22 @@ export default function OwnerHistoryScreen() {
     } finally {
       setExporting(false);
     }
-  }, [status, search, dateFrom, dateTo, cashierId, payMethod]);
+  };
+
+  const exportCsv = useCallback(async () => {
+    if (isCovered) {
+      Alert.alert(
+        'Mode Cache Aktif',
+        'Anda sedang dalam mode 200 transaksi terbaru.\n\nGunakan filter backend (seperti rentang tanggal spesifik) jika Anda ingin mengekspor seluruh histori yang akurat.',
+        [
+          { text: 'Batal', style: 'cancel' },
+          { text: 'Tetap Export 200 Terbaru', onPress: () => void doExport() }
+        ]
+      );
+      return;
+    }
+    void doExport();
+  }, [isCovered, status, search, dateFrom, dateTo, cashierId, payMethod]);
 
   const hasMore = total > LIMIT;
 
@@ -499,12 +545,31 @@ export default function OwnerHistoryScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.headerSection, { paddingLeft: isLandscape ? 16 : 60 }]}>
-        <Text style={[styles.titleText, { color: c.text }]}>
-          Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
-        </Text>
-        <Text style={[styles.subtitleText, { color: c.textSecondary }]}>
-          Filter lengkap untuk semua transaksi di toko Anda
-        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.titleText, { color: c.text }]}>
+              Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
+            </Text>
+            <Text style={[styles.subtitleText, { color: c.textSecondary }]}>
+              Filter lengkap untuk semua transaksi di toko Anda
+            </Text>
+          </View>
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+            backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
+          }}>
+            <Zap size={10} color={isCovered ? "#f59e0b" : "#3b82f6"} />
+            <Text style={{ fontSize: 9, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
+              {isCovered ? 'Live Cache — 200 transaksi terbaru' : 'Data Server'}
+            </Text>
+          </View>
+        </View>
+        {isCovered && (
+          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 8, fontStyle: 'italic' }}>
+            💡 Gunakan filter tanggal, pencarian, status, metode pembayaran, atau kasir untuk menarik transaksi lama dari server.
+          </Text>
+        )}
       </View>
 
       {/* Feedback */}

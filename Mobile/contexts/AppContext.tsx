@@ -12,6 +12,9 @@ interface AppContextType {
   settings: BusinessSettings;
   categories: string[];
   categoriesWithId: { id: string; name: string }[];
+  transactionsCacheFrom?: string | null;
+  transactionsCacheTo?: string | null;
+  transactionsLimit?: number;
   isServiceLoading: boolean;
   serviceError: string | null;
   clearServiceError: () => void;
@@ -47,6 +50,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     settings: defaultSettings,
     categories: [],
     categoriesWithId: [],
+    transactionsCacheFrom: null,
+    transactionsCacheTo: null,
+    transactionsLimit: 200,
   });
   const [isServiceLoading, setIsServiceLoading] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);

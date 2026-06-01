@@ -11,9 +11,10 @@ interface ProfitChartRNProps {
   isDark: boolean;
   /** Outer width of this component's container (excluding its own padding/border) */
   containerWidth?: number;
+  remoteChartData?: Array<{ value: number; label: string; date?: string; hour?: number; revenue?: number }> | null;
 }
 
-export default function ProfitChartRN({ transactions, isDark, containerWidth }: ProfitChartRNProps) {
+export default function ProfitChartRN({ transactions, isDark, containerWidth, remoteChartData }: ProfitChartRNProps) {
   const { width: windowWidth } = useWindowDimensions();
   // If no containerWidth given, assume full screen minus parent horizontal padding (16*2)
   const outerWidth = containerWidth ?? (windowWidth - 32);
@@ -73,6 +74,25 @@ export default function ProfitChartRN({ transactions, isDark, containerWidth }: 
     return { chartData: data, totalRevenue: tRev, maxRevenue: mRev, activeDays: aDays, daysInMonth: dim };
   }, [transactions, selectedYear, selectedMonthNum, monthPrefix]);
 
+  const finalChartData = remoteChartData && remoteChartData.length > 0 ? remoteChartData.map(d => ({ value: d.revenue || d.value, label: String(d.label).split(':')[0] || d.label })) : chartData;
+  const isRemote = remoteChartData && remoteChartData.length > 0;
+  
+  let finalTotalRevenue = totalRevenue;
+  let finalMaxRevenue = maxRevenue;
+  let finalActiveDays = activeDays;
+  
+  if (isRemote && remoteChartData) {
+    finalTotalRevenue = 0;
+    finalMaxRevenue = 0;
+    finalActiveDays = 0;
+    remoteChartData.forEach(d => {
+      const val = d.revenue || d.value || 0;
+      finalTotalRevenue += val;
+      if (val > finalMaxRevenue) finalMaxRevenue = val;
+      if (val > 0) finalActiveDays++;
+    });
+  }
+
   const textColor = isDark ? '#ffffff' : '#0f172a';
   const tealColor = '#0d9488';
 
@@ -98,38 +118,42 @@ export default function ProfitChartRN({ transactions, isDark, containerWidth }: 
           <Info size={isCompact ? 14 : 16} color={tealColor} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: isCompact ? 6 : 16 }}>
-          <TouchableOpacity onPress={prevMonth} style={{ padding: 4 }}>
-            <ChevronLeft size={isCompact ? 16 : 20} color={tealColor} />
-          </TouchableOpacity>
+          {!isRemote && (
+            <TouchableOpacity onPress={prevMonth} style={{ padding: 4 }}>
+              <ChevronLeft size={isCompact ? 16 : 20} color={tealColor} />
+            </TouchableOpacity>
+          )}
           <Text style={{ fontWeight: '700', color: textColor, minWidth: isCompact ? 70 : 100, textAlign: 'center', fontSize: isCompact ? 11 : 14 }}>
-            {monthLabel}
+            {isRemote ? 'Tren Pilihan' : monthLabel}
           </Text>
-          <TouchableOpacity onPress={nextMonth} style={{ padding: 4 }}>
-            <ChevronRight size={isCompact ? 16 : 20} color={tealColor} />
-          </TouchableOpacity>
+          {!isRemote && (
+            <TouchableOpacity onPress={nextMonth} style={{ padding: 4 }}>
+              <ChevronRight size={isCompact ? 16 : 20} color={tealColor} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* Summary stats */}
       <View style={{ flexDirection: 'row', gap: isCompact ? 6 : 8, marginBottom: isCompact ? 14 : 24 }}>
         <View style={{ flex: 1, backgroundColor: isDark ? 'rgba(13, 148, 136, 0.1)' : '#f0fdfa', borderRadius: 12, padding: isCompact ? 8 : 12, borderWidth: 1, borderColor: isDark ? 'rgba(13, 148, 136, 0.2)' : '#ccfbf1' }}>
-          <Text style={{ color: tealColor, fontSize: isCompact ? 7 : 10, fontWeight: '800', marginBottom: 2 }}>TOTAL BULAN INI</Text>
-          <Text style={{ color: textColor, fontSize: isCompact ? 13 : 18, fontWeight: '900' }} numberOfLines={1} adjustsFontSizeToFit>{formatRupiahShort(totalRevenue)}</Text>
+          <Text style={{ color: tealColor, fontSize: isCompact ? 7 : 10, fontWeight: '800', marginBottom: 2 }}>{isRemote ? 'TOTAL PERIODE' : 'TOTAL BULAN INI'}</Text>
+          <Text style={{ color: textColor, fontSize: isCompact ? 13 : 18, fontWeight: '900' }} numberOfLines={1} adjustsFontSizeToFit>{formatRupiahShort(finalTotalRevenue)}</Text>
         </View>
         <View style={{ flex: 1, backgroundColor: isDark ? '#252525' : '#f8fafc', borderRadius: 12, padding: isCompact ? 8 : 12 }}>
-          <Text style={{ color: isDark ? '#a8a29e' : '#64748b', fontSize: isCompact ? 7 : 10, fontWeight: '800', marginBottom: 2, textTransform: 'uppercase' }}>Hari Tertinggi</Text>
-          <Text style={{ color: textColor, fontSize: isCompact ? 13 : 18, fontWeight: '900' }} numberOfLines={1} adjustsFontSizeToFit>{formatRupiahShort(maxRevenue)}</Text>
+          <Text style={{ color: isDark ? '#a8a29e' : '#64748b', fontSize: isCompact ? 7 : 10, fontWeight: '800', marginBottom: 2, textTransform: 'uppercase' }}>Tertinggi</Text>
+          <Text style={{ color: textColor, fontSize: isCompact ? 13 : 18, fontWeight: '900' }} numberOfLines={1} adjustsFontSizeToFit>{formatRupiahShort(finalMaxRevenue)}</Text>
         </View>
         <View style={{ flex: 1, backgroundColor: isDark ? '#252525' : '#f8fafc', borderRadius: 12, padding: isCompact ? 8 : 12 }}>
-          <Text style={{ color: isDark ? '#a8a29e' : '#64748b', fontSize: isCompact ? 7 : 10, fontWeight: '800', marginBottom: 2, textTransform: 'uppercase' }}>Hari Aktif</Text>
-          <Text style={{ color: textColor, fontSize: isCompact ? 13 : 18, fontWeight: '900' }}>{activeDays}</Text>
+          <Text style={{ color: isDark ? '#a8a29e' : '#64748b', fontSize: isCompact ? 7 : 10, fontWeight: '800', marginBottom: 2, textTransform: 'uppercase' }}>Periode Aktif</Text>
+          <Text style={{ color: textColor, fontSize: isCompact ? 13 : 18, fontWeight: '900' }}>{finalActiveDays}</Text>
         </View>
       </View>
 
       {/* Chart */}
       <View style={{ marginLeft: -6 }}>
         <LineChart
-          data={chartData}
+          data={finalChartData}
           width={chartAreaWidth}
           height={isCompact ? 130 : 180}
           spacing={spacing}

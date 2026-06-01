@@ -9,7 +9,9 @@ import {
   StyleSheet,
   Modal,
   FlatList,
+  Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BarChart2,
@@ -86,7 +88,8 @@ export default function SalesReportScreen() {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
-  const { transactions, products, isServiceLoading } = useApp();
+  const router = useRouter();
+  const { transactions, products, isServiceLoading, transactionsCacheFrom, transactionsCacheTo } = useApp();
 
   const {
     preset,
@@ -107,7 +110,11 @@ export default function SalesReportScreen() {
     cashierPerformance,
     costBreakdown,
     exportCsvFile,
-  } = useMobileSalesReport(transactions, products);
+    isLoading,
+    error,
+    isCovered,
+    refetch,
+  } = useMobileSalesReport(transactions, products, transactionsCacheFrom, transactionsCacheTo);
 
   // UI state
   const [tab, setTab] = useState<'products' | 'payment' | 'cashier'>('products');
@@ -298,6 +305,9 @@ export default function SalesReportScreen() {
           </Text>
           <Text style={{ color: c.textSecondary, fontSize: 11, marginTop: 3, flexDirection: 'row', alignItems: 'center' }}>
             <Clock size={11} color={c.textMuted} /> Terakhir diperbarui: {new Date().toLocaleTimeString('id-ID')}
+            {!isCovered && !isLoading && !error && (
+              <Text style={{ color: c.accent, fontWeight: '800' }}> (Data Server)</Text>
+            )}
           </Text>
         </View>
         <TouchableOpacity
@@ -323,10 +333,17 @@ export default function SalesReportScreen() {
       </View>
 
       {/* BODY CONTENT */}
-      {isServiceLoading && transactions.length === 0 ? (
+      {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={c.accent} />
           <Text style={{ color: c.textSecondary, fontSize: 14, marginTop: 12 }}>Memuat data laporan...</Text>
+        </View>
+      ) : error ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ color: c.error, fontSize: 14, textAlign: 'center' }}>{error}</Text>
+          <TouchableOpacity onPress={refetch} style={{ marginTop: 16, backgroundColor: c.accent, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Coba Lagi</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView
@@ -887,13 +904,27 @@ export default function SalesReportScreen() {
             overflow: 'hidden',
           }}>
             <TouchableOpacity
-              onPress={() => setShowTxList(!showTxList)}
+              onPress={() => {
+                if (!isCovered) {
+                  Alert.alert(
+                    'Data dari Server',
+                    'Daftar transaksi detail hanya tersedia untuk laporan yang dihitung dari perangkat lokal. Silakan buka tab Riwayat Transaksi untuk melihat semua transaksi secara utuh.',
+                    [
+                      { text: 'Tutup', style: 'cancel' },
+                      { text: 'Ke Riwayat Transaksi', onPress: () => router.push('/(owner)/transactions') }
+                    ]
+                  );
+                  return;
+                }
+                setShowTxList(!showTxList);
+              }}
               activeOpacity={0.7}
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: 16,
+                opacity: isCovered ? 1 : 0.6
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

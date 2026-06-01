@@ -188,7 +188,7 @@ export async function buildAppState(shopId) {
     WHERE t.shop_id = $1::uuid
       AND COALESCE(t.status::text, 'completed') <> 'voided'
     ORDER BY t.created_at DESC
-    LIMIT 10000
+    LIMIT 200
   `, [shopId]);
     // STEP 2 — Fetch ALL items for those transactions in ONE query
     const txIds = txQuery.rows.map(r => r.id);
@@ -253,6 +253,9 @@ export async function buildAppState(shopId) {
             orderType: t.order_type,
             orderNote: t.order_note ?? undefined,
         })),
+        transactionsCacheFrom: txQuery.rows.length > 0 ? new Date(txQuery.rows[txQuery.rows.length - 1].date).toISOString() : null,
+        transactionsCacheTo: new Date().toISOString(),
+        transactionsLimit: 200,
         wasteLogs: wastes.rows.map((w) => ({
             id: w.id,
             productId: w.product_id,

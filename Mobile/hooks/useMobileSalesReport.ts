@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import type { Transaction, Product } from '../types';
+import { appApi } from '../services/appApi';
 
 export type PresetKey = 'today' | 'yesterday' | '7days' | '30days' | 'month' | 'custom';
 
@@ -69,6 +70,12 @@ export interface CostBreakdown {
   marginPct: number;
 }
 
+const emptySummary: SummaryData = {
+  totalRevenue: 0, totalTransactions: 0, avgTicket: 0, netProfit: 0, hasCostData: false,
+  prevRevenue: 0, prevTransactions: 0, prevAvgTicket: 0, prevNetProfit: 0,
+  revenueChange: 0, transactionsChange: 0, avgTicketChange: 0, profitChange: 0
+};
+
 function startOfDay(d: Date): Date {
   const r = new Date(d);
   r.setHours(0, 0, 0, 0);
@@ -121,7 +128,6 @@ function getPrevRange(range: DateRange): DateRange {
 
 function filterTx(txs: Transaction[], range: DateRange): Transaction[] {
   return txs.filter((t) => {
-    // Only include successful/completed transactions
     const txStatus = (t as any).status;
     if (txStatus === 'voided' || txStatus === 'pending_void') return false;
     const d = t.date instanceof Date ? t.date : new Date(t.date);
@@ -136,14 +142,34 @@ function pctChange(curr: number, prev: number): number {
 
 export function useMobileSalesReport(
   transactions: Transaction[],
-  products: Product[]
+  products: Product[],
+  cacheFrom?: string | null,
+  cacheTo?: string | null
 ) {
   const [preset, setPreset] = useState<PresetKey>('today');
   const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
 
+  const [remoteData, setRemoteData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const range = useMemo(() => getDateRange(preset, customStart, customEnd), [preset, customStart, customEnd]);
   const prevRange = useMemo(() => getPrevRange(range), [range]);
+
+  const isCovered = useMemo(() => {
+    // If no cache metadata is provided, we default to covered=false unless transactions is empty.
+    if (!cacheFrom || !cacheTo) return transactions.length === 0;
+    const cFrom = new Date(cacheFrom);
+    const cTo = new Date(cacheTo);
+    
+    // Add 1 hour buffer to avoid timezone edge cases
+    cFrom.setHours(cFrom.getHours() - 1);
+    cTo.setHours(cTo.getHours() + 1);
+
+    return range.start >= cFrom && range.end <= cTo;
+  }, [range, cacheFrom, cacheTo, transactions.length]);
+
   const filtered = useMemo(() => filterTx(transactions, range), [transactions, range]);
   const prevFiltered = useMemo(() => filterTx(transactions, prevRange), [transactions, prevRange]);
 
@@ -157,10 +183,8 @@ export function useMobileSalesReport(
     let profit = 0;
     let hasCost = false;
     txs.forEach((t) => {
-      // Use transaction profit if precalculated, otherwise fallback to item costs
       if (t.profit != null) {
         profit += t.profit;
-        // Check if there's any cost data
         if (t.cost > 0) hasCost = true;
       } else {
         t.items.forEach((item) => {
@@ -176,7 +200,7 @@ export function useMobileSalesReport(
     return { profit, hasCost };
   };
 
-  const summary: SummaryData = useMemo(() => {
+  const localSummary: SummaryData = useMemo(() => {
     const totalRevenue = filtered.reduce((s, t) => s + (t.total || (t as any).total_amount || 0), 0);
     const totalTransactions = filtered.length;
     const avgTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
@@ -188,15 +212,8 @@ export function useMobileSalesReport(
     const { profit: prevNetProfit } = calcProfit(prevFiltered);
 
     return {
-      totalRevenue,
-      totalTransactions,
-      avgTicket,
-      netProfit,
-      hasCostData,
-      prevRevenue,
-      prevTransactions,
-      prevAvgTicket,
-      prevNetProfit,
+      totalRevenue, totalTransactions, avgTicket, netProfit, hasCostData,
+      prevRevenue, prevTransactions, prevAvgTicket, prevNetProfit,
       revenueChange: pctChange(totalRevenue, prevRevenue),
       transactionsChange: pctChange(totalTransactions, prevTransactions),
       avgTicketChange: pctChange(avgTicket, prevAvgTicket),
@@ -206,14 +223,10 @@ export function useMobileSalesReport(
 
   const isSingleDay = preset === 'today' || preset === 'yesterday';
 
-  const hourlyData: HourlyData[] = useMemo(() => {
+  const localHourlyData: HourlyData[] = useMemo(() => {
     if (!isSingleDay) return [];
     const map = new Map<number, { revenue: number; count: number }>();
-    
-    // Initialize standard hours to keep the chart looking uniform
-    for (let h = 8; h <= 22; h++) {
-      map.set(h, { revenue: 0, count: 0 });
-    }
+    for (let h = 8; h <= 22; h++) map.set(h, { revenue: 0, count: 0 });
 
     filtered.forEach((t) => {
       const d = t.date instanceof Date ? t.date : new Date(t.date);
@@ -229,17 +242,15 @@ export function useMobileSalesReport(
       .map(([h, d]) => ({ hour: h, label: `${String(h).padStart(2, '0')}:00`, ...d }));
   }, [filtered, isSingleDay]);
 
-  const dailyData: DailyData[] = useMemo(() => {
+  const localDailyData: DailyData[] = useMemo(() => {
     if (isSingleDay) return [];
     const map = new Map<string, { revenue: number; count: number }>();
     
-    // 1. Pre-populate all dates in the range
     const current = new Date(range.start);
     const end = new Date(range.end);
     current.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
     
-    // Limit to max 60 days to prevent excessive rendering on mobile
     let daysCount = 0;
     while (current <= end && daysCount < 60) {
       const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
@@ -256,35 +267,21 @@ export function useMobileSalesReport(
       e.count += 1;
       map.set(key, e);
     });
-      return Array.from(map.entries())
+
+    return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, d]) => {
         const [year, month, day] = date.split('-').map(Number);
         const localDate = new Date(year, month - 1, day);
-        
-        let labelStr = '';
-        if (preset === '7days') {
-          labelStr = localDate.toLocaleDateString('id-ID', { weekday: 'short' });
-        } else {
-          labelStr = localDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-        }
+        let labelStr = preset === '7days' 
+          ? localDate.toLocaleDateString('id-ID', { weekday: 'short' })
+          : localDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 
-        return {
-          date,
-          label: labelStr,
-          ...d,
-        };
+        return { date, label: labelStr, ...d };
       });
   }, [filtered, isSingleDay, range, preset]);
 
-  const peakHour = useMemo(() => {
-    if (hourlyData.length === 0) return null;
-    const sorted = [...hourlyData].sort((a, b) => b.revenue - a.revenue);
-    if (sorted[0].revenue === 0) return null;
-    return sorted[0];
-  }, [hourlyData]);
-
-  const topProducts: ProductRank[] = useMemo(() => {
+  const localTopProducts: ProductRank[] = useMemo(() => {
     const map = new Map<string, { name: string; qty: number; revenue: number; totalCost: number; hasCost: boolean }>();
     filtered.forEach((t) => {
       t.items.forEach((item) => {
@@ -313,7 +310,7 @@ export function useMobileSalesReport(
       }));
   }, [filtered, productMap]);
 
-  const paymentBreakdown: PaymentBreakdown[] = useMemo(() => {
+  const localPaymentBreakdown: PaymentBreakdown[] = useMemo(() => {
     const map = new Map<string, { count: number; revenue: number }>();
     filtered.forEach((t) => {
       const m = t.paymentMethod || 'cash';
@@ -326,13 +323,11 @@ export function useMobileSalesReport(
     return Array.from(map.entries())
       .sort(([, a], [, b]) => b.revenue - a.revenue)
       .map(([method, d]) => ({
-        method,
-        ...d,
-        pct: total > 0 ? (d.revenue / total) * 100 : 0,
+        method, ...d, pct: total > 0 ? (d.revenue / total) * 100 : 0,
       }));
   }, [filtered]);
 
-  const cashierPerformance: CashierPerformance[] = useMemo(() => {
+  const localCashierPerformance: CashierPerformance[] = useMemo(() => {
     const map = new Map<string, { transactions: number; revenue: number }>();
     filtered.forEach((t) => {
       const name = t.cashierName || 'Kasir';
@@ -344,15 +339,13 @@ export function useMobileSalesReport(
     return Array.from(map.entries())
       .sort(([, a], [, b]) => b.revenue - a.revenue)
       .map(([name, d]) => ({
-        name,
-        ...d,
-        avgTicket: d.transactions > 0 ? d.revenue / d.transactions : 0,
+        name, ...d, avgTicket: d.transactions > 0 ? d.revenue / d.transactions : 0,
       }));
   }, [filtered]);
 
-  const costBreakdown: CostBreakdown | null = useMemo(() => {
-    if (!summary.hasCostData) return null;
-    const grossRevenue = summary.totalRevenue;
+  const localCostBreakdown: CostBreakdown | null = useMemo(() => {
+    if (!localSummary.hasCostData) return null;
+    const grossRevenue = localSummary.totalRevenue;
     let cogs = 0;
     filtered.forEach((t) => {
       if (t.cost != null) {
@@ -367,14 +360,65 @@ export function useMobileSalesReport(
     });
     const netProfit = grossRevenue - cogs;
     return {
-      grossRevenue,
-      cogs,
-      netProfit,
+      grossRevenue, cogs, netProfit,
       marginPct: grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0,
     };
-  }, [filtered, summary, productMap]);
+  }, [filtered, localSummary, productMap]);
+
+  // Fetch from backend if NOT covered by local cache
+  const fetchRemote = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const fromStr = range.start.toISOString().slice(0, 10);
+      const toStr = range.end.toISOString().slice(0, 10);
+      const prev = getPrevRange(range);
+      const pFromStr = prev.start.toISOString().slice(0, 10);
+      const pToStr = prev.end.toISOString().slice(0, 10);
+      const granularity = isSingleDay ? 'hour' : 'day';
+
+      const qs = `?from=${fromStr}&to=${toStr}&prev_from=${pFromStr}&prev_to=${pToStr}&granularity=${granularity}`;
+      const res = await appApi.get(`/reports/sales${qs}`);
+      setRemoteData(res);
+    } catch (err: any) {
+      setError(err.message || 'Gagal memuat laporan dari server');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isCovered) {
+      setRemoteData(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+    fetchRemote();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCovered, range, preset]);
+
+  // Combine Final Results
+  const summary: SummaryData = isCovered ? localSummary : (remoteData?.summary || emptySummary);
+  const hourlyData: HourlyData[] = isCovered ? localHourlyData : (remoteData?.granularity === 'hour' ? (remoteData?.chartData || []) : []);
+  const dailyData: DailyData[] = isCovered ? localDailyData : (remoteData?.granularity !== 'hour' ? (remoteData?.chartData || []) : []);
+  const topProducts: ProductRank[] = isCovered ? localTopProducts : (remoteData?.topProducts || []);
+  const paymentBreakdown: PaymentBreakdown[] = isCovered ? localPaymentBreakdown : (remoteData?.paymentMethods || []);
+  const cashierPerformance: CashierPerformance[] = isCovered ? localCashierPerformance : (remoteData?.cashierPerformance || []);
+  const costBreakdown: CostBreakdown | null = isCovered ? localCostBreakdown : (remoteData?.costBreakdown || null);
+
+  const peakHour = useMemo(() => {
+    if (hourlyData.length === 0) return null;
+    const sorted = [...hourlyData].sort((a, b) => b.revenue - a.revenue);
+    if (sorted[0].revenue === 0) return null;
+    return sorted[0];
+  }, [hourlyData]);
 
   const exportCsvFile = async () => {
+    if (!isCovered) {
+      Alert.alert('Belum Didukung', 'Export CSV untuk laporan dari server belum tersedia.');
+      return;
+    }
     if (filtered.length === 0) {
       Alert.alert('Data Kosong', 'Tidak ada data transaksi untuk diekspor.');
       return;
@@ -385,7 +429,6 @@ export function useMobileSalesReport(
         Alert.alert('Tidak Tersedia', 'Fitur sharing tidak tersedia di perangkat ini.');
         return;
       }
-
       const esc = (cell: string) => `"${String(cell ?? '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
       const head = ['Waktu', 'ID Transaksi', 'Kasir', 'Items', 'Subtotal', 'Pajak', 'Total', 'Metode Bayar'];
       const csvRows = [head.map(esc).join(',')];
@@ -397,14 +440,9 @@ export function useMobileSalesReport(
         const subtotal = t.items.reduce((s, i) => s + (i.price * i.quantity), 0);
         const tax = (t.total || (t as any).total_amount || 0) - subtotal;
         csvRows.push([
-          esc(waktu),
-          esc(t.id),
-          esc(t.cashierName || '-'),
-          esc(items),
-          esc(String(subtotal)),
-          esc(String(Math.max(0, tax))),
-          esc(String(t.total || (t as any).total_amount || 0)),
-          esc(t.paymentMethod),
+          esc(waktu), esc(t.id), esc(t.cashierName || '-'), esc(items),
+          esc(String(subtotal)), esc(String(Math.max(0, tax))),
+          esc(String(t.total || (t as any).total_amount || 0)), esc(t.paymentMethod),
         ].join(','));
       });
 
@@ -421,23 +459,13 @@ export function useMobileSalesReport(
   };
 
   return {
-    preset,
-    setPreset,
-    customStart,
-    setCustomStart,
-    customEnd,
-    setCustomEnd,
-    range,
-    filtered,
-    summary,
-    isSingleDay,
-    hourlyData,
-    dailyData,
-    peakHour,
-    topProducts,
-    paymentBreakdown,
-    cashierPerformance,
-    costBreakdown,
+    preset, setPreset,
+    customStart, setCustomStart,
+    customEnd, setCustomEnd,
+    range, filtered, summary, isSingleDay,
+    hourlyData, dailyData, peakHour, topProducts,
+    paymentBreakdown, cashierPerformance, costBreakdown,
     exportCsvFile,
+    isLoading, error, isCovered, refetch: fetchRemote
   };
 }

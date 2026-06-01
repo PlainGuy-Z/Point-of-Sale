@@ -1,28 +1,28 @@
 import React from 'react';
 import { View, Text, useWindowDimensions } from 'react-native';
-import { TrendingUp, AlertTriangle, Package, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react-native';
+import { TrendingUp, AlertTriangle, Package, DollarSign } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
-import { SummaryResponse } from '../../services/aiApi';
 import { formatRupiahShort } from '../../utils/currency';
 
 interface StatCardsProps {
-  summary: SummaryResponse | null;
+  summary: any;
+  stockAlerts: any;
+  topProduct: any;
 }
 
-export default function StatCards({ summary }: StatCardsProps) {
+export default function StatCards({ summary, stockAlerts, topProduct }: StatCardsProps) {
   const { width } = useWindowDimensions();
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
   
-  // Responsive: 2 cols if small, maybe 3-4 cols if tablet
   const isTablet = width > 768;
   const colWidth = isTablet ? '31%' : '48%';
 
   if (!summary) return null;
 
-  const renderCard = (title: string, value: string, icon: any, color: string, trendPercent?: number, desc?: string) => (
+  const renderCard = (title: string, value: string, icon: any, color: string, desc?: string) => (
     <View style={{
       width: colWidth,
       backgroundColor: c.bgCard,
@@ -50,27 +50,7 @@ export default function StatCards({ summary }: StatCardsProps) {
         </View>
       </View>
       
-      {trendPercent !== undefined && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 4 }}>
-          {trendPercent > 0 ? (
-            <ArrowUpRight size={14} color={c.success} />
-          ) : trendPercent < 0 ? (
-            <ArrowDownRight size={14} color={c.error} />
-          ) : null}
-          <Text style={{
-            fontSize: 12,
-            fontWeight: '600',
-            color: trendPercent > 0 ? c.success : (trendPercent < 0 ? c.error : c.textMuted)
-          }}>
-            {trendPercent > 0 ? '+' : ''}{trendPercent.toFixed(1)}%
-          </Text>
-          {desc && (
-            <Text style={{ fontSize: 11, color: c.textMuted, marginLeft: 2 }}>{desc}</Text>
-          )}
-        </View>
-      )}
-      
-      {desc && trendPercent === undefined && (
+      {desc && (
         <Text style={{ fontSize: 12, color: color, marginTop: 10, fontWeight: '600' }}>
           {desc}
         </Text>
@@ -81,36 +61,32 @@ export default function StatCards({ summary }: StatCardsProps) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
       {renderCard(
-        'Omzet Hari Ini',
-        formatRupiahShort(summary.today_revenue),
+        'Total Pendapatan',
+        formatRupiahShort(summary.revenue),
         DollarSign,
         c.accent,
-        summary.day_over_day_change_percent,
-        'vs kemarin'
+        summary.transactionCount + ' transaksi'
       )}
       {renderCard(
-        'Omzet Minggu Ini',
-        formatRupiahShort(summary.this_week_revenue),
+        'Profit Bersih',
+        formatRupiahShort(summary.profit),
         TrendingUp,
         c.accent,
-        summary.week_over_week_change_percent,
-        'vs minggu lalu'
+        'Estimasi HPP'
       )}
       {renderCard(
         'Stok Rendah',
-        summary.low_stock_count.toString(),
+        (stockAlerts?.critical || 0).toString(),
         AlertTriangle,
-        summary.low_stock_count > 0 ? c.error : c.success,
-        undefined,
-        summary.low_stock_count > 0 ? 'Butuh restok' : 'Aman'
+        (stockAlerts?.critical || 0) > 0 ? c.error : c.success,
+        (stockAlerts?.critical || 0) > 0 ? 'Butuh restok' : 'Aman'
       )}
       {renderCard(
-        'Terlaris Hari Ini',
-        summary.top_products_today || '-',
+        'Terlaris',
+        topProduct?.name || '-',
         Package,
         c.warning,
-        undefined,
-        'Produk andalan'
+        topProduct ? `${topProduct.qty} terjual` : 'Produk andalan'
       )}
     </View>
   );

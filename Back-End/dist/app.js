@@ -12,6 +12,7 @@ import { shiftsRouter } from './routes/shifts.js';
 import { transactionsRouter } from './routes/transactions.js';
 import { settingsRouter } from './routes/settings.js';
 import { aiRouter } from './routes/ai.js';
+import { reportsRouter } from './routes/reports.js';
 import { printerRouter } from './routes/printer.js';
 import { publicRouter } from './routes/public.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -101,6 +102,7 @@ export function createApp() {
     app.use('/users', authenticateToken, usersRouter);
     app.use('/shifts', authenticateToken, shiftsRouter);
     app.use('/transactions', authenticateToken, transactionsRouter);
+    app.use('/reports', authenticateToken, reportsRouter);
     app.use('/settings', authenticateToken, settingsRouter);
     app.use('/api/ai', authenticateToken, aiRouter);
     app.use('/printer', authenticateToken, printerRouter);

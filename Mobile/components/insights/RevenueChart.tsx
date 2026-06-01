@@ -3,44 +3,42 @@ import { View, Text, useWindowDimensions } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
-import { ForecastResponse } from '../../services/aiApi';
 import { formatRupiahShort } from '../../utils/currency';
 import { CalendarClock, ShieldCheck } from 'lucide-react-native';
 
-interface RevenueChartProps {
-  forecast: ForecastResponse | null;
-}
-
-export default function RevenueChart({ forecast }: RevenueChartProps) {
+export default function RevenueChart({ trendData }: { trendData: any[] }) {
   const { width } = useWindowDimensions();
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
+  const isTablet = width > 768;
 
   const chartData = useMemo(() => {
-    if (!forecast || forecast.length === 0) return [];
-    return forecast.map(item => ({
-      value: item.predicted_revenue,
-      label: item.day_name.substring(0, 3), // e.g., 'Sen', 'Sel'
-      labelTextStyle: { color: c.textSecondary, fontSize: 10 },
-      dataPointText: formatRupiahShort(item.predicted_revenue),
-      customDataPoint: () => (
-        <View style={{
-          width: 8, height: 8, borderRadius: 4,
-          backgroundColor: c.accent,
-          borderWidth: 2, borderColor: c.bgCard
-        }} />
-      )
-    }));
-  }, [forecast, c]);
+    if (!trendData || trendData.length === 0) return [];
+    
+    // Take up to 7 items
+    const displayData = trendData.slice(-7);
+    
+    return displayData.map(item => {
+      const parts = item.date.split('-');
+      const label = parts.length === 3 ? `${parts[2]}/${parts[1]}` : item.date;
+      return {
+        value: item.revenue,
+        label: label,
+        labelTextStyle: { color: c.textSecondary, fontSize: 10 },
+        dataPointText: formatRupiahShort(item.revenue),
+        customDataPoint: () => (
+          <View style={{
+            width: 8, height: 8, borderRadius: 4,
+            backgroundColor: c.accent,
+            borderWidth: 2, borderColor: c.bgCard
+          }} />
+        )
+      };
+    });
+  }, [trendData, c]);
 
-  if (!forecast || forecast.length === 0) return null;
-
-  // Average confidence
-  const confidences = forecast.map(f => f.confidence);
-  const avgConfidence = confidences.includes('low') ? 'low' : (confidences.includes('medium') ? 'medium' : 'high');
-  const confColor = avgConfidence === 'high' ? c.success : (avgConfidence === 'medium' ? c.warning : c.error);
-  const confText = avgConfidence === 'high' ? 'Tinggi' : (avgConfidence === 'medium' ? 'Sedang' : 'Rendah');
+  if (!trendData || trendData.length === 0) return null;
 
   return (
     <View style={{
@@ -60,11 +58,7 @@ export default function RevenueChart({ forecast }: RevenueChartProps) {
           }}>
             <CalendarClock size={16} color={c.accent} />
           </View>
-          <Text style={{ color: c.text, fontSize: 16, fontWeight: '800' }}>Prediksi Revenue 7 Hari</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: isDark ? '#222' : '#f0fdf4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
-          <ShieldCheck size={12} color={confColor} />
-          <Text style={{ color: confColor, fontSize: 10, fontWeight: '700' }}>Akurasi {confText}</Text>
+          <Text style={{ color: c.text, fontSize: 16, fontWeight: '800' }}>Tren Pendapatan</Text>
         </View>
       </View>
 

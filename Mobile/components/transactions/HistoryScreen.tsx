@@ -11,6 +11,8 @@ import { formatFullDate } from '../../utils/dateFormatter';
 import { historyApi } from '../../services/historyApi';
 import { ApiError } from '../../services/api';
 import type { HistoryTransaction, HistoryTransactionStatus } from '../../types/historyTransaction';
+import { useApp } from '../../contexts/AppContext';
+import { Zap } from 'lucide-react-native';
 import TransactionCard from './TransactionCard';
 import TransactionDetailSheet from './TransactionDetailSheet';
 import VoidRequestModal from './VoidRequestModal';
@@ -33,6 +35,7 @@ export default function HistoryScreen() {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
+  const { transactions } = useApp();
 
   // Data state
   const [rows, setRows] = useState<HistoryTransaction[]>([]);
@@ -54,7 +57,27 @@ export default function HistoryScreen() {
 
   const todayLabel = useMemo(() => formatFullDate(new Date()), []);
 
+  const isCovered = useMemo(() => {
+    // For cashier, default date is always today.
+    // Cache covers today. We only fallback if there's a search, non-default status, asc sort,
+    // or if the requested page is beyond the cached items length.
+    if (search.trim() !== '') return false;
+    if (status !== 'all') return false;
+    if (sort !== 'desc') return false;
+    if (page * LIMIT > transactions.length + LIMIT) return false;
+    return true;
+  }, [search, status, sort, page, transactions.length]);
+
   const load = useCallback(async (isRefresh = false) => {
+    if (isCovered && !isRefresh) {
+      // Local cache logic
+      setRows((transactions as unknown as HistoryTransaction[]).slice((page - 1) * LIMIT, page * LIMIT));
+      setTotal(transactions.length);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
@@ -77,7 +100,7 @@ export default function HistoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, sort, status, search]);
+  }, [page, sort, status, search, isCovered, transactions]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -115,12 +138,31 @@ export default function HistoryScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       {/* Header */}
       <View style={styles.headerSection}>
-        <Text style={[styles.titleText, { color: c.text }]}>
-          Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
-        </Text>
-        <Text style={[styles.subtitleText, { color: c.textSecondary }]}>
-          Transaksi Hari Ini — {todayLabel}
-        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.titleText, { color: c.text }]}>
+              Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
+            </Text>
+            <Text style={[styles.subtitleText, { color: c.textSecondary }]}>
+              Transaksi Hari Ini — {todayLabel}
+            </Text>
+          </View>
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+            backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
+          }}>
+            <Zap size={10} color={isCovered ? "#f59e0b" : "#3b82f6"} />
+            <Text style={{ fontSize: 9, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
+              {isCovered ? 'Live Cache — 200 transaksi terbaru' : 'Data Server'}
+            </Text>
+          </View>
+        </View>
+        {isCovered && (
+          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 8, fontStyle: 'italic' }}>
+            💡 Gunakan filter pencarian atau pengurutan untuk melihat transaksi lama dari server.
+          </Text>
+        )}
       </View>
 
       {/* Feedback */}
