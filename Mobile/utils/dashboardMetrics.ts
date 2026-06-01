@@ -176,15 +176,21 @@ export const getLast7DaysRevenue = (transactions: Transaction[]) => {
 };
 
 export const getTopProductsToday = (
-  todayTransactions: Transaction[], 
+  allTransactions: Transaction[], 
   products: Product[],
   limit: number = 5
 ) => {
-  const validTransactions = todayTransactions.filter((t) => transactionLocalDateKey(t.date) !== null);
+  const todayKey = localDateKey(new Date());
+  
+  // CRITICAL: Only include transactions from TODAY
+  const todayTransactions = allTransactions.filter((t) => {
+    const dateKey = transactionLocalDateKey(t.date);
+    return dateKey === todayKey;
+  });
   
   const productSales = new Map<string, { quantity: number; revenue: number }>();
   
-  validTransactions.forEach(transaction => {
+  todayTransactions.forEach(transaction => {
     const items = Array.isArray(transaction.items) ? transaction.items : [];
     items.forEach(item => {
       if (!item.productId || item.productId === 'manual' || item.productId.startsWith('manual-')) return;
