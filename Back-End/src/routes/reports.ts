@@ -397,13 +397,40 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
       `;
     }
 
-    const [sumRes, custRes, wasteRes, prodRes, topRes, chartRes] = await Promise.all([
+    const todayRevenueSql = `
+      SELECT COALESCE(SUM(grand_total), 0)::bigint as today_revenue
+      FROM coffeepos.transactions
+      WHERE shop_id = $1::uuid
+        AND (created_at AT TIME ZONE '${TZ}')::date = (NOW() AT TIME ZONE '${TZ}')::date
+        AND ${NON_VOID}
+    `;
+
+    const todayTopProductsSql = `
+      SELECT 
+        p.id, p.name, p.category, p.image,
+        p.stock, p.min_stock, p.price, p.cost,
+        SUM(ti.quantity)::int as quantity,
+        SUM(ti.subtotal)::bigint as revenue
+      FROM coffeepos.transaction_items ti
+      JOIN coffeepos.transactions t ON ti.transaction_id = t.id
+      JOIN coffeepos.products p ON ti.product_id = p.id
+      WHERE t.shop_id = $1::uuid
+        AND (t.created_at AT TIME ZONE '${TZ}')::date = (NOW() AT TIME ZONE '${TZ}')::date
+        AND ${NON_VOID}
+      GROUP BY p.id, p.name, p.category, p.image, p.stock, p.min_stock, p.price, p.cost
+      ORDER BY quantity DESC, revenue DESC
+      LIMIT 5
+    `;
+
+    const [sumRes, custRes, wasteRes, prodRes, topRes, chartRes, todayRevRes, todayTopRes] = await Promise.all([
       pool.query(summarySql, [shopId, from, to]),
       pool.query(customersSql),
       pool.query(wasteSql, [shopId, from, to]),
       pool.query(productsSql, [shopId]),
       pool.query(topProductsSql, [shopId, from, to]),
-      pool.query(chartSql, [shopId, from, to])
+      pool.query(chartSql, [shopId, from, to]),
+      pool.query(todayRevenueSql, [shopId]),
+      pool.query(todayTopProductsSql, [shopId])
     ]);
 
     const summaryRow = sumRes.rows[0] || { total_transactions: 0, total_revenue: 0, cogs: 0 };
@@ -438,7 +465,7 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
       currentProfit: netProfit,
 
       // Backward compatibility names (OLD)
-      todayRevenue: grossRevenue,
+      todayRevenue: Number(todayRevRes.rows[0]?.today_revenue || 0),
       yesterdayRevenue: prevGross,
       todayTransactionCount: totalTransactions,
       yesterdayTransactionCount: prevTx,
@@ -481,11 +508,12 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
     }
 
     const topProductsFormatted = topRes.rows.map(r => ({ ...r, quantity: Number(r.quantity), revenue: Number(r.revenue), stock: Number(r.stock), min_stock: Number(r.min_stock), price: Number(r.price), cost: Number(r.cost) }));
+    const todayTopProductsFormatted = todayTopRes.rows.map(r => ({ ...r, quantity: Number(r.quantity), revenue: Number(r.revenue), stock: Number(r.stock), min_stock: Number(r.min_stock), price: Number(r.price), cost: Number(r.cost) }));
 
     res.json({
       metrics,
       topProducts: topProductsFormatted, // Neutral name (NEW)
-      topProductsToday: topProductsFormatted, // Backward compatibility (OLD)
+      topProductsToday: todayTopProductsFormatted, // Specifically TODAY'S top products
       chartData,
       granularity
     });

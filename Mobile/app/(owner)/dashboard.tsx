@@ -268,8 +268,8 @@ export default function OwnerDashboard() {
 
   const statCardsData = [
     {
-      title: 'Pendapatan',
-      value: formatRupiah(metrics?.currentRevenue || 0),
+      title: 'Pendapatan Hari Ini',
+      value: formatRupiah(metrics?.todayRevenue || 0),
       icon: DollarSign,
       trend: ((metrics?.revenueChange || 0) >= 0 ? 'up' : 'down') as 'up' | 'down',
       trendValue: `${(metrics?.revenueChange || 0) >= 0 ? '+' : ''}${metrics?.revenueChange || 0}%`,
