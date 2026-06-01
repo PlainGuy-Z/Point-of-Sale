@@ -68,10 +68,17 @@ export function useDashboardMetrics(
     setError(null);
     try {
       const prevRange = getPrevRange(currentRange);
-      const startStr = currentRange.start.toISOString().slice(0, 10);
-      const endStr = currentRange.end.toISOString().slice(0, 10);
-      const prevStartStr = prevRange.start.toISOString().slice(0, 10);
-      const prevEndStr = prevRange.end.toISOString().slice(0, 10);
+      const toLocalISODate = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+
+      const startStr = toLocalISODate(currentRange.start);
+      const endStr = toLocalISODate(currentRange.end);
+      const prevStartStr = toLocalISODate(prevRange.start);
+      const prevEndStr = toLocalISODate(prevRange.end);
       
       const isSingleDay = preset === 'today' || preset === 'yesterday';
       const granularity = isSingleDay ? 'hour' : 'day';

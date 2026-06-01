@@ -160,7 +160,7 @@ function ProductCard({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 }}>
             <TrendingUp size={9} color={c.accent} strokeWidth={2} />
             <Text style={{ color: c.accent, fontSize: isCompact || isLandscape ? 8 : 9, fontWeight: '700' }}>
-              {recentSales} terjual
+              {recentSales} terjual (estimasi lokal)
             </Text>
           </View>
         )}

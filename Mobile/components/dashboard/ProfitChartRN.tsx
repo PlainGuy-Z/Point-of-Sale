@@ -74,7 +74,7 @@ export default function ProfitChartRN({ transactions, isDark, containerWidth, re
     return { chartData: data, totalRevenue: tRev, maxRevenue: mRev, activeDays: aDays, daysInMonth: dim };
   }, [transactions, selectedYear, selectedMonthNum, monthPrefix]);
 
-  const finalChartData = remoteChartData && remoteChartData.length > 0 ? remoteChartData.map(d => ({ value: d.revenue || d.value, label: String(d.label).split(':')[0] || d.label })) : chartData;
+  const finalChartData = remoteChartData && remoteChartData.length > 0 ? remoteChartData.map(d => ({ value: d.revenue ?? d.value ?? 0, label: String(d.label).split(':')[0] || d.label })) : chartData;
   const isRemote = remoteChartData && remoteChartData.length > 0;
   
   let finalTotalRevenue = totalRevenue;
@@ -86,7 +86,7 @@ export default function ProfitChartRN({ transactions, isDark, containerWidth, re
     finalMaxRevenue = 0;
     finalActiveDays = 0;
     remoteChartData.forEach(d => {
-      const val = d.revenue || d.value || 0;
+      const val = d.revenue ?? d.value ?? 0;
       finalTotalRevenue += val;
       if (val > finalMaxRevenue) finalMaxRevenue = val;
       if (val > 0) finalActiveDays++;

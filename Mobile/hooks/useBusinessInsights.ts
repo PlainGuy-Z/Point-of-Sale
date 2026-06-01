@@ -75,14 +75,21 @@ export function useBusinessInsights() {
     setIsLoading(true);
     setError(null);
     try {
-      const startStr = currentRange.start.toISOString().slice(0, 10);
-      const endStr = currentRange.end.toISOString().slice(0, 10);
+      const toLocalISODate = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+
+      const startStr = toLocalISODate(currentRange.start);
+      const endStr = toLocalISODate(currentRange.end);
       
       // Skip AI if it's custom range AND user hasn't explicitly requested it
       const skipAi = preset === 'custom' && !isManualAi && !forceAiForCustom;
 
       const res = await aiApi.fetchBusinessInsights(startStr, endStr, skipAi);
-      setData(res.data);
+      setData(res);
     } catch (err: any) {
       setError(err.message || 'Gagal memuat Business Intelligence dari server');
       // Only nullify data if we don't have it yet, to preserve numerical data if AI fails on a retry

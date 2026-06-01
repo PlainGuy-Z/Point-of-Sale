@@ -852,7 +852,7 @@ export default function POSScreen() {
                   fontSize: 11,
                   fontWeight: '700',
                 }}>
-                  Trend: {bestSellerPeriod} Hari
+                  Trend: {bestSellerPeriod} Hari (Estimasi Lokal)
                 </Text>
                 <ChevronDown size={11} color={c.textSecondary} />
               </TouchableOpacity>
