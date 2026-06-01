@@ -144,8 +144,8 @@ export default function ProfitChartRN({ transactions, isDark, containerWidth, re
   const cardPad = isCompact ? 12 : 16;
   const yAxisW = isCompact ? 38 : 45;
   const chartAreaWidth = Math.max(outerWidth - cardPad * 2 - yAxisW - 6, 120);
-  // Spacing so all days fit horizontally without scrolling
-  const spacing = Math.max(Math.floor(chartAreaWidth / Math.max(daysInMonth - 1, 1)), 3);
+  // Spacing so all data points fit horizontally without scrolling
+  const spacing = Math.max(Math.floor(chartAreaWidth / Math.max(finalChartData.length - 1, 1)), 3);
 
   return (
     <View style={{
