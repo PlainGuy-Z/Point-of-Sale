@@ -155,7 +155,7 @@ function ProductCarousel({ topProducts, lowStockProducts, isDark, accentColor, p
         contentContainerStyle={{ gap: GAP }}
       >
         <View style={{ width: panelWidth }}>
-          <TopProductsRN products={topProducts} title="Top 5 Produk" limit={5} isDark={isDark} />
+          <TopProductsRN products={topProducts} title="Produk Terlaris Hari Ini" limit={5} isDark={isDark} />
         </View>
         <View style={{ width: panelWidth }}>
           <LowStockAlertRN products={lowStockProducts} isDark={isDark} onNavigate={() => router.push('/(owner)/products')} />
@@ -490,10 +490,10 @@ export default function OwnerDashboard() {
               {/* Produk Terlaris & Peringatan Stok side-by-side */}
               <View style={{ flexDirection: 'row', gap: landscapeGap }}>
                 <View style={{ flex: 1 }}>
-                  <SectionLabel isDark={isDark}>Produk Terlaris Bulan Ini</SectionLabel>
+                  <SectionLabel isDark={isDark}>Produk Terlaris</SectionLabel>
                   <TopProductsRN
-                    products={remoteTopProducts || topProductsToday}
-                    title="Top 5 Produk"
+                    products={topProductsToday}
+                    title="Produk Terlaris Hari Ini"
                     limit={5}
                     isDark={isDark}
                   />
@@ -529,10 +529,10 @@ export default function OwnerDashboard() {
               {/* Produk Terlaris & Peringatan Stok 1:1 */}
               <View style={{ flexDirection: 'row', gap: landscapeGap }}>
                 <View style={{ flex: 1 }}>
-                  <SectionLabel isDark={isDark}>Produk Terlaris Bulan Ini</SectionLabel>
+                  <SectionLabel isDark={isDark}>Produk Terlaris</SectionLabel>
                   <TopProductsRN
-                    products={remoteTopProducts || topProductsToday}
-                    title="Top 5 Produk"
+                    products={topProductsToday}
+                    title="Produk Terlaris Hari Ini"
                     limit={5}
                     isDark={isDark}
                   />
@@ -591,7 +591,7 @@ export default function OwnerDashboard() {
             <View>
               <SectionLabel isDark={isDark}>Produk & Inventaris</SectionLabel>
               <ProductCarousel
-                topProducts={remoteTopProducts || topProductsToday}
+                topProducts={topProductsToday}
                 lowStockProducts={lowStockAll}
                 isDark={isDark}
                 accentColor={accentColor}

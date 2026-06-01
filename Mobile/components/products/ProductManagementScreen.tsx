@@ -111,6 +111,22 @@ export default function ProductManagementScreen() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Custom Alert State
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons?: { text: string; style?: 'cancel' | 'default' | 'destructive'; onPress?: () => void }[];
+  }>({ visible: false, title: '', message: '' });
+
+  const showCustomAlert = (
+    title: string,
+    message: string,
+    buttons?: { text: string; style?: 'cancel' | 'default' | 'destructive'; onPress?: () => void }[]
+  ) => {
+    setCustomAlert({ visible: true, title, message, buttons });
+  };
+
   // Filtered Products
   const filteredProducts = useMemo(() => {
     let list = products;
@@ -170,15 +186,15 @@ export default function ProductManagementScreen() {
     if (!newCatName.trim()) return;
     const formattedName = formatCategoryName(newCatName);
     if (categories.some((c) => c.toLowerCase() === formattedName.toLowerCase())) {
-      Alert.alert('Gagal', 'Kategori ini sudah terdaftar.');
+      showCustomAlert('Gagal', 'Kategori ini sudah terdaftar.');
       return;
     }
     try {
       await addCategory(formattedName);
       setNewCatName('');
-      Alert.alert('Sukses', `Kategori "${formattedName}" berhasil dibuat.`);
+      showCustomAlert('Sukses', `Kategori "${formattedName}" berhasil dibuat.`);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Gagal menambahkan kategori.');
+      showCustomAlert('Error', err.message || 'Gagal menambahkan kategori.');
     }
   };
 
@@ -194,7 +210,7 @@ export default function ProductManagementScreen() {
     }
     const formattedName = formatCategoryName(editingCatName);
     if (categories.some((c) => c.toLowerCase() === formattedName.toLowerCase() && c !== originalName)) {
-      Alert.alert('Gagal', 'Kategori dengan nama ini sudah terdaftar.');
+      showCustomAlert('Gagal', 'Kategori dengan nama ini sudah terdaftar.');
       return;
     }
 
@@ -215,23 +231,23 @@ export default function ProductManagementScreen() {
 
       setEditingCat(null);
       setEditingCatName('');
-      Alert.alert('Sukses', 'Nama kategori berhasil diubah.');
+      showCustomAlert('Sukses', 'Nama kategori berhasil diubah.');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Gagal mengubah kategori.');
+      showCustomAlert('Error', err.message || 'Gagal mengubah kategori.');
     }
   };
 
   const handleDeleteCategoryPress = (catName: string) => {
     const count = products.filter((p) => p.category.toLowerCase() === catName.toLowerCase()).length;
     if (count > 0) {
-      Alert.alert(
+      showCustomAlert(
         'Tidak Dapat Menghapus',
         `Kategori "${catName}" masih memiliki ${count} produk. Harap pindahkan atau hapus produk tersebut terlebih dahulu.`
       );
       return;
     }
 
-    Alert.alert(
+    showCustomAlert(
       'Hapus Kategori',
       `Apakah Anda yakin ingin menghapus kategori "${catName}"?`,
       [
@@ -245,9 +261,9 @@ export default function ProductManagementScreen() {
               if (selectedCat === catName) {
                 setSelectedCat('all');
               }
-              Alert.alert('Sukses', `Kategori "${catName}" berhasil dihapus.`);
+              showCustomAlert('Sukses', `Kategori "${catName}" berhasil dihapus.`);
             } catch (err: any) {
-              Alert.alert('Error', err.message || 'Gagal menghapus kategori.');
+              showCustomAlert('Error', err.message || 'Gagal menghapus kategori.');
             }
           },
         },
@@ -293,7 +309,7 @@ export default function ProductManagementScreen() {
       if (mode === 'library') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Izin Ditolak', 'Izin galeri diperlukan untuk memilih foto.');
+          showCustomAlert('Izin Ditolak', 'Izin galeri diperlukan untuk memilih foto.');
           return;
         }
         result = await ImagePicker.launchImageLibraryAsync({
@@ -305,7 +321,7 @@ export default function ProductManagementScreen() {
       } else {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Izin Ditolak', 'Izin kamera diperlukan untuk mengambil foto.');
+          showCustomAlert('Izin Ditolak', 'Izin kamera diperlukan untuk mengambil foto.');
           return;
         }
         result = await ImagePicker.launchCameraAsync({
@@ -322,14 +338,14 @@ export default function ProductManagementScreen() {
           const { url } = await uploadFile(uri);
           setPreviewImage(url);
         } catch (err: any) {
-          Alert.alert('Upload Gagal', err.message || 'Gagal mengupload gambar.');
+          showCustomAlert('Upload Gagal', err.message || 'Gagal mengupload gambar.');
         } finally {
           setIsUploading(false);
         }
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Gagal memproses gambar.');
+      showCustomAlert('Error', 'Gagal memproses gambar.');
     }
   };
 
@@ -376,15 +392,15 @@ export default function ProductManagementScreen() {
 
   const handleSaveProduct = async () => {
     if (!formName.trim()) {
-      Alert.alert('Gagal', 'Nama produk tidak boleh kosong.');
+      showCustomAlert('Gagal', 'Nama produk tidak boleh kosong.');
       return;
     }
     if (!formCategory) {
-      Alert.alert('Gagal', 'Kategori produk harus dipilih.');
+      showCustomAlert('Gagal', 'Kategori produk harus dipilih.');
       return;
     }
     if (!formPrice.trim() || Number(formPrice) <= 0) {
-      Alert.alert('Gagal', 'Harga produk harus diisi dengan angka valid.');
+      showCustomAlert('Gagal', 'Harga produk harus diisi dengan angka valid.');
       return;
     }
 
@@ -399,7 +415,7 @@ export default function ProductManagementScreen() {
           p.category.toLowerCase() === formattedCategory.toLowerCase()
       );
       if (exists) {
-        Alert.alert('Gagal', `Produk "${formattedName}" sudah ada di kategori "${formattedCategory}".`);
+        showCustomAlert('Gagal', `Produk "${formattedName}" sudah ada di kategori "${formattedCategory}".`);
         return;
       }
     }
@@ -410,11 +426,11 @@ export default function ProductManagementScreen() {
 
     if (formIsPromo) {
       if (promoPriceNum <= 0) {
-        Alert.alert('Gagal', 'Harga promo harus lebih besar dari 0.');
+        showCustomAlert('Gagal', 'Harga promo harus lebih besar dari 0.');
         return;
       }
       if (promoPriceNum >= priceNum) {
-        Alert.alert('Gagal', 'Harga promo harus lebih rendah dari harga normal.');
+        showCustomAlert('Gagal', 'Harga promo harus lebih rendah dari harga normal.');
         return;
       }
     }
@@ -442,19 +458,19 @@ export default function ProductManagementScreen() {
     try {
       if (editingProduct) {
         await updateProduct({ ...productPayload, id: editingProduct.id } as any);
-        Alert.alert('Sukses', `Produk "${formattedName}" berhasil diperbarui.`);
+        showCustomAlert('Sukses', `Produk "${formattedName}" berhasil diperbarui.`);
       } else {
         await addProduct(productPayload as any);
-        Alert.alert('Sukses', `Produk "${formattedName}" berhasil ditambahkan.`);
+        showCustomAlert('Sukses', `Produk "${formattedName}" berhasil ditambahkan.`);
       }
       setModalOpen(false);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Gagal menyimpan produk.');
+      showCustomAlert('Error', err.message || 'Gagal menyimpan produk.');
     }
   };
 
   const handleDeleteProductPress = (product: Product) => {
-    Alert.alert(
+    showCustomAlert(
       'Hapus Produk',
       `Apakah Anda yakin ingin menghapus produk "${product.name}"?`,
       [
@@ -465,9 +481,9 @@ export default function ProductManagementScreen() {
           onPress: async () => {
             try {
               await deleteProduct(product.id);
-              Alert.alert('Sukses', `Produk "${product.name}" berhasil dihapus.`);
+              showCustomAlert('Sukses', `Produk "${product.name}" berhasil dihapus.`);
             } catch (err: any) {
-              Alert.alert('Error', err.message || 'Gagal menghapus produk.');
+              showCustomAlert('Error', err.message || 'Gagal menghapus produk.');
             }
           },
         },
@@ -1001,6 +1017,65 @@ export default function ProductManagementScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+      {/* CUSTOM ALERT MODAL */}
+      <Modal visible={customAlert.visible} transparent animationType="fade" onRequestClose={() => setCustomAlert(prev => ({ ...prev, visible: false }))}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{
+            backgroundColor: c.bgCard,
+            marginHorizontal: 32,
+            width: Math.min(layoutIsLandscape ? 400 : 320, 400),
+            borderRadius: 20,
+            padding: 24,
+            borderWidth: 1,
+            borderColor: c.border,
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            elevation: 8,
+          }}>
+            <Text style={{ color: c.text, fontSize: 18, fontWeight: '700', marginBottom: 12, textAlign: 'center' }}>
+              {customAlert.title}
+            </Text>
+            <Text style={{ color: c.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+              {customAlert.message}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              {customAlert.buttons ? customAlert.buttons.map((btn, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => {
+                    setCustomAlert(prev => ({ ...prev, visible: false }));
+                    if (btn.onPress) btn.onPress();
+                  }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    borderWidth: btn.style === 'cancel' ? 1 : 0,
+                    borderColor: c.border,
+                    backgroundColor: btn.style === 'destructive' ? '#ef4444' : btn.style === 'cancel' ? 'transparent' : c.accent,
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ color: btn.style === 'cancel' ? c.textSecondary : '#fff', fontSize: 15, fontWeight: '600' }}>
+                    {btn.text}
+                  </Text>
+                </TouchableOpacity>
+              )) : (
+                <TouchableOpacity
+                  onPress={() => setCustomAlert(prev => ({ ...prev, visible: false }))}
+                  style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: c.accent, alignItems: 'center' }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>OK</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Header section */}
       <View
         style={{

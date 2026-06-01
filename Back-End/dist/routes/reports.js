@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { HttpError } from '../http/errors.js';
+import { generateBusinessInsights } from '../services/gemini.js';
 export const reportsRouter = Router();
 const TZ = 'Asia/Jakarta';
 const NON_VOID = `(COALESCE(status, '') <> 'voided')`;
 const TX_NON_VOID = `(COALESCE(tx.status, '') <> 'voided')`;
+const aiRecommendationCache = new Map();
 reportsRouter.get('/sales', async (req, res, next) => {
     try {
         const shopId = req.user.shop_id;
@@ -444,6 +446,214 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
             topProductsToday: topProductsFormatted, // Backward compatibility (OLD)
             chartData,
             granularity
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+reportsRouter.get('/business-insights', async (req, res, next) => {
+    try {
+        const shopId = req.user.shop_id;
+        const { from, to, skip_ai } = req.query;
+        if (!from || !to) {
+            throw new HttpError(400, 'VALIDATION_ERROR', 'from and to are required');
+        }
+        // 1. Summary
+        const summarySql = `
+      WITH tx AS (
+        SELECT id, grand_total, created_at
+        FROM coffeepos.transactions
+        WHERE shop_id = $1::uuid
+          AND (created_at AT TIME ZONE '${TZ}')::date >= $2::date
+          AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
+          AND ${NON_VOID}
+      ),
+      items AS (
+        SELECT 
+          i.transaction_id, 
+          i.quantity, 
+          COALESCE(p.cost, 0) as cost
+        FROM coffeepos.transaction_items i
+        JOIN tx ON tx.id = i.transaction_id
+        LEFT JOIN coffeepos.products p ON p.id = i.product_id
+      )
+      SELECT 
+        COUNT(DISTINCT tx.id)::int as transaction_count,
+        COALESCE(SUM(tx.grand_total), 0)::bigint as revenue,
+        COALESCE(SUM(items.quantity * items.cost), 0)::bigint as cogs
+      FROM tx
+      LEFT JOIN items ON tx.id = items.transaction_id;
+    `;
+        // 2. Trend Data
+        const trendSql = `
+      SELECT 
+        TO_CHAR((created_at AT TIME ZONE '${TZ}')::date, 'YYYY-MM-DD') as date,
+        SUM(grand_total)::bigint as revenue
+      FROM coffeepos.transactions
+      WHERE shop_id = $1::uuid
+        AND (created_at AT TIME ZONE '${TZ}')::date >= $2::date
+        AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
+        AND ${NON_VOID}
+      GROUP BY date
+      ORDER BY date ASC;
+    `;
+        // 3. Top Products
+        const topProductsSql = `
+      WITH tx AS (
+        SELECT id FROM coffeepos.transactions
+        WHERE shop_id = $1::uuid
+          AND (created_at AT TIME ZONE '${TZ}')::date >= $2::date
+          AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
+          AND ${NON_VOID}
+      )
+      SELECT 
+        COALESCE(p.name, i.name) as name,
+        SUM(i.quantity)::int as qty,
+        SUM(i.quantity * i.price)::bigint as revenue
+      FROM coffeepos.transaction_items i
+      JOIN tx ON tx.id = i.transaction_id
+      LEFT JOIN coffeepos.products p ON p.id = i.product_id
+      GROUP BY COALESCE(p.name, i.name)
+      ORDER BY qty DESC
+      LIMIT 5;
+    `;
+        // 4. Category Performance
+        const categorySql = `
+      WITH tx AS (
+        SELECT id FROM coffeepos.transactions
+        WHERE shop_id = $1::uuid
+          AND (created_at AT TIME ZONE '${TZ}')::date >= $2::date
+          AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
+          AND ${NON_VOID}
+      ),
+      cat_rev AS (
+        SELECT 
+          COALESCE(c.name, 'Uncategorized') as category,
+          SUM(i.quantity * i.price)::bigint as revenue
+        FROM coffeepos.transaction_items i
+        JOIN tx ON tx.id = i.transaction_id
+        LEFT JOIN coffeepos.products p ON p.id = i.product_id
+        LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+        GROUP BY COALESCE(c.name, 'Uncategorized')
+      ),
+      total AS (
+        SELECT SUM(revenue) as total_rev FROM cat_rev
+      )
+      SELECT 
+        cat_rev.category,
+        cat_rev.revenue,
+        ROUND((cat_rev.revenue::numeric / NULLIF(total.total_rev, 0)) * 100, 1)::float as percentage
+      FROM cat_rev, total
+      ORDER BY cat_rev.revenue DESC;
+    `;
+        // 5. Waste Insights
+        const wasteSql = `
+      WITH waste AS (
+        SELECT 
+          product_id, 
+          SUM(quantity)::int as waste_qty, 
+          SUM(loss_amount)::bigint as waste_cost
+        FROM coffeepos.waste_logs
+        WHERE shop_id = $1::uuid
+          AND (created_at AT TIME ZONE '${TZ}')::date >= $2::date
+          AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
+        GROUP BY product_id
+      )
+      SELECT 
+        COALESCE(p.name, 'Unknown') as name,
+        w.waste_qty,
+        w.waste_cost
+      FROM waste w
+      LEFT JOIN coffeepos.products p ON p.id = w.product_id
+      ORDER BY w.waste_cost DESC
+      LIMIT 5;
+    `;
+        // 6. Stock Alerts
+        const stockSql = `
+      SELECT 
+        COUNT(CASE WHEN stock <= 0 THEN 1 END)::int as critical,
+        COUNT(CASE WHEN stock > 0 AND stock <= COALESCE(min_stock, 5) THEN 1 END)::int as warning
+      FROM coffeepos.products
+      WHERE shop_id = $1::uuid
+        AND is_deleted = false
+        AND is_available = true
+        AND stock IS NOT NULL;
+    `;
+        const [sumRes, trendRes, topProdRes, catRes, wasteRes, stockRes] = await Promise.all([
+            pool.query(summarySql, [shopId, from, to]),
+            pool.query(trendSql, [shopId, from, to]),
+            pool.query(topProductsSql, [shopId, from, to]),
+            pool.query(categorySql, [shopId, from, to]),
+            pool.query(wasteSql, [shopId, from, to]),
+            pool.query(stockSql, [shopId])
+        ]);
+        const sumData = sumRes.rows[0] || { transaction_count: 0, revenue: 0, cogs: 0 };
+        const revenue = Number(sumData.revenue) || 0;
+        const cogs = Number(sumData.cogs) || 0;
+        const profit = revenue - cogs;
+        const transactionCount = Number(sumData.transaction_count) || 0;
+        const avgTicket = transactionCount > 0 ? revenue / transactionCount : 0;
+        const dataPayload = {
+            summary: {
+                revenue,
+                profit,
+                avgTicket,
+                transactionCount
+            },
+            trendData: trendRes.rows.map(r => ({ date: r.date, revenue: Number(r.revenue) })),
+            topProducts: topProdRes.rows.map(r => ({ name: r.name, qty: Number(r.qty), revenue: Number(r.revenue) })),
+            categoryPerformance: catRes.rows.map(r => ({ category: r.category, percentage: Number(r.percentage) })),
+            wasteInsights: {
+                totalLoss: wasteRes.rows.reduce((sum, r) => sum + Number(r.waste_cost), 0),
+                topWaste: wasteRes.rows.map(r => ({ name: r.name, wasteQty: Number(r.waste_qty), wasteCost: Number(r.waste_cost) }))
+            },
+            stockAlerts: {
+                critical: Number(stockRes.rows[0]?.critical || 0),
+                warning: Number(stockRes.rows[0]?.warning || 0)
+            }
+        };
+        let recommendations = "Analisis AI dilewati.";
+        if (skip_ai !== 'true' && transactionCount > 0) {
+            const cacheKey = `${shopId}_${from}_${to}`;
+            const cached = aiRecommendationCache.get(cacheKey);
+            if (cached && cached.expiresAt > Date.now()) {
+                recommendations = cached.reply;
+            }
+            else {
+                const prompt = `Berikan rekomendasi bisnis berdasarkan data penjualan dari ${from} hingga ${to} berikut ini:
+Pendapatan: ${revenue}, Profit: ${profit}, Total Transaksi: ${transactionCount}.
+Produk Terlaris: ${dataPayload.topProducts.map(p => p.name).join(', ')}.
+Analisis secara ringkas dan berikan saran strategis.`;
+                try {
+                    const aiResponse = await generateBusinessInsights(dataPayload, from, to);
+                    recommendations = aiResponse;
+                    // Cache for 1 hour
+                    aiRecommendationCache.set(cacheKey, {
+                        reply: recommendations,
+                        expiresAt: Date.now() + 60 * 60 * 1000
+                    });
+                }
+                catch (e) {
+                    console.error("AI Error:", e);
+                    recommendations = "Gagal memuat rekomendasi AI. Harap coba lagi nanti.";
+                }
+            }
+        }
+        else if (transactionCount === 0) {
+            recommendations = "Tidak ada transaksi pada periode ini untuk dianalisis.";
+        }
+        res.json({
+            data: {
+                ...dataPayload,
+                recommendations,
+                metadata: {
+                    from,
+                    to,
+                    source: 'server',
+                    generatedAt: new Date().toISOString()
+                }
+            }
         });
     }
     catch (err) {

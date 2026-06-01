@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireOwner } from '../middleware/requireRole.js';
 import { HttpError } from '../http/errors.js';
-import { generateChatResponse } from '../services/gemini.js';
+import { generateChatResponse, generateBusinessInsights } from '../services/gemini.js';
 
 export const reportsRouter = Router();
 const TZ = 'Asia/Jakarta';
@@ -681,7 +681,7 @@ Produk Terlaris: ${dataPayload.topProducts.map(p => p.name).join(', ')}.
 Analisis secara ringkas dan berikan saran strategis.`;
         
         try {
-          const aiResponse = await generateChatResponse([{ role: 'user', content: prompt }], dataPayload);
+          const aiResponse = await generateBusinessInsights(dataPayload, from, to);
           recommendations = aiResponse;
           
           // Cache for 1 hour

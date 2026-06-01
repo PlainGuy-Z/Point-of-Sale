@@ -123,6 +123,7 @@ export default function SalesReportScreen() {
   const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
   const [selectedTx, setSelectedTx] = useState<HistoryTransaction | null>(null);
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [showTransactionLimitAlert, setShowTransactionLimitAlert] = useState(false);
   const [selectedBarIndex, setSelectedBarIndex] = useState<number | null>(null);
 
   // Calendar states
@@ -906,14 +907,7 @@ export default function SalesReportScreen() {
             <TouchableOpacity
               onPress={() => {
                 if (!isCovered) {
-                  Alert.alert(
-                    'Data dari Server',
-                    'Daftar transaksi detail hanya tersedia untuk laporan yang dihitung dari perangkat lokal. Silakan buka tab Riwayat Transaksi untuk melihat semua transaksi secara utuh.',
-                    [
-                      { text: 'Tutup', style: 'cancel' },
-                      { text: 'Ke Riwayat Transaksi', onPress: () => router.push('/(owner)/transactions') }
-                    ]
-                  );
+                  setShowTransactionLimitAlert(true);
                   return;
                 }
                 setShowTxList(!showTxList);
@@ -1260,6 +1254,54 @@ export default function SalesReportScreen() {
                 }}
               >
                 <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Simpan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* TRANSACTION LIMIT ALERT MODAL */}
+      <Modal visible={showTransactionLimitAlert} transparent animationType="fade" onRequestClose={() => setShowTransactionLimitAlert(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowTransactionLimitAlert(false)} />
+          <View style={{
+            backgroundColor: c.bgCard,
+            marginHorizontal: 32,
+            borderRadius: 20,
+            padding: 24,
+            borderWidth: 1,
+            borderColor: c.border,
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            elevation: 8,
+          }}>
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <Info size={24} color={c.accent} />
+            </View>
+            <Text style={{ color: c.text, fontSize: 18, fontWeight: '700', marginBottom: 12, textAlign: 'center' }}>
+              Data dari Server
+            </Text>
+            <Text style={{ color: c.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+              Daftar transaksi detail hanya tersedia untuk laporan yang dihitung dari perangkat lokal. Silakan buka tab Riwayat Transaksi untuk melihat semua transaksi secara utuh.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity
+                onPress={() => setShowTransactionLimitAlert(false)}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: c.border, alignItems: 'center' }}
+              >
+                <Text style={{ color: c.textSecondary, fontSize: 15, fontWeight: '600' }}>Tutup</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowTransactionLimitAlert(false);
+                  router.push('/(owner)/transactions');
+                }}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: c.accent, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Ke Riwayat</Text>
               </TouchableOpacity>
             </View>
           </View>

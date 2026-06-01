@@ -207,6 +207,28 @@ Gunakan data di atas untuk menjawab pertanyaan dengan akurat dan relevan.
   return result.response.text();
 }
 
+export async function generateBusinessInsights(dataPayload: any, from: string, to: string) {
+  const prompt = `Kamu adalah Konsultan Bisnis Profesional. 
+Tugasmu adalah menganalisis data performa kedai kopi/restoran berikut untuk periode ${from} hingga ${to}:
+
+${JSON.stringify(dataPayload, null, 2)}
+
+Berikan 3 paragraf analisis ringkas dan konkret (tanpa format khusus seperti ** atau bullet points):
+Paragraf 1: Ringkasan tren pendapatan dan transaksi secara umum.
+Paragraf 2: Sorotan pada produk terlaris dan kategori terkuat.
+Paragraf 3: Peringatan mengenai stok menipis dan waste, beserta rekomendasi langkah nyata.`;
+
+  const chat = model.startChat({
+    history: [
+      { role: 'user', parts: [{ text: "Berikan insight bisnis tanpa formatting khusus." }] },
+      { role: 'model', parts: [{ text: "Baik, saya akan menganalisis data yang diberikan." }] },
+    ]
+  });
+
+  const result = await chat.sendMessage(prompt);
+  return result.response.text();
+}
+
 export const appRouter = Router();
 
 const CreateWasteLogSchema = z.object({

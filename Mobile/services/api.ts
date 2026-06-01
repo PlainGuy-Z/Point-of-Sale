@@ -56,10 +56,6 @@ export async function http<T>(
   }
 
   if (!res.ok) {
-    if (res.status === 401) {
-      await SecureStore.deleteItemAsync('auth_token');
-      throw new ApiError(401, 'Session expired', 'UNAUTHORIZED');
-    }
     let message = `HTTP ${res.status}`;
     let code: string | undefined;
     try {
@@ -68,6 +64,16 @@ export async function http<T>(
       else if (body?.message) message = body.message;
       if (body?.error?.code) code = body.error.code;
     } catch { /* ignore */ }
+
+    if (res.status === 401) {
+      await SecureStore.deleteItemAsync('auth_token');
+      // If message is still generic or is the default backend token error, rewrite it for UX
+      if (message === 'HTTP 401' || message === 'Invalid or expired token') {
+        message = 'Sesi telah berakhir, silakan login kembali.';
+      }
+      throw new ApiError(401, message, code || 'UNAUTHORIZED');
+    }
+
     throw new ApiError(res.status, message, code);
   }
 

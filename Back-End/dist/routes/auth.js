@@ -202,13 +202,13 @@ authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, r
        JOIN coffeepos.shops s ON s.id = u.shop_id
        WHERE u.email = $1`, [body.email]);
         if (result.rowCount === 0 || !result.rows[0].is_active) {
-            throw new HttpError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+            throw new HttpError(401, 'INVALID_CREDENTIALS', 'Email atau password salah');
         }
         const user = result.rows[0];
         // Verify password
         const valid = await bcrypt.compare(body.password, user.password_hash);
         if (!valid) {
-            throw new HttpError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+            throw new HttpError(401, 'INVALID_CREDENTIALS', 'Email atau password salah');
         }
         // Generate JWT
         const token = signToken({

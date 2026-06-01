@@ -278,7 +278,7 @@ authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, r
     );
 
     if (result.rowCount === 0 || !result.rows[0].is_active) {
-      throw new HttpError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+      throw new HttpError(401, 'INVALID_CREDENTIALS', 'Email atau password salah');
     }
 
     const user = result.rows[0];
@@ -286,7 +286,7 @@ authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, r
     // Verify password
     const valid = await bcrypt.compare(body.password, user.password_hash);
     if (!valid) {
-      throw new HttpError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+      throw new HttpError(401, 'INVALID_CREDENTIALS', 'Email atau password salah');
     }
 
     // Generate JWT
