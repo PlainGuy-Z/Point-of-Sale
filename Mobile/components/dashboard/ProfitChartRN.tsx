@@ -89,36 +89,33 @@ export default function ProfitChartRN({ transactions, isDark, containerWidth, re
 
   const finalChartData = useMemo(() => {
     if (remoteChartData && remoteChartData.length > 0) {
-      const len = remoteChartData.length;
-      return remoteChartData.map((d, i) => {
-        // Divide into 4 periods if there are many data points (> 15)
-        let showLabel = true;
-        if (len > 15) {
-          showLabel = i === 0 || 
-                      i === Math.floor(len * 0.25) || 
-                      i === Math.floor(len * 0.5) || 
-                      i === Math.floor(len * 0.75) || 
-                      i === len - 1;
+      // Build a map of date -> revenue from remote data
+      const remoteMap = new Map<string, number>();
+      remoteChartData.forEach(d => {
+        if (d.date) {
+          remoteMap.set(d.date, d.revenue ?? d.value ?? 0);
         }
-
-        let textLabel = '';
-        if (showLabel) {
-          if (d.date) {
-            textLabel = d.date.split('-')[2]; // just the day
-          } else {
-            const rawLabel = String(d.label).split(':')[0] || d.label;
-            textLabel = String(rawLabel).split(' ')[0];
-          }
-        }
-
-        return {
-          value: d.revenue ?? d.value ?? 0,
-          label: textLabel,
-        };
       });
+
+      // Fill ALL days of the selected month
+      const dim = new Date(selectedYear, selectedMonthNum, 0).getDate();
+      const q = Math.ceil(dim / 4);
+      const quarterDays = new Set([1, q + 1, 2 * q + 1, 3 * q + 1]);
+
+      const fullMonthData = [];
+      for (let day = 1; day <= dim; day++) {
+        const dateStr = `${monthPrefix}-${String(day).padStart(2, '0')}`;
+        const rev = remoteMap.get(dateStr) || 0;
+        fullMonthData.push({
+          value: rev,
+          label: quarterDays.has(day) ? String(day) : '',
+          date: dateStr,
+        });
+      }
+      return fullMonthData;
     }
     return chartData;
-  }, [remoteChartData, chartData]);
+  }, [remoteChartData, chartData, selectedYear, selectedMonthNum, monthPrefix]);
   const isRemote = remoteChartData && remoteChartData.length > 0;
   
   let finalTotalRevenue = totalRevenue;
