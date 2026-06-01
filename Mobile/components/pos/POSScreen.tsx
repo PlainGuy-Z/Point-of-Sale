@@ -597,7 +597,7 @@ export default function POSScreen() {
                       <ProductCard
                         product={p}
                         onAdd={addToCart}
-                        onRemove={(id) => removeFromCart(id)}
+                        onRemove={removeFromCart}
                         cartQuantity={getCartQty(p.id)}
                         variant="full"
                       />
@@ -938,6 +938,10 @@ export default function POSScreen() {
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
               columnWrapperStyle={{ justifyContent: 'space-between' }}
               showsVerticalScrollIndicator={true}
+              initialNumToRender={16}
+              maxToRenderPerBatch={8}
+              windowSize={5}
+              removeClippedSubviews={true}
               ListEmptyComponent={
                 <View style={{ alignItems: 'center', paddingVertical: 60 }}>
                   <Package size={40} color={c.textMuted} strokeWidth={1.5} />

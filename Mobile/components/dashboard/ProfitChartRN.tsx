@@ -87,7 +87,38 @@ export default function ProfitChartRN({ transactions, isDark, containerWidth, re
     return { chartData: data, totalRevenue: tRev, maxRevenue: mRev, activeDays: aDays, daysInMonth: dim };
   }, [transactions, selectedYear, selectedMonthNum, monthPrefix]);
 
-  const finalChartData = remoteChartData && remoteChartData.length > 0 ? remoteChartData.map(d => ({ value: d.revenue ?? d.value ?? 0, label: String(d.label).split(':')[0] || d.label })) : chartData;
+  const finalChartData = useMemo(() => {
+    if (remoteChartData && remoteChartData.length > 0) {
+      const len = remoteChartData.length;
+      return remoteChartData.map((d, i) => {
+        // Divide into 4 periods if there are many data points (> 15)
+        let showLabel = true;
+        if (len > 15) {
+          showLabel = i === 0 || 
+                      i === Math.floor(len * 0.25) || 
+                      i === Math.floor(len * 0.5) || 
+                      i === Math.floor(len * 0.75) || 
+                      i === len - 1;
+        }
+
+        let textLabel = '';
+        if (showLabel) {
+          if (d.date) {
+            textLabel = d.date.split('-')[2]; // just the day
+          } else {
+            const rawLabel = String(d.label).split(':')[0] || d.label;
+            textLabel = String(rawLabel).split(' ')[0];
+          }
+        }
+
+        return {
+          value: d.revenue ?? d.value ?? 0,
+          label: textLabel,
+        };
+      });
+    }
+    return chartData;
+  }, [remoteChartData, chartData]);
   const isRemote = remoteChartData && remoteChartData.length > 0;
   
   let finalTotalRevenue = totalRevenue;

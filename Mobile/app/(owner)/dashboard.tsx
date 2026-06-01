@@ -155,7 +155,7 @@ function ProductCarousel({ topProducts, lowStockProducts, isDark, accentColor, p
         contentContainerStyle={{ gap: GAP }}
       >
         <View style={{ width: panelWidth }}>
-          <TopProductsRN products={topProducts} title="Produk Terlaris Hari Ini" limit={5} isDark={isDark} />
+          <TopProductsRN products={topProducts} title="Top 5 Produk" limit={5} isDark={isDark} />
         </View>
         <View style={{ width: panelWidth }}>
           <LowStockAlertRN products={lowStockProducts} isDark={isDark} onNavigate={() => router.push('/(owner)/products')} />
@@ -230,6 +230,7 @@ export default function OwnerDashboard() {
   const now = new Date();
   const [chartDate, setChartDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [remoteChartData, setRemoteChartData] = useState<any[] | null>(null);
+  const [remoteTopProducts, setRemoteTopProducts] = useState<any[] | null>(null);
 
   React.useEffect(() => {
     const fetchChartData = async () => {
@@ -242,6 +243,7 @@ export default function OwnerDashboard() {
         
         const res = await appApi.get<any>(`/reports/dashboard?from=${startStr}&to=${endStr}&granularity=day`);
         setRemoteChartData(res.chartData);
+        setRemoteTopProducts(res.topProducts);
       } catch (err) {
         console.error('Failed to fetch chart data:', err);
       }
@@ -488,10 +490,10 @@ export default function OwnerDashboard() {
               {/* Produk Terlaris & Peringatan Stok side-by-side */}
               <View style={{ flexDirection: 'row', gap: landscapeGap }}>
                 <View style={{ flex: 1 }}>
-                  <SectionLabel isDark={isDark}>Produk Terlaris</SectionLabel>
+                  <SectionLabel isDark={isDark}>Produk Terlaris Bulan Ini</SectionLabel>
                   <TopProductsRN
-                    products={topProductsToday}
-                    title="Produk Terlaris Hari Ini"
+                    products={remoteTopProducts || topProductsToday}
+                    title="Top 5 Produk"
                     limit={5}
                     isDark={isDark}
                   />
@@ -527,10 +529,10 @@ export default function OwnerDashboard() {
               {/* Produk Terlaris & Peringatan Stok 1:1 */}
               <View style={{ flexDirection: 'row', gap: landscapeGap }}>
                 <View style={{ flex: 1 }}>
-                  <SectionLabel isDark={isDark}>Produk Terlaris</SectionLabel>
+                  <SectionLabel isDark={isDark}>Produk Terlaris Bulan Ini</SectionLabel>
                   <TopProductsRN
-                    products={topProductsToday}
-                    title="Produk Terlaris Hari Ini"
+                    products={remoteTopProducts || topProductsToday}
+                    title="Top 5 Produk"
                     limit={5}
                     isDark={isDark}
                   />
@@ -589,7 +591,7 @@ export default function OwnerDashboard() {
             <View>
               <SectionLabel isDark={isDark}>Produk & Inventaris</SectionLabel>
               <ProductCarousel
-                topProducts={topProductsToday}
+                topProducts={remoteTopProducts || topProductsToday}
                 lowStockProducts={lowStockAll}
                 isDark={isDark}
                 accentColor={accentColor}
