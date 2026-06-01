@@ -121,7 +121,7 @@ export function useDashboardMetrics(
     return localMetrics;
   }, [isUsingRemote, remoteData, localMetrics]);
 
-  const finalTopProducts = isUsingRemote ? (remoteData?.topProducts || []) : localTopProducts;
+  const finalTopProducts = isUsingRemote ? (remoteData?.topProductsToday || []) : localTopProducts;
   const finalChartData = isUsingRemote ? (remoteData?.chartData || []) : null;
 
   return {
