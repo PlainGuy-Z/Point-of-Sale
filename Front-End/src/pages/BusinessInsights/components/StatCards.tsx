@@ -12,8 +12,8 @@ interface StatCardsProps {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatRupiah(value: number): string {
-  if (value >= 1_000_000) return `Rp ${(value / 1_000_000).toFixed(1)}jt`;
-  if (value >= 1_000) return `Rp ${(value / 1_000).toFixed(0)}rb`;
+  if (value >= 1_000_000) return `Rp ${parseFloat((value / 1_000_000).toFixed(2))}jt`;
+  if (value >= 1_000) return `Rp ${parseFloat((value / 1_000).toFixed(1))}rb`;
   return `Rp ${value}`;
 }
 

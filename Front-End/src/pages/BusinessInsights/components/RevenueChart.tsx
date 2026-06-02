@@ -16,8 +16,8 @@ interface Props {
 }
 
 function fmtRp(v: number): string {
-  if (v >= 1e6) return `${(v / 1e6).toFixed(1)}jt`;
-  if (v >= 1e3) return `${(v / 1e3).toFixed(0)}rb`;
+  if (v >= 1e6) return `${parseFloat((v / 1e6).toFixed(2))}jt`;
+  if (v >= 1e3) return `${parseFloat((v / 1e3).toFixed(1))}rb`;
   return String(v);
 }
 
