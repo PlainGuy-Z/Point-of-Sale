@@ -192,7 +192,7 @@ export default function ProductGrid({
                     }
                   `}>
                     <span>
-                      {totalSold} terjual
+                      {totalSold} terjual (estimasi lokal)
                     </span>
                   </div>
                 </div>

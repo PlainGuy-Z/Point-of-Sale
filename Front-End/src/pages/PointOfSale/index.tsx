@@ -1498,12 +1498,12 @@ export default function PointOfSale() {
                   onChange={e => setBestSellerPeriod(Number(e.target.value))}
                   className={`${isDark ? 'bg-stone-800 text-amber-300' : 'bg-teal-50 text-teal-600'} border-none outline-none text-xs font-bold appearance-none cursor-pointer`}
                 >
-                  <option value="1">1 Hari</option>
-                  <option value="2">2 Hari</option>
-                  <option value="3">3 Hari</option>
-                  <option value="7">7 Hari</option>
-                  <option value="14">14 Hari</option>
-                  <option value="30">30 Hari</option>
+                  <option value="1">1 Hari (Estimasi Lokal)</option>
+                  <option value="2">2 Hari (Estimasi Lokal)</option>
+                  <option value="3">3 Hari (Estimasi Lokal)</option>
+                  <option value="7">7 Hari (Estimasi Lokal)</option>
+                  <option value="14">14 Hari (Estimasi Lokal)</option>
+                  <option value="30">30 Hari (Estimasi Lokal)</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">

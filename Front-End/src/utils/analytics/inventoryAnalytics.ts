@@ -1,6 +1,6 @@
 //src/utils/analytics/inventoryAnalytics.ts
 import type { WasteLog, Transaction } from '../../types';
-import { safeParseDate } from './helpers';
+import { safeParseDate, localDateKey } from './helpers';
 
 // ==================== WASTE ANALYSIS ====================
 export function analyzeWasteTrends(wasteLogs: WasteLog[], daysInPeriod: number = 30) {
@@ -22,7 +22,7 @@ export function analyzeWasteTrends(wasteLogs: WasteLog[], daysInPeriod: number =
   let totalLoss = 0;
   
   wasteLogs.forEach(waste => {
-    const date = safeParseDate(waste.date).toISOString().split('T')[0];
+    const date = localDateKey(safeParseDate(waste.date));
     
     totalLoss += waste.costLoss;
     
