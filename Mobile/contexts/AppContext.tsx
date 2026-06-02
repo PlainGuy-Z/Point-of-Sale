@@ -26,6 +26,7 @@ interface AppContextType {
   deleteProduct: (id: string) => Promise<void>;
   addCategory: (name: string) => Promise<void>;
   deleteCategory: (name: string) => Promise<void>;
+  addWasteLog: (waste: { productId: string; quantity: number; reason: string; notes?: string }) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -241,6 +242,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const addWasteLog = useCallback(async (waste: { productId: string; quantity: number; reason: string; notes?: string }) => {
+    setIsServiceLoading(true);
+    try {
+      const fullState = await appApi.addWasteLog(waste);
+      setState(prev => ({
+        ...prev,
+        wasteLogs: fullState.wasteLogs,
+        products: fullState.products, // update products since stock decreases
+      }));
+    } finally {
+      setIsServiceLoading(false);
+    }
+  }, []);
+
   const value = useMemo<AppContextType>(
     () => ({
       ...state,
@@ -255,6 +270,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteProduct,
       addCategory,
       deleteCategory,
+      addWasteLog,
     }),
     [
       state,
@@ -269,6 +285,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteProduct,
       addCategory,
       deleteCategory,
+      addWasteLog,
     ]
   );
 

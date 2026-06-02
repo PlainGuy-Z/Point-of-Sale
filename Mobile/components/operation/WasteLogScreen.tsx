@@ -1,11 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trash2, AlertCircle } from 'lucide-react-native';
+import { Trash2, AlertCircle, Plus } from 'lucide-react-native';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { formatRupiah, formatRupiahShort } from '../../utils/currency';
+import AddWasteLogModal from './AddWasteLogModal';
 
 export default function WasteLogScreen() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -14,6 +15,8 @@ export default function WasteLogScreen() {
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
   const { wasteLogs } = useApp();
+  
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
 
   const sorted = useMemo(() =>
     [...wasteLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -121,6 +124,35 @@ export default function WasteLogScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        onPress={() => setIsAddModalVisible(true)}
+        style={{
+          position: 'absolute',
+          bottom: 24,
+          right: 24,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: c.accent,
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOpacity: 0.25,
+          shadowOffset: { width: 0, height: 4 },
+          shadowRadius: 10,
+          elevation: 6,
+          zIndex: 9999,
+        }}
+      >
+        <Plus size={24} color={c.textInverse} strokeWidth={2.5} />
+      </TouchableOpacity>
+
+      <AddWasteLogModal 
+        visible={isAddModalVisible} 
+        onClose={() => setIsAddModalVisible(false)} 
+      />
     </SafeAreaView>
   );
 }
