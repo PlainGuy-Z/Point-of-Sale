@@ -87,7 +87,9 @@ reportsRouter.get('/sales', async (req, res, next) => {
       FROM coffeepos.transaction_items i
       JOIN tx ON tx.id = i.transaction_id
       LEFT JOIN coffeepos.products p ON p.id = i.product_id
-      WHERE i.product_id IS NOT NULL
+      WHERE i.product_id IS NOT NULL 
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Manual Item%'
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Custom Item%'
       GROUP BY COALESCE(p.name, i.name)
       ORDER BY qty DESC
       LIMIT 15;
@@ -362,6 +364,8 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
       LEFT JOIN coffeepos.products p ON p.id = i.product_id
       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
       WHERE i.product_id IS NOT NULL
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Manual Item%'
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Custom Item%'
       GROUP BY COALESCE(p.id::text, 'manual'), COALESCE(p.name, i.name), c.name, p.stock, p.min_stock, p.image, COALESCE(p.price, i.price), p.cost
       ORDER BY quantity DESC
       LIMIT 5;
@@ -430,6 +434,8 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
       LEFT JOIN coffeepos.products p ON p.id = i.product_id
       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
       WHERE i.product_id IS NOT NULL
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Manual Item%'
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Custom Item%'
       GROUP BY COALESCE(p.id::text, 'manual'), COALESCE(p.name, i.name), c.name, p.stock, p.min_stock, p.image, COALESCE(p.price, i.price), p.cost
       ORDER BY quantity DESC
       LIMIT 5;
@@ -603,6 +609,8 @@ reportsRouter.get('/business-insights', async (req, res, next) => {
       JOIN tx ON tx.id = i.transaction_id
       LEFT JOIN coffeepos.products p ON p.id = i.product_id
       WHERE i.product_id IS NOT NULL
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Manual Item%'
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Custom Item%'
       GROUP BY COALESCE(p.name, i.name)
       ORDER BY qty DESC
       LIMIT 5;

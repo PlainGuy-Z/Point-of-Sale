@@ -243,6 +243,11 @@ const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${S
         const id = item.productId;
         const p = productMap.get(id);
         const name = item.name || p?.name || id;
+        
+        if (id.startsWith('manual') || name.toLowerCase().includes('manual') || name.toLowerCase().includes('custom')) {
+          return;
+        }
+
         const e = map.get(id) || { name, qty: 0, revenue: 0, totalCost: 0, hasCost: false };
         e.qty += item.quantity;
         e.revenue += item.quantity * item.price;
