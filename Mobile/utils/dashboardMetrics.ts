@@ -3,12 +3,18 @@ import { localDateKey, transactionLocalDateKey } from './analytics/helpers';
 import { isLowStock, isOutOfStock, isStockTracked } from './stockUtils';
 
 export interface DashboardMetrics {
+  currentRevenue: number;
+  previousRevenue: number;
+  revenueChange: number;
+  currentTransactionCount: number;
+  previousTransactionCount: number;
+  transactionChange: number;
+  currentProfit: number;
+  
   todayRevenue: number;
   yesterdayRevenue: number;
-  revenueChange: number;
   todayTransactionCount: number;
   yesterdayTransactionCount: number;
-  transactionChange: number;
   todayProfit: number;
   avgTicket: number;
   newCustomers: number;
@@ -127,6 +133,12 @@ export const calculateDashboardMetrics = (
     : 0;
   
   return {
+    currentRevenue: todayRevenue,
+    previousRevenue: yesterdayRevenue,
+    currentTransactionCount: todayTransactionCount,
+    previousTransactionCount: yesterdayTransactionCount,
+    currentProfit: todayProfit,
+
     todayRevenue,
     yesterdayRevenue,
     revenueChange: Number(revenueChange.toFixed(1)),
