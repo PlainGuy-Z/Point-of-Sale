@@ -71,7 +71,27 @@ export default function HistoryScreen() {
   const load = useCallback(async (isRefresh = false) => {
     if (isCovered && !isRefresh) {
       // Local cache logic
-      setRows((transactions as unknown as HistoryTransaction[]).slice((page - 1) * LIMIT, page * LIMIT));
+      const cached = transactions.slice((page - 1) * LIMIT, page * LIMIT).map((t: any) => ({
+        id: t.id,
+        created_at: t.date,
+        status: 'completed' as HistoryTransactionStatus,
+        cashier_id: null,
+        cashier_name: t.cashierName || null,
+        customer_name: t.customerName || null,
+        table_number: t.tableNumber || null,
+        order_type: t.orderType || 'dine_in',
+        subtotal: t.total,
+        total_amount: t.total,
+        payment_method: t.paymentMethod,
+        raw_payment_method: t.paymentMethod,
+        items: (t.items || []).map((i: any) => ({
+          product_name: i.note || i.productId,
+          quantity: i.quantity,
+          unit_price: i.price,
+          subtotal: i.price * i.quantity
+        }))
+      } as HistoryTransaction));
+      setRows(cached);
       setTotal(transactions.length);
       setLoading(false);
       setError(null);
