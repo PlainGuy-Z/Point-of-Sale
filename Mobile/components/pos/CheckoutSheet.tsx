@@ -22,10 +22,15 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment, inli
   const c = getColors(isDark);
 
   const {
-    cart, checkout: checkoutData,
+    cart, checkout: checkoutData, getCheckoutData,
     setOrderType, setTableNumber, setCustomerName, setOrderNote, setApplyTax,
     subtotal, taxAmount, total, cartIsEmpty,
   } = usePOSCart();
+
+  const checkoutRefs = getCheckoutData?.() || checkoutData;
+  const [localTable, setLocalTable] = React.useState(checkoutRefs.tableNumber || '');
+  const [localCustomer, setLocalCustomer] = React.useState(checkoutRefs.customerName || '');
+  const [localNote, setLocalNote] = React.useState(checkoutRefs.orderNote || '');
   const { settings } = useApp();
 
   const dismissKeyboard = () => {
@@ -100,8 +105,13 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment, inli
               Nomor Meja
             </Text>
             <TextInput
-              value={checkoutData.tableNumber}
-              onChangeText={v => { if (v === '' || /^\d+$/.test(v)) setTableNumber(v); }}
+              value={localTable}
+              onChangeText={v => { 
+                if (v === '' || /^\d+$/.test(v)) {
+                  setLocalTable(v);
+                  setTableNumber(v); 
+                }
+              }}
               placeholder="Nomor Meja"
               placeholderTextColor={c.textMuted}
               keyboardType="number-pad"
@@ -128,8 +138,11 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment, inli
           Nama Customer (opsional)
         </Text>
         <TextInput
-          value={checkoutData.customerName}
-          onChangeText={setCustomerName}
+          value={localCustomer}
+          onChangeText={v => {
+            setLocalCustomer(v);
+            setCustomerName(v);
+          }}
           placeholder="Nama customer"
           placeholderTextColor={c.textMuted}
           returnKeyType="done"
@@ -153,8 +166,11 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment, inli
           Catatan Pesanan (opsional)
         </Text>
         <TextInput
-          value={checkoutData.orderNote}
-          onChangeText={setOrderNote}
+          value={localNote}
+          onChangeText={v => {
+            setLocalNote(v);
+            setOrderNote(v);
+          }}
           placeholder="e.g. No sugar, extra hot..."
           placeholderTextColor={c.textMuted}
           multiline

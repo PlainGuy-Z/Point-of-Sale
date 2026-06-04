@@ -24,22 +24,21 @@ reportsRouter.get('/sales', async (req, res, next) => {
           AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
           AND ${NON_VOID}
       ),
-      items AS (
+      items_agg AS (
         SELECT 
           i.transaction_id, 
-          i.quantity, 
-          i.price,
-          COALESCE(p.cost, 0) as cost
+          SUM(i.quantity * COALESCE(p.cost, 0)) as total_cost
         FROM coffeepos.transaction_items i
         JOIN tx ON tx.id = i.transaction_id
         LEFT JOIN coffeepos.products p ON p.id = i.product_id
+        GROUP BY i.transaction_id
       )
       SELECT 
-        COUNT(DISTINCT tx.id)::int as total_transactions,
+        COUNT(tx.id)::int as total_transactions,
         COALESCE(SUM(tx.grand_total), 0)::bigint as total_revenue,
-        COALESCE(SUM(items.quantity * items.cost), 0)::bigint as cogs
+        COALESCE(SUM(items_agg.total_cost), 0)::bigint as cogs
       FROM tx
-      LEFT JOIN items ON tx.id = items.transaction_id;
+      LEFT JOIN items_agg ON tx.id = items_agg.transaction_id;
     `;
         // 2. Previous Summary
         let prevSummary = { total_transactions: 0, total_revenue: 0, cogs: 0 };
@@ -78,6 +77,9 @@ reportsRouter.get('/sales', async (req, res, next) => {
       FROM coffeepos.transaction_items i
       JOIN tx ON tx.id = i.transaction_id
       LEFT JOIN coffeepos.products p ON p.id = i.product_id
+      WHERE i.product_id IS NOT NULL 
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Manual Item%'
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Custom Item%'
       GROUP BY COALESCE(p.name, i.name)
       ORDER BY qty DESC
       LIMIT 15;
@@ -252,22 +254,21 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
           AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
           AND ${NON_VOID}
       ),
-      items AS (
+      items_agg AS (
         SELECT 
           i.transaction_id, 
-          i.quantity, 
-          i.price,
-          COALESCE(p.cost, 0) as cost
+          SUM(i.quantity * COALESCE(p.cost, 0)) as total_cost
         FROM coffeepos.transaction_items i
         JOIN tx ON tx.id = i.transaction_id
         LEFT JOIN coffeepos.products p ON p.id = i.product_id
+        GROUP BY i.transaction_id
       )
       SELECT 
-        COUNT(DISTINCT tx.id)::int as total_transactions,
+        COUNT(tx.id)::int as total_transactions,
         COALESCE(SUM(tx.grand_total), 0)::bigint as total_revenue,
-        COALESCE(SUM(items.quantity * items.cost), 0)::bigint as cogs
+        COALESCE(SUM(items_agg.total_cost), 0)::bigint as cogs
       FROM tx
-      LEFT JOIN items ON tx.id = items.transaction_id;
+      LEFT JOIN items_agg ON tx.id = items_agg.transaction_id;
     `;
         // 2. Previous Summary
         let prevSummary = { total_transactions: 0, total_revenue: 0 };
@@ -331,6 +332,9 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
       JOIN tx ON tx.id = i.transaction_id
       LEFT JOIN coffeepos.products p ON p.id = i.product_id
       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+      WHERE i.product_id IS NOT NULL
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Manual Item%'
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Custom Item%'
       GROUP BY COALESCE(p.id::text, 'manual'), COALESCE(p.name, i.name), c.name, p.stock, p.min_stock, p.image, COALESCE(p.price, i.price), p.cost
       ORDER BY quantity DESC
       LIMIT 5;
@@ -396,6 +400,9 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
       JOIN today_tx ON today_tx.id = i.transaction_id
       LEFT JOIN coffeepos.products p ON p.id = i.product_id
       LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+      WHERE i.product_id IS NOT NULL
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Manual Item%'
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Custom Item%'
       GROUP BY COALESCE(p.id::text, 'manual'), COALESCE(p.name, i.name), c.name, p.stock, p.min_stock, p.image, COALESCE(p.price, i.price), p.cost
       ORDER BY quantity DESC
       LIMIT 5;
@@ -505,21 +512,21 @@ reportsRouter.get('/business-insights', async (req, res, next) => {
           AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
           AND ${NON_VOID}
       ),
-      items AS (
+      items_agg AS (
         SELECT 
           i.transaction_id, 
-          i.quantity, 
-          COALESCE(p.cost, 0) as cost
+          SUM(i.quantity * COALESCE(p.cost, 0)) as total_cost
         FROM coffeepos.transaction_items i
         JOIN tx ON tx.id = i.transaction_id
         LEFT JOIN coffeepos.products p ON p.id = i.product_id
+        GROUP BY i.transaction_id
       )
       SELECT 
-        COUNT(DISTINCT tx.id)::int as transaction_count,
+        COUNT(tx.id)::int as transaction_count,
         COALESCE(SUM(tx.grand_total), 0)::bigint as revenue,
-        COALESCE(SUM(items.quantity * items.cost), 0)::bigint as cogs
+        COALESCE(SUM(items_agg.total_cost), 0)::bigint as cogs
       FROM tx
-      LEFT JOIN items ON tx.id = items.transaction_id;
+      LEFT JOIN items_agg ON tx.id = items_agg.transaction_id;
     `;
         // 2. Trend Data
         const trendSql = `
@@ -550,6 +557,9 @@ reportsRouter.get('/business-insights', async (req, res, next) => {
       FROM coffeepos.transaction_items i
       JOIN tx ON tx.id = i.transaction_id
       LEFT JOIN coffeepos.products p ON p.id = i.product_id
+      WHERE i.product_id IS NOT NULL
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Manual Item%'
+        AND COALESCE(p.name, i.name) NOT ILIKE '%Custom Item%'
       GROUP BY COALESCE(p.name, i.name)
       ORDER BY qty DESC
       LIMIT 5;
