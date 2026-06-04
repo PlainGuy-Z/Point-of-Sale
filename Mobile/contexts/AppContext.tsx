@@ -43,6 +43,9 @@ interface ProductsContextType {
 interface TransactionsContextType {
   transactions: Transaction[];
   checkout: (params: CheckoutParams) => Promise<Transaction>;
+  transactionsCacheFrom?: string | null;
+  transactionsCacheTo?: string | null;
+  transactionsLimit?: number;
 }
 
 interface SettingsContextType {
@@ -300,7 +303,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const transactionsValue = useMemo(() => ({
     transactions: state.transactions,
     checkout,
-  }), [state.transactions, checkout]);
+    transactionsCacheFrom: state.transactionsCacheFrom,
+    transactionsCacheTo: state.transactionsCacheTo,
+    transactionsLimit: state.transactionsLimit,
+  }), [state.transactions, checkout, state.transactionsCacheFrom, state.transactionsCacheTo, state.transactionsLimit]);
 
   const settingsValue = useMemo(() => ({
     settings: state.settings,
