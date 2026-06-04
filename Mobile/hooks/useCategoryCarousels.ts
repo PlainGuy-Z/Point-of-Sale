@@ -18,10 +18,12 @@ export function useCategoryCarousels(
   periodDays: number,
   searchTerm: string = ''
 ): CategoryCarousel[] {
-  // 1. Heavy computation: Analytics (Only recalculate if transactions change)
+  const transactionCount = transactions.length;
+  const lastTransactionId = transactions[0]?.id ?? '';
+
   const salesMap = useMemo(() => {
     return getRecentSalesMapByPeriod(transactions, periodDays);
-  }, [transactions, periodDays]);
+  }, [transactionCount, lastTransactionId, periodDays]);
 
   // 2. Fast computation: UI Filtering & Grouping
   return useMemo(() => {

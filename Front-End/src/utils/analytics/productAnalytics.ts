@@ -1,6 +1,6 @@
 //src/utils/analytics/productAnalytics.ts
 import type { Transaction, Product } from '../../types';
-import { safeParseDate, createProductMap, filterValidTransactions, localDateKey } from './helpers';
+import { safeParseDate, createProductMap, filterValidTransactions } from './helpers';
 
 // ==================== TOP PRODUCTS (ALL TIME) ====================
 export function getTopProducts(
@@ -341,7 +341,7 @@ export class RollingBestSellerCalculator {
   private maxHistoryDays: number = 90;
   
   addDailySales(date: Date | string, transactions: Transaction[]): void {
-    const dateStr = typeof date === 'string' ? date : localDateKey(safeParseDate(date));
+    const dateStr = typeof date === 'string' ? date : safeParseDate(date).toISOString().split('T')[0];
     const validTransactions = filterValidTransactions(transactions);
     
     const existingIndex = this.dailyRecords.findIndex(record => record.date === dateStr);
@@ -482,7 +482,7 @@ export function initializeRollingCalculator(transactions: Transaction[]) {
   
   validTransactions.forEach(transaction => {
     const date = safeParseDate(transaction.date);
-    const dateStr = localDateKey(date);
+    const dateStr = date.toISOString().split('T')[0];
     
     if (!transactionsByDay.has(dateStr)) {
       transactionsByDay.set(dateStr, []);

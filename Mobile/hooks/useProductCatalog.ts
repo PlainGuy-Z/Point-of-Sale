@@ -2,7 +2,8 @@
  * useProductCatalog — product filtering, sorting, and analytics for POS.
  * Ported from Front-End/src/hooks/useProductCatalog.ts
  */
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { InteractionManager } from 'react-native';
 import type { Product, Transaction } from '../types';
 import {
   updateProductsWithBestSellerStatus,
@@ -27,21 +28,34 @@ export function useProductCatalog(
   bestSellerPeriod: number = 3
 ): UseProductCatalogResult {
   // 1. Heavy computation: Analytics & Best Sellers (Only recalculate if transactions change)
-  const { productsWithBestSeller, topBestSellers } = useMemo(() => {
-    const enriched = updateProductsWithBestSellerStatus(
-      products,
-      transactions,
-      bestSellerPeriod,
-      3,
-      1
-    );
-    const top = getTopBestSellersForBanner(
-      transactions,
-      products,
-      bestSellerPeriod
-    );
-    return { productsWithBestSeller: enriched, topBestSellers: top };
-  }, [products, transactions, bestSellerPeriod]);
+  const transactionCount = transactions.length;
+  const lastTransactionId = transactions[0]?.id ?? '';
+
+  const [analyticsData, setAnalyticsData] = useState({
+    productsWithBestSeller: products,
+    topBestSellers: [] as Product[]
+  });
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      const enriched = updateProductsWithBestSellerStatus(
+        products,
+        transactions,
+        bestSellerPeriod,
+        3,
+        1
+      );
+      const top = getTopBestSellersForBanner(
+        transactions,
+        products,
+        bestSellerPeriod
+      );
+      setAnalyticsData({ productsWithBestSeller: enriched, topBestSellers: top });
+    });
+    return () => task.cancel();
+  }, [products, transactionCount, lastTransactionId, bestSellerPeriod]);
+
+  const { productsWithBestSeller, topBestSellers } = analyticsData;
 
   // 2. Fast computation: UI Filtering & Sorting (Recalculate on search/category change)
   return useMemo(() => {

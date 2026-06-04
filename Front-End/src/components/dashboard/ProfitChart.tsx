@@ -141,6 +141,7 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
     const [yStr, mStr] = selectedMonth.split('-');
     const year = Number(yStr);
     const monthIndex = Number(mStr) - 1;
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
     const revenueByDay = new Map<number, number>();
 
     transactions.forEach((t) => {
@@ -151,13 +152,13 @@ export default function ProfitChart({ transactions }: { transactions: Transactio
       revenueByDay.set(day, (revenueByDay.get(day) || 0) + (t.total || 0));
     });
 
-    const activeDaysArray = Array.from(revenueByDay.keys()).sort((a, b) => a - b);
-    
-    return activeDaysArray.map((day) => {
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      const showTick = day === 1 || day % 7 === 0 || day === daysInMonth;
       return {
         day,
         dayLabel: String(day),
-        shortLabel: String(day),
+        shortLabel: showTick ? String(day) : '',
         revenue: revenueByDay.get(day) || 0,
       };
     });

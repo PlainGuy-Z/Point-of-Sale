@@ -107,7 +107,7 @@ export function MobileProductCard({ product, isDark, onAdd, rank, totalSold = 0 
               ? 'bg-stone-900/80 text-stone-200' 
               : 'bg-amber-50 text-amber-600'
           }`}>
-            {totalSold} terjual (estimasi lokal)
+            {totalSold} terjual (Est. Lokal)
           </span>
         </div>
 
@@ -162,7 +162,7 @@ export default function MobileCategoryCarousel({
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
               isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-600'
             }`}>
-              {carousel.totalSales} terjual (estimasi lokal)
+              {carousel.totalSales} terjual
             </span>
           )}
         </div>

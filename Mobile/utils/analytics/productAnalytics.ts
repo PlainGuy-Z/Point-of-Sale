@@ -137,7 +137,6 @@ export function updateProductsWithBestSellerStatus(
       recentSalesCount: 0,
       bestSellerRank: undefined,
       bestSellerPeriod: periodDays,
-      bestSellerUpdatedAt: new Date().toISOString(),
     }));
   }
 
@@ -157,7 +156,6 @@ export function updateProductsWithBestSellerStatus(
       recentSalesCount: recentSales,
       bestSellerRank: bsData?.rank,
       bestSellerPeriod: periodDays,
-      bestSellerUpdatedAt: new Date().toISOString(),
     };
   });
 }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type { CartItemWithInput, Product } from '../types';
 import { useApp } from './AppContext';
 import { getEffectivePrice } from '../utils/priceUtils';
@@ -49,6 +49,7 @@ interface POSCartContextValue {
   cartIsEmpty: boolean;
   totalItems: number;
   totalQuantity: number;
+  getCheckoutData?: () => CheckoutData;
 }
 
 // ─── Default values ─────────────────────────────────────────────────────────────
@@ -61,7 +62,8 @@ const defaultCheckout: CheckoutData = {
   applyTax: false,
 };
 
-const POSCartContext = createContext<POSCartContextValue | undefined>(undefined);
+const POSCartStateContext = createContext<any>(undefined);
+const POSCartActionsContext = createContext<any>(undefined);
 
 // ─── Provider ───────────────────────────────────────────────────────────────────
 
@@ -74,6 +76,17 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
   }));
   const [panel, setPanel] = useState<CartPanel>('cart');
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+
+  const tableNumberRef = useRef('');
+  const customerNameRef = useRef('');
+  const orderNoteRef = useRef('');
+
+  const getCheckoutData = useCallback(() => ({
+    ...checkoutData,
+    tableNumber: tableNumberRef.current,
+    customerName: customerNameRef.current,
+    orderNote: orderNoteRef.current,
+  }), [checkoutData]);
 
   // Sync applyTax with business settings when they load or update
   useEffect(() => {
@@ -167,20 +180,22 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
     setCheckoutData(prev => ({
       ...prev,
       orderType: type,
-      tableNumber: type === 'take-away' ? '' : prev.tableNumber,
     }));
+    if (type === 'take-away') {
+      tableNumberRef.current = '';
+    }
   }, []);
 
   const setTableNumber = useCallback((value: string) => {
-    setCheckoutData(prev => ({ ...prev, tableNumber: value }));
+    tableNumberRef.current = value;
   }, []);
 
   const setCustomerName = useCallback((value: string) => {
-    setCheckoutData(prev => ({ ...prev, customerName: value }));
+    customerNameRef.current = value;
   }, []);
 
   const setOrderNote = useCallback((value: string) => {
-    setCheckoutData(prev => ({ ...prev, orderNote: value }));
+    orderNoteRef.current = value;
   }, []);
 
   const setApplyTax = useCallback((value: boolean) => {
@@ -193,6 +208,9 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
       ...defaultCheckout,
       applyTax: settings?.tax_enabled ?? settings?.taxEnabled ?? false,
     });
+    tableNumberRef.current = '';
+    customerNameRef.current = '';
+    orderNoteRef.current = '';
     setPanel('cart');
     setEditingItemIndex(null);
   }, [settings?.tax_enabled, settings?.taxEnabled]);
@@ -220,58 +238,69 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
 
   // ── Value ───────────────────────────────────────────────────────────────────
 
-  const value = useMemo<POSCartContextValue>(
-    () => ({
-      cart,
-      setCart,
-      addToCart,
-      removeFromCart,
-      removeAtIndex,
-      updateQuantity,
-      updateCartItem,
-      addCustomItem,
-      clearCart,
-      checkout: checkoutData,
-      setOrderType,
-      setTableNumber,
-      setCustomerName,
-      setOrderNote,
-      setApplyTax,
-      resetCheckout,
-      panel,
-      setPanel,
-      editingItemIndex,
-      setEditingItemIndex,
-      subtotal,
-      taxAmount,
-      total,
-      cartIsEmpty,
-      totalItems,
-      totalQuantity,
-    }),
-    [
-      cart, addToCart, removeFromCart, removeAtIndex, updateQuantity,
-      updateCartItem, addCustomItem, clearCart,
-      checkoutData, setOrderType, setTableNumber, setCustomerName,
-      setOrderNote, setApplyTax, resetCheckout,
-      panel, editingItemIndex,
-      subtotal, taxAmount, total, cartIsEmpty, totalItems, totalQuantity,
-    ]
-  );
+  const cartActionsValue = useMemo(() => ({
+    setCart,
+    addToCart,
+    removeFromCart,
+    removeAtIndex,
+    updateQuantity,
+    updateCartItem,
+    addCustomItem,
+    clearCart,
+    setOrderType,
+    setTableNumber,
+    setCustomerName,
+    setOrderNote,
+    setApplyTax,
+    resetCheckout,
+    setPanel,
+    setEditingItemIndex,
+    getCheckoutData,
+  }), [
+    addToCart, removeFromCart, removeAtIndex, updateQuantity,
+    updateCartItem, addCustomItem, clearCart,
+    setOrderType, setTableNumber, setCustomerName,
+    setOrderNote, setApplyTax, resetCheckout,
+    getCheckoutData
+  ]);
+
+  const cartStateValue = useMemo(() => ({
+    cart,
+    checkout: checkoutData,
+    panel,
+    editingItemIndex,
+    subtotal,
+    taxAmount,
+    total,
+    cartIsEmpty,
+    totalItems,
+    totalQuantity,
+  }), [
+    cart, checkoutData, panel, editingItemIndex,
+    subtotal, taxAmount, total, cartIsEmpty, totalItems, totalQuantity,
+  ]);
 
   return (
-    <POSCartContext.Provider value={value}>
-      {children}
-    </POSCartContext.Provider>
+    <POSCartStateContext.Provider value={cartStateValue}>
+      <POSCartActionsContext.Provider value={cartActionsValue}>
+        {children}
+      </POSCartActionsContext.Provider>
+    </POSCartStateContext.Provider>
   );
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────────────
 
-export function usePOSCart() {
-  const context = useContext(POSCartContext);
-  if (!context) {
+export const usePOSCartState = () => useContext(POSCartStateContext);
+export const usePOSCartActions = () => useContext(POSCartActionsContext);
+
+export function usePOSCart(): POSCartContextValue {
+  const state = usePOSCartState();
+  const actions = usePOSCartActions();
+  
+  if (!state || !actions) {
     throw new Error('usePOSCart must be used within POSCartProvider');
   }
-  return context;
+  
+  return { ...state, ...actions };
 }

@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Banknote, CreditCard, QrCode, CheckCircle, Delete } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { useApp } from '../../contexts/AppContext';
+import { useTransactions } from '../../contexts/AppContext';
 import { usePOSCart } from '../../contexts/POSCartContext';
 import { formatRupiah } from '../../utils/currency';
 import { useLayout } from '../../hooks/useLayout';
@@ -82,7 +82,7 @@ interface PaymentScreenProps {
 export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps) {
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const { checkout: appCheckout } = useApp();
+  const { checkout: appCheckout } = useTransactions();
   const { isLandscape, isTablet, mode } = useLayout();
   const isSplitLayout = isLandscape && isTablet;
   const isPhoneLandscape = mode === 'phone-landscape';

@@ -29,7 +29,37 @@ interface AppContextType {
   addWasteLog: (waste: { productId: string; quantity: number; reason: string; notes?: string }) => Promise<void>;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+interface ProductsContextType {
+  products: Product[];
+  categories: string[];
+  categoriesWithId: { id: string; name: string }[];
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (product: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  addCategory: (name: string) => Promise<void>;
+  deleteCategory: (name: string) => Promise<void>;
+}
+
+interface TransactionsContextType {
+  transactions: Transaction[];
+  checkout: (params: CheckoutParams) => Promise<Transaction>;
+}
+
+interface SettingsContextType {
+  settings: BusinessSettings;
+  updateSettings: (settings: Partial<BusinessSettings> & { shop_name?: string }) => Promise<BusinessSettings>;
+  customers: Customer[];
+  wasteLogs: WasteLog[];
+  isServiceLoading: boolean;
+  serviceError: string | null;
+  clearServiceError: () => void;
+  refreshState: () => Promise<void>;
+  addWasteLog: (waste: { productId: string; quantity: number; reason: string; notes?: string }) => Promise<void>;
+}
+
+const ProductsContext = createContext<ProductsContextType | undefined>(undefined);
+const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 const defaultSettings: BusinessSettings = {
   storeName: 'Default Store',
@@ -256,44 +286,67 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const value = useMemo<AppContextType>(
-    () => ({
-      ...state,
-      isServiceLoading,
-      serviceError,
-      clearServiceError,
-      checkout,
-      refreshState,
-      updateSettings,
-      addProduct,
-      updateProduct,
-      deleteProduct,
-      addCategory,
-      deleteCategory,
-      addWasteLog,
-    }),
-    [
-      state,
-      isServiceLoading,
-      serviceError,
-      clearServiceError,
-      checkout,
-      refreshState,
-      updateSettings,
-      addProduct,
-      updateProduct,
-      deleteProduct,
-      addCategory,
-      deleteCategory,
-      addWasteLog,
-    ]
-  );
+  const productsValue = useMemo(() => ({
+    products: state.products,
+    categories: state.categories,
+    categoriesWithId: state.categoriesWithId,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    addCategory,
+    deleteCategory,
+  }), [state.products, state.categories, state.categoriesWithId, addProduct, updateProduct, deleteProduct, addCategory, deleteCategory]);
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  const transactionsValue = useMemo(() => ({
+    transactions: state.transactions,
+    checkout,
+  }), [state.transactions, checkout]);
+
+  const settingsValue = useMemo(() => ({
+    settings: state.settings,
+    updateSettings,
+    customers: state.customers,
+    wasteLogs: state.wasteLogs,
+    isServiceLoading,
+    serviceError,
+    clearServiceError,
+    refreshState,
+    addWasteLog,
+  }), [state.settings, updateSettings, state.customers, state.wasteLogs, isServiceLoading, serviceError, clearServiceError, refreshState, addWasteLog]);
+
+  return (
+    <SettingsContext.Provider value={settingsValue}>
+      <TransactionsContext.Provider value={transactionsValue}>
+        <ProductsContext.Provider value={productsValue}>
+          {children}
+        </ProductsContext.Provider>
+      </TransactionsContext.Provider>
+    </SettingsContext.Provider>
+  );
+}
+
+export function useProducts() {
+  const context = useContext(ProductsContext);
+  if (!context) throw new Error('useProducts must be used within AppProvider');
+  return context;
+}
+
+export function useTransactions() {
+  const context = useContext(TransactionsContext);
+  if (!context) throw new Error('useTransactions must be used within AppProvider');
+  return context;
+}
+
+export function useSettings() {
+  const context = useContext(SettingsContext);
+  if (!context) throw new Error('useSettings must be used within AppProvider');
+  return context;
 }
 
 export function useApp() {
-  const context = useContext(AppContext);
-  if (!context) throw new Error('useApp must be used within AppProvider');
-  return context;
+  return {
+    ...useProducts(),
+    ...useTransactions(),
+    ...useSettings(),
+  };
 }

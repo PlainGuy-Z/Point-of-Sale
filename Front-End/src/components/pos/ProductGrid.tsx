@@ -1,4 +1,4 @@
-import { Plus, Package, Trophy, Lock } from 'lucide-react';
+import { Plus, Package, Trophy, Lock, TrendingUp } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import type { Product } from '../../types';
 import { getEffectivePrice } from '../../utils/priceUtils';
@@ -191,8 +191,9 @@ export default function ProductGrid({
                       : 'bg-slate-100 text-slate-700'
                     }
                   `}>
+                    <TrendingUp size={10} className={isDark ? 'text-amber-400' : 'text-teal-600'} />
                     <span>
-                      {totalSold} terjual (estimasi lokal)
+                      {totalSold} terjual (Est. Lokal)
                     </span>
                   </div>
                 </div>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { ChevronRight, TrendingUp, X } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
-import { usePOSCart } from '../../contexts/POSCartContext';
 import ProductCard from './ProductCard';
 import type { Product } from '../../types';
 import type { CategoryCarousel as CategoryCarouselData } from '../../hooks/useCategoryCarousels';
@@ -11,13 +11,15 @@ import type { CategoryCarousel as CategoryCarouselData } from '../../hooks/useCa
 interface CategoryCarouselProps {
   carousel: CategoryCarouselData;
   onViewAll?: (carousel: CategoryCarouselData) => void;
+  cartQuantities: Record<string, number>;
+  onAddToCart: (p: Product) => void;
+  onRemoveFromCart: (id: string) => void;
 }
 
-export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarouselProps) {
+function CategoryCarousel({ carousel, onViewAll, cartQuantities, onAddToCart, onRemoveFromCart }: CategoryCarouselProps) {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
-  const { cart, addToCart, removeFromCart } = usePOSCart();
 
   const [showAll, setShowAll] = useState(false);
 
@@ -26,8 +28,7 @@ export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarous
 
   if (products.length === 0) return null;
 
-  const getCartQty = (productId: string) =>
-    cart.find(i => i.productId === productId)?.quantity || 0;
+  const getCartQty = (productId: string) => cartQuantities[productId] || 0;
 
   // ── "Lihat Semua" grid mode ───────────────────────────────────────────────
   if (showAll) {
@@ -73,8 +74,8 @@ export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarous
             <View key={product.id} style={{ width: '50%' }}>
               <ProductCard
                 product={product}
-                onAdd={addToCart}
-                onRemove={removeFromCart}
+                onAdd={onAddToCart}
+                onRemove={onRemoveFromCart}
                 cartQuantity={getCartQty(product.id)}
                 variant="full"
               />
@@ -128,17 +129,18 @@ export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarous
       </View>
 
       {/* Horizontal scroll */}
-      <FlatList
+      <FlashList
         data={products}
         keyExtractor={(item) => item.id}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 6, gap: 10 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 6 }}
+        ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
         renderItem={({ item }) => (
           <ProductCard
             product={item}
-            onAdd={addToCart}
-            onRemove={removeFromCart}
+            onAdd={onAddToCart}
+            onRemove={onRemoveFromCart}
             cartQuantity={getCartQty(item.id)}
             variant="compact"
           />
@@ -147,3 +149,15 @@ export default function CategoryCarousel({ carousel, onViewAll }: CategoryCarous
     </View>
   );
 }
+
+export default React.memo(
+  CategoryCarousel,
+  (prev, next) => {
+    return (
+      prev.carousel.categoryName === next.carousel.categoryName &&
+      prev.carousel.products.length === next.carousel.products.length &&
+      prev.cartQuantities === next.cartQuantities &&
+      prev.onViewAll === next.onViewAll
+    );
+  }
+);

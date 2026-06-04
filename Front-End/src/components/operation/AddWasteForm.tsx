@@ -19,17 +19,11 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
     notes: '',
   });
 
-  const availableProducts = products.filter(p => p.stock > 0 || p.stock === -1);
   const selectedProduct = products.find(p => p.id === formData.productId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
-
-    if (selectedProduct.stock !== -1 && formData.quantity > selectedProduct.stock) {
-      alert(`Kuantitas melebihi stok tersedia (${selectedProduct.stock}).`);
-      return;
-    }
 
     const wasteData = {
       productId: formData.productId,
@@ -65,9 +59,9 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
             required
           >
             <option value="" className={isDark ? 'bg-stone-900' : ''}>Select a product</option>
-            {availableProducts.map(product => (
+            {products.map(product => (
               <option key={product.id} value={product.id} className={isDark ? 'bg-stone-900' : ''}>
-                {product.name} (Stock: {product.stock === -1 ? '∞' : product.stock})
+                {product.name} (Stock: {product.stock})
               </option>
             ))}
           </select>
@@ -79,7 +73,7 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
           <input
             type="number"
             min="1"
-            max={selectedProduct?.stock === -1 ? undefined : (selectedProduct?.stock || 1)}
+            max={selectedProduct?.stock || 1}
             className={inputClass}
             value={formData.quantity}
             onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
@@ -87,7 +81,7 @@ export default function AddWasteForm({ products, onSubmit, onCancel }: AddWasteF
           />
           {selectedProduct && (
             <p className={`text-xs mt-1 ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>
-              Available stock: {selectedProduct.stock === -1 ? '∞' : selectedProduct.stock}
+              Available stock: {selectedProduct.stock}
             </p>
           )}
         </div>

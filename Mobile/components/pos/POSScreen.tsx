@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useContext } from 'react';
+import React, { useState, useCallback, useContext, useMemo } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, useWindowDimensions, Modal, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, TrendingUp, Flame, Award, PlusCircle, Package, Menu, ChevronDown, SlidersHorizontal, AlertCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useApp } from '../../contexts/AppContext';
+import { useProducts, useTransactions, useSettings } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
@@ -24,7 +25,7 @@ import CheckoutSheet from './CheckoutSheet';
 import PaymentScreen from './PaymentScreen';
 import PaymentSuccessScreen from './PaymentSuccessScreen';
 import SidebarModal from './SidebarModal';
-import type { CartItemWithInput, Transaction } from '../../types';
+import type { CartItemWithInput, Transaction, Product } from '../../types';
 
 // ─── Trending period options ────────────────────────────────────────────────────
 
@@ -42,7 +43,9 @@ export default function POSScreen() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
 
-  const { products, transactions, categories, checkout: appCheckout, serviceError, refreshState, isServiceLoading } = useApp();
+  const { products, categories } = useProducts();
+  const { transactions, checkout: appCheckout } = useTransactions();
+  const { serviceError, refreshState, isServiceLoading } = useSettings();
   const { user, isCashier } = useAuth();
   const { activeShift } = useShift();
   const { openSidebar } = useContext(SidebarContext);
@@ -86,10 +89,26 @@ export default function POSScreen() {
   );
 
   // ── Cart quantity lookup ──────────────────────────────────────────────────
+  const cartQuantities = useMemo(() => {
+    const map: Record<string, number> = {};
+    cart.forEach(item => {
+      map[item.productId] = (map[item.productId] || 0) + item.quantity;
+    });
+    return map;
+  }, [cart]);
+
   const getCartQty = useCallback((productId: string) =>
-    cart.find(i => i.productId === productId)?.quantity || 0,
-    [cart]
+    cartQuantities[productId] || 0,
+    [cartQuantities]
   );
+
+  const handleAddToCart = useCallback((product: Product) => {
+    addToCart(product);
+  }, [addToCart]);
+
+  const handleRemoveFromCart = useCallback((productId: string) => {
+    removeFromCart(productId);
+  }, [removeFromCart]);
 
   // ── Edit item ─────────────────────────────────────────────────────────────
   const editingItem = editingItemIndex !== null ? cart[editingItemIndex] : null;
@@ -508,40 +527,51 @@ export default function POSScreen() {
           renderNetworkError()
         ) : (
           /* Category carousels */
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{
-              paddingTop: 10,
-              paddingBottom: cartIsEmpty ? 20 : 100,
-            }}
-            showsVerticalScrollIndicator={true}
-          >
+          <View style={{ flex: 1 }}>
             {categoryCarousels.length === 0 ||
               categoryCarousels.every(cr => cr.products.length === 0) ? (
-              <View style={{
-                alignItems: 'center', justifyContent: 'center',
-                paddingVertical: 80, paddingHorizontal: 20,
-              }}>
-                <Package size={48} color={c.textMuted} strokeWidth={1.5} />
-                <Text style={{ color: c.textSecondary, fontSize: 14, fontWeight: '600', marginTop: 12 }}>
-                  {search ? 'Tidak ada hasil pencarian' : 'Tidak ada produk'}
-                </Text>
-                <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' }}>
-                  {search ? `Coba kata kunci lain "${search}"` : 'Produk akan muncul di sini'}
-                </Text>
-              </View>
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{
+                  paddingTop: 10,
+                  paddingBottom: cartIsEmpty ? 20 : 100,
+                }}
+                showsVerticalScrollIndicator={true}
+              >
+                <View style={{
+                  alignItems: 'center', justifyContent: 'center',
+                  paddingVertical: 80, paddingHorizontal: 20,
+                }}>
+                  <Package size={48} color={c.textMuted} strokeWidth={1.5} />
+                  <Text style={{ color: c.textSecondary, fontSize: 14, fontWeight: '600', marginTop: 12 }}>
+                    {search ? 'Tidak ada hasil pencarian' : 'Tidak ada produk'}
+                  </Text>
+                  <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' }}>
+                    {search ? `Coba kata kunci lain "${search}"` : 'Produk akan muncul di sini'}
+                  </Text>
+                </View>
+              </ScrollView>
             ) : (
-              categoryCarousels
-                .filter(cr => cr.products.length > 0)
-                .map(cr => (
+              <FlashList
+                data={categoryCarousels.filter(cr => cr.products.length > 0)}
+                renderItem={({ item }) => (
                   <CategoryCarousel
-                    key={cr.categoryName}
-                    carousel={cr}
+                    carousel={item}
+                    cartQuantities={cartQuantities}
+                    onAddToCart={handleAddToCart}
+                    onRemoveFromCart={handleRemoveFromCart}
                     onViewAll={(carousel) => setCategoryModal({ title: carousel.categoryName, products: carousel.products })}
                   />
-                ))
+                )}
+                keyExtractor={item => item.categoryName}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingTop: 10,
+                  paddingBottom: cartIsEmpty ? 20 : 100,
+                }}
+              />
             )}
-          </ScrollView>
+          </View>
         )}
 
         {/* Floating cart */}
