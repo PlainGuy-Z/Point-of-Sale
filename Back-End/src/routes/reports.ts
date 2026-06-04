@@ -31,22 +31,21 @@ reportsRouter.get('/sales', async (req, res, next) => {
           AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
           AND ${NON_VOID}
       ),
-      items AS (
+      items_agg AS (
         SELECT 
           i.transaction_id, 
-          i.quantity, 
-          i.price,
-          COALESCE(p.cost, 0) as cost
+          SUM(i.quantity * COALESCE(p.cost, 0)) as total_cost
         FROM coffeepos.transaction_items i
         JOIN tx ON tx.id = i.transaction_id
         LEFT JOIN coffeepos.products p ON p.id = i.product_id
+        GROUP BY i.transaction_id
       )
       SELECT 
-        COUNT(DISTINCT tx.id)::int as total_transactions,
+        COUNT(tx.id)::int as total_transactions,
         COALESCE(SUM(tx.grand_total), 0)::bigint as total_revenue,
-        COALESCE(SUM(items.quantity * items.cost), 0)::bigint as cogs
+        COALESCE(SUM(items_agg.total_cost), 0)::bigint as cogs
       FROM tx
-      LEFT JOIN items ON tx.id = items.transaction_id;
+      LEFT JOIN items_agg ON tx.id = items_agg.transaction_id;
     `;
 
     // 2. Previous Summary
@@ -279,22 +278,21 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
           AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
           AND ${NON_VOID}
       ),
-      items AS (
+      items_agg AS (
         SELECT 
           i.transaction_id, 
-          i.quantity, 
-          i.price,
-          COALESCE(p.cost, 0) as cost
+          SUM(i.quantity * COALESCE(p.cost, 0)) as total_cost
         FROM coffeepos.transaction_items i
         JOIN tx ON tx.id = i.transaction_id
         LEFT JOIN coffeepos.products p ON p.id = i.product_id
+        GROUP BY i.transaction_id
       )
       SELECT 
-        COUNT(DISTINCT tx.id)::int as total_transactions,
+        COUNT(tx.id)::int as total_transactions,
         COALESCE(SUM(tx.grand_total), 0)::bigint as total_revenue,
-        COALESCE(SUM(items.quantity * items.cost), 0)::bigint as cogs
+        COALESCE(SUM(items_agg.total_cost), 0)::bigint as cogs
       FROM tx
-      LEFT JOIN items ON tx.id = items.transaction_id;
+      LEFT JOIN items_agg ON tx.id = items_agg.transaction_id;
     `;
 
     // 2. Previous Summary
@@ -561,21 +559,21 @@ reportsRouter.get('/business-insights', async (req, res, next) => {
           AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
           AND ${NON_VOID}
       ),
-      items AS (
+      items_agg AS (
         SELECT 
           i.transaction_id, 
-          i.quantity, 
-          COALESCE(p.cost, 0) as cost
+          SUM(i.quantity * COALESCE(p.cost, 0)) as total_cost
         FROM coffeepos.transaction_items i
         JOIN tx ON tx.id = i.transaction_id
         LEFT JOIN coffeepos.products p ON p.id = i.product_id
+        GROUP BY i.transaction_id
       )
       SELECT 
-        COUNT(DISTINCT tx.id)::int as transaction_count,
+        COUNT(tx.id)::int as transaction_count,
         COALESCE(SUM(tx.grand_total), 0)::bigint as revenue,
-        COALESCE(SUM(items.quantity * items.cost), 0)::bigint as cogs
+        COALESCE(SUM(items_agg.total_cost), 0)::bigint as cogs
       FROM tx
-      LEFT JOIN items ON tx.id = items.transaction_id;
+      LEFT JOIN items_agg ON tx.id = items_agg.transaction_id;
     `;
 
     // 2. Trend Data
