@@ -218,7 +218,7 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
   // ── Computed ────────────────────────────────────────────────────────────────
 
   const subtotal = useMemo(
-    () => cart.reduce((s, i) => s + (i.price + (i.variantPrice || 0)) * i.quantity, 0),
+    () => cart.reduce((s, i) => s + (Number(i.price) + Number(i.variantPrice || 0)) * Number(i.quantity), 0),
     [cart]
   );
 

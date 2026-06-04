@@ -206,12 +206,12 @@ export function useMobileSalesReport(
   };
 
   const localSummary: SummaryData = useMemo(() => {
-    const totalRevenue = filtered.reduce((s, t) => s + (t.total || (t as any).total_amount || 0), 0);
+    const totalRevenue = filtered.reduce((s, t) => s + (Number(t.total) || Number((t as any).total_amount) || 0), 0);
     const totalTransactions = filtered.length;
     const avgTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
     const { profit: netProfit, hasCost: hasCostData } = calcProfit(filtered);
 
-    const prevRevenue = prevFiltered.reduce((s, t) => s + (t.total || (t as any).total_amount || 0), 0);
+    const prevRevenue = prevFiltered.reduce((s, t) => s + (Number(t.total) || Number((t as any).total_amount) || 0), 0);
     const prevTransactions = prevFiltered.length;
     const prevAvgTicket = prevTransactions > 0 ? prevRevenue / prevTransactions : 0;
     const { profit: prevNetProfit } = calcProfit(prevFiltered);
@@ -300,11 +300,11 @@ export function useMobileSalesReport(
 
         const e = map.get(id) || { name, qty: 0, revenue: 0, totalCost: 0, hasCost: false };
         e.qty += item.quantity;
-        e.revenue += item.quantity * item.price;
+        e.revenue += Number(item.quantity) * Number(item.price);
         const cost = item.cost ?? p?.cost;
         if (cost != null) {
           e.hasCost = true;
-          e.totalCost += item.quantity * cost;
+          e.totalCost += Number(item.quantity) * Number(cost);
         }
         map.set(id, e);
       });
@@ -329,7 +329,7 @@ export function useMobileSalesReport(
       e.revenue += (t.total || (t as any).total_amount || 0);
       map.set(m, e);
     });
-    const total = filtered.reduce((s, t) => s + (t.total || (t as any).total_amount || 0), 0);
+    const total = filtered.reduce((s, t) => s + (Number(t.total) || Number((t as any).total_amount) || 0), 0);
     return Array.from(map.entries())
       .sort(([, a], [, b]) => b.revenue - a.revenue)
       .map(([method, d]) => ({
