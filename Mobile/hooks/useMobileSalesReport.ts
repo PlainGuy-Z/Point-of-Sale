@@ -101,15 +101,15 @@ export function getDateRange(preset: PresetKey, customStart?: Date, customEnd?: 
     case '7days': {
       const s = new Date(now);
       s.setDate(s.getDate() - 6);
-      return { start: startOfDay(s), end: now };
+      return { start: startOfDay(s), end: endOfDay(now) };
     }
     case '30days': {
       const s = new Date(now);
       s.setDate(s.getDate() - 29);
-      return { start: startOfDay(s), end: now };
+      return { start: startOfDay(s), end: endOfDay(now) };
     }
     case 'month':
-      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
+      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: endOfDay(now) };
     case 'custom':
       return {
         start: customStart ? startOfDay(customStart) : startOfDay(now),
@@ -119,10 +119,15 @@ export function getDateRange(preset: PresetKey, customStart?: Date, customEnd?: 
 }
 
 function getPrevRange(range: DateRange): DateRange {
-  const durationMs = range.end.getTime() - range.start.getTime();
+  const diffTime = range.end.getTime() - range.start.getTime();
+  const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+  
+  const pEnd = new Date(range.start.getTime() - 1);
+  const pStart = new Date(pEnd.getFullYear(), pEnd.getMonth(), pEnd.getDate() - diffDays + 1);
+  
   return {
-    start: new Date(range.start.getTime() - durationMs),
-    end: new Date(range.start.getTime() - 1),
+    start: startOfDay(pStart),
+    end: endOfDay(pEnd),
   };
 }
 
