@@ -123,6 +123,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
     subtotal,
     taxAmount,
     checkout: checkoutData,
+    getCheckoutData,
     resetCheckout,
   } = usePOSCart();
 
@@ -188,6 +189,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
     setIsProcessing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
+      const fullCheckout = getCheckoutData?.() || checkoutData;
       const completedTx = await appCheckout({
         cart: cart.map((i) => ({
           ...i,
@@ -197,14 +199,14 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
           ...(i.productId.startsWith('manual-') ? { price: i.price } : {}),
         })),
         paymentMethod: method,
-        orderType: checkoutData.orderType,
-        tableNumber: checkoutData.tableNumber || undefined,
-        customCustomerName: checkoutData.customerName || undefined,
-        orderNote: checkoutData.orderNote || undefined,
-        notes: checkoutData.orderNote || undefined,
+        orderType: fullCheckout.orderType,
+        tableNumber: fullCheckout.tableNumber || undefined,
+        customCustomerName: fullCheckout.customerName || undefined,
+        orderNote: fullCheckout.orderNote || undefined,
+        notes: fullCheckout.orderNote || undefined,
         cashReceived: method === 'cash' ? received : undefined,
         change: method === 'cash' ? Math.max(0, change) : undefined,
-        applyTax: checkoutData.applyTax,
+        applyTax: fullCheckout.applyTax,
       });
       resetCheckout();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -214,7 +216,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
     } finally {
       setIsProcessing(false);
     }
-  }, [appCheckout, cart, method, checkoutData, received, change, resetCheckout, onSuccess]);
+  }, [appCheckout, cart, method, checkoutData, getCheckoutData, received, change, resetCheckout, onSuccess]);
 
   const handleClear = useCallback(() => {
     setReceivedStr('');
