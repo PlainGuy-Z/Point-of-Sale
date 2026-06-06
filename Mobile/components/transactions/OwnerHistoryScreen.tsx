@@ -94,7 +94,7 @@ export default function OwnerHistoryScreen() {
 
   // Detail / void review
   const [detail, setDetail] = useState<HistoryTransaction | null>(null);
-  const [review, setReview] = useState<{ t: HistoryTransaction; action: 'approve' | 'reject' } | null>(null);
+  const [review, setReview] = useState<{ t: HistoryTransaction; action: 'approve' | 'reject' | 'direct-void' } | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -225,7 +225,11 @@ export default function OwnerHistoryScreen() {
   const handleReviewSuccess = () => {
     setReview(null);
     setDetail(null);
-    showFeedback(review?.action === 'approve' ? 'Void disetujui' : 'Permintaan void ditolak');
+    if (review?.action === 'direct-void') {
+      showFeedback('Transaksi berhasil dibatalkan');
+    } else {
+      showFeedback(review?.action === 'approve' ? 'Void disetujui' : 'Permintaan void ditolak');
+    }
     void loadRows();
     void loadSummaries();
   };
@@ -428,26 +432,69 @@ export default function OwnerHistoryScreen() {
         {filtersOpen && (
           <View style={styles.filterContent}>
             {/* Date range */}
-            <View style={styles.dateRow}>
-              <View style={styles.dateField}>
-                <Text style={[styles.dateLabel, { color: c.textMuted }]}>Dari</Text>
-                <TextInput
-                  style={[styles.dateInput, { backgroundColor: c.bgInput, borderColor: c.border, color: c.text }]}
-                  value={dateFrom}
-                  onChangeText={setDateFrom}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={c.textMuted}
-                />
-              </View>
-              <View style={styles.dateField}>
-                <Text style={[styles.dateLabel, { color: c.textMuted }]}>Sampai</Text>
-                <TextInput
-                  style={[styles.dateInput, { backgroundColor: c.bgInput, borderColor: c.border, color: c.text }]}
-                  value={dateTo}
-                  onChangeText={setDateTo}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={c.textMuted}
-                />
+            <View style={{ marginBottom: 12 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                {['Hari Ini', 'Kemarin', 'Minggu Ini', 'Bulan Ini', 'Semua Waktu'].map((label, i) => {
+                  const presets = ['today', 'yesterday', 'this_week', 'this_month', 'clear'] as const;
+                  const key = presets[i];
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      onPress={() => {
+                        if (key === 'clear') {
+                          setDateFrom('');
+                          setDateTo('');
+                          return;
+                        }
+                        const now = new Date();
+                        const pad = (n: number) => String(n).padStart(2, '0');
+                        const toDateStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                        let dFrom = new Date();
+                        let dTo = new Date();
+                        if (key === 'yesterday') { dFrom.setDate(now.getDate() - 1); dTo.setDate(now.getDate() - 1); }
+                        else if (key === 'this_week') {
+                          const day = now.getDay();
+                          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                          dFrom.setDate(diff);
+                        }
+                        else if (key === 'this_month') {
+                          dFrom.setDate(1);
+                        }
+                        setDateFrom(toDateStr(dFrom));
+                        setDateTo(toDateStr(dTo));
+                      }}
+                      style={[
+                        styles.chip,
+                        { borderWidth: 1, borderColor: c.border, marginRight: 6, backgroundColor: isDark ? '#292524' : '#f1f5f9' }
+                      ]}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.chipText, { color: key === 'clear' ? c.error : c.text }]}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              <View style={styles.dateRow}>
+                <View style={styles.dateField}>
+                  <Text style={[styles.dateLabel, { color: c.textMuted }]}>Dari (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={[styles.dateInput, { backgroundColor: c.bgInput, borderColor: c.border, color: c.text }]}
+                    value={dateFrom}
+                    onChangeText={setDateFrom}
+                    placeholder="Contoh: 2026-06-01"
+                    placeholderTextColor={c.textMuted}
+                  />
+                </View>
+                <View style={styles.dateField}>
+                  <Text style={[styles.dateLabel, { color: c.textMuted }]}>Sampai (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={[styles.dateInput, { backgroundColor: c.bgInput, borderColor: c.border, color: c.text }]}
+                    value={dateTo}
+                    onChangeText={setDateTo}
+                    placeholder="Contoh: 2026-06-30"
+                    placeholderTextColor={c.textMuted}
+                  />
+                </View>
               </View>
             </View>
 
@@ -687,6 +734,7 @@ export default function OwnerHistoryScreen() {
           onClose={() => setDetail(null)}
           onVoidApprove={() => setReview({ t: detail, action: 'approve' })}
           onVoidReject={() => setReview({ t: detail, action: 'reject' })}
+          onVoidDirect={() => setReview({ t: detail, action: 'direct-void' })}
         />
       )}
 

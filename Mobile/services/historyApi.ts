@@ -106,6 +106,16 @@ export const historyApi = {
   },
 
   /**
+   * POST /transactions/:id/void-direct
+   */
+  directVoid: async (id: string, reason: string): Promise<void> => {
+    await http(`/transactions/${encodeURIComponent(id)}/void-direct`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason.trim() }),
+    });
+  },
+
+  /**
    * GET /users — list cashiers for owner filter dropdown
    */
   getCashiers: async (): Promise<Array<{ id: string; name: string; email?: string; role?: string }>> => {

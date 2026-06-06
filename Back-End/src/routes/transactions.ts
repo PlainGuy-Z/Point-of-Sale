@@ -23,6 +23,10 @@ const VoidRejectSchema = z.object({
   note: z.string().trim().min(1)
 });
 
+const VoidDirectSchema = z.object({
+  reason: z.string().trim().min(5)
+});
+
 const NON_VOID = `(COALESCE(t.status, '') <> 'voided')`;
 
 function mapOrderType(raw: string | null | undefined): 'dine_in' | 'takeaway' {
@@ -485,6 +489,75 @@ transactionsRouter.post('/:id/void-reject', requireOwner, validateBody(VoidRejec
          WHERE id = $3::uuid`,
         [ownerId, body.note, txId]
       );
+    });
+
+    const mapped = await loadTransactionMapped(txId, shopId);
+    res.json(mapped);
+  } catch (e) {
+    next(e);
+  }
+});
+
+transactionsRouter.post('/:id/void-direct', requireOwner, validateBody(VoidDirectSchema), async (req, res, next) => {
+  try {
+    const txId = req.params.id as string;
+    const shopId = req.user!.shop_id;
+    const body = req.body as z.infer<typeof VoidDirectSchema>;
+    const ownerId = req.user!.id;
+
+    await withTransaction(async (client) => {
+      const { rows } = await client.query(
+        `SELECT *, grand_total FROM coffeepos.transactions WHERE id = $1::uuid AND shop_id = $2::uuid FOR UPDATE`,
+        [txId, shopId]
+      );
+      if (rows.length === 0) throw new HttpError(404, 'NOT_FOUND', 'Transaction not found');
+      const trx = rows[0];
+
+      if (String(trx.status) !== 'completed') {
+        throw new HttpError(400, 'INVALID_STATE', 'Only completed transactions may be voided directly');
+      }
+
+      await reverseStockForTransaction(client, txId);
+
+      await client.query(
+        `UPDATE coffeepos.transactions SET
+           status = 'voided',
+           void_reason = $1,
+           void_requested_by = $2::uuid,
+           void_requested_at = now(),
+           void_reviewed_by = $2::uuid,
+           void_reviewed_at = now(),
+           void_review_note = 'Direct void by owner',
+           updated_at = now()
+         WHERE id = $3::uuid`,
+        [body.reason, ownerId, txId]
+      );
+
+      // Also update expected_cash and cash_difference for cash payments on closed shifts
+      const shiftId = trx.shift_id as string | null;
+      const grandTotal = Number(trx.grand_total ?? 0);
+      const paymentMethod = String(trx.payment_method ?? '').toLowerCase();
+      const isCashPayment = paymentMethod === 'cash' || paymentMethod.includes('tunai');
+
+      if (shiftId) {
+        await client.query(
+          `UPDATE coffeepos.shifts
+           SET total_transactions = GREATEST(0, COALESCE(total_transactions, 0) - 1),
+               total_sales = GREATEST(0, COALESCE(total_sales, 0) - $1::bigint),
+               expected_cash = CASE
+                 WHEN $3::boolean
+                 THEN GREATEST(0, COALESCE(expected_cash, 0) - $1::bigint)
+                 ELSE expected_cash
+               END,
+               cash_difference = CASE
+                 WHEN $3::boolean AND status = 'closed'
+                 THEN COALESCE(cash_difference, 0) + $1::bigint
+                 ELSE cash_difference
+               END
+           WHERE id = $2::uuid`,
+          [grandTotal, shiftId, isCashPayment]
+        );
+      }
     });
 
     const mapped = await loadTransactionMapped(txId, shopId);

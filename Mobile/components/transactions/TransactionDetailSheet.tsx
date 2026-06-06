@@ -23,6 +23,7 @@ interface TransactionDetailSheetProps {
   onVoidRequest?: () => void;
   onVoidApprove?: () => void;
   onVoidReject?: () => void;
+  onVoidDirect?: () => void;
 }
 
 function fmtWIB(iso: string): string {
@@ -45,6 +46,7 @@ export default function TransactionDetailSheet({
   onVoidRequest,
   onVoidApprove,
   onVoidReject,
+  onVoidDirect,
 }: TransactionDetailSheetProps) {
   const { settings, products } = useApp();
   const { user } = useAuth();
@@ -498,6 +500,16 @@ export default function TransactionDetailSheet({
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.voidBtnText, { color: c.error }]}>Ajukan Void</Text>
+                </TouchableOpacity>
+              )}
+
+              {userRole === 'owner' && t.status === 'completed' && onVoidDirect && (
+                <TouchableOpacity
+                  style={[styles.voidBtn, { borderColor: c.error }]}
+                  onPress={onVoidDirect}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.voidBtnText, { color: c.error }]}>Batalkan Transaksi</Text>
                 </TouchableOpacity>
               )}
 

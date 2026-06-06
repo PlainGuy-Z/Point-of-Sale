@@ -11,7 +11,7 @@ import { ApiError } from '../../services/api';
 
 interface VoidReviewModalProps {
   transaction: HistoryTransaction;
-  action: 'approve' | 'reject';
+  action: 'approve' | 'reject' | 'direct-void';
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -32,17 +32,20 @@ export default function VoidReviewModal({
   const [loading, setLoading] = useState(false);
 
   const isApprove = action === 'approve';
-  const title = isApprove ? 'Setujui Pembatalan' : 'Tolak Pembatalan';
+  const isDirect = action === 'direct-void';
+  const title = isApprove ? 'Setujui Pembatalan' : isDirect ? 'Batalkan Transaksi' : 'Tolak Pembatalan';
 
   const handleSubmit = async () => {
     setError(null);
     if (!isApprove && note.trim().length < 1) {
-      setError('Catatan penolakan wajib diisi.');
+      setError(isDirect ? 'Alasan pembatalan wajib diisi.' : 'Catatan penolakan wajib diisi.');
       return;
     }
     setLoading(true);
     try {
-      if (isApprove) {
+      if (isDirect) {
+        await historyApi.directVoid(t.id, note.trim());
+      } else if (isApprove) {
         await historyApi.approveVoid(t.id, note.trim() || undefined);
       } else {
         await historyApi.rejectVoid(t.id, note.trim());
@@ -101,15 +104,19 @@ export default function VoidReviewModal({
                   {t.cashier_name || '-'}
                 </Text>
               </View>
-              <View style={[styles.divider, { borderTopColor: c.border }]} />
-              <Text style={[styles.reasonLabel, { color: c.textMuted }]}>Alasan Kasir:</Text>
-              <Text style={[styles.reasonText, { color: c.text }]}>
-                {t.void_reason || '-'}
-              </Text>
+              {!isDirect && (
+                <>
+                  <View style={[styles.divider, { borderTopColor: c.border }]} />
+                  <Text style={[styles.reasonLabel, { color: c.textMuted }]}>Alasan Kasir:</Text>
+                  <Text style={[styles.reasonText, { color: c.text }]}>
+                    {t.void_reason || '-'}
+                  </Text>
+                </>
+              )}
             </View>
 
-            {/* Warning for approve */}
-            {isApprove && (
+            {/* Warning for approve & direct-void */}
+            {(isApprove || isDirect) && (
               <View style={[styles.warningBox, {
                 backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(220,38,38,0.08)',
                 borderColor: isDark ? 'rgba(239,68,68,0.3)' : 'rgba(220,38,38,0.3)',
@@ -127,7 +134,7 @@ export default function VoidReviewModal({
 
             {/* Note Input */}
             <Text style={[styles.label, { color: c.textSecondary }]}>
-              {isApprove ? 'Catatan (opsional)' : 'Alasan penolakan (wajib)'}
+              {isApprove ? 'Catatan (opsional)' : isDirect ? 'Alasan Pembatalan (wajib)' : 'Alasan penolakan (wajib)'}
             </Text>
             <TextInput
               style={[styles.textArea, {
@@ -136,7 +143,7 @@ export default function VoidReviewModal({
                 color: c.text,
                 minHeight: isApprove ? 72 : 100,
               }]}
-              placeholder={isApprove ? 'Catatan internal...' : 'Jelaskan alasan penolakan'}
+              placeholder={isApprove ? 'Catatan internal...' : isDirect ? 'Alasan void (mis. pelanggan komplain)...' : 'Jelaskan alasan penolakan'}
               placeholderTextColor={c.textMuted}
               value={note}
               onChangeText={setNote}
@@ -160,7 +167,7 @@ export default function VoidReviewModal({
                 style={[
                   styles.btnSubmit,
                   {
-                    backgroundColor: isApprove ? '#dc2626' : c.accent,
+                    backgroundColor: (isApprove || isDirect) ? '#dc2626' : c.accent,
                     opacity: loading ? 0.6 : 1,
                   },
                 ]}
@@ -172,7 +179,7 @@ export default function VoidReviewModal({
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Text style={styles.btnSubmitText}>
-                    {isApprove ? 'Setujui Void' : 'Tolak Permintaan'}
+                    {isApprove ? 'Setujui Void' : isDirect ? 'Batalkan Transaksi' : 'Tolak Permintaan'}
                   </Text>
                 )}
               </TouchableOpacity>
