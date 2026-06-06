@@ -118,19 +118,29 @@ export default function TransactionDetailSheet({
   const [isPrinting, setIsPrinting] = useState(false);
 
   const isDine = t.order_type !== 'takeaway';
-  const subtotal = useMemo(() => {
+  const subtotal = t.subtotal !== undefined && t.subtotal !== null ? t.subtotal : useMemo(() => {
     return resolvedItems.reduce((sum, item) => sum + (item.unit_price + (item.variant_price || 0)) * item.quantity, 0);
   }, [resolvedItems]);
   const discount = t.discount_amount ?? 0;
-  const taxAmount = t.tax_rate ? Math.round(subtotal * (t.tax_rate / 100)) : (t.tax_amount ?? 0);
-  const serviceAmount = t.service_charge ?? t.service_amount ?? 0;
-  const total = subtotal + taxAmount + serviceAmount - discount;
+  const taxAmount = t.tax_amount !== undefined && t.tax_amount !== null
+    ? t.tax_amount
+    : (t.tax_rate ? Math.round(subtotal * (t.tax_rate / 100)) : 0);
+  const serviceAmount = t.service_amount !== undefined && t.service_amount !== null
+    ? t.service_amount
+    : (t.service_charge ?? 0);
+  const total = t.total_amount !== undefined && t.total_amount !== null
+    ? t.total_amount
+    : (subtotal + taxAmount + serviceAmount - discount);
   const isCash =
     String(t.payment_method).toLowerCase() === 'cash' ||
     String(t.raw_payment_method || '').toLowerCase() === 'cash';
 
-  const amountPaidVal = isCash ? (t.amount_paid ?? total) : undefined;
-  const changeAmountVal = isCash ? Math.max(0, (amountPaidVal ?? 0) - total) : undefined;
+  const amountPaidVal = isCash
+    ? (t.amount_paid !== undefined && t.amount_paid !== null ? t.amount_paid : total)
+    : undefined;
+  const changeAmountVal = isCash
+    ? (t.change_amount !== undefined && t.change_amount !== null ? t.change_amount : Math.max(0, (amountPaidVal ?? 0) - total))
+    : undefined;
 
   const handlePrint = useCallback(async () => {
     setIsPrinting(true);
