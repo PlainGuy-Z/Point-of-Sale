@@ -966,7 +966,7 @@ export default function POSScreen() {
               numColumns={4}
               key={`landscape-grid-4-cols-${Math.floor(landscapeGridWidth)}`}
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
-              columnWrapperStyle={{ justifyContent: 'space-between' }}
+              columnWrapperStyle={{ justifyContent: 'flex-start' }}
               showsVerticalScrollIndicator={true}
               initialNumToRender={16}
               maxToRenderPerBatch={8}

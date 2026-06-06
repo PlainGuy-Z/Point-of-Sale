@@ -282,7 +282,7 @@ export default function ShiftCloseModal({ visible, onClose, onSuccess }: ShiftCl
                       flex: 1,
                       fontWeight: '500',
                     }}>
-                      Selisih kas cukup besar. Mohon periksa kembali perhitungan.
+                      Terdapat selisih kas. Mohon periksa kembali perhitungan.
                     </Text>
                   </View>
                 )}
