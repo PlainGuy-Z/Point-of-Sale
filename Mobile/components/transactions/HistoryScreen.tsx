@@ -80,15 +80,23 @@ export default function HistoryScreen() {
         customer_name: t.customerName || null,
         table_number: t.tableNumber || null,
         order_type: t.orderType || 'dine_in',
-        subtotal: t.total,
+        subtotal: t.subtotal ?? t.total,
+        tax_amount: t.tax ?? 0,
+        tax_rate: t.taxRate ?? 0,
+        service_charge: t.service_charge ?? 0,
+        service_amount: t.service_charge ?? 0,
         total_amount: t.total,
         payment_method: t.paymentMethod,
         raw_payment_method: t.paymentMethod,
         items: (t.items || []).map((i: any) => ({
-          product_name: i.note || i.productId,
+          product_id: i.productId || null,
+          product_name: i.note || i.name || i.productId || 'Item',
           quantity: i.quantity,
           unit_price: i.price,
-          subtotal: i.price * i.quantity
+          subtotal: i.price * i.quantity,
+          variant_name: i.variantName || null,
+          variant_price: i.variantPrice || null,
+          notes: i.description || null,
         }))
       } as HistoryTransaction));
       setRows(cached);

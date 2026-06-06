@@ -129,6 +129,9 @@ export default function TransactionDetailSheet({
     String(t.payment_method).toLowerCase() === 'cash' ||
     String(t.raw_payment_method || '').toLowerCase() === 'cash';
 
+  const amountPaidVal = isCash ? (t.amount_paid ?? total) : undefined;
+  const changeAmountVal = isCash ? Math.max(0, (amountPaidVal ?? 0) - total) : undefined;
+
   const handlePrint = useCallback(async () => {
     setIsPrinting(true);
     try {
@@ -147,9 +150,10 @@ export default function TransactionDetailSheet({
           name: item.product_name,
           quantity: item.quantity,
           price: item.unit_price,
-          subtotal: item.subtotal,
+          subtotal: (item.unit_price + (item.variant_price || 0)) * item.quantity,
           variantName: item.variant_name || undefined,
           variantPrice: item.variant_price || undefined,
+          description: item.notes || undefined,
           notes: item.notes || undefined,
         })),
         subtotal,
@@ -158,8 +162,8 @@ export default function TransactionDetailSheet({
         serviceCharge: serviceAmount || undefined,
         grandTotal: total,
         paymentMethod: String(t.raw_payment_method || t.payment_method || 'cash').toLowerCase(),
-        amountPaid: isCash ? (t.amount_paid ?? total) : undefined,
-        change: isCash ? (t.change_amount ?? 0) : undefined,
+        amountPaid: amountPaidVal,
+        change: changeAmountVal,
         receiptFooter: (settings as any)?.receiptFooter,
         paperSize: config.paperSize,
       };
@@ -187,7 +191,7 @@ export default function TransactionDetailSheet({
           <View style={[styles.header, { borderBottomColor: c.border }]}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: c.text }]}>Detail Transaksi</Text>
-              <Text style={[styles.idText, { color: c.textMuted }]} numberOfLines={1}>
+              <Text style={{ fontFamily: 'monospace', fontSize: 10, marginBottom: 8, color: c.textMuted }} numberOfLines={1}>
                 #{t.id}
               </Text>
               <StatusBadge status={t.status} isDark={isDark} size="md" />
@@ -198,96 +202,207 @@ export default function TransactionDetailSheet({
           </View>
 
           <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={true}
+            style={styles.content}
+            contentContainerStyle={styles.contentScrollContent}
           >
-            {/* ── Info Transaksi ── */}
-            <Text style={[styles.sectionTitle, { color: c.accent }]}>Info Transaksi</Text>
-            <View style={[styles.infoGrid]}>
-              <InfoCard label="Tanggal & Waktu" value={fmtWIB(t.created_at)} c={c} />
-              <InfoCard label="Kasir" value={t.cashier_name || '-'} c={c} />
-              <InfoCard label="Pelanggan" value={t.customer_name?.trim() || 'Umum'} c={c} />
-              <InfoCard
-                label="Tipe Order"
-                value={isDine ? `Dine-in (Meja ${t.table_number?.trim() || '-'})` : 'Take-away'}
-                c={c}
-              />
-              <InfoCard label="Metode Bayar" value={String(t.payment_method)} c={c} full />
-              {t.notes ? <InfoCard label="Catatan Pesanan" value={t.notes} c={c} full /> : null}
+            {/* Receipt Shop Header */}
+            <View style={styles.receiptHeader}>
+              <Text style={[styles.receiptStoreName, { color: c.text }]}>
+                {settings?.storeName?.toUpperCase() || user?.shop?.name?.toUpperCase() || 'SMARTPOS'}
+              </Text>
+              {settings?.address ? (
+                <Text style={[styles.receiptStoreAddress, { color: c.textSecondary }]}>
+                  {settings.address}
+                </Text>
+              ) : null}
+              {(settings as any)?.phone ? (
+                <Text style={[styles.receiptStoreAddress, { color: c.textSecondary }]}>
+                  {(settings as any).phone}
+                </Text>
+              ) : null}
             </View>
 
-            {/* ── Detail Produk ── */}
-            <Text style={[styles.sectionTitle, { color: c.accent, marginTop: 20 }]}>Detail Produk</Text>
-            <View style={[styles.productsBox, { borderColor: c.border }]}>
-              {/* Table header */}
-              <View style={[styles.prodHeader, { backgroundColor: c.bgInput }]}>
-                <Text style={[styles.prodHeaderText, { color: c.textMuted, flex: 2 }]}>Produk</Text>
-                <Text style={[styles.prodHeaderText, { color: c.textMuted, width: 40, textAlign: 'center' }]}>Qty</Text>
-                <Text style={[styles.prodHeaderText, { color: c.textMuted, flex: 1, textAlign: 'right' }]}>Subtotal</Text>
+            <View style={[styles.dashedBorder, { borderBottomColor: c.border }]} />
+
+            {/* Order Info */}
+            <View style={styles.infoContainer}>
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, { color: c.textSecondary }]}>Receipt ID</Text>
+                <Text style={[styles.infoValue, { color: c.text }]}>#{t.id}</Text>
               </View>
-              {resolvedItems.map((item, i) => (
-                <View key={i} style={[styles.prodRow, i > 0 && { borderTopWidth: 1, borderTopColor: c.border }]}>
-                  <View style={{ flex: 2 }}>
-                    <Text style={[styles.prodName, { color: c.text }]}>{item.product_name}</Text>
-                    <Text style={[styles.prodPrice, { color: c.textMuted }]}>
-                      @{formatRupiah(item.unit_price)}
-                    </Text>
-                    {item.variant_name ? (
-                      <Text style={[styles.prodVariant, { color: isDark ? '#fbbf24' : '#d97706' }]}>
-                        + {item.variant_name} {item.variant_price ? formatRupiah(item.variant_price) : ''}
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, { color: c.textSecondary }]}>Tanggal</Text>
+                <Text style={[styles.infoValue, { color: c.text }]}>{fmtWIB(t.created_at)}</Text>
+              </View>
+              
+              <View style={styles.infoRowCentered}>
+                <Text style={[styles.infoLabel, { color: c.textSecondary }]}>Tipe Pesanan</Text>
+                <View style={[
+                  styles.typeBadge,
+                  {
+                    backgroundColor: isDark ? 'rgba(120, 53, 4, 0.2)' : 'rgba(217, 119, 6, 0.08)',
+                    borderColor: isDark ? '#78350f' : '#cbd5e1',
+                  }
+                ]}>
+                  <Text style={[styles.typeBadgeText, { color: isDark ? '#fbbf24' : '#d97706' }]}>
+                    {t.order_type === 'dine_in' ? 'Dine In' : 'Take Away'}
+                  </Text>
+                </View>
+              </View>
+              
+              {t.customer_name?.trim() ? (
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoLabel, { color: c.textSecondary }]}>Pelanggan</Text>
+                  <Text style={[styles.infoValueCustomer, { color: c.text }]}>{t.customer_name.trim()}</Text>
+                </View>
+              ) : null}
+              
+              {isDine && t.table_number?.trim() ? (
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoLabel, { color: c.textSecondary }]}>Meja</Text>
+                  <Text style={[styles.infoValueTable, { color: c.text }]}>{t.table_number.trim()}</Text>
+                </View>
+              ) : null}
+
+              {t.notes?.trim() ? (
+                <View style={styles.notesContainer}>
+                  <Text style={[styles.notesLabel, { color: c.textSecondary }]}>Catatan Pesanan:</Text>
+                  <Text style={[styles.notesValue, { color: c.text }]}>"{t.notes.trim()}"</Text>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={[styles.dashedBorder, { borderBottomColor: c.border }]} />
+
+            {/* Items */}
+            <View style={styles.itemsContainer}>
+              {resolvedItems.map((item, i) => {
+                const mainTotal = item.unit_price * item.quantity;
+                const variantTotal = (item.variant_price || 0) * item.quantity;
+                const hasVariant = !!item.variant_name;
+                const itemCombinedTotal = mainTotal + variantTotal;
+
+                return (
+                  <View key={i} style={styles.itemBlock}>
+                    {/* Main Item Row */}
+                    <View style={styles.itemMainRow}>
+                      <Text style={[styles.itemName, { color: c.text }]}>
+                        {item.quantity}x {item.product_name}
                       </Text>
-                    ) : null}
+                      <Text style={[styles.itemTotal, { color: c.text }]}>
+                        {formatRupiah(mainTotal)}
+                      </Text>
+                    </View>
+                    
+                    {/* Variant Row */}
+                    {hasVariant && (
+                      <View style={styles.itemVariantRow}>
+                        <Text style={[styles.itemVariantLabel, { color: isDark ? '#fbbf24' : '#d97706' }]}>
+                          + {item.variant_name}
+                        </Text>
+                        <Text style={[styles.itemVariantValue, { color: isDark ? '#fbbf24' : '#d97706' }]}>
+                          {formatRupiah(variantTotal)}
+                        </Text>
+                      </View>
+                    )}
+
                     {item.notes ? (
-                      <Text style={[styles.prodNote, { color: c.textMuted }]}>
+                      <Text style={[styles.itemNoteText, { color: c.textMuted }]}>
                         {item.notes}
                       </Text>
                     ) : null}
                   </View>
-                  <Text style={[styles.prodQty, { color: c.text }]}>{item.quantity}</Text>
-                  <Text style={[styles.prodSubtotal, { color: c.text }]}>
-                    {formatRupiah(item.subtotal)}
-                  </Text>
-                </View>
-              ))}
+                );
+              })}
             </View>
 
-            {/* ── Ringkasan Harga ── */}
-            <View style={[styles.summaryBox, { backgroundColor: c.bgInput, borderColor: c.border }]}>
-              <SummaryRow label="Subtotal" value={formatRupiah(subtotal)} c={c} />
-              {discount > 0 && (
-                <SummaryRow label="Diskon" value={`- ${formatRupiah(discount)}`} c={c} isRed />
-              )}
-              {taxAmount > 0 && (
-                <SummaryRow
-                  label={`Pajak${t.tax_rate ? ` (${t.tax_rate}%)` : ''}`}
-                  value={formatRupiah(taxAmount)}
-                  c={c}
-                />
-              )}
-              {serviceAmount > 0 && (
-                <SummaryRow label="Service" value={formatRupiah(serviceAmount)} c={c} />
-              )}
-              <View style={[styles.totalDivider, { borderTopColor: c.border }]} />
-              <View style={styles.summaryRow}>
-                <Text style={[styles.totalLabel, { color: c.text }]}>Total</Text>
-                <Text style={[styles.totalValue, { color: c.accent }]}>{formatRupiah(total)}</Text>
+            <View style={[styles.dashedBorder, { borderBottomColor: c.border }]} />
+
+            {/* Totals */}
+            <View style={styles.totalsContainer}>
+              <View style={styles.totalRowSmall}>
+                <Text style={[styles.totalLabelSmall, { color: c.textMuted }]}>Subtotal</Text>
+                <Text style={[styles.totalValueSmall, { color: c.text }]}>
+                  {formatRupiah(subtotal)}
+                </Text>
               </View>
-              {isCash && (
-                <>
-                  <View style={styles.summaryRow}>
-                    <Text style={[styles.cashLabel, { color: c.textMuted }]}>Bayar</Text>
-                    <Text style={[styles.cashValue, { color: c.text }]}>
-                      {formatRupiah(Number(t.amount_paid ?? total))}
-                    </Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={[styles.cashLabel, { color: c.textMuted }]}>Kembalian</Text>
-                    <Text style={[styles.cashValue, { color: c.text }]}>
-                      {formatRupiah(Number(t.change_amount ?? 0))}
-                    </Text>
-                  </View>
-                </>
+
+              {discount > 0 && (
+                <View style={styles.totalRowSmall}>
+                  <Text style={[styles.totalLabelSmall, { color: '#ef4444' }]}>Diskon</Text>
+                  <Text style={[styles.totalValueSmall, { color: '#ef4444' }]}>
+                    - {formatRupiah(discount)}
+                  </Text>
+                </View>
               )}
+
+              {taxAmount > 0 && (
+                <View style={styles.totalRowSmall}>
+                  <Text style={[styles.totalLabelSmall, { color: c.textMuted }]}>
+                    {(settings as any)?.taxLabel || (settings as any)?.tax_label || 'Pajak'} ({t.tax_rate || 0}%)
+                  </Text>
+                  <Text style={[styles.totalValueSmall, { color: c.text }]}>
+                    {formatRupiah(taxAmount)}
+                  </Text>
+                </View>
+              )}
+
+              {serviceAmount > 0 && (
+                <View style={styles.totalRowSmall}>
+                  <Text style={[styles.totalLabelSmall, { color: c.textMuted }]}>
+                    {(settings as any)?.service_charge_label || 'Service'}
+                  </Text>
+                  <Text style={[styles.totalValueSmall, { color: c.text }]}>
+                    {formatRupiah(serviceAmount)}
+                  </Text>
+                </View>
+              )}
+
+              <View style={[styles.dashedBorderSmall, { borderBottomColor: c.border }]} />
+
+              <View style={styles.grandTotalRow}>
+                <Text style={[styles.grandTotalLabel, { color: c.text }]}>Total</Text>
+                <Text style={[styles.grandTotalValue, { color: c.accent }]}>
+                  {formatRupiah(total)}
+                </Text>
+              </View>
+
+              <View style={[styles.dashedBorderSmall, { borderBottomColor: c.border }]} />
+
+              <Text style={[styles.paymentMethodText, { color: c.textMuted }]}>
+                Pembayaran: {String(t.raw_payment_method || t.payment_method || 'CASH').toUpperCase()}
+              </Text>
+
+              {isCash && (
+                <View style={styles.cashDetails}>
+                  <View style={styles.totalRowSmall}>
+                    <Text style={[styles.totalLabelSmall, { color: c.textMuted }]}>Tunai</Text>
+                    <Text style={[styles.totalValueSmall, { color: c.text }]}>
+                      {formatRupiah(amountPaidVal ?? total)}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRowSmall}>
+                    <Text style={[styles.totalLabelSmall, { color: c.textMuted }]}>Kembali</Text>
+                    <Text style={[styles.totalValueSmall, { color: c.text }]}>
+                      {formatRupiah(changeAmountVal || 0)}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {(settings as any)?.receiptFooter ? (
+                <View style={styles.footerContainer}>
+                  <Text style={[styles.footerText, { color: c.textMuted }]}>
+                    {(settings as any).receiptFooter}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* Dots */}
+              <Text style={{ textAlign: 'center', marginTop: 12, color: c.textMuted, letterSpacing: 4 }}>
+                • • •
+              </Text>
             </View>
 
             {/* ── Informasi Void ── */}
@@ -376,24 +491,6 @@ export default function TransactionDetailSheet({
 
 // ── Sub-components ──
 
-function InfoCard({ label, value, c, full }: { label: string; value: string; c: ReturnType<typeof getColors>; full?: boolean }) {
-  return (
-    <View style={[infoStyles.card, { backgroundColor: c.bgInput, borderColor: c.border }, full && { width: '100%' }]}>
-      <Text style={[infoStyles.label, { color: c.textMuted }]}>{label}</Text>
-      <Text style={[infoStyles.value, { color: c.text }]}>{value}</Text>
-    </View>
-  );
-}
-
-function SummaryRow({ label, value, c, isRed }: { label: string; value: string; c: ReturnType<typeof getColors>; isRed?: boolean }) {
-  return (
-    <View style={styles.summaryRow}>
-      <Text style={[styles.summaryLabel, { color: isRed ? '#ef4444' : c.textMuted }]}>{label}</Text>
-      <Text style={[styles.summaryValue, { color: isRed ? '#ef4444' : c.text }]}>{value}</Text>
-    </View>
-  );
-}
-
 function VoidInfoRow({ label, value, c }: { label: string; value: string; c: ReturnType<typeof getColors> }) {
   return (
     <View style={{ marginBottom: 4 }}>
@@ -421,6 +518,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 600,
     alignSelf: 'center',
+    display: 'flex',
+    flexDirection: 'column',
   },
   handle: {
     width: 40,
@@ -434,7 +533,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -442,125 +541,224 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    marginBottom: 4,
-  },
-  idText: {
-    fontFamily: 'monospace',
-    fontSize: 10,
-    marginBottom: 8,
   },
   closeBtn: {
     padding: 4,
   },
   content: {
+    width: '100%',
+    flexGrow: 1,
+  },
+  contentScrollContent: {
     padding: 20,
     paddingBottom: 40,
   },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 10,
+  // Receipt layout styles
+  receiptHeader: {
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  infoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  productsBox: {
-    borderWidth: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  prodHeader: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  prodHeaderText: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  prodRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    alignItems: 'flex-start',
-  },
-  prodName: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  prodPrice: {
-    fontSize: 10,
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  prodVariant: {
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 1,
-  },
-  prodNote: {
-    fontSize: 10,
-    fontStyle: 'italic',
-    marginTop: 1,
-  },
-  prodQty: {
-    width: 40,
+  receiptStoreName: {
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 1,
     textAlign: 'center',
-    fontSize: 12,
-    fontWeight: '600',
   },
-  prodSubtotal: {
-    flex: 1,
-    textAlign: 'right',
-    fontSize: 12,
-    fontWeight: '700',
+  receiptStoreAddress: {
+    fontSize: 10,
+    marginTop: 2,
+    textAlign: 'center',
+    lineHeight: 14,
   },
-  summaryBox: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 12,
-    gap: 6,
+  dashedBorder: {
+    borderBottomWidth: 1,
+    borderStyle: 'dashed',
+    marginVertical: 10,
   },
-  summaryRow: {
+  dashedBorderSmall: {
+    borderBottomWidth: 1,
+    borderStyle: 'dashed',
+    marginVertical: 6,
+  },
+  infoContainer: {
+    gap: 5,
+  },
+  infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  summaryLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+  infoRowCentered: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 2,
   },
-  summaryValue: {
-    fontSize: 12,
+  infoLabel: {
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  infoValue: {
+    fontSize: 10.5,
     fontWeight: '700',
   },
-  totalDivider: {
-    borderTopWidth: 1,
-    borderStyle: 'dashed',
-    marginVertical: 4,
-  },
-  totalLabel: {
-    fontSize: 15,
+  infoValueCustomer: {
+    fontSize: 11.5,
     fontWeight: '900',
   },
-  totalValue: {
-    fontSize: 15,
+  infoValueTable: {
+    fontSize: 12,
     fontWeight: '900',
   },
-  cashLabel: {
-    fontSize: 11,
-    fontWeight: '500',
+  typeBadge: {
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  cashValue: {
+  typeBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  notesContainer: {
+    paddingTop: 4,
+  },
+  notesLabel: {
+    fontSize: 10.5,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  notesValue: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    fontStyle: 'italic',
+    lineHeight: 14,
+  },
+  itemsContainer: {
+    gap: 10,
+  },
+  itemBlock: {
+    gap: 2,
+    width: '100%',
+  },
+  itemMainRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemName: {
+    fontSize: 11.5,
+    fontWeight: '900',
+  },
+  itemTotal: {
+    fontSize: 11.5,
+    fontWeight: '900',
+  },
+  itemDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingLeft: 10,
+    marginTop: 1,
+  },
+  itemDetailLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  itemDetailValue: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  itemVariantRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingLeft: 10,
+    marginTop: 1,
+  },
+  itemVariantLabel: {
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  itemVariantValue: {
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  itemNoteText: {
+    fontSize: 10,
+    fontStyle: 'italic',
+    fontWeight: '700',
+    paddingLeft: 10,
+    marginTop: 1,
+    lineHeight: 13,
+  },
+  itemCombinedRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingLeft: 10,
+    marginTop: 3,
+    paddingTop: 3,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(128,128,128,0.2)',
+  },
+  itemCombinedLabel: {
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  itemCombinedValue: {
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  totalsContainer: {
+    gap: 4,
+  },
+  totalRowSmall: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalLabelSmall: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  totalValueSmall: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  grandTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  grandTotalLabel: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  grandTotalValue: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  paymentMethodText: {
+    fontSize: 11,
+    fontWeight: '900',
+    paddingTop: 4,
+  },
+  cashDetails: {
+    gap: 4,
+    marginTop: 2,
+  },
+  footerContainer: {
+    paddingTop: 12,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 9.5,
+    fontStyle: 'italic',
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 14,
   },
   voidBox: {
     borderWidth: 1,
@@ -634,27 +832,6 @@ const styles = StyleSheet.create({
   },
 });
 
-const infoStyles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    width: '48%',
-    flexGrow: 1,
-  },
-  label: {
-    fontSize: 9,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    marginBottom: 3,
-  },
-  value: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-});
-
 const voidStyles = StyleSheet.create({
   label: {
     fontSize: 11,
@@ -666,3 +843,5 @@ const voidStyles = StyleSheet.create({
     lineHeight: 18,
   },
 });
+
+// End of file
