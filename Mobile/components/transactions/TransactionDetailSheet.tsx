@@ -295,6 +295,16 @@ export default function TransactionDetailSheet({
                       </Text>
                     </View>
                     
+                    {/* Base Unit Price (only for quantity >= 2) */}
+                    {item.quantity >= 2 && (
+                      <View style={styles.itemDetailRow}>
+                        <Text style={[styles.itemDetailLabel, { color: c.textMuted }]}>Harga Satuan</Text>
+                        <Text style={[styles.itemDetailValue, { color: c.textMuted }]}>
+                          {formatRupiah(item.unit_price)}
+                        </Text>
+                      </View>
+                    )}
+
                     {/* Variant Row */}
                     {hasVariant && (
                       <View style={styles.itemVariantRow}>
@@ -307,9 +317,31 @@ export default function TransactionDetailSheet({
                       </View>
                     )}
 
+                    {/* Variant Unit Price (only for quantity >= 2) */}
+                    {hasVariant && item.quantity >= 2 && (
+                      <View style={styles.itemDetailRow}>
+                        <Text style={[styles.itemDetailLabel, { color: c.textMuted }]}>Harga Variant Satuan</Text>
+                        <Text style={[styles.itemDetailValue, { color: c.textMuted }]}>
+                          {formatRupiah(item.variant_price || 0)}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Per-item combined total (base + variant) — only shown when variant exists */}
+                    {hasVariant && (
+                      <View style={styles.itemCombinedRow}>
+                        <Text style={[styles.itemCombinedLabel, { color: c.textSecondary }]}>
+                          Total Item
+                        </Text>
+                        <Text style={[styles.itemCombinedValue, { color: c.textSecondary }]}>
+                          {formatRupiah(itemCombinedTotal)}
+                        </Text>
+                      </View>
+                    )}
+
                     {item.notes ? (
                       <Text style={[styles.itemNoteText, { color: c.textMuted }]}>
-                        {item.notes}
+                        Catatan: {item.notes}
                       </Text>
                     ) : null}
                   </View>
