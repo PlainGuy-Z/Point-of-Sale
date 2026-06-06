@@ -397,7 +397,7 @@ export default function POSScreen() {
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal: 8, gap: 6, paddingTop: 8, paddingBottom: 8, alignItems: 'center' }}
-      style={{ maxHeight: 46, marginBottom: 6 }}
+      style={{ height: 46, marginBottom: 6, flexGrow: 0, flexShrink: 0 }}
     >
       {['Semua', ...(categories || [])].map(cat => {
         const isActive = selectedCategory === cat;
@@ -554,6 +554,8 @@ export default function POSScreen() {
             ) : (
               <FlashList
                 data={categoryCarousels.filter(cr => cr.products.length > 0)}
+                // @ts-ignore
+                estimatedItemSize={220}
                 renderItem={({ item }) => (
                   <CategoryCarousel
                     carousel={item}
@@ -961,6 +963,7 @@ export default function POSScreen() {
           ) : (
             <FlatList
               data={sortedProducts}
+              style={{ flex: 1 }}
               refreshControl={<RefreshControl refreshing={isServiceLoading} onRefresh={refreshState} />}
               keyExtractor={item => item.id}
               numColumns={4}
@@ -968,9 +971,9 @@ export default function POSScreen() {
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
               columnWrapperStyle={{ justifyContent: 'flex-start' }}
               showsVerticalScrollIndicator={true}
-              initialNumToRender={16}
-              maxToRenderPerBatch={8}
-              windowSize={5}
+              initialNumToRender={8}
+              maxToRenderPerBatch={4}
+              windowSize={3}
               removeClippedSubviews={true}
               ListEmptyComponent={
                 <View style={{ alignItems: 'center', paddingVertical: 60 }}>

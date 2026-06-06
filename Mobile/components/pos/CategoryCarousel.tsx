@@ -132,6 +132,8 @@ function CategoryCarousel({ carousel, onViewAll, cartQuantities, onAddToCart, on
       <FlashList
         data={products}
         keyExtractor={(item) => item.id}
+        // @ts-ignore
+        estimatedItemSize={150}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 6 }}
