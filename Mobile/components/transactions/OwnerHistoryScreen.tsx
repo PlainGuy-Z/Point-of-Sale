@@ -154,7 +154,7 @@ export default function OwnerHistoryScreen() {
         cashier_name: t.cashierName || null,
         customer_name: t.customerName || null,
         table_number: t.tableNumber || null,
-        order_type: t.orderType || 'dine_in',
+        order_type: (t.orderType === 'take-away' || t.orderType === 'takeaway') ? 'takeaway' : 'dine_in',
         subtotal: t.subtotal ?? t.total,
         tax_amount: t.tax ?? 0,
         tax_rate: t.taxRate ?? 0,
