@@ -98,32 +98,25 @@ export default function PaymentSuccessScreen({
         }
       }
 
-      const isManual = item.productId === 'manual' || item.productId?.startsWith('manual-')
-
-      if (isManual) {
-        // For manual items: backend stores combined price (base + variant).
-        // If a variant was detected, subtract variantPrice from the stored price
-        // to recover the original base price for separate display.
-        if (variantName && variantPrice === 0) {
-          // Variant name found (from description brackets) but no explicit variantPrice.
-          // We can't split the price, so show entire price as base with no variant line.
-          variantName = undefined
-        } else if (variantPrice > 0 && price >= variantPrice) {
-          // Explicit variantPrice exists — subtract from combined price to get base
-          price = price - variantPrice
-        }
-      } else {
-        // For catalog items: compare with product catalog to extract variant surcharge
-        if (variantPrice === 0 && products) {
-          const product = products.find(p => p.id === item.productId)
-          if (product) {
-            const effectivePrice = getEffectivePrice(product).price
-            if (price > effectivePrice) {
-              variantPrice = price - effectivePrice
-              price = effectivePrice
-            }
+      // For all items (manual and catalog): if variantPrice > 0 (resolved from brackets or augmented),
+      // subtract it from the combined price to get the correct base price.
+      if (variantPrice > 0 && price >= variantPrice) {
+        price = price - variantPrice
+      } else if (variantPrice === 0 && products) {
+        // Fallback for old catalog items: compare with product catalog to extract variant surcharge
+        const product = products.find(p => p.id === item.productId)
+        if (product) {
+          const effectivePrice = getEffectivePrice(product).price
+          if (price > effectivePrice) {
+            variantPrice = price - effectivePrice
+            price = effectivePrice
           }
         }
+      }
+
+      // If variant name exists but variantPrice is still 0 (cannot split), disable variant display
+      if (variantName && variantPrice === 0) {
+        variantName = undefined
       }
 
       return {

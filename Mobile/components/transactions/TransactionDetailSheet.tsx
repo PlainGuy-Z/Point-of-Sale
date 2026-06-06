@@ -84,8 +84,12 @@ export default function TransactionDetailSheet({
         }
       }
 
-      // 2. Extract variant price by comparing with product catalog effective price
-      if (variantPrice === 0 && products) {
+      // 2. For all items (manual and catalog): if variantPrice > 0 (resolved from brackets),
+      // subtract it from the combined price to get the correct base price.
+      if (variantPrice > 0 && price >= variantPrice) {
+        price = price - variantPrice;
+      } else if (variantPrice === 0 && products) {
+        // Fallback for old catalog items: compare with product catalog to extract variant surcharge
         const product = products.find(p => p.id === item.product_id);
         if (product) {
           const effectivePrice = getEffectivePrice(product).price;
@@ -96,10 +100,9 @@ export default function TransactionDetailSheet({
         }
       }
 
-      // 3. For manual items: subtract variantPrice from combined price if variantPrice is set
-      const isManual = !item.product_id || item.product_id === 'manual' || item.product_id.startsWith('manual-');
-      if (isManual && variantPrice > 0 && price >= variantPrice) {
-        price = price - variantPrice;
+      // If variant name exists but variantPrice is still 0 (cannot split), disable variant display
+      if (variantName && variantPrice === 0) {
+        variantName = undefined;
       }
 
       return {
