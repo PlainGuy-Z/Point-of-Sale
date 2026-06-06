@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
-import { Coffee, Award, Plus, TrendingUp, Check } from 'lucide-react-native';
+import { Coffee, Award, Plus, TrendingUp } from 'lucide-react-native';
 import { formatRupiahShort } from '../../utils/currency';
 import { getEffectivePrice } from '../../utils/priceUtils';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -15,15 +15,17 @@ interface ProductCardProps {
   cartQuantity: number;
   /** 'compact' for portrait carousel, 'full' for landscape grid */
   variant?: 'compact' | 'full';
+  isLandscape?: boolean;
 }
 
-function ProductCard({
+const ProductCardInner = React.memo(function ProductCardInner({
   product,
   onAdd,
   onRemove,
   cartQuantity,
   variant = 'full',
-}: ProductCardProps) {
+  isLandscape,
+}: ProductCardProps & { isLandscape: boolean }) {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
@@ -33,9 +35,6 @@ function ProductCard({
   const displayPrice = priceInfo.price;
   const isPromo = priceInfo.isPromoActive;
   const recentSales = product.recentSalesCount || 0;
-
-  const { width: ww, height: wh } = useWindowDimensions();
-  const isLandscape = ww > wh;
 
   const isCompact = variant === 'compact';
   const cardWidth = isCompact ? 150 : undefined;
@@ -256,6 +255,19 @@ function ProductCard({
       </View>
     </TouchableOpacity>
   );
+});
+
+function ProductCard(props: ProductCardProps) {
+  if (props.isLandscape !== undefined) {
+    return <ProductCardInner {...props} isLandscape={props.isLandscape} />;
+  }
+  return <ProductCardWithDimensions {...props} />;
+}
+
+function ProductCardWithDimensions(props: ProductCardProps) {
+  const { width: ww, height: wh } = useWindowDimensions();
+  const isLandscape = ww > wh;
+  return <ProductCardInner {...props} isLandscape={isLandscape} />;
 }
 
 export default React.memo(ProductCard);

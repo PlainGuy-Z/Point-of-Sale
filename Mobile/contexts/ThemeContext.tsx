@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'react-native';
 
@@ -14,20 +14,25 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const systemTheme = useColorScheme() as 'light' | 'dark';
+  const systemTheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const [theme, setThemeState] = useState<Theme>('light');
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
   const [isLoading, setIsLoading] = useState(true);
+  const initialLoadDone = useRef(false);
 
-  // Set default theme to light on mount
+  // Load saved theme from AsyncStorage on mount (only once)
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        setThemeState('light');
-        await AsyncStorage.setItem('coffee-pos-theme', 'light');
+        const saved = await AsyncStorage.getItem('coffee-pos-theme');
+        if (mounted) {
+          const validTheme = (saved === 'light' || saved === 'dark' || saved === 'system') ? saved : 'light';
+          setThemeState(validTheme);
+          initialLoadDone.current = true;
+        }
       } catch (err) {
-        console.error('Failed to save default light theme:', err);
+        console.error('Failed to load theme:', err);
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -46,8 +51,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [theme, systemTheme]);
 
-  // Save theme to AsyncStorage whenever it changes
+  // Save theme to AsyncStorage whenever it changes (skip on initial load)
   useEffect(() => {
+    if (!initialLoadDone.current || isLoading) return;
     const saveTheme = async () => {
       try {
         await AsyncStorage.setItem('coffee-pos-theme', theme);
@@ -55,24 +61,29 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         console.error('Failed to save theme:', err);
       }
     };
-    if (!isLoading) {
-      saveTheme();
-    }
+    saveTheme();
   }, [theme, isLoading]);
 
-  const toggleTheme = () => {
+  const setTheme = useCallback((t: Theme) => {
+    setThemeState(t);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
       if (prev === 'system') {
         return systemTheme === 'dark' ? 'light' : 'dark';
       }
       return prev === 'light' ? 'dark' : 'light';
     });
-  };
+  }, [systemTheme]);
+
+  const value = useMemo<ThemeContextType>(
+    () => ({ theme, effectiveTheme, setTheme, toggleTheme }),
+    [theme, effectiveTheme, setTheme, toggleTheme]
+  );
 
   return (
-    <ThemeContext.Provider
-      value={{ theme, effectiveTheme, setTheme: setThemeState, toggleTheme }}
-    >
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Stack, usePathname } from 'expo-router';
-import { View, useWindowDimensions, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Menu } from 'lucide-react-native';
 import OwnerSidebar, {
@@ -10,6 +10,7 @@ import OwnerSidebar, {
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { SidebarContext, SidebarContextValue } from '../../contexts/SidebarContext';
+import { useStableOrientation } from '../../hooks/useStableOrientation';
 
 export default function OwnerLayout() {
   const insets = useSafeAreaInsets();
@@ -18,8 +19,7 @@ export default function OwnerLayout() {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const isLandscape = windowWidth > windowHeight;
+  const { isLandscape } = useStableOrientation();
   const pathname = usePathname();
   const isDashboardOrPos = pathname.includes('dashboard') || pathname.includes('pos');
 

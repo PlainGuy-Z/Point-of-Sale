@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useContext, useMemo } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, useWindowDimensions, Modal, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, Modal, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { useShift } from '../../contexts/ShiftContext';
 import { SidebarContext } from '../../contexts/SidebarContext';
 import { getColors } from '../../utils/theme';
 import { usePOSCart } from '../../contexts/POSCartContext';
+import { useStableOrientation } from '../../hooks/useStableOrientation';
 import { useProductCatalog } from '../../hooks/useProductCatalog';
 import { useCategoryCarousels } from '../../hooks/useCategoryCarousels';
 import ProductCard from './ProductCard';
@@ -40,8 +41,7 @@ const TRENDING_PERIODS = [
 export default function POSScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const isLandscape = windowWidth > windowHeight;
+  const { isLandscape } = useStableOrientation();
 
   const { products, categories } = useProducts();
   const { transactions, checkout: appCheckout } = useTransactions();
@@ -78,7 +78,7 @@ export default function POSScreen() {
   const [showShiftValidationModal, setShowShiftValidationModal] = useState(false);
   const [categoryModal, setCategoryModal] = useState<null | { title: string; products: any[] }>(null);
   const [completedTransaction, setCompletedTransaction] = useState<Transaction | null>(null);
-  const [landscapeGridWidth, setLandscapeGridWidth] = useState(0);
+
 
   // ── Product catalog (with sorting and analytics) ──────────────────────────
   const { sortedProducts, promoProductsCount, bestSellerCount } = useProductCatalog(
@@ -632,6 +632,7 @@ export default function POSScreen() {
                         onRemove={removeFromCart}
                         cartQuantity={getCartQty(p.id)}
                         variant="full"
+                        isLandscape={false}
                       />
                     </View>
                   ))}
@@ -805,15 +806,7 @@ export default function POSScreen() {
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top > 0 ? Math.max(insets.top - 10, 6) : 8}}>
       <View style={{ flex: 1, flexDirection: 'row', gap: 14, paddingHorizontal: 6, paddingVertical: 2 }}>
         {/* LEFT — Product Grid */}
-        <View 
-          style={{ flex: 2, minWidth: 0 }}
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width;
-            if (w > 0 && Math.abs(w - landscapeGridWidth) > 5) {
-              setLandscapeGridWidth(w);
-            }
-          }}
-        >
+        <View style={{ flex: 2, minWidth: 0 }}>
           {/* Header Row */}
           <View style={{
             flexDirection: 'row',
@@ -967,7 +960,7 @@ export default function POSScreen() {
               refreshControl={<RefreshControl refreshing={isServiceLoading} onRefresh={refreshState} />}
               keyExtractor={item => item.id}
               numColumns={4}
-              key={`landscape-grid-4-cols-${Math.floor(landscapeGridWidth)}`}
+              key="landscape-grid-4"
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
               columnWrapperStyle={{ justifyContent: 'flex-start' }}
               showsVerticalScrollIndicator={true}
@@ -990,6 +983,7 @@ export default function POSScreen() {
                   onRemove={removeFromCart}
                   cartQuantity={getCartQty(item.id)}
                   variant="full"
+                  isLandscape={true}
                 />
               )}
             />

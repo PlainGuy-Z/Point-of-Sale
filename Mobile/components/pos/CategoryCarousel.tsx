@@ -78,6 +78,7 @@ function CategoryCarousel({ carousel, onViewAll, cartQuantities, onAddToCart, on
                 onRemove={onRemoveFromCart}
                 cartQuantity={getCartQty(product.id)}
                 variant="full"
+                isLandscape={false}
               />
             </View>
           ))}
@@ -145,6 +146,7 @@ function CategoryCarousel({ carousel, onViewAll, cartQuantities, onAddToCart, on
             onRemove={onRemoveFromCart}
             cartQuantity={getCartQty(item.id)}
             variant="compact"
+            isLandscape={false}
           />
         )}
       />

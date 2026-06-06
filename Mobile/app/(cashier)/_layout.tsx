@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Tabs } from 'expo-router';
-import { View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { ShoppingCart, Clock, List, Settings } from 'lucide-react-native';
 import CashierSidebar from '../../components/navigation/CashierSidebar';
 import { SidebarContext } from '../../contexts/SidebarContext';
+import { useStableOrientation } from '../../hooks/useStableOrientation';
 
 export default function CashierLayout() {
   const insets = useSafeAreaInsets();
@@ -14,9 +15,8 @@ export default function CashierLayout() {
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
 
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const isPortrait = windowHeight >= windowWidth;
-  const isLandscape = windowWidth > windowHeight;
+  const { isLandscape } = useStableOrientation();
+  const isPortrait = !isLandscape;
 
   /**
    * CASHIER LAYOUT STRUCTURE
