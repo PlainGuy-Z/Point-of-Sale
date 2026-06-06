@@ -806,7 +806,7 @@ export default function POSScreen() {
       <View style={{ flex: 1, flexDirection: 'row', gap: 14, paddingHorizontal: 6, paddingVertical: 2 }}>
         {/* LEFT — Product Grid */}
         <View 
-          style={{ flex: 1, minWidth: 0 }}
+          style={{ flex: 2, minWidth: 0 }}
           onLayout={(e) => {
             const w = e.nativeEvent.layout.width;
             if (w > 0 && Math.abs(w - landscapeGridWidth) > 5) {
@@ -998,7 +998,7 @@ export default function POSScreen() {
 
         {/* RIGHT — Cart Panel with fixed 1:3 screen width & Inline Modals */}
         <View style={{
-          width: windowWidth / 3,
+          flex: 1,
           height: '100%',
           position: 'relative',
           overflow: 'hidden',
