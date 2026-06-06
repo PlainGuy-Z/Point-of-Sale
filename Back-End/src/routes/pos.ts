@@ -232,7 +232,9 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
         const variantPrice = line.variantPrice ?? 0;
         const finalPrice = p.price + variantPrice;
         
-        const variantNameString = line.variantName ? `[${line.variantName}]` : '';
+        const variantNameString = line.variantName 
+          ? (variantPrice > 0 ? `[${line.variantName}@${variantPrice}]` : `[${line.variantName}]`)
+          : '';
         const finalDesc = [line.description, variantNameString].filter(Boolean).join(' - ');
 
         subtotal += finalPrice * line.quantity;
@@ -255,7 +257,9 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
         const variantPrice = line.variantPrice ?? 0;
         const finalPrice = price + variantPrice;
         
-        const variantNameString = line.variantName ? `[${line.variantName}]` : '';
+        const variantNameString = line.variantName 
+          ? (variantPrice > 0 ? `[${line.variantName}@${variantPrice}]` : `[${line.variantName}]`)
+          : '';
         const finalDesc = [line.description, variantNameString].filter(Boolean).join(' - ');
 
         const name = line.note?.trim() || 'Custom Item';

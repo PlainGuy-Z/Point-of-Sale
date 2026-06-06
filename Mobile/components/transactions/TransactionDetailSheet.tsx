@@ -59,11 +59,23 @@ export default function TransactionDetailSheet({
       let price = item.unit_price;
       let notes = item.notes || '';
 
-      // 1. Extract variant name from notes brackets (e.g. "[Keju]") if not set
-      if (!variantName && notes) {
+      // 1. Always extract/clean brackets from notes if present
+      if (notes) {
         const match = notes.match(/\[(.*?)\]/);
         if (match) {
-          variantName = match[1];
+          const rawVariant = match[1];
+          if (!variantName) {
+            if (rawVariant.includes('@')) {
+              const [vName, vPriceStr] = rawVariant.split('@');
+              variantName = vName.trim();
+              const parsedVal = parseInt(vPriceStr, 10);
+              if (!isNaN(parsedVal) && parsedVal > 0) {
+                variantPrice = parsedVal;
+              }
+            } else {
+              variantName = rawVariant;
+            }
+          }
           notes = notes.replace(/\[(.*?)\]/, '').trim();
           
           // Clean up any remaining leading/trailing dashes and whitespace
@@ -82,6 +94,12 @@ export default function TransactionDetailSheet({
             price = effectivePrice;
           }
         }
+      }
+
+      // 3. For manual items: subtract variantPrice from combined price if variantPrice is set
+      const isManual = !item.product_id || item.product_id === 'manual' || item.product_id.startsWith('manual-');
+      if (isManual && variantPrice > 0 && price >= variantPrice) {
+        price = price - variantPrice;
       }
 
       return {

@@ -73,11 +73,23 @@ export default function PaymentSuccessScreen({
       let price = item.price
       let description = item.description || ''
 
-      // If variant name is not set but description contains brackets (e.g., [Telur]), extract it
-      if (!variantName && description) {
+      // Always extract/clean brackets from description if present
+      if (description) {
         const match = description.match(/\[(.*?)\]/)
         if (match) {
-          variantName = match[1]
+          const rawVariant = match[1]
+          if (!variantName) {
+            if (rawVariant.includes('@')) {
+              const [vName, vPriceStr] = rawVariant.split('@')
+              variantName = vName.trim()
+              const parsedVal = parseInt(vPriceStr, 10)
+              if (!isNaN(parsedVal) && parsedVal > 0) {
+                variantPrice = parsedVal
+              }
+            } else {
+              variantName = rawVariant
+            }
+          }
           description = description.replace(/\[(.*?)\]/, '').trim()
           
           // Clean up any remaining leading/trailing dashes and whitespace
@@ -86,7 +98,7 @@ export default function PaymentSuccessScreen({
         }
       }
 
-      const isManual = item.productId?.startsWith('manual-')
+      const isManual = item.productId === 'manual' || item.productId?.startsWith('manual-')
 
       if (isManual) {
         // For manual items: backend stores combined price (base + variant).
@@ -343,7 +355,8 @@ export default function PaymentSuccessScreen({
   }
 
   return (
-    <Pressable style={styles.overlay} onPress={handleClose}>
+    <View style={styles.overlay}>
+      <Pressable style={styles.backdrop} onPress={handleClose} />
       <Animated.View 
         style={[
           styles.modalCard,
@@ -355,250 +368,250 @@ export default function PaymentSuccessScreen({
           }
         ]}
       >
-        <Pressable onPress={() => {}} style={styles.modalInner}>
+        <View style={styles.modalInner}>
           {/* Header */}
-        <View style={[styles.header, themeStyles.header]}>
-          <Text style={[styles.headerTitle, themeStyles.headerTitle]}>
-            {settings?.storeName?.toUpperCase() || 'SMARTPOS'}
-          </Text>
-          {settings?.address && (
-            <Text style={[styles.headerAddress, themeStyles.headerAddress]}>
-              {settings.address}
+          <View style={[styles.header, themeStyles.header]}>
+            <Text style={[styles.headerTitle, themeStyles.headerTitle]}>
+              {settings?.storeName?.toUpperCase() || 'SMARTPOS'}
             </Text>
-          )}
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Feather name="x" size={20} color={isDark ? "#a8a29e" : "#475569"} />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView 
-          style={styles.contentScroll} 
-          contentContainerStyle={styles.contentScrollContent}
-          showsVerticalScrollIndicator={true}
-        >
-          {/* Order Info */}
-          <View style={styles.infoContainer}>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Receipt ID</Text>
-              <Text style={[styles.infoValue, themeStyles.infoValue]}>#{transaction.id?.substring(0, 8) || 'N/A'}...</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Tanggal</Text>
-              <Text style={[styles.infoValue, themeStyles.infoValue]}>{formatDateString(transaction.date)}</Text>
-            </View>
-            
-            {transaction.orderType && (
-              <View style={styles.infoRowCentered}>
-                <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Tipe Pesanan</Text>
-                <View style={[styles.typeBadge, themeStyles.typeBadge]}>
-                  <Text style={[styles.typeBadgeText, themeStyles.typeBadgeText]}>
-                    {transaction.orderType === 'dine-in' ? 'Dine In' : 'Take Away'}
-                  </Text>
-                </View>
-              </View>
+            {settings?.address && (
+              <Text style={[styles.headerAddress, themeStyles.headerAddress]}>
+                {settings.address}
+              </Text>
             )}
-            
-            {transaction.customerName && (
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Pelanggan</Text>
-                <Text style={[styles.infoValueCustomer, themeStyles.infoValueCustomer]}>{transaction.customerName}</Text>
-              </View>
-            )}
-            
-            {shouldShowTable && (
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Meja</Text>
-                <Text style={[styles.infoValueTable, themeStyles.infoValueTable]}>{transaction.tableNumber}</Text>
-              </View>
-            )}
-
-            {(transaction.orderNote || transaction.notes) && (
-              <View style={styles.notesContainer}>
-                <Text style={[styles.notesLabel, themeStyles.notesLabel]}>Catatan Pesanan:</Text>
-                <Text style={[styles.notesValue, themeStyles.notesValue]}>"{transaction.orderNote || transaction.notes}"</Text>
-              </View>
-            )}
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <Feather name="x" size={20} color={isDark ? "#a8a29e" : "#475569"} />
+            </TouchableOpacity>
           </View>
 
-          <View style={[styles.dashedBorder, themeStyles.dashedBorder]} />
-
-          {/* Items */}
-          <View style={styles.itemsContainer}>
-            {resolvedItems.map((item, i) => {
-              const mainTotal = item.price * item.quantity;
-              const variantTotal = (item.variantPrice || 0) * item.quantity;
-              const hasVariant = !!item.variantName;
-              const itemCombinedTotal = mainTotal + variantTotal;
-              return (
-                <View key={i} style={styles.itemBlock}>
-                  {/* Main Item Row */}
-                  <View style={styles.itemMainRow}>
-                    <Text style={[styles.itemName, themeStyles.itemName]}>
-                      {item.quantity}x {item.name}
-                    </Text>
-                    <Text style={[styles.itemTotal, themeStyles.itemTotal]}>
-                      {formatCurrency(mainTotal)}
-                    </Text>
-                  </View>
-                  
-                  {/* Base Unit Price (only for quantity >= 2) */}
-                  {item.quantity >= 2 && (
-                    <View style={styles.itemDetailRow}>
-                      <Text style={[styles.itemDetailLabel, themeStyles.itemDetailLabel]}>Harga Satuan</Text>
-                      <Text style={[styles.itemDetailValue, themeStyles.itemDetailValue]}>
-                        {formatCurrency(item.price)}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Variant Row (with variant total) */}
-                  {hasVariant && (
-                    <View style={styles.itemVariantRow}>
-                      <Text style={[styles.itemVariantLabel, themeStyles.itemVariantLabel]}>
-                        + {item.variantName}
-                      </Text>
-                      <Text style={[styles.itemVariantValue, themeStyles.itemVariantValue]}>
-                        {formatCurrency(variantTotal)}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Variant Unit Price (only for quantity >= 2) */}
-                  {hasVariant && item.quantity >= 2 && (
-                    <View style={styles.itemDetailRow}>
-                      <Text style={[styles.itemDetailLabel, themeStyles.itemDetailLabel]}>Harga Variant Satuan</Text>
-                      <Text style={[styles.itemDetailValue, themeStyles.itemDetailValue]}>
-                        {formatCurrency(item.variantPrice || 0)}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Per-item combined total (base + variant) — only shown when variant exists */}
-                  {hasVariant && (
-                    <View style={styles.itemCombinedRow}>
-                      <Text style={[styles.itemCombinedLabel, themeStyles.itemCombinedLabel]}>
-                        Total Item
-                      </Text>
-                      <Text style={[styles.itemCombinedValue, themeStyles.itemCombinedValue]}>
-                        {formatCurrency(itemCombinedTotal)}
-                      </Text>
-                    </View>
-                  )}
-
-                  {item.description ? (
-                    <Text style={[styles.itemNoteText, themeStyles.itemNoteText]}>
-                      Catatan: {item.description}
-                    </Text>
-                  ) : null}
-                </View>
-              );
-            })}
-          </View>
-
-          <View style={[styles.dashedBorder, themeStyles.dashedBorder]} />
-
-          {/* Totals */}
-          <View style={styles.totalsContainer}>
-            <View style={styles.totalRowSmall}>
-              <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>Subtotal</Text>
-              <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
-                {formatCurrency((transaction as any).subtotal || transaction.total)}
-              </Text>
-            </View>
-
-            {(transaction as any).tax !== undefined && (transaction as any).tax > 0 && (
-              <View style={styles.totalRowSmall}>
-                <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>
-                  {(settings as any)?.tax_label || 'Pajak'} ({(transaction as any).taxRate || 0}%)
-                </Text>
-                <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
-                  {formatCurrency((transaction as any).tax)}
-                </Text>
+          <ScrollView 
+            style={styles.contentScroll} 
+            contentContainerStyle={styles.contentScrollContent}
+            showsVerticalScrollIndicator={true}
+          >
+            {/* Order Info */}
+            <View style={styles.infoContainer}>
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Receipt ID</Text>
+                <Text style={[styles.infoValue, themeStyles.infoValue]}>#{transaction.id?.substring(0, 8) || 'N/A'}...</Text>
               </View>
-            )}
-
-            {(transaction as any).service_charge !== undefined && (transaction as any).service_charge > 0 && (
-              <View style={styles.totalRowSmall}>
-                <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>
-                  {(settings as any)?.service_charge_label || 'Service'}
-                </Text>
-                <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
-                  {formatCurrency((transaction as any).service_charge)}
-                </Text>
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Tanggal</Text>
+                <Text style={[styles.infoValue, themeStyles.infoValue]}>{formatDateString(transaction.date)}</Text>
               </View>
-            )}
-
-            {/* Dash border before Total */}
-            <View style={[styles.dashedBorderSmall, themeStyles.dashedBorderSmall]} />
-
-            <View style={styles.grandTotalRow}>
-              <Text style={[styles.grandTotalLabel, themeStyles.grandTotalLabel]}>Total</Text>
-              <Text style={[styles.grandTotalValue, themeStyles.grandTotalValue]}>
-                {formatCurrency(transaction.total)}
-              </Text>
-            </View>
-
-            {/* Dash border after Total */}
-            <View style={[styles.dashedBorderSmall, themeStyles.dashedBorderSmall]} />
-
-            <Text style={[styles.paymentMethodText, themeStyles.paymentMethodText]}>
-              Pembayaran: {transaction.paymentMethod?.toUpperCase()}
-            </Text>
-
-            {transaction.paymentMethod === 'cash' &&
-              transaction.cashReceived !== undefined && transaction.cashReceived > 0 && (
-                <View style={styles.cashDetails}>
-                  <View style={styles.totalRowSmall}>
-                    <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>Tunai</Text>
-                    <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
-                      {formatCurrency(transaction.cashReceived)}
-                    </Text>
-                  </View>
-                  <View style={styles.totalRowSmall}>
-                    <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>Kembali</Text>
-                    <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
-                      {formatCurrency(transaction.change || 0)}
+              
+              {transaction.orderType && (
+                <View style={styles.infoRowCentered}>
+                  <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Tipe Pesanan</Text>
+                  <View style={[styles.typeBadge, themeStyles.typeBadge]}>
+                    <Text style={[styles.typeBadgeText, themeStyles.typeBadgeText]}>
+                      {transaction.orderType === 'dine-in' ? 'Dine In' : 'Take Away'}
                     </Text>
                   </View>
                 </View>
               )}
+              
+              {transaction.customerName && (
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Pelanggan</Text>
+                  <Text style={[styles.infoValueCustomer, themeStyles.infoValueCustomer]}>{transaction.customerName}</Text>
+                </View>
+              )}
+              
+              {shouldShowTable && (
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoLabel, themeStyles.infoLabel]}>Meja</Text>
+                  <Text style={[styles.infoValueTable, themeStyles.infoValueTable]}>{transaction.tableNumber}</Text>
+                </View>
+              )}
 
-            {/* Footer */}
-            {settings?.receiptFooter && (
-              <View style={styles.footerContainer}>
-                <Text style={[styles.footerText, themeStyles.footerText]}>
-                  {settings.receiptFooter}
+              {(transaction.orderNote || transaction.notes) && (
+                <View style={styles.notesContainer}>
+                  <Text style={[styles.notesLabel, themeStyles.notesLabel]}>Catatan Pesanan:</Text>
+                  <Text style={[styles.notesValue, themeStyles.notesValue]}>"{transaction.orderNote || transaction.notes}"</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={[styles.dashedBorder, themeStyles.dashedBorder]} />
+
+            {/* Items */}
+            <View style={styles.itemsContainer}>
+              {resolvedItems.map((item, i) => {
+                const mainTotal = item.price * item.quantity;
+                const variantTotal = (item.variantPrice || 0) * item.quantity;
+                const hasVariant = !!item.variantName;
+                const itemCombinedTotal = mainTotal + variantTotal;
+                return (
+                  <View key={i} style={styles.itemBlock}>
+                    {/* Main Item Row */}
+                    <View style={styles.itemMainRow}>
+                      <Text style={[styles.itemName, themeStyles.itemName]}>
+                        {item.quantity}x {item.name}
+                      </Text>
+                      <Text style={[styles.itemTotal, themeStyles.itemTotal]}>
+                        {formatCurrency(mainTotal)}
+                      </Text>
+                    </View>
+                    
+                    {/* Base Unit Price (only for quantity >= 2) */}
+                    {item.quantity >= 2 && (
+                      <View style={styles.itemDetailRow}>
+                        <Text style={[styles.itemDetailLabel, themeStyles.itemDetailLabel]}>Harga Satuan</Text>
+                        <Text style={[styles.itemDetailValue, themeStyles.itemDetailValue]}>
+                          {formatCurrency(item.price)}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Variant Row (with variant total) */}
+                    {hasVariant && (
+                      <View style={styles.itemVariantRow}>
+                        <Text style={[styles.itemVariantLabel, themeStyles.itemVariantLabel]}>
+                          + {item.variantName}
+                        </Text>
+                        <Text style={[styles.itemVariantValue, themeStyles.itemVariantValue]}>
+                          {formatCurrency(variantTotal)}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Variant Unit Price (only for quantity >= 2) */}
+                    {hasVariant && item.quantity >= 2 && (
+                      <View style={styles.itemDetailRow}>
+                        <Text style={[styles.itemDetailLabel, themeStyles.itemDetailLabel]}>Harga Variant Satuan</Text>
+                        <Text style={[styles.itemDetailValue, themeStyles.itemDetailValue]}>
+                          {formatCurrency(item.variantPrice || 0)}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Per-item combined total (base + variant) — only shown when variant exists */}
+                    {hasVariant && (
+                      <View style={styles.itemCombinedRow}>
+                        <Text style={[styles.itemCombinedLabel, themeStyles.itemCombinedLabel]}>
+                          Total Item
+                        </Text>
+                        <Text style={[styles.itemCombinedValue, themeStyles.itemCombinedValue]}>
+                          {formatCurrency(itemCombinedTotal)}
+                        </Text>
+                      </View>
+                    )}
+
+                    {item.description ? (
+                      <Text style={[styles.itemNoteText, themeStyles.itemNoteText]}>
+                        Catatan: {item.description}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+
+            <View style={[styles.dashedBorder, themeStyles.dashedBorder]} />
+
+            {/* Totals */}
+            <View style={styles.totalsContainer}>
+              <View style={styles.totalRowSmall}>
+                <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>Subtotal</Text>
+                <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
+                  {formatCurrency((transaction as any).subtotal || transaction.total)}
                 </Text>
               </View>
-            )}
-          </View>
-        </ScrollView>
 
-        {/* Action buttons (Sticky at bottom, inside modalInner for proper flex) */}
-        <View style={[styles.actionFooter, themeStyles.actionFooter]}>
-          <TouchableOpacity 
-            onPress={handleCopy} 
-            style={[styles.btnCopy, isCopied && styles.btnCopySuccess, themeStyles.btnCopy]}
-          >
-            <Text style={[styles.btnTextCopy, isCopied && styles.btnTextSuccess, themeStyles.btnTextCopy]}>
-              {isCopied ? 'Tersalin!' : 'Salin Struk'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handlePrint} 
-            disabled={isPrinting}
-            style={[styles.btnPrint, isPrinting && styles.btnPrintDisabled, themeStyles.btnPrint]}
-          >
-            {isPrinting ? (
-              <ActivityIndicator size="small" color={isDark ? "#f59e0b" : "#ffffff"} />
-            ) : (
-              <Text style={[styles.btnTextPrint, themeStyles.btnTextPrint]}>Print</Text>
-            )}
-          </TouchableOpacity>
+              {(transaction as any).tax !== undefined && (transaction as any).tax > 0 && (
+                <View style={styles.totalRowSmall}>
+                  <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>
+                    {(settings as any)?.tax_label || 'Pajak'} ({(transaction as any).taxRate || 0}%)
+                  </Text>
+                  <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
+                    {formatCurrency((transaction as any).tax)}
+                  </Text>
+                </View>
+              )}
+
+              {(transaction as any).service_charge !== undefined && (transaction as any).service_charge > 0 && (
+                <View style={styles.totalRowSmall}>
+                  <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>
+                    {(settings as any)?.service_charge_label || 'Service'}
+                  </Text>
+                  <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
+                    {formatCurrency((transaction as any).service_charge)}
+                  </Text>
+                </View>
+              )}
+
+              {/* Dash border before Total */}
+              <View style={[styles.dashedBorderSmall, themeStyles.dashedBorderSmall]} />
+
+              <View style={styles.grandTotalRow}>
+                <Text style={[styles.grandTotalLabel, themeStyles.grandTotalLabel]}>Total</Text>
+                <Text style={[styles.grandTotalValue, themeStyles.grandTotalValue]}>
+                  {formatCurrency(transaction.total)}
+                </Text>
+              </View>
+
+              {/* Dash border after Total */}
+              <View style={[styles.dashedBorderSmall, themeStyles.dashedBorderSmall]} />
+
+              <Text style={[styles.paymentMethodText, themeStyles.paymentMethodText]}>
+                Pembayaran: {transaction.paymentMethod?.toUpperCase()}
+              </Text>
+
+              {transaction.paymentMethod === 'cash' &&
+                transaction.cashReceived !== undefined && transaction.cashReceived > 0 && (
+                  <View style={styles.cashDetails}>
+                    <View style={styles.totalRowSmall}>
+                      <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>Tunai</Text>
+                      <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
+                        {formatCurrency(transaction.cashReceived)}
+                      </Text>
+                    </View>
+                    <View style={styles.totalRowSmall}>
+                      <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>Kembali</Text>
+                      <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
+                        {formatCurrency(transaction.change || 0)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+              {/* Footer */}
+              {settings?.receiptFooter && (
+                <View style={styles.footerContainer}>
+                  <Text style={[styles.footerText, themeStyles.footerText]}>
+                    {settings.receiptFooter}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+
+          {/* Action buttons (Sticky at bottom, inside modalInner for proper flex) */}
+          <View style={[styles.actionFooter, themeStyles.actionFooter]}>
+            <TouchableOpacity 
+              onPress={handleCopy} 
+              style={[styles.btnCopy, isCopied && styles.btnCopySuccess, themeStyles.btnCopy]}
+            >
+              <Text style={[styles.btnTextCopy, isCopied && styles.btnTextSuccess, themeStyles.btnTextCopy]}>
+                {isCopied ? 'Tersalin!' : 'Salin Struk'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={handlePrint} 
+              disabled={isPrinting}
+              style={[styles.btnPrint, isPrinting && styles.btnPrintDisabled, themeStyles.btnPrint]}
+            >
+              {isPrinting ? (
+                <ActivityIndicator size="small" color={isDark ? "#f59e0b" : "#ffffff"} />
+              ) : (
+                <Text style={[styles.btnTextPrint, themeStyles.btnTextPrint]}>Print</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-        </Pressable>
       </Animated.View>
-    </Pressable>
+    </View>
   )
 }
 
@@ -610,6 +623,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
   modalCard: {
     borderWidth: 1,
     borderRadius: 14,
@@ -617,6 +633,7 @@ const styles = StyleSheet.create({
     maxWidth: 300,
     maxHeight: '80%',
     overflow: 'hidden',
+    flexShrink: 1,
     // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -627,10 +644,13 @@ const styles = StyleSheet.create({
   modalCardLandscape: {
     maxWidth: 300,
     maxHeight: '90%',
+    flexShrink: 1,
   },
   modalInner: {
     width: '100%',
+    maxHeight: '100%',
     flexShrink: 1,
+    flexDirection: 'column',
   },
   header: {
     paddingHorizontal: 12,

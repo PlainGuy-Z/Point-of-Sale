@@ -208,6 +208,29 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
         change: method === 'cash' ? Math.max(0, change) : undefined,
         applyTax: fullCheckout.applyTax,
       });
+
+      // Augment completedTx items with original cart variant details so PaymentSuccessScreen has immediate access to variantPrice and variantName
+      if (completedTx && completedTx.items) {
+        completedTx.items = completedTx.items.map((txItem: any) => {
+          const matchingCartItem = cart.find(cItem => {
+            if (txItem.productId !== 'manual') {
+              return cItem.productId === txItem.productId;
+            } else {
+              return cItem.productId.startsWith('manual-') && cItem.name === txItem.note;
+            }
+          });
+          
+          if (matchingCartItem) {
+            return {
+              ...txItem,
+              variantName: matchingCartItem.variantName,
+              variantPrice: matchingCartItem.variantPrice,
+            };
+          }
+          return txItem;
+        });
+      }
+
       resetCheckout();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess?.(completedTx);

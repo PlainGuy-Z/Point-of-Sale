@@ -187,7 +187,9 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
                 const p = productById.get(line.productId);
                 const variantPrice = line.variantPrice ?? 0;
                 const finalPrice = p.price + variantPrice;
-                const variantNameString = line.variantName ? `[${line.variantName}]` : '';
+                const variantNameString = line.variantName
+                    ? (variantPrice > 0 ? `[${line.variantName}@${variantPrice}]` : `[${line.variantName}]`)
+                    : '';
                 const finalDesc = [line.description, variantNameString].filter(Boolean).join(' - ');
                 subtotal += finalPrice * line.quantity;
                 costTotal += p.cost * line.quantity;
@@ -207,7 +209,9 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
                     throw new HttpError(400, 'VALIDATION_ERROR', 'Manual item requires price');
                 const variantPrice = line.variantPrice ?? 0;
                 const finalPrice = price + variantPrice;
-                const variantNameString = line.variantName ? `[${line.variantName}]` : '';
+                const variantNameString = line.variantName
+                    ? (variantPrice > 0 ? `[${line.variantName}@${variantPrice}]` : `[${line.variantName}]`)
+                    : '';
                 const finalDesc = [line.description, variantNameString].filter(Boolean).join(' - ');
                 const name = line.note?.trim() || 'Custom Item';
                 subtotal += finalPrice * line.quantity;
