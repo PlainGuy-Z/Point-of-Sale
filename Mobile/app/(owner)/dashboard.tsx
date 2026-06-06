@@ -570,9 +570,9 @@ export default function OwnerDashboard() {
               <SectionLabel isDark={isDark}>Ringkasan Cepat</SectionLabel>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {[
-                  { label: 'Produk', value: String(metrics.totalProducts) },
-                  { label: 'Margin', value: `${metrics.profitMargin}%` },
-                  { label: 'Sukses', value: `${metrics.successRate}%` },
+                  { label: 'Produk', value: String(metrics?.totalProducts ?? 0) },
+                  { label: 'Margin', value: `${metrics?.profitMargin ?? 0}%` },
+                  { label: 'Sukses', value: `${metrics?.successRate ?? 0}%` },
                 ].map(item => (
                   <View key={item.label} style={{
                     flex: 1, padding: 14, borderRadius: 16,
@@ -607,9 +607,9 @@ export default function OwnerDashboard() {
             <SectionLabel isDark={isDark}>Ringkasan Cepat</SectionLabel>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {[
-                { label: 'Produk', value: String(metrics.totalProducts) },
-                { label: 'Margin', value: `${metrics.profitMargin}%` },
-                { label: 'Sukses', value: `${metrics.successRate}%` },
+                { label: 'Produk', value: String(metrics?.totalProducts ?? 0) },
+                { label: 'Margin', value: `${metrics?.profitMargin ?? 0}%` },
+                { label: 'Sukses', value: `${metrics?.successRate ?? 0}%` },
               ].map(item => (
                 <View key={item.label} style={{
                   flex: 1, padding: 14, borderRadius: 16,

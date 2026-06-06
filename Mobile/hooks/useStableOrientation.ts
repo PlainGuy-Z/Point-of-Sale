@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useWindowDimensions } from 'react-native';
 
 /**
@@ -29,43 +29,26 @@ export function useStableOrientation(debounceMs = 150) {
     isLandscape: isLandscapeRaw,
   });
 
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevOrientationRef = useRef(isLandscapeRaw);
-
   useEffect(() => {
-    const orientationChanged = isLandscapeRaw !== prevOrientationRef.current;
-
-    if (!orientationChanged) {
-      // Same orientation — update dimensions immediately (keyboard, safe-area, etc.)
-      setStable({ width, height, isLandscape: isLandscapeRaw });
+    // If the raw orientation matches our stable orientation,
+    // we can update the dimensions immediately (no debounce needed).
+    if (isLandscapeRaw === stable.isLandscape) {
+      if (width !== stable.width || height !== stable.height) {
+        setStable({ width, height, isLandscape: isLandscapeRaw });
+      }
       return;
     }
 
-    // Orientation flipped — debounce to wait for the final dimensions
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      prevOrientationRef.current = isLandscapeRaw;
+    // Otherwise, the orientation has changed. We debounce this update
+    // to let the dimensions settle.
+    const timer = setTimeout(() => {
       setStable({ width, height, isLandscape: isLandscapeRaw });
     }, debounceMs);
 
-    // Do NOT clear timeout on unmount of *this* effect invocation,
-    // because we want the last scheduled update to fire even if
-    // no more dimension changes arrive. We only clear on the NEXT
-    // invocation (above) or on component unmount (below).
-  }, [width, height, isLandscapeRaw, debounceMs]);
-
-  // Cleanup on component unmount only
-  useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      clearTimeout(timer);
     };
-  }, []);
+  }, [width, height, isLandscapeRaw, debounceMs, stable.width, stable.height, stable.isLandscape]);
 
   return stable;
 }

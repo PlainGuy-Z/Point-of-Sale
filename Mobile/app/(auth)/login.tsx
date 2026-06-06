@@ -141,14 +141,6 @@ export default function LoginScreen() {
               }
             </TouchableOpacity>
           </View>
-
-          {/* Footer */}
-          <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'center', marginTop: 24 }}>
-            SmartPOS v1.0.0 • Point of Sale System
-          </Text>
-          <Text style={{ color: c.textMuted, fontSize: 10, textAlign: 'center', marginTop: 4 }}>
-            API: {process.env.EXPO_PUBLIC_API_URL}
-          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
