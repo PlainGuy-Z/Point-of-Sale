@@ -72,7 +72,7 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItemWithInput[]>([]);
   const [checkoutData, setCheckoutData] = useState<CheckoutData>(() => ({
     ...defaultCheckout,
-    applyTax: settings?.tax_enabled ?? settings?.taxEnabled ?? false,
+    applyTax: false,
   }));
   const [panel, setPanel] = useState<CartPanel>('cart');
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
@@ -87,15 +87,6 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
     customerName: customerNameRef.current,
     orderNote: orderNoteRef.current,
   }), [checkoutData]);
-
-  // Sync applyTax with business settings when they load or update
-  useEffect(() => {
-    const taxEnabled = settings?.tax_enabled ?? settings?.taxEnabled ?? false;
-    setCheckoutData(prev => ({
-      ...prev,
-      applyTax: taxEnabled,
-    }));
-  }, [settings?.tax_enabled, settings?.taxEnabled]);
 
   // ── Cart operations ─────────────────────────────────────────────────────────
 
@@ -206,14 +197,14 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
     setCart([]);
     setCheckoutData({
       ...defaultCheckout,
-      applyTax: settings?.tax_enabled ?? settings?.taxEnabled ?? false,
+      applyTax: false,
     });
     tableNumberRef.current = '';
     customerNameRef.current = '';
     orderNoteRef.current = '';
     setPanel('cart');
     setEditingItemIndex(null);
-  }, [settings?.tax_enabled, settings?.taxEnabled]);
+  }, []);
 
   // ── Computed ────────────────────────────────────────────────────────────────
 
