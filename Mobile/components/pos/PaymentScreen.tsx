@@ -209,26 +209,53 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
         applyTax: fullCheckout.applyTax,
       });
 
-      // Augment completedTx items with original cart variant details so PaymentSuccessScreen has immediate access to variantPrice and variantName
-      if (completedTx && completedTx.items) {
-        completedTx.items = completedTx.items.map((txItem: any) => {
-          const matchingCartItem = cart.find(cItem => {
-            if (txItem.productId !== 'manual') {
-              return cItem.productId === txItem.productId;
-            } else {
-              return cItem.productId.startsWith('manual-') && cItem.name === txItem.note;
+      // Augment completedTx with original cart details so that PaymentSuccessScreen is 100% correct
+      if (completedTx) {
+        let calculatedSubtotal = 0;
+        if (completedTx.items) {
+          completedTx.items = completedTx.items.map((txItem: any) => {
+            const matchingCartItem = cart.find(cItem => {
+              if (txItem.productId !== 'manual') {
+                return cItem.productId === txItem.productId;
+              } else {
+                return cItem.productId.startsWith('manual-') && cItem.name === txItem.note;
+              }
+            });
+            
+            if (matchingCartItem) {
+              const basePrice = matchingCartItem.price;
+              const variantPrice = matchingCartItem.variantPrice || 0;
+              const combinedPrice = basePrice + variantPrice;
+              
+              calculatedSubtotal += combinedPrice * txItem.quantity;
+              
+              return {
+                ...txItem,
+                price: combinedPrice, // Force combined price (base + variant)
+                variantName: matchingCartItem.variantName,
+                variantPrice: matchingCartItem.variantPrice,
+              };
             }
+            
+            calculatedSubtotal += txItem.price * txItem.quantity;
+            return txItem;
           });
+        }
+        
+        // Correct subtotal and total if they mismatch the cart totals
+        if (calculatedSubtotal > 0) {
+          const taxRate = completedTx.taxRate || 0;
+          const tax = completedTx.tax !== undefined && completedTx.tax > 0 
+            ? Math.round(calculatedSubtotal * (taxRate / 100)) 
+            : 0;
+          const serviceCharge = completedTx.service_charge || 0;
           
-          if (matchingCartItem) {
-            return {
-              ...txItem,
-              variantName: matchingCartItem.variantName,
-              variantPrice: matchingCartItem.variantPrice,
-            };
+          completedTx.subtotal = calculatedSubtotal;
+          completedTx.total = calculatedSubtotal + tax + serviceCharge;
+          if (completedTx.paymentMethod === 'cash' && completedTx.cashReceived !== undefined) {
+            completedTx.change = Math.max(0, completedTx.cashReceived - completedTx.total);
           }
-          return txItem;
-        });
+        }
       }
 
       resetCheckout();

@@ -139,6 +139,24 @@ export default function PaymentSuccessScreen({
     })
   }, [transaction.items, products])
 
+  // Computed totals for fallback / safety matching
+  const subtotalVal = useMemo(() => {
+    return resolvedItems.reduce((sum, item) => sum + item.subtotal, 0)
+  }, [resolvedItems])
+
+  const taxVal = useMemo(() => {
+    const taxRate = (transaction as any).taxRate || 0
+    return (transaction as any).tax !== undefined && (transaction as any).tax > 0
+      ? Math.round(subtotalVal * (taxRate / 100))
+      : 0
+  }, [subtotalVal, transaction])
+
+  const serviceChargeVal = (transaction as any).service_charge || 0
+  const grandTotalVal = subtotalVal + taxVal + serviceChargeVal
+  const changeVal = transaction.paymentMethod === 'cash' && transaction.cashReceived !== undefined
+    ? Math.max(0, transaction.cashReceived - grandTotalVal)
+    : undefined
+
   // Build receipt data from transaction
   const receiptData: PrintReceiptData = useMemo(() => ({
     shopName: settings?.storeName || 'SmartPOS',
@@ -154,14 +172,14 @@ export default function PaymentSuccessScreen({
     customerName: transaction.customerName || undefined,
     notes: transaction.orderNote || transaction.notes || undefined,
     items: resolvedItems,
-    subtotal: (transaction as any).subtotal || transaction.total,
-    tax: (transaction as any).tax || 0,
+    subtotal: subtotalVal,
+    tax: taxVal,
     taxRate: (transaction as any).taxRate || 0,
-    serviceCharge: (transaction as any).service_charge,
-    grandTotal: transaction.total,
+    serviceCharge: serviceChargeVal || undefined,
+    grandTotal: grandTotalVal,
     paymentMethod: transaction.paymentMethod,
     amountPaid: transaction.cashReceived,
-    change: transaction.change,
+    change: changeVal,
     receiptFooter: settings?.receiptFooter,
     paperSize: config.paperSize,
   }), [settings, user, transaction, resolvedItems, config.paperSize])
@@ -515,7 +533,7 @@ export default function PaymentSuccessScreen({
               <View style={styles.totalRowSmall}>
                 <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>Subtotal</Text>
                 <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
-                  {formatCurrency((transaction as any).subtotal || transaction.total)}
+                  {formatCurrency(subtotalVal)}
                 </Text>
               </View>
 
@@ -525,18 +543,18 @@ export default function PaymentSuccessScreen({
                     {(settings as any)?.tax_label || 'Pajak'} ({(transaction as any).taxRate || 0}%)
                   </Text>
                   <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
-                    {formatCurrency((transaction as any).tax)}
+                    {formatCurrency(taxVal)}
                   </Text>
                 </View>
               )}
 
-              {(transaction as any).service_charge !== undefined && (transaction as any).service_charge > 0 && (
+              {serviceChargeVal > 0 && (
                 <View style={styles.totalRowSmall}>
                   <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>
                     {(settings as any)?.service_charge_label || 'Service'}
                   </Text>
                   <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
-                    {formatCurrency((transaction as any).service_charge)}
+                    {formatCurrency(serviceChargeVal)}
                   </Text>
                 </View>
               )}
@@ -547,7 +565,7 @@ export default function PaymentSuccessScreen({
               <View style={styles.grandTotalRow}>
                 <Text style={[styles.grandTotalLabel, themeStyles.grandTotalLabel]}>Total</Text>
                 <Text style={[styles.grandTotalValue, themeStyles.grandTotalValue]}>
-                  {formatCurrency(transaction.total)}
+                  {formatCurrency(grandTotalVal)}
                 </Text>
               </View>
 
@@ -570,7 +588,7 @@ export default function PaymentSuccessScreen({
                     <View style={styles.totalRowSmall}>
                       <Text style={[styles.totalLabelSmall, themeStyles.totalLabelSmall]}>Kembali</Text>
                       <Text style={[styles.totalValueSmall, themeStyles.totalValueSmall]}>
-                        {formatCurrency(transaction.change || 0)}
+                        {formatCurrency(changeVal || 0)}
                       </Text>
                     </View>
                   </View>

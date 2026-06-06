@@ -115,11 +115,13 @@ export default function TransactionDetailSheet({
   const [isPrinting, setIsPrinting] = useState(false);
 
   const isDine = t.order_type !== 'takeaway';
-  const subtotal = t.subtotal ?? 0;
+  const subtotal = useMemo(() => {
+    return resolvedItems.reduce((sum, item) => sum + (item.unit_price + (item.variant_price || 0)) * item.quantity, 0);
+  }, [resolvedItems]);
   const discount = t.discount_amount ?? 0;
-  const taxAmount = t.tax_amount ?? 0;
+  const taxAmount = t.tax_rate ? Math.round(subtotal * (t.tax_rate / 100)) : (t.tax_amount ?? 0);
   const serviceAmount = t.service_charge ?? t.service_amount ?? 0;
-  const total = t.total_amount ?? 0;
+  const total = subtotal + taxAmount + serviceAmount - discount;
   const isCash =
     String(t.payment_method).toLowerCase() === 'cash' ||
     String(t.raw_payment_method || '').toLowerCase() === 'cash';
