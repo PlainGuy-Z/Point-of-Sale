@@ -130,6 +130,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
   const [method, setMethod] = useState<'cash' | 'qris' | 'card'>('cash');
   const [receivedStr, setReceivedStr] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const isProcessingRef = useRef(false);
   const [error, setError] = useState('');
 
   const received = parseInt(receivedStr || '0', 10);
@@ -185,6 +186,8 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handlePay = useCallback(async () => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setError('');
     setIsProcessing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -265,6 +268,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
       setError(err?.message || 'Pembayaran gagal');
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
   }, [appCheckout, cart, method, checkoutData, getCheckoutData, received, change, resetCheckout, onSuccess]);
 
