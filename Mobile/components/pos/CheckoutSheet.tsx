@@ -33,6 +33,17 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment, inli
   const [localNote, setLocalNote] = React.useState(checkoutRefs.orderNote || '');
   const { settings } = useApp();
 
+  // Sync local input state from refs whenever the sheet becomes visible.
+  // This ensures resetCheckout() clears the stale values from previous transactions.
+  React.useEffect(() => {
+    if (visible) {
+      const fresh = getCheckoutData?.() || checkoutData;
+      setLocalTable(fresh.tableNumber || '');
+      setLocalCustomer(fresh.customerName || '');
+      setLocalNote(fresh.orderNote || '');
+    }
+  }, [visible]); // Only re-run when visibility changes
+
   const dismissKeyboard = () => {
     Keyboard.dismiss();
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {

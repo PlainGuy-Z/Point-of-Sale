@@ -86,15 +86,30 @@ export default function PaymentSuccessScreen({
         }
       }
 
-      // If variant price is 0 (or not set) and we have a product catalog,
-      // compare item price with base product price to extract extra price
-      if (variantPrice === 0 && products) {
-        const product = products.find(p => p.id === item.productId)
-        if (product) {
-          const effectivePrice = getEffectivePrice(product).price
-          if (price > effectivePrice) {
-            variantPrice = price - effectivePrice
-            price = effectivePrice
+      const isManual = item.productId?.startsWith('manual-')
+
+      if (isManual) {
+        // For manual items: backend stores combined price (base + variant).
+        // If a variant was detected, subtract variantPrice from the stored price
+        // to recover the original base price for separate display.
+        if (variantName && variantPrice === 0) {
+          // Variant name found (from description brackets) but no explicit variantPrice.
+          // We can't split the price, so show entire price as base with no variant line.
+          variantName = undefined
+        } else if (variantPrice > 0 && price >= variantPrice) {
+          // Explicit variantPrice exists — subtract from combined price to get base
+          price = price - variantPrice
+        }
+      } else {
+        // For catalog items: compare with product catalog to extract variant surcharge
+        if (variantPrice === 0 && products) {
+          const product = products.find(p => p.id === item.productId)
+          if (product) {
+            const effectivePrice = getEffectivePrice(product).price
+            if (price > effectivePrice) {
+              variantPrice = price - effectivePrice
+              price = effectivePrice
+            }
           }
         }
       }
@@ -558,9 +573,8 @@ export default function PaymentSuccessScreen({
             )}
           </View>
         </ScrollView>
-        </Pressable>
 
-        {/* Action buttons (Sticky at bottom) */}
+        {/* Action buttons (Sticky at bottom, inside modalInner for proper flex) */}
         <View style={[styles.actionFooter, themeStyles.actionFooter]}>
           <TouchableOpacity 
             onPress={handleCopy} 
@@ -582,6 +596,7 @@ export default function PaymentSuccessScreen({
             )}
           </TouchableOpacity>
         </View>
+        </Pressable>
       </Animated.View>
     </Pressable>
   )
@@ -649,6 +664,7 @@ const styles = StyleSheet.create({
   },
   contentScroll: {
     width: '100%',
+    flexGrow: 1,
     flexShrink: 1,
   },
   contentScrollContent: {
