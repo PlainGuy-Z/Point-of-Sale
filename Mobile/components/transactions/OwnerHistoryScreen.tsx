@@ -349,68 +349,6 @@ export default function OwnerHistoryScreen() {
 
   const ListHeaderComponent = useMemo(() => (
     <>
-      {/* Summary Cards */}
-      {summLoading ? (
-        <View style={styles.summaryLoading}>
-          <ActivityIndicator size="small" color={c.accent} />
-        </View>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.summaryScroll}
-          style={styles.summaryScrollOuter}
-        >
-          {summaryCards.map((card) => (
-            <View
-              key={card.label}
-              style={[
-                styles.summaryCard,
-                { backgroundColor: c.bgCard, borderColor: card.highlight ? c.warning : c.border },
-                card.highlight && { borderWidth: 2 },
-              ]}
-            >
-              <Text style={[styles.summaryLabel, { color: c.textMuted }]}>{card.label}</Text>
-              <Text style={[styles.summaryValue, { color: c.accent }]}>{card.value}</Text>
-            </View>
-          ))}
-        </ScrollView>
-      )}
-
-      {/* Pending Void Banner */}
-      {pendingList.length > 0 && (
-        <View style={[styles.pendingBanner, {
-          backgroundColor: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(217,119,6,0.06)',
-          borderColor: isDark ? 'rgba(245,158,11,0.3)' : 'rgba(217,119,6,0.25)',
-        }]}>
-          <View style={styles.pendingHeader}>
-            <AlertTriangle size={18} color={isDark ? '#fcd34d' : '#92400e'} />
-            <Text style={[styles.pendingTitle, { color: isDark ? '#fcd34d' : '#92400e' }]}>
-              {pendingList.length} transaksi menunggu persetujuan void
-            </Text>
-          </View>
-          {pendingList.slice(0, 5).map((p) => (
-            <View key={p.id} style={[styles.pendingItem, { backgroundColor: c.bgCard, borderColor: c.border }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.pendingId, { color: c.textMuted }]}>
-                  #{p.id.slice(0, 8).toUpperCase()}
-                </Text>
-                <Text style={[styles.pendingInfo, { color: c.text }]}>
-                  {p.cashier_name} • {formatRupiah(p.total_amount)}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setDetail(p)}
-                style={[styles.reviewBtn, { borderColor: c.accent }]}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.reviewBtnText, { color: c.accent }]}>Tinjau</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      )}
-
       {/* Filters */}
       <View style={[styles.filterBox, { backgroundColor: c.bgCard, borderColor: c.border }]}>
         {/* Collapsible toggle */}
@@ -609,6 +547,68 @@ export default function OwnerHistoryScreen() {
           </>
         )}
       </TouchableOpacity>
+
+      {/* Pending Void Banner */}
+      {pendingList.length > 0 && (
+        <View style={[styles.pendingBanner, {
+          backgroundColor: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(217,119,6,0.06)',
+          borderColor: isDark ? 'rgba(245,158,11,0.3)' : 'rgba(217,119,6,0.25)',
+        }]}>
+          <View style={styles.pendingHeader}>
+            <AlertTriangle size={18} color={isDark ? '#fcd34d' : '#92400e'} />
+            <Text style={[styles.pendingTitle, { color: isDark ? '#fcd34d' : '#92400e' }]}>
+              {pendingList.length} transaksi menunggu persetujuan void
+            </Text>
+          </View>
+          {pendingList.slice(0, 5).map((p) => (
+            <View key={p.id} style={[styles.pendingItem, { backgroundColor: c.bgCard, borderColor: c.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.pendingId, { color: c.textMuted }]}>
+                  #{p.id.slice(0, 8).toUpperCase()}
+                </Text>
+                <Text style={[styles.pendingInfo, { color: c.text }]}>
+                  {p.cashier_name} • {formatRupiah(p.total_amount)}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setDetail(p)}
+                style={[styles.reviewBtn, { borderColor: c.accent }]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.reviewBtnText, { color: c.accent }]}>Tinjau</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Summary Cards */}
+      {summLoading ? (
+        <View style={styles.summaryLoading}>
+          <ActivityIndicator size="small" color={c.accent} />
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.summaryScroll}
+          style={styles.summaryScrollOuter}
+        >
+          {summaryCards.map((card) => (
+            <View
+              key={card.label}
+              style={[
+                styles.summaryCard,
+                { backgroundColor: c.bgCard, borderColor: card.highlight ? c.warning : c.border },
+                card.highlight && { borderWidth: 2 },
+              ]}
+            >
+              <Text style={[styles.summaryLabel, { color: c.textMuted }]}>{card.label}</Text>
+              <Text style={[styles.summaryValue, { color: c.accent }]}>{card.value}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      )}
     </>
   ), [
     summLoading, summaryCards, pendingList, filtersOpen, dateFrom, dateTo,
