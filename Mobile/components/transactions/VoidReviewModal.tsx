@@ -37,8 +37,8 @@ export default function VoidReviewModal({
 
   const handleSubmit = async () => {
     setError(null);
-    if (!isApprove && note.trim().length < 1) {
-      setError(isDirect ? 'Alasan pembatalan wajib diisi.' : 'Catatan penolakan wajib diisi.');
+    if (!isApprove && !isDirect && note.trim().length < 1) {
+      setError('Catatan penolakan wajib diisi.');
       return;
     }
     setLoading(true);
@@ -134,16 +134,16 @@ export default function VoidReviewModal({
 
             {/* Note Input */}
             <Text style={[styles.label, { color: c.textSecondary }]}>
-              {isApprove ? 'Catatan (opsional)' : isDirect ? 'Alasan Pembatalan (wajib)' : 'Alasan penolakan (wajib)'}
+              {(isApprove || isDirect) ? 'Catatan (opsional)' : 'Alasan penolakan (wajib)'}
             </Text>
             <TextInput
               style={[styles.textArea, {
                 backgroundColor: c.bgInput,
                 borderColor: c.border,
                 color: c.text,
-                minHeight: isApprove ? 72 : 100,
+                minHeight: (isApprove || isDirect) ? 72 : 100,
               }]}
-              placeholder={isApprove ? 'Catatan internal...' : isDirect ? 'Alasan void (mis. pelanggan komplain)...' : 'Jelaskan alasan penolakan'}
+              placeholder={(isApprove || isDirect) ? 'Catatan internal...' : 'Jelaskan alasan penolakan'}
               placeholderTextColor={c.textMuted}
               value={note}
               onChangeText={setNote}

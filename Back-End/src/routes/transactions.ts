@@ -24,7 +24,7 @@ const VoidRejectSchema = z.object({
 });
 
 const VoidDirectSchema = z.object({
-  reason: z.string().trim().min(5)
+  reason: z.string().trim().optional()
 });
 
 const NON_VOID = `(COALESCE(t.status, '') <> 'voided')`;
