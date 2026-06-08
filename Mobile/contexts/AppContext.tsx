@@ -145,6 +145,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const checkout = useCallback(async (params: CheckoutParams) => {
     setIsServiceLoading(true);
     try {
+      // Generate idempotency key to prevent duplicate transactions
+      // if the same request is retried due to timeout/network issues
+      const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+
       const { transaction, appState } = await posApi.createTransaction({
         cart: params.cart.map((i: CartItemWithInput) => ({
           productId: i.productId,
@@ -165,6 +169,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         orderNote: params.orderNote,
         notes: params.notes,
         applyTax: params.applyTax,
+        idempotencyKey,
       });
 
       const normalized = normalizeAppStateWire(appState as AppStateWire);

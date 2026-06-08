@@ -24,6 +24,7 @@ export interface CreateTransactionRequest {
   cashReceived?: number;
   orderNote?: string;
   applyTax?: boolean;
+  idempotencyKey?: string;
 }
 
 type TransactionResponse = Omit<Transaction, 'date' | 'items'> & {
@@ -35,6 +36,10 @@ export interface CheckoutResponse {
   transaction: TransactionResponse;
   appState: AppStateWire;
 }
+
+// Timeout for transaction creation — longer than default (10s) because
+// this endpoint performs multiple DB queries within a SQL transaction
+const TRANSACTION_TIMEOUT_MS = 30_000;
 
 export const posApi = {
   quote: async (req: Omit<CreateTransactionRequest, 'paymentMethod'>) =>
@@ -56,7 +61,7 @@ export const posApi = {
     const res = await http<CheckoutResponse>('/pos/transactions', {
       method: 'POST',
       body: JSON.stringify(req),
-    });
+    }, TRANSACTION_TIMEOUT_MS);
 
     return {
       transaction: { ...res.transaction, date: new Date(res.transaction.date) },

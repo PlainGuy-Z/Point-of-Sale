@@ -111,6 +111,20 @@ posRouter.post('/quote', validateBody(QuoteRequestSchema), async (req, res, next
   }
 });
 
+// ── Idempotency cache ────────────────────────────────────────────────
+// Prevents duplicate transactions when mobile client retries after timeout.
+// Keys expire after 5 minutes.
+const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000;
+const idempotencyCache = new Map<string, { result: any; expiry: number }>();
+
+// Clean expired entries every 60s
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of idempotencyCache) {
+    if (now > entry.expiry) idempotencyCache.delete(key);
+  }
+}, 60_000).unref();
+
 // POST /pos/transactions
 posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), async (req, res, next) => {
   try {
@@ -119,6 +133,19 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
     const cashierId = req.user!.id;
     const cashierName = req.user!.name;
     const role = req.user!.role;
+
+    // ── Idempotency check ──────────────────────────────────────────
+    const idempotencyKey = body.idempotencyKey
+      ? `${shopId}:${body.idempotencyKey}`
+      : null;
+
+    if (idempotencyKey) {
+      const cached = idempotencyCache.get(idempotencyKey);
+      if (cached && Date.now() < cached.expiry) {
+        console.log(`[POS] Idempotency hit — returning cached result for key ${body.idempotencyKey}`);
+        return res.status(201).json(cached.result);
+      }
+    }
 
     let shiftId: string | null = null;
     if (role === 'cashier') {
@@ -391,10 +418,20 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
     });
 
     const updatedProducts = await getProductsState(shopId);
-    res.status(201).json({
+    const responseBody = {
       transaction: result,
       appState: { products: updatedProducts }
-    });
+    };
+
+    // Cache the response for idempotency replay
+    if (idempotencyKey) {
+      idempotencyCache.set(idempotencyKey, {
+        result: responseBody,
+        expiry: Date.now() + IDEMPOTENCY_TTL_MS,
+      });
+    }
+
+    res.status(201).json(responseBody);
   } catch (err) {
     console.error('[POS] Transaction failed:', err);
     next(err);
