@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import type { AuthUser, AuthStatus } from '../types';
-import { authApi } from '../services/authApi';
+import { authApi, RegisterData } from '../services/authApi';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -10,6 +10,7 @@ interface AuthContextType {
   isCashier: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
+  register: (data: RegisterData) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<AuthUser>;
 }
@@ -56,6 +57,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return loggedIn;
   }, []);
 
+  const register = useCallback(async (data: RegisterData): Promise<AuthUser> => {
+    const { user: created } = await authApi.register(data);
+    setUser(created);
+    setStatus('authenticated');
+    return created;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
@@ -81,10 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isCashier: user?.role === 'cashier',
       isAuthenticated: status === 'authenticated',
       login,
+      register,
       logout,
       refreshUser,
     }),
-    [user, status, login, logout, refreshUser]
+    [user, status, login, register, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

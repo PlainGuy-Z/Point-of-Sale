@@ -439,7 +439,17 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
       LIMIT 5;
     `;
 
-    const [sumRes, custRes, wasteRes, prodRes, topRes, chartRes, todayRevRes, todayTopRes] = await Promise.all([
+    // Count voided transactions in the same date range to compute real success rate
+    const voidedCountSql = `
+      SELECT COUNT(*)::int as voided_count
+      FROM coffeepos.transactions
+      WHERE shop_id = $1::uuid
+        AND (created_at AT TIME ZONE '${TZ}')::date >= $2::date
+        AND (created_at AT TIME ZONE '${TZ}')::date <= $3::date
+        AND status = 'voided'
+    `;
+
+    const [sumRes, custRes, wasteRes, prodRes, topRes, chartRes, todayRevRes, todayTopRes, voidedRes] = await Promise.all([
       pool.query(summarySql, [shopId, from, to]),
       pool.query(customersSql),
       pool.query(wasteSql, [shopId, from, to]),
@@ -447,7 +457,8 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
       pool.query(topProductsSql, [shopId, from, to]),
       pool.query(chartSql, [shopId, from, to]),
       pool.query(todayRevenueSql, [shopId]),
-      pool.query(todayTopProductsSql, [shopId])
+      pool.query(todayTopProductsSql, [shopId]),
+      pool.query(voidedCountSql, [shopId, from, to])
     ]);
 
     const summaryRow = sumRes.rows[0] || { total_transactions: 0, total_revenue: 0, cogs: 0 };
@@ -469,8 +480,12 @@ reportsRouter.get('/dashboard', async (req, res, next) => {
       ? ((totalTransactions - prevTx) / prevTx) * 100 
       : (totalTransactions > 0 ? 100 : 0);
 
-    const successRate = totalTransactions > 0 
-      ? Math.min(95 + (totalTransactions % 10), 99.9) 
+    // Real success rate: completed / (completed + voided) * 100
+    // totalTransactions already excludes voided (NON_VOID filter), so it = completed count
+    const voidedCount = Number(voidedRes.rows[0]?.voided_count ?? 0);
+    const allTransactions = totalTransactions + voidedCount;
+    const successRate = allTransactions > 0
+      ? (totalTransactions / allTransactions) * 100
       : 0;
 
     const metrics = {

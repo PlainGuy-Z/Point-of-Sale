@@ -128,9 +128,12 @@ export const calculateDashboardMetrics = (
   const profitMargin = todayRevenue > 0 ? (todayProfit / todayRevenue) * 100 : 0;
   const avgTicket = todayTransactionCount > 0 ? todayRevenue / todayTransactionCount : 0;
   
-  const successRate = todayTransactionCount > 0 
-    ? Math.min(95 + (todayTransactionCount % 10), 99.9) 
-    : 0;
+  // Real success rate: completed / (completed + voided) * 100
+  // validTransactions only contains non-voided transactions (from AppContext filter)
+  // We can't count voided from local data since AppContext filters them out
+  // So success rate from local data is always 100% when there are transactions
+  // The backend provides the real number including voided when using remote data
+  const successRate = todayTransactionCount > 0 ? 100 : 0;
   
   return {
     currentRevenue: todayRevenue,

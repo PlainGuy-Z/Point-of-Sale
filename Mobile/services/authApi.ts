@@ -7,6 +7,15 @@ export interface LoginData {
   password: string;
 }
 
+export interface RegisterData {
+  shopName: string;
+  shopSlug: string;
+  ownerName: string;
+  email: string;
+  password: string;
+  licenseToken: string;
+}
+
 export const authApi = {
   login: async (data: LoginData): Promise<{ user: AuthUser; token: string }> => {
     const result = await http<{ user: AuthUser; token: string }>('/auth/login', {
@@ -18,6 +27,24 @@ export const authApi = {
       await SecureStore.setItemAsync('auth_token', result.token);
     }
     return result;
+  },
+
+  register: async (data: RegisterData): Promise<{ user: AuthUser; token: string }> => {
+    const result = await http<{ user: AuthUser; token: string }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (result.token) {
+      await SecureStore.setItemAsync('auth_token', result.token);
+    }
+    return result;
+  },
+
+  verifyToken: async (token: string): Promise<{ valid: boolean; message: string }> => {
+    return http<{ valid: boolean; message: string }>('/auth/verify-token', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
   },
 
   logout: async (): Promise<void> => {

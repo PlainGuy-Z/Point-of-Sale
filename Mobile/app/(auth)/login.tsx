@@ -140,6 +140,18 @@ export default function LoginScreen() {
                 : <Text style={{ color: c.textInverse, fontSize: 16, fontWeight: '900', letterSpacing: 0.5 }}>MASUK</Text>
               }
             </TouchableOpacity>
+
+            {/* Register Link */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20 }}>
+              <Text style={{ color: c.textSecondary, fontSize: 14 }}>
+                Belum punya akun?{' '}
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/(auth)/register')} activeOpacity={0.7}>
+                <Text style={{ color: c.accent, fontSize: 14, fontWeight: '700' }}>
+                  Daftar di sini
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
