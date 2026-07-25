@@ -42,7 +42,7 @@ export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
   return (
     <Animated.View style={[styles.container, containerStyle]} pointerEvents="none">
       <Animated.Image
-        source={require('../assets/SmartPos.png')}
+        source={require('../../assets/SmartPos.png')}
         style={[styles.logo, logoStyle]}
         resizeMode="contain"
       />
