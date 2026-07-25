@@ -41,7 +41,7 @@
       ]
     },
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/SmartPos.png",
       "resizeMode": "contain",
       "backgroundColor": "#111111"
     },

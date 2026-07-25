@@ -1,5 +1,5 @@
 import '../global.css';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +11,7 @@ import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { getColors } from '../utils/theme';
 import { PrinterProvider } from '../contexts/PrinterContext';
 import { AIProvider } from '../contexts/AIContext';
+import AnimatedSplash from '../components/AnimatedSplash';
 
 function ThemedStack() {
   const { effectiveTheme } = useTheme();
@@ -35,6 +36,8 @@ function ThemedStack() {
 }
 
 export default function RootLayout() {
+  const [showSplash, setShowSplash] = useState(true);
+
   useEffect(() => {
     async function unlockOrientation() {
       await ScreenOrientation.unlockAsync();
@@ -57,6 +60,10 @@ export default function RootLayout() {
           </AppProvider>
         </ThemeProvider>
       </AuthProvider>
+
+      {showSplash && (
+        <AnimatedSplash onFinish={() => setShowSplash(false)} />
+      )}
     </GestureHandlerRootView>
   );
 }
