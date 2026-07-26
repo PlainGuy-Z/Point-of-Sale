@@ -104,6 +104,7 @@ export default function OwnerLayout() {
               <Stack.Screen name="loyalty" />
               <Stack.Screen name="insights" />
               <Stack.Screen name="users" />
+              <Stack.Screen name="branches" />
               <Stack.Screen name="help" />
               <Stack.Screen name="more" />
               <Stack.Screen name="all-menu" />

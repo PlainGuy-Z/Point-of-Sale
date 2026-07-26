@@ -23,6 +23,7 @@ import {
   KeyRound,
   ToggleLeft,
   ToggleRight,
+  Building2,
 } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
@@ -36,6 +37,8 @@ export interface CashierUserRow {
   name: string;
   email: string;
   role: 'cashier';
+  branch_id?: string;
+  branch_name?: string;
   pin: boolean;
   is_active: boolean;
   created_at: string;
@@ -410,6 +413,22 @@ export default function UsersManagementScreen() {
                           fontSize: 10, fontWeight: '800',
                         }}>
                           {row.is_active ? 'Aktif' : 'Nonaktif'}
+                        </Text>
+                      </View>
+
+                      <View style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 4,
+                        paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
+                        backgroundColor: isDark ? 'rgba(59,130,246,0.1)' : '#dbeafe',
+                        borderWidth: 1,
+                        borderColor: isDark ? 'rgba(59,130,246,0.2)' : '#bfdbfe',
+                      }}>
+                        <Building2 size={10} color="#3b82f6" strokeWidth={2.5} />
+                        <Text style={{
+                          color: '#3b82f6',
+                          fontSize: 10, fontWeight: '700',
+                        }}>
+                          {row.branch_name || 'Cabang Utama'}
                         </Text>
                       </View>
 

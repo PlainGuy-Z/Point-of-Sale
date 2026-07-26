@@ -25,6 +25,7 @@ export interface CreateTransactionRequest {
   orderNote?: string;
   applyTax?: boolean;
   idempotencyKey?: string;
+  branch_id?: string;
 }
 
 type TransactionResponse = Omit<Transaction, 'date' | 'items'> & {

@@ -12,10 +12,11 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { X, Eye, EyeOff, UserPlus } from 'lucide-react-native';
+import { X, Eye, EyeOff, UserPlus, Building2, Check } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { appApi } from '../../services/appApi';
+import { useBranch } from '../../contexts/BranchContext';
 import type { CashierUserRow } from './UsersManagementScreen';
 
 interface AddCashierModalProps {
@@ -27,11 +28,17 @@ export default function AddCashierModal({ onClose, onCreated }: AddCashierModalP
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
+  const { branches } = useBranch();
+
+  const activeBranches = branches.filter((b) => b.is_active);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    activeBranches.find((b) => b.is_default)?.id || activeBranches[0]?.id || ''
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +68,10 @@ export default function AddCashierModal({ onClose, onCreated }: AddCashierModalP
       setError('Konfirmasi password tidak cocok.');
       return;
     }
+    if (!selectedBranchId && activeBranches.length > 0) {
+      setError('Pilih cabang tempat kasir bertugas.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -69,6 +80,7 @@ export default function AddCashierModal({ onClose, onCreated }: AddCashierModalP
         email: trimEmail,
         password,
         role: 'cashier',
+        branch_id: selectedBranchId || undefined,
       });
       onCreated(user);
       onClose();
@@ -186,6 +198,43 @@ export default function AddCashierModal({ onClose, onCreated }: AddCashierModalP
                     style={inputStyle}
                   />
                 </View>
+
+                {/* Branch Selection */}
+                {activeBranches.length > 0 && (
+                  <View>
+                    <Text style={{ color: c.textSecondary, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>
+                      Cabang Tugas <Text style={{ color: '#ef4444' }}>*</Text>
+                    </Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      {activeBranches.map((b) => {
+                        const isSel = selectedBranchId === b.id;
+                        return (
+                          <TouchableOpacity
+                            key={b.id}
+                            onPress={() => setSelectedBranchId(b.id)}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              borderRadius: 10,
+                              backgroundColor: isSel ? c.accentBg : (isDark ? '#252525' : '#f8fafc'),
+                              borderWidth: 1,
+                              borderColor: isSel ? c.accent : c.borderLight,
+                            }}
+                          >
+                            <Building2 size={14} color={isSel ? c.accent : c.textSecondary} />
+                            <Text style={{ fontSize: 13, fontWeight: isSel ? '800' : '600', color: isSel ? c.accent : c.text }}>
+                              {b.name}
+                            </Text>
+                            {isSel && <Check size={14} color={c.accent} strokeWidth={2.5} />}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
 
                 <View>
                   <Text style={{ color: c.textSecondary, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>

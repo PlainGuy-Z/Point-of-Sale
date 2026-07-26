@@ -8,11 +8,12 @@ import { getColors } from '../../utils/theme';
 import { SidebarContext } from '../../contexts/SidebarContext';
 import {
   Settings, Home, Percent, Printer, Clipboard, CreditCard, Box,
-  ChevronRight, LogOut, Menu, UserCheck
+  ChevronRight, LogOut, Menu, UserCheck, Building2
 } from 'lucide-react-native';
 
 const settingsItems = [
   { label: 'Toko & Bisnis', Icon: Home, desc: 'Nama toko, alamat, jam operasional' },
+  { label: 'Kelola Cabang', Icon: Building2, desc: 'Tambah/edit cabang & lokasi toko' },
   { label: 'Manajemen Kasir', Icon: UserCheck, desc: 'Kelola kasir, hak akses, & pin' },
   { label: 'Pajak & Biaya', Icon: Percent, desc: 'PPN, service charge' },
   { label: 'Struk & Printer', Icon: Printer, desc: 'Format struk, printer bluetooth' },
@@ -39,6 +40,8 @@ export default function OwnerSettings() {
   const handlePress = (label: string) => {
     if (label === 'Toko & Bisnis') {
       router.push('/(owner)/shop-settings' as any);
+    } else if (label === 'Kelola Cabang') {
+      router.push('/(owner)/branches' as any);
     } else if (label === 'Struk & Printer') {
       router.push('/printer-settings' as any);
     } else if (label === 'Manajemen Kasir') {

@@ -25,6 +25,7 @@ import CheckoutSheet from './CheckoutSheet';
 import PaymentScreen from './PaymentScreen';
 import PaymentSuccessScreen from './PaymentSuccessScreen';
 import SidebarModal from './SidebarModal';
+import BranchSelectorHeader from '../navigation/BranchSelectorHeader';
 import type { CartItemWithInput, Transaction, Product } from '../../types';
 
 // ─── Trending period options ────────────────────────────────────────────────────
@@ -508,6 +509,7 @@ export default function POSScreen() {
           </Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <BranchSelectorHeader />
             {user?.shop?.logo_url ? (
               <View style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -833,21 +835,24 @@ export default function POSScreen() {
               Menu <Text style={{ color: c.accent }}>Explorer</Text>
             </Text>
 
-            {/* Small Compact Search Bar */}
-            <View style={{
-              flexDirection: 'row', alignItems: 'center',
-              backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.borderLight,
-              borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, gap: 6,
-              width: 180,
-            }}>
-              <Search size={12} color={c.textSecondary} strokeWidth={2} />
-              <TextInput
-                placeholder="Cari menu..."
-                placeholderTextColor={c.textMuted}
-                value={search}
-                onChangeText={setSearch}
-                style={{ flex: 1, color: c.text, fontSize: 11, fontWeight: '500', padding: 0 }}
-              />
+            {/* Small Compact Search Bar & Branch Selector */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <BranchSelectorHeader />
+              <View style={{
+                flexDirection: 'row', alignItems: 'center',
+                backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.borderLight,
+                borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, gap: 6,
+                width: 180,
+              }}>
+                <Search size={12} color={c.textSecondary} strokeWidth={2} />
+                <TextInput
+                  placeholder="Cari menu..."
+                  placeholderTextColor={c.textMuted}
+                  value={search}
+                  onChangeText={setSearch}
+                  style={{ flex: 1, color: c.text, fontSize: 11, fontWeight: '500', padding: 0 }}
+                />
+              </View>
             </View>
           </View>
 

@@ -12,10 +12,11 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { X, Pencil } from 'lucide-react-native';
+import { X, Pencil, Building2, Check } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { appApi } from '../../services/appApi';
+import { useBranch } from '../../contexts/BranchContext';
 import type { CashierUserRow } from './UsersManagementScreen';
 
 interface EditCashierModalProps {
@@ -28,9 +29,15 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
+  const { branches } = useBranch();
+
+  const activeBranches = branches.filter((b) => b.is_active);
 
   const [name, setName] = useState(cashier.name);
   const [email, setEmail] = useState(cashier.email);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    cashier.branch_id || activeBranches.find((b) => b.is_default)?.id || activeBranches[0]?.id || ''
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -52,7 +59,7 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
     }
 
     // Check if nothing changed
-    if (trimName === cashier.name && trimEmail === cashier.email) {
+    if (trimName === cashier.name && trimEmail === cashier.email && selectedBranchId === cashier.branch_id) {
       onClose();
       return;
     }
@@ -61,7 +68,7 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
     try {
       const user = await appApi.put<CashierUserRow>(
         `/users/${encodeURIComponent(cashier.id)}`,
-        { name: trimName, email: trimEmail }
+        { name: trimName, email: trimEmail, branch_id: selectedBranchId || undefined }
       );
       onSaved(user);
       onClose();
@@ -178,6 +185,43 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
                     style={inputStyle}
                   />
                 </View>
+
+                {/* Branch Selection */}
+                {activeBranches.length > 0 && (
+                  <View>
+                    <Text style={{ color: c.textSecondary, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>
+                      Cabang Tugas <Text style={{ color: '#ef4444' }}>*</Text>
+                    </Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      {activeBranches.map((b) => {
+                        const isSel = selectedBranchId === b.id;
+                        return (
+                          <TouchableOpacity
+                            key={b.id}
+                            onPress={() => setSelectedBranchId(b.id)}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              borderRadius: 10,
+                              backgroundColor: isSel ? c.accentBg : (isDark ? '#252525' : '#f8fafc'),
+                              borderWidth: 1,
+                              borderColor: isSel ? c.accent : c.borderLight,
+                            }}
+                          >
+                            <Building2 size={14} color={isSel ? c.accent : c.textSecondary} />
+                            <Text style={{ fontSize: 13, fontWeight: isSel ? '800' : '600', color: isSel ? c.accent : c.text }}>
+                              {b.name}
+                            </Text>
+                            {isSel && <Check size={14} color={c.accent} strokeWidth={2.5} />}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
 
                 <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '500' }}>
                   ℹ️ Password tidak dapat diubah di sini. Gunakan Reset Password jika diperlukan.

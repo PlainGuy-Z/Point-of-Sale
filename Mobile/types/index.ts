@@ -236,8 +236,26 @@ export interface AuthUser {
   email: string;
   role: 'owner' | 'cashier';
   shop_id: string;
+  branch_id?: string | null;
+  branch_name?: string | null;
   pin?: boolean;
   shop: Shop;
+}
+
+export interface Branch {
+  id: string;
+  shop_id: string;
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  notes?: string | null;
+  is_active: boolean;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+  active_cashiers_count?: number;
+  total_transactions_count?: number;
 }
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';

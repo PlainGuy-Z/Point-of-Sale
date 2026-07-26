@@ -5,6 +5,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { AuthProvider } from '../contexts/AuthContext';
+import { BranchProvider } from '../contexts/BranchContext';
 import { AppProvider } from '../contexts/AppContext';
 import { ShiftProvider } from '../contexts/ShiftContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
@@ -48,17 +49,19 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <ThemeProvider>
-          <AppProvider>
-            <ShiftProvider>
-              <PrinterProvider>
-                <AIProvider>
-                  <ThemedStack />
-                </AIProvider>
-              </PrinterProvider>
-            </ShiftProvider>
-          </AppProvider>
-        </ThemeProvider>
+        <BranchProvider>
+          <ThemeProvider>
+            <AppProvider>
+              <ShiftProvider>
+                <PrinterProvider>
+                  <AIProvider>
+                    <ThemedStack />
+                  </AIProvider>
+                </PrinterProvider>
+              </ShiftProvider>
+            </AppProvider>
+          </ThemeProvider>
+        </BranchProvider>
       </AuthProvider>
 
       {showSplash && (

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Product, Transaction, WasteLog, Customer, BusinessSettings, CheckoutParams, CartItemWithInput, AppDataState } from '../types';
 import { appApi, normalizeAppStateWire, type AppStateWire } from '../services/appApi';
 import { posApi } from '../services/posApi';
@@ -148,6 +149,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Generate idempotency key to prevent duplicate transactions
       // if the same request is retried due to timeout/network issues
       const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      const savedBranchId = await AsyncStorage.getItem('selected_branch_id');
+      const branch_id = (savedBranchId && savedBranchId !== 'all') ? savedBranchId : undefined;
 
       const { transaction, appState } = await posApi.createTransaction({
         cart: params.cart.map((i: CartItemWithInput) => ({
@@ -170,6 +173,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         notes: params.notes,
         applyTax: params.applyTax,
         idempotencyKey,
+        branch_id,
       });
 
       const normalized = normalizeAppStateWire(appState as AppStateWire);

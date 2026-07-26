@@ -24,6 +24,7 @@ import ProfitChartRN from '../../components/dashboard/ProfitChartRN';
 import TopProductsRN from '../../components/dashboard/TopProductsRN';
 import LowStockAlertRN from '../../components/dashboard/LowStockAlertRN';
 import InfoCard from '../../components/dashboard/InfoCard';
+import BranchSelectorHeader from '../../components/navigation/BranchSelectorHeader';
 
 /* ─── Section Label ───────────────────────────────────────────────────── */
 
@@ -466,16 +467,19 @@ export default function OwnerDashboard() {
                 </Text>
               </View>
             </View>
-            <View style={{
-              flexDirection: 'row', alignItems: 'center', gap: 4,
-              paddingHorizontal: 12, paddingVertical: 6,
-              borderRadius: 999,
-              backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
-            }}>
-              <Zap size={12} color={isCovered ? "#f59e0b" : "#3b82f6"} />
-              <Text style={{ fontSize: 11, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
-                {isCovered ? 'Live Cache' : 'Data Server'}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <BranchSelectorHeader />
+              <View style={{
+                flexDirection: 'row', alignItems: 'center', gap: 4,
+                paddingHorizontal: 12, paddingVertical: 6,
+                borderRadius: 999,
+                backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
+              }}>
+                <Zap size={12} color={isCovered ? "#f59e0b" : "#3b82f6"} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
+                  {isCovered ? 'Live Cache' : 'Data Server'}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
