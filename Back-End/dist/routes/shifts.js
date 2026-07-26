@@ -4,9 +4,11 @@ import { pool } from '../db/pool.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { getDefaultBranchId } from './branches.js';
 export const shiftsRouter = Router();
 const OpenShiftSchema = z.object({
-    opening_cash: z.number().int().min(0)
+    opening_cash: z.number().int().min(0),
+    branch_id: z.string().uuid().optional(),
 });
 const CloseShiftSchema = z.object({
     closing_cash: z.number().int().min(0),
@@ -16,7 +18,10 @@ const CloseShiftSchema = z.object({
 shiftsRouter.post('/open', requireRole('cashier'), validateBody(OpenShiftSchema), async (req, res, next) => {
     try {
         const { shop_id, id: cashier_id, name: cashier_name } = req.user;
-        const { opening_cash } = req.body;
+        const { opening_cash, branch_id } = req.body;
+        const targetBranchId = branch_id
+            ?? req.user.branch_id
+            ?? await getDefaultBranchId(shop_id);
         // Check if there is already an active shift for this cashier
         const { rows: activeShifts } = await pool.query(`SELECT id FROM coffeepos.shifts 
        WHERE cashier_id = $1 AND status = 'open'`, [cashier_id]);
@@ -25,9 +30,9 @@ shiftsRouter.post('/open', requireRole('cashier'), validateBody(OpenShiftSchema)
         }
         // Create new shift
         const { rows: newShift } = await pool.query(`INSERT INTO coffeepos.shifts 
-        (shop_id, cashier_id, cashier_name, opening_cash, status)
-       VALUES ($1, $2, $3, $4, 'open')
-       RETURNING *`, [shop_id, cashier_id, cashier_name, opening_cash]);
+        (shop_id, cashier_id, cashier_name, opening_cash, status, branch_id)
+       VALUES ($1, $2, $3, $4, 'open', $5::uuid)
+       RETURNING *`, [shop_id, cashier_id, cashier_name, opening_cash, targetBranchId]);
         res.status(201).json(newShift[0]);
     }
     catch (err) {
@@ -112,12 +117,17 @@ shiftsRouter.get('/active', requireRole('cashier'), async (req, res, next) => {
 shiftsRouter.get('/', requireRole('owner'), async (req, res, next) => {
     try {
         const { shop_id } = req.user;
-        const { page = '1', limit = '20', cashier_id, date_from, date_to } = req.query;
+        const { page = '1', limit = '20', cashier_id, date_from, date_to, branch_id } = req.query;
         const limitNum = parseInt(limit, 10) || 20;
         const offset = (parseInt(page, 10) - 1) * limitNum || 0;
         const params = [shop_id];
         let whereClause = `WHERE shop_id = $1`;
         let paramIndex = 2;
+        if (branch_id && branch_id !== 'all') {
+            whereClause += ` AND branch_id = $${paramIndex}::uuid`;
+            params.push(branch_id);
+            paramIndex++;
+        }
         if (cashier_id) {
             whereClause += ` AND cashier_id = $${paramIndex}`;
             params.push(cashier_id);

@@ -5,6 +5,7 @@ import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { CreateTransactionRequestSchema, QuoteRequestSchema } from './pos.schemas.js';
 import { getProductsState } from './app.js';
+import { getDefaultBranchId } from './branches.js';
 import crypto from 'node:crypto';
 async function getShopSettings(shopId) {
     const { rows } = await pool.query(`SELECT tax_enabled, tax_rate, tax_inclusive,
@@ -265,16 +266,19 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
             const changeAmount = cashReceived != null ? Math.max(0, cashReceived - grandTotal) : null;
             const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             const customerId = typeof body.customerId === 'string' && uuidRe.test(body.customerId.trim()) ? body.customerId.trim() : null;
+            const targetBranchId = body.branch_id
+                ?? req.user?.branch_id
+                ?? await getDefaultBranchId(shopId, client);
             const txId = crypto.randomUUID();
             const tx = await client.query(`INSERT INTO coffeepos.transactions
            (id, subtotal, tax, service_charge, grand_total, discount_amount, customer_name, customer_id,
             table_number, notes, payment_method, cash_received, change_amount, order_type,
-            status, shop_id, cashier_id, cashier_name, shift_id)
+            status, shop_id, cashier_id, cashier_name, shift_id, branch_id)
          VALUES
            ($1::uuid, $2, $3, $4::int, $5, $6::int, $7, $8::uuid, $9, $10, $11, $12, $13, $14::text,
-            'completed', $15::uuid, $16::uuid, $17, $18::uuid)
+            'completed', $15::uuid, $16::uuid, $17, $18::uuid, $19::uuid)
          RETURNING
-           id::text, subtotal, tax, service_charge, grand_total, customer_name, table_number, notes, payment_method, status, created_at`, [
+           id::text, subtotal, tax, service_charge, grand_total, customer_name, table_number, notes, payment_method, status, created_at, branch_id::text`, [
                 txId,
                 subtotal,
                 tax,
@@ -292,7 +296,8 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
                 shopId,
                 cashierId,
                 cashierName,
-                shiftId
+                shiftId,
+                targetBranchId
             ]);
             const transaction = tx.rows[0];
             const values = [];

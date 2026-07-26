@@ -14,6 +14,7 @@ declare global {
         role: 'owner' | 'cashier';
         name: string;
         email: string;
+        branch_id?: string | null;
       };
     }
   }
@@ -25,6 +26,7 @@ interface JwtPayload {
   role: 'owner' | 'cashier';
   name: string;
   email: string;
+  branch_id?: string | null;
 }
 
 export const authenticateToken: RequestHandler = (req, _res, next) => {
@@ -43,7 +45,8 @@ export const authenticateToken: RequestHandler = (req, _res, next) => {
       shop_id: decoded.shop_id,
       role: decoded.role,
       name: decoded.name,
-      email: decoded.email
+      email: decoded.email,
+      branch_id: decoded.branch_id ?? null,
     };
 
     next();

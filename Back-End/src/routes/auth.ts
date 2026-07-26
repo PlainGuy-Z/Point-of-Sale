@@ -101,6 +101,7 @@ interface TokenPayload {
   role: 'owner' | 'cashier';
   name: string;
   email: string;
+  branch_id?: string | null;
 }
 
 function signToken(payload: TokenPayload): string {
@@ -265,14 +266,16 @@ authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, r
   try {
     const body = req.body as z.infer<typeof LoginSchema>;
 
-    // Find user + shop
+    // Find user + shop + branch
     const result = await pool.query(
       `SELECT u.id::text, u.name, u.email, u.role, u.password_hash, u.is_active,
-              u.shop_id::text,
+              u.shop_id::text, u.branch_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
-              s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug
+              s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug,
+              b.name AS branch_name
        FROM coffeepos.users u
        JOIN coffeepos.shops s ON s.id = u.shop_id
+       LEFT JOIN coffeepos.branches b ON b.id = u.branch_id
        WHERE u.email = $1`,
       [body.email]
     );
@@ -295,7 +298,8 @@ authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, r
       shop_id: user.shop_id,
       role: user.role,
       name: user.name,
-      email: user.email
+      email: user.email,
+      branch_id: user.branch_id ?? null,
     });
 
     setCookie(res, token);
@@ -307,6 +311,8 @@ authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, r
         email: user.email,
         role: user.role,
         shop_id: user.shop_id,
+        branch_id: user.branch_id ?? null,
+        branch_name: user.branch_name ?? null,
         pin: Boolean(user.pin),
         shop: {
           id: user.shop_id,
@@ -354,12 +360,14 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
     res.setHeader('Expires', '0');
 
     const result = await pool.query(
-      `SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text,
+      `SELECT u.id::text, u.name, u.email, u.role, u.shop_id::text, u.branch_id::text,
               (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
               s.id::text AS shop_id_ref, s.name AS shop_name, s.slug AS shop_slug,
-              COALESCE(ss.logo_url, s.logo_url) AS logo_url
+              COALESCE(ss.logo_url, s.logo_url) AS logo_url,
+              b.name AS branch_name
        FROM coffeepos.users u
        JOIN coffeepos.shops s ON s.id = u.shop_id
+       LEFT JOIN coffeepos.branches b ON b.id = u.branch_id
        LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = u.shop_id
        WHERE u.id = $1::uuid`,
       [req.user!.id]
@@ -378,6 +386,8 @@ authRouter.get('/me', authenticateToken, async (req, res, next) => {
         email: user.email,
         role: user.role,
         shop_id: user.shop_id,
+        branch_id: user.branch_id ?? null,
+        branch_name: user.branch_name ?? null,
         pin: Boolean(user.pin),
         shop: {
           id: user.shop_id,

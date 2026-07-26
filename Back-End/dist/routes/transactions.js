@@ -64,7 +64,9 @@ function mapRowToTransactionPayload(r) {
         void_requested_at: r.void_requested_at ?? null,
         void_reviewed_at: r.void_reviewed_at ?? null,
         void_review_note: r.void_review_note ?? null,
-        shift_id: r.shift_id ?? null
+        shift_id: r.shift_id ?? null,
+        branch_id: r.branch_id ?? null,
+        branch_name: r.branch_name ?? null,
     };
 }
 function itemsAggJson() {
@@ -113,8 +115,11 @@ const TX_AGG_SELECT = `
     t.void_reviewed_at,
     t.void_review_note,
     t.shift_id::text,
+    t.branch_id::text,
+    b.name AS branch_name,
     ${itemsAggJson()} AS items_json
   FROM coffeepos.transactions t
+  LEFT JOIN coffeepos.branches b ON b.id = t.branch_id
   LEFT JOIN coffeepos.transaction_items i ON i.transaction_id = t.id
 `;
 function parseItemsJson(raw) {
@@ -158,10 +163,20 @@ transactionsRouter.get('/summary', async (req, res, next) => {
         if (req.user.role === 'cashier') {
             cashierExpr = ` AND t.cashier_id = $${p++}::uuid`;
             params.push(req.user.id);
+            if (req.user.branch_id) {
+                cashierExpr += ` AND t.branch_id = $${p++}::uuid`;
+                params.push(req.user.branch_id);
+            }
         }
-        else if (typeof req.query.cashier_id === 'string' && req.query.cashier_id.trim().length > 0) {
-            cashierExpr = ` AND t.cashier_id = $${p++}::uuid`;
-            params.push(req.query.cashier_id.trim());
+        else {
+            if (typeof req.query.cashier_id === 'string' && req.query.cashier_id.trim().length > 0) {
+                cashierExpr += ` AND t.cashier_id = $${p++}::uuid`;
+                params.push(req.query.cashier_id.trim());
+            }
+            if (typeof req.query.branch_id === 'string' && req.query.branch_id.trim() !== '' && req.query.branch_id.trim() !== 'all') {
+                cashierExpr += ` AND t.branch_id = $${p++}::uuid`;
+                params.push(req.query.branch_id.trim());
+            }
         }
         const scopeExpr = scope === 'today'
             ? `(DATE(t.created_at AT TIME ZONE '${TZ}') = DATE((now() AT TIME ZONE '${TZ}')))`
@@ -237,6 +252,10 @@ transactionsRouter.get('/', async (req, res, next) => {
         if (req.user.role === 'cashier') {
             clauses.push(`t.cashier_id = $${pidx++}::uuid`);
             qp.push(req.user.id);
+            if (req.user.branch_id) {
+                clauses.push(`t.branch_id = $${pidx++}::uuid`);
+                qp.push(req.user.branch_id);
+            }
             clauses.push(`(DATE(t.created_at AT TIME ZONE '${TZ}') = DATE((now() AT TIME ZONE '${TZ}')))`);
         }
         else {
@@ -254,6 +273,10 @@ transactionsRouter.get('/', async (req, res, next) => {
             if (typeof req.query.cashier_id === 'string' && req.query.cashier_id.trim()) {
                 clauses.push(`t.cashier_id = $${pidx++}::uuid`);
                 qp.push(req.query.cashier_id.trim());
+            }
+            if (typeof req.query.branch_id === 'string' && req.query.branch_id.trim() !== '' && req.query.branch_id.trim() !== 'all') {
+                clauses.push(`t.branch_id = $${pidx++}::uuid`);
+                qp.push(req.query.branch_id.trim());
             }
         }
         if (statusFilter !== 'all' && ['completed', 'pending_void', 'voided'].includes(statusFilter)) {

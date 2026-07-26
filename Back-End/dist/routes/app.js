@@ -70,6 +70,7 @@ const ProductSchema = z.object({
     promoStart: z.string().trim().nullish(),
     promoEnd: z.string().trim().nullish(),
     isAvailable: z.boolean().default(true),
+    branchId: z.string().uuid().nullish(),
 });
 const CategorySchema = z.object({
     name: z.string().trim().min(1)
@@ -117,9 +118,11 @@ export async function getProductsState(shopId) {
     const products = await pool.query(`SELECT p.id::text, p.name, p.description, p.price,
             c.name as category, p.stock, p.min_stock, p.cost,
             p.image, p.discount, p.is_promo, p.promo_price,
-            p.promo_label, p.promo_start, p.promo_end, p.is_available
+            p.promo_label, p.promo_start, p.promo_end, p.is_available,
+            p.branch_id::text AS branch_id, b.name AS branch_name
      FROM coffeepos.products p
      LEFT JOIN coffeepos.categories c ON p.category_id = c.id
+     LEFT JOIN coffeepos.branches b ON b.id = p.branch_id
      WHERE p.shop_id = $1::uuid
        AND p.is_deleted = false
      ORDER BY p.name ASC`, [shopId]);
@@ -137,6 +140,8 @@ export async function getProductsState(shopId) {
         promoStart: p.promo_start ?? undefined,
         promoEnd: p.promo_end ?? undefined,
         isAvailable: p.is_available !== false,
+        branchId: p.branch_id ?? null,
+        branchName: p.branch_name ?? null,
         unit: 'pcs',
         image: p.image || null
     }));
@@ -425,13 +430,13 @@ appRouter.post('/products', requireRole('owner'), validateBody(ProductSchema), a
         const categoryId = await ensureCategory(body.category, shopId);
         await pool.query(`INSERT INTO coffeepos.products
         (name, description, price, category, category_id, stock, min_stock, cost, image,
-         discount, is_promo, promo_price, promo_label, promo_start, promo_end, is_available, shop_id)
+         discount, is_promo, promo_price, promo_label, promo_start, promo_end, is_available, shop_id, branch_id)
        VALUES ($1, $2, $3, $4, $5::uuid,
-               $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::uuid)`, [body.name, body.description || '', body.price, body.category, categoryId,
+               $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::uuid, $18::uuid)`, [body.name, body.description || '', body.price, body.category, categoryId,
             body.stock, body.minStock || 5, body.cost || 0, body.image || null,
             body.discount || 0, body.isPromo || false, body.promoPrice || null,
             body.promoLabel || null, body.promoStart || null, body.promoEnd || null,
-            body.isAvailable !== false, shopId]);
+            body.isAvailable !== false, shopId, body.branchId || null]);
         res.status(201).json(await buildAppState(shopId));
     }
     catch (err) {
@@ -455,13 +460,13 @@ appRouter.put('/products/:id', requireRole('owner'), validateBody(ProductSchema)
            stock = $6, min_stock = $7, cost = $8, image = $9,
            discount = $10, is_promo = $11, promo_price = $12,
            promo_label = $13, promo_start = $14, promo_end = $15,
-           is_available = $16,
+           is_available = $16, branch_id = $17::uuid,
            updated_at = now()
-       WHERE id = $17::uuid AND shop_id = $18::uuid`, [body.name, body.description || '', body.price, body.category, categoryId,
+       WHERE id = $18::uuid AND shop_id = $19::uuid`, [body.name, body.description || '', body.price, body.category, categoryId,
             body.stock, body.minStock || 5, body.cost || 0, body.image || null,
             body.discount || 0, body.isPromo || false, body.promoPrice || null,
             body.promoLabel || null, body.promoStart || null, body.promoEnd || null,
-            body.isAvailable !== false, id, shopId]);
+            body.isAvailable !== false, body.branchId || null, id, shopId]);
         if (result.rowCount === 0)
             throw new HttpError(404, 'NOT_FOUND', 'Product not found');
         res.json(await buildAppState(shopId));

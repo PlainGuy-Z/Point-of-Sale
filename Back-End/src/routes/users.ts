@@ -7,6 +7,8 @@ import { validateBody } from '../http/validate.js';
 import { env } from '../env.js';
 import { requireOwner, requireRole } from '../middleware/requireRole.js';
 
+import { getDefaultBranchId } from './branches.js';
+
 export const usersRouter = Router();
 
 const ADJECTIVES = [
@@ -37,13 +39,15 @@ const CreateUserSchema = z.object({
   name: z.string().trim().min(3),
   email: z.string().trim().email(),
   password: z.string().min(8),
-  role: z.enum(['cashier'])
+  role: z.enum(['cashier']),
+  branch_id: z.string().uuid().optional(),
 });
 
 const UpdateUserSchema = z.object({
   name: z.string().trim().min(3).optional(),
   email: z.string().trim().email().optional(),
-  is_active: z.boolean().optional()
+  is_active: z.boolean().optional(),
+  branch_id: z.string().uuid().optional(),
 });
 
 const SetPinSchema = z.object({
@@ -118,16 +122,19 @@ usersRouter.get('/', requireOwner, async (req, res, next) => {
   try {
     const result = await pool.query(
       `SELECT
-         id::text,
-         name,
-         email,
-         role,
-         (pin IS NOT NULL AND btrim(pin) <> '') AS pin,
-         is_active,
-         created_at
-       FROM coffeepos.users
-       WHERE shop_id = $1::uuid AND role = 'cashier'
-       ORDER BY created_at DESC`,
+         u.id::text,
+         u.name,
+         u.email,
+         u.role,
+         u.branch_id::text,
+         b.name AS branch_name,
+         (u.pin IS NOT NULL AND btrim(u.pin) <> '') AS pin,
+         u.is_active,
+         u.created_at
+       FROM coffeepos.users u
+       LEFT JOIN coffeepos.branches b ON b.id = u.branch_id
+       WHERE u.shop_id = $1::uuid AND u.role = 'cashier'
+       ORDER BY u.created_at DESC`,
       [req.user!.shop_id]
     );
 
@@ -142,6 +149,7 @@ usersRouter.get('/', requireOwner, async (req, res, next) => {
 usersRouter.post('/', requireOwner, validateBody(CreateUserSchema), async (req, res, next) => {
   try {
     const body = req.body as z.infer<typeof CreateUserSchema>;
+    const shopId = req.user!.shop_id;
 
     const emailCheck = await pool.query(`SELECT id FROM coffeepos.users WHERE email = $1`, [
       body.email
@@ -150,15 +158,26 @@ usersRouter.post('/', requireOwner, validateBody(CreateUserSchema), async (req, 
       throw new HttpError(409, 'EMAIL_TAKEN', 'Email sudah terdaftar');
     }
 
+    const branchId = body.branch_id ?? await getDefaultBranchId(shopId);
+
+    // Validate branch belongs to shop
+    const branchCheck = await pool.query(
+      `SELECT id FROM coffeepos.branches WHERE id = $1::uuid AND shop_id = $2::uuid`,
+      [branchId, shopId]
+    );
+    if (branchCheck.rowCount === 0) {
+      throw new HttpError(400, 'INVALID_BRANCH', 'Cabang tidak valid untuk toko Anda');
+    }
+
     const passwordHash = await bcrypt.hash(body.password, env.BCRYPT_ROUNDS);
 
     const result = await pool.query(
-      `INSERT INTO coffeepos.users (shop_id, email, password_hash, name, role, is_active)
-       VALUES ($1::uuid, $2, $3, $4, $5, true)
-       RETURNING id::text, name, email, role,
+      `INSERT INTO coffeepos.users (shop_id, email, password_hash, name, role, is_active, branch_id)
+       VALUES ($1::uuid, $2, $3, $4, $5, true, $6::uuid)
+       RETURNING id::text, name, email, role, branch_id::text,
          (pin IS NOT NULL AND btrim(pin) <> '') AS pin,
          is_active, created_at`,
-      [req.user!.shop_id, body.email, passwordHash, body.name, body.role]
+      [shopId, body.email, passwordHash, body.name, body.role, branchId]
     );
 
     res.status(201).json(result.rows[0]);
@@ -173,11 +192,12 @@ usersRouter.put('/:id', requireOwner, validateBody(UpdateUserSchema), async (req
   try {
     const { id } = req.params;
     const body = req.body as z.infer<typeof UpdateUserSchema>;
+    const shopId = req.user!.shop_id;
 
     const check = await pool.query(
       `SELECT id FROM coffeepos.users
        WHERE id = $1::uuid AND shop_id = $2::uuid AND role = 'cashier'`,
-      [id, req.user!.shop_id]
+      [id, shopId]
     );
     if (check.rowCount === 0) {
       throw new HttpError(404, 'NOT_FOUND', 'Kasir tidak ditemukan di toko Anda');
@@ -206,6 +226,17 @@ usersRouter.put('/:id', requireOwner, validateBody(UpdateUserSchema), async (req
       sets.push(`is_active = $${p++}`);
       values.push(body.is_active);
     }
+    if (body.branch_id !== undefined) {
+      const branchCheck = await pool.query(
+        `SELECT id FROM coffeepos.branches WHERE id = $1::uuid AND shop_id = $2::uuid`,
+        [body.branch_id, shopId]
+      );
+      if (branchCheck.rowCount === 0) {
+        throw new HttpError(400, 'INVALID_BRANCH', 'Cabang tidak valid untuk toko Anda');
+      }
+      sets.push(`branch_id = $${p++}::uuid`);
+      values.push(body.branch_id);
+    }
 
     if (sets.length === 0) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'Tidak ada field yang diubah');
@@ -213,7 +244,7 @@ usersRouter.put('/:id', requireOwner, validateBody(UpdateUserSchema), async (req
 
     sets.push(`updated_at = now()`);
     values.push(id);
-    values.push(req.user!.shop_id);
+    values.push(shopId);
     const idIdx = p;
     const shopIdx = p + 1;
 
@@ -221,7 +252,7 @@ usersRouter.put('/:id', requireOwner, validateBody(UpdateUserSchema), async (req
       `UPDATE coffeepos.users
        SET ${sets.join(', ')}
        WHERE id = $${idIdx}::uuid AND shop_id = $${shopIdx}::uuid AND role = 'cashier'
-       RETURNING id::text, name, email, role,
+       RETURNING id::text, name, email, role, branch_id::text,
          (pin IS NOT NULL AND btrim(pin) <> '') AS pin,
          is_active, created_at`,
       values

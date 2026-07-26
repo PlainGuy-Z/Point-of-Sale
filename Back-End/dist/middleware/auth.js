@@ -14,7 +14,8 @@ export const authenticateToken = (req, _res, next) => {
             shop_id: decoded.shop_id,
             role: decoded.role,
             name: decoded.name,
-            email: decoded.email
+            email: decoded.email,
+            branch_id: decoded.branch_id ?? null,
         };
         next();
     }

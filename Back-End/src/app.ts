@@ -15,6 +15,7 @@ import { aiRouter } from './routes/ai.js';
 import { reportsRouter } from './routes/reports.js';
 import { printerRouter } from './routes/printer.js';
 import { publicRouter } from './routes/public.js';
+import { branchesRouter } from './routes/branches.js';
 import { authenticateToken } from './middleware/auth.js';
 
 export function createApp() {
@@ -129,6 +130,7 @@ export function createApp() {
   app.use('/settings', authenticateToken, settingsRouter);
   app.use('/api/ai', authenticateToken, aiRouter);
   app.use('/printer', authenticateToken, printerRouter);
+  app.use('/api/branches', authenticateToken, branchesRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
