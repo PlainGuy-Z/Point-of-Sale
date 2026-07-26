@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { ChevronRight, TrendingUp, X } from 'lucide-react-native';
-import { useTheme } from '../../contexts/ThemeContext';
-import { getColors } from '../../utils/theme';
+import type { ThemeColors } from '../../utils/theme';
 import ProductCard from './ProductCard';
 import type { Product } from '../../types';
 import type { CategoryCarousel as CategoryCarouselData } from '../../hooks/useCategoryCarousels';
@@ -14,12 +13,12 @@ interface CategoryCarouselProps {
   cartQuantities: Record<string, number>;
   onAddToCart: (p: Product) => void;
   onRemoveFromCart: (id: string) => void;
+  /** Theme colors passed from parent to avoid direct context consumption */
+  colors: ThemeColors;
+  isDark: boolean;
 }
 
-function CategoryCarousel({ carousel, onViewAll, cartQuantities, onAddToCart, onRemoveFromCart }: CategoryCarouselProps) {
-  const { effectiveTheme } = useTheme();
-  const isDark = effectiveTheme === 'dark';
-  const c = getColors(isDark);
+function CategoryCarousel({ carousel, onViewAll, cartQuantities, onAddToCart, onRemoveFromCart, colors: c, isDark }: CategoryCarouselProps) {
 
   const [showAll, setShowAll] = useState(false);
 
@@ -79,6 +78,8 @@ function CategoryCarousel({ carousel, onViewAll, cartQuantities, onAddToCart, on
                 cartQuantity={getCartQty(product.id)}
                 variant="full"
                 isLandscape={false}
+                colors={c}
+                isDark={isDark}
               />
             </View>
           ))}
@@ -147,6 +148,8 @@ function CategoryCarousel({ carousel, onViewAll, cartQuantities, onAddToCart, on
             cartQuantity={getCartQty(item.id)}
             variant="compact"
             isLandscape={false}
+            colors={c}
+            isDark={isDark}
           />
         )}
       />
@@ -161,7 +164,8 @@ export default React.memo(
       prev.carousel.categoryName === next.carousel.categoryName &&
       prev.carousel.products.length === next.carousel.products.length &&
       prev.cartQuantities === next.cartQuantities &&
-      prev.onViewAll === next.onViewAll
+      prev.onViewAll === next.onViewAll &&
+      prev.isDark === next.isDark
     );
   }
 );

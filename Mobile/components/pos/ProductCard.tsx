@@ -3,8 +3,7 @@ import { View, Text, TouchableOpacity, Image, useWindowDimensions } from 'react-
 import { Coffee, Award, Plus, TrendingUp } from 'lucide-react-native';
 import { formatRupiahShort } from '../../utils/currency';
 import { getEffectivePrice } from '../../utils/priceUtils';
-import { useTheme } from '../../contexts/ThemeContext';
-import { getColors } from '../../utils/theme';
+import type { ThemeColors } from '../../utils/theme';
 import type { Product } from '../../types';
 import { resolveImageUrl } from '../../utils/image';
 
@@ -16,6 +15,9 @@ interface ProductCardProps {
   /** 'compact' for portrait carousel, 'full' for landscape grid */
   variant?: 'compact' | 'full';
   isLandscape?: boolean;
+  /** Theme colors passed from parent to avoid direct context consumption */
+  colors: ThemeColors;
+  isDark: boolean;
 }
 
 const ProductCardInner = React.memo(function ProductCardInner({
@@ -25,10 +27,9 @@ const ProductCardInner = React.memo(function ProductCardInner({
   cartQuantity,
   variant = 'full',
   isLandscape,
+  colors: c,
+  isDark,
 }: ProductCardProps & { isLandscape: boolean }) {
-  const { effectiveTheme } = useTheme();
-  const isDark = effectiveTheme === 'dark';
-  const c = getColors(isDark);
 
   const isSoldOut = product.stock === 0;
   const priceInfo = getEffectivePrice(product);
@@ -266,8 +267,8 @@ function ProductCard(props: ProductCardProps) {
 
 function ProductCardWithDimensions(props: ProductCardProps) {
   const { width: ww, height: wh } = useWindowDimensions();
-  const isLandscape = ww > wh;
-  return <ProductCardInner {...props} isLandscape={isLandscape} />;
+  const landscape = ww > wh;
+  return <ProductCardInner {...props} isLandscape={landscape} />;
 }
 
 export default React.memo(ProductCard);

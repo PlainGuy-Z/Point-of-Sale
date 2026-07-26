@@ -8,10 +8,10 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Coffee,
   Store,
   Link as LinkIcon,
   User,
@@ -189,23 +189,11 @@ export default function RegisterScreen() {
 
           {/* Header Branding */}
           <View style={{ alignItems: 'center', marginBottom: 24 }}>
-            <View
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 18,
-                backgroundColor: c.accent,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 12,
-                shadowColor: c.accent,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 10,
-              }}
-            >
-              <Coffee size={26} color={c.textInverse} strokeWidth={2} />
-            </View>
+            <Image
+              source={require('../../assets/SmartPos2.png')}
+              style={{ width: 80, height: 80, marginBottom: 12 }}
+              resizeMode="contain"
+            />
             <Text style={{ color: c.text, fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }}>
               SmartPOS
             </Text>

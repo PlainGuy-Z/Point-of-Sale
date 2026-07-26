@@ -6,11 +6,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Search, TrendingUp, Flame, Award, PlusCircle, Package, Menu, ChevronDown, SlidersHorizontal, AlertCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useProducts, useTransactions, useSettings } from '../../contexts/AppContext';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
 import { SidebarContext } from '../../contexts/SidebarContext';
-import { getColors } from '../../utils/theme';
+import { useColors } from '../../utils/theme';
 import { usePOSCart } from '../../contexts/POSCartContext';
 import { useStableOrientation } from '../../hooks/useStableOrientation';
 import { useProductCatalog } from '../../hooks/useProductCatalog';
@@ -49,9 +48,7 @@ export default function POSScreen() {
   const { user, isCashier } = useAuth();
   const { activeShift } = useShift();
   const { openSidebar } = useContext(SidebarContext);
-  const { effectiveTheme } = useTheme();
-  const isDark = effectiveTheme === 'dark';
-  const c = getColors(isDark);
+  const { colors: c, isDark } = useColors();
 
   const {
     cart, addToCart, removeFromCart, removeAtIndex, updateQuantity,
@@ -181,6 +178,37 @@ export default function POSScreen() {
   const handleEditItem = useCallback((index: number) => {
     setEditingItemIndex(index);
   }, [setEditingItemIndex]);
+
+  // ── View all category (for portrait carousel) ─────────────────────────────
+  const handleViewAll = useCallback((carousel: { categoryName: string; products: any[] }) => {
+    setCategoryModal({ title: carousel.categoryName, products: carousel.products });
+  }, []);
+
+  // ── Memoized renderItem callbacks ─────────────────────────────────────────
+  const renderCategoryCarouselItem = useCallback(({ item }: { item: any }) => (
+    <CategoryCarousel
+      carousel={item}
+      cartQuantities={cartQuantities}
+      onAddToCart={handleAddToCart}
+      onRemoveFromCart={handleRemoveFromCart}
+      onViewAll={handleViewAll}
+      colors={c}
+      isDark={isDark}
+    />
+  ), [cartQuantities, handleAddToCart, handleRemoveFromCart, handleViewAll, c, isDark]);
+
+  const renderProductGridItem = useCallback(({ item }: { item: Product }) => (
+    <ProductCard
+      product={item}
+      onAdd={handleAddToCart}
+      onRemove={handleRemoveFromCart}
+      cartQuantity={getCartQty(item.id)}
+      variant="full"
+      isLandscape={true}
+      colors={c}
+      isDark={isDark}
+    />
+  ), [handleAddToCart, handleRemoveFromCart, getCartQty, c, isDark]);
 
   // ── Initial Loading State ──────────────────────────────────────────────────
   if (products.length === 0 && isServiceLoading && !serviceError) {
@@ -556,15 +584,7 @@ export default function POSScreen() {
                 data={categoryCarousels.filter(cr => cr.products.length > 0)}
                 // @ts-ignore
                 estimatedItemSize={220}
-                renderItem={({ item }) => (
-                  <CategoryCarousel
-                    carousel={item}
-                    cartQuantities={cartQuantities}
-                    onAddToCart={handleAddToCart}
-                    onRemoveFromCart={handleRemoveFromCart}
-                    onViewAll={(carousel) => setCategoryModal({ title: carousel.categoryName, products: carousel.products })}
-                  />
-                )}
+                renderItem={renderCategoryCarouselItem}
                 keyExtractor={item => item.categoryName}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
@@ -628,11 +648,13 @@ export default function POSScreen() {
                     <View key={p.id} style={{ width: '50%' }}>
                       <ProductCard
                         product={p}
-                        onAdd={addToCart}
-                        onRemove={removeFromCart}
+                        onAdd={handleAddToCart}
+                        onRemove={handleRemoveFromCart}
                         cartQuantity={getCartQty(p.id)}
                         variant="full"
                         isLandscape={false}
+                        colors={c}
+                        isDark={isDark}
                       />
                     </View>
                   ))}
@@ -976,16 +998,7 @@ export default function POSScreen() {
                   </Text>
                 </View>
               }
-              renderItem={({ item }) => (
-                <ProductCard
-                  product={item}
-                  onAdd={addToCart}
-                  onRemove={removeFromCart}
-                  cartQuantity={getCartQty(item.id)}
-                  variant="full"
-                  isLandscape={true}
-                />
-              )}
+              renderItem={renderProductGridItem}
             />
           )}
         </View>

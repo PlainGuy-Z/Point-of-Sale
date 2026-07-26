@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, useTransition, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'react-native';
 
@@ -19,6 +19,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
   const [isLoading, setIsLoading] = useState(true);
   const initialLoadDone = useRef(false);
+  const [, startTransition] = useTransition();
 
   // Load saved theme from AsyncStorage on mount (only once)
   useEffect(() => {
@@ -65,15 +66,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme, isLoading]);
 
   const setTheme = useCallback((t: Theme) => {
-    setThemeState(t);
+    startTransition(() => {
+      setThemeState(t);
+    });
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      if (prev === 'system') {
-        return systemTheme === 'dark' ? 'light' : 'dark';
-      }
-      return prev === 'light' ? 'dark' : 'light';
+    startTransition(() => {
+      setThemeState((prev) => {
+        if (prev === 'system') {
+          return systemTheme === 'dark' ? 'light' : 'dark';
+        }
+        return prev === 'light' ? 'dark' : 'light';
+      });
     });
   }, [systemTheme]);
 

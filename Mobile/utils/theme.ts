@@ -113,3 +113,17 @@ export const lightColors: ThemeColors = {
 export function getColors(isDark: boolean): ThemeColors {
   return isDark ? darkColors : lightColors;
 }
+
+// ─── Convenience hook ────────────────────────────────────────────────────────────
+// Combines useTheme() + getColors() into a single call.
+// Use this in container/parent components that will forward colors to children.
+// NOTE: No useMemo needed — getColors() already returns a module-level constant reference.
+
+import { useTheme } from '../contexts/ThemeContext';
+
+export function useColors() {
+  const { effectiveTheme } = useTheme();
+  const isDark = effectiveTheme === 'dark';
+  const colors = getColors(isDark);
+  return { colors, isDark };
+}

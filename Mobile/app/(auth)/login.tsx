@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Coffee, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -48,14 +48,11 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 16 }} keyboardShouldPersistTaps="handled">
           {/* Logo */}
           <View style={{ alignItems: 'center', marginBottom: 32 }}>
-            <View style={{
-              width: 64, height: 64, borderRadius: 20,
-              backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center',
-              marginBottom: 16,
-              shadowColor: c.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12,
-            }}>
-              <Coffee size={28} color={c.textInverse} strokeWidth={2} />
-            </View>
+            <Image
+              source={require('../../assets/SmartPos2.png')}
+              style={{ width: 80, height: 80, marginBottom: 16 }}
+              resizeMode="contain"
+            />
             <Text style={{ color: c.text, fontSize: 26, fontWeight: '900', letterSpacing: -0.5 }}>SmartPOS</Text>
             <Text style={{ color: c.textSecondary, fontSize: 14, marginTop: 4 }}>Kelola bisnis F&B Anda</Text>
           </View>

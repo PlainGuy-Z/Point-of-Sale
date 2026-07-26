@@ -2,8 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ShoppingCart, PlusCircle, Trash2, Zap, ReceiptText, ChevronRight } from 'lucide-react-native';
-import { useTheme } from '../../contexts/ThemeContext';
-import { getColors } from '../../utils/theme';
+import { useColors } from '../../utils/theme';
 import { usePOSCart } from '../../contexts/POSCartContext';
 import { formatRupiah } from '../../utils/currency';
 import { useApp } from '../../contexts/AppContext';
@@ -22,9 +21,7 @@ export default function CartPanel({
   onCheckout,
   onQuickPay,
 }: CartPanelProps) {
-  const { effectiveTheme } = useTheme();
-  const isDark = effectiveTheme === 'dark';
-  const c = getColors(isDark);
+  const { colors: c, isDark } = useColors();
   const { width: ww, height: wh } = useWindowDimensions();
   const isLandscape = ww > wh;
   const insets = useSafeAreaInsets();
@@ -140,6 +137,8 @@ export default function CartPanel({
                 onEdit={onEditItem}
                 onUpdateQuantity={updateQuantity}
                 onRemove={removeAtIndex}
+                colors={c}
+                isDark={isDark}
               />
             ))}
           </>

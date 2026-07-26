@@ -2,8 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Animated, useWindowDimensions } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Trash2 } from 'lucide-react-native';
-import { useTheme } from '../../contexts/ThemeContext';
-import { getColors } from '../../utils/theme';
+import type { ThemeColors } from '../../utils/theme';
 import { formatRupiah } from '../../utils/currency';
 import type { CartItemWithInput } from '../../types';
 
@@ -13,6 +12,9 @@ interface CartItemProps {
   onEdit: (index: number) => void;
   onUpdateQuantity: (index: number, delta: number) => void;
   onRemove: (index: number) => void;
+  /** Theme colors passed from parent to avoid direct context consumption */
+  colors: ThemeColors;
+  isDark: boolean;
 }
 
 function CartItem({
@@ -21,10 +23,9 @@ function CartItem({
   onEdit,
   onUpdateQuantity,
   onRemove,
+  colors: c,
+  isDark,
 }: CartItemProps) {
-  const { effectiveTheme } = useTheme();
-  const isDark = effectiveTheme === 'dark';
-  const c = getColors(isDark);
 
   const { width: ww, height: wh } = useWindowDimensions();
   const isLandscape = ww > wh;

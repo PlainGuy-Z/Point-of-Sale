@@ -15,17 +15,17 @@ export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
   const containerOpacity = useSharedValue(1);
 
   useEffect(() => {
-    logoOpacity.value = withTiming(1, { duration: 500, easing: Easing.out(Easing.exp) });
+    logoOpacity.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.exp) });
     scale.value = withSequence(
-      withTiming(1.04, { duration: 500 }),
-      withTiming(1, { duration: 200 })
+      withTiming(1.04, { duration: 800 }),
+      withTiming(1, { duration: 300 })
     );
 
     const timer = setTimeout(() => {
-      containerOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
+      containerOpacity.value = withTiming(0, { duration: 500 }, (finished) => {
         if (finished) runOnJS(onFinish)();
       });
-    }, 1400);
+    }, 2500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -42,7 +42,7 @@ export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
   return (
     <Animated.View style={[styles.container, containerStyle]} pointerEvents="none">
       <Animated.Image
-        source={require('../assets/SmartPos.png')}
+        source={require('../../assets/SmartPos.png')}
         style={[styles.logo, logoStyle]}
         resizeMode="contain"
       />
@@ -53,14 +53,14 @@ export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#111111',
+    backgroundColor: '#0d9488',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 999,
     elevation: 999, // penting untuk Android agar menutupi konten
   },
   logo: {
-    width: 160,
-    height: 160,
+    width: 240,
+    height: 240,
   },
 });

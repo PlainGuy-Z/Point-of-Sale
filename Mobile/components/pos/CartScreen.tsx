@@ -3,8 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useTheme } from '../../contexts/ThemeContext';
-import { getColors } from '../../utils/theme';
+import { useColors } from '../../utils/theme';
 import { usePOSCart } from '../../contexts/POSCartContext';
 import { formatRupiah } from '../../utils/currency';
 import { useApp } from '../../contexts/AppContext';
@@ -21,9 +20,7 @@ import type { CartItemWithInput } from '../../types';
  */
 export default function CartScreen() {
   const router = useRouter();
-  const { effectiveTheme } = useTheme();
-  const isDark = effectiveTheme === 'dark';
-  const c = getColors(isDark);
+  const { colors: c, isDark } = useColors();
 
   const {
     cart, clearCart, updateQuantity, removeAtIndex, updateCartItem, addCustomItem,
@@ -72,6 +69,8 @@ export default function CartScreen() {
                 onEdit={(i) => setEditingItemIndex(i)}
                 onUpdateQuantity={updateQuantity}
                 onRemove={removeAtIndex}
+                colors={c}
+                isDark={isDark}
               />
             ))}
           </>
