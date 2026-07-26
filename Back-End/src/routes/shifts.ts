@@ -10,7 +10,10 @@ export const shiftsRouter = Router();
 
 const OpenShiftSchema = z.object({
   opening_cash: z.number().int().min(0),
-  branch_id: z.string().uuid().optional(),
+  branch_id: z
+    .union([z.string().uuid(), z.literal('all'), z.literal(''), z.null()])
+    .optional()
+    .transform((val) => (val === 'all' || val === '' || val === null ? undefined : val)),
 });
 
 const CloseShiftSchema = z.object({

@@ -52,6 +52,9 @@ export const CreateTransactionRequestSchema = QuoteRequestSchema.extend({
   paymentMethod: z.enum(['cash', 'card', 'qris']),
   cashReceived: z.coerce.number().int().nonnegative().optional(),
   idempotencyKey: z.string().trim().max(100).optional(),
-  branch_id: z.string().uuid().optional(),
+  branch_id: z
+    .union([z.string().uuid(), z.literal('all'), z.literal(''), z.null()])
+    .optional()
+    .transform((val) => (val === 'all' || val === '' || val === null ? undefined : val)),
 });
 
