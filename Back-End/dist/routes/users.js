@@ -6,7 +6,7 @@ import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { env } from '../env.js';
 import { requireOwner, requireRole } from '../middleware/requireRole.js';
-import { getDefaultBranchId } from './branches.js';
+import { resolveBranchId } from './branches.js';
 export const usersRouter = Router();
 const ADJECTIVES = [
     'Kopi',
@@ -118,7 +118,7 @@ usersRouter.post('/', requireOwner, validateBody(CreateUserSchema), async (req, 
         if (emailCheck.rowCount > 0) {
             throw new HttpError(409, 'EMAIL_TAKEN', 'Email sudah terdaftar');
         }
-        const branchId = body.branch_id ?? await getDefaultBranchId(shopId);
+        const branchId = await resolveBranchId(shopId, body.branch_id);
         // Validate branch belongs to shop
         const branchCheck = await pool.query(`SELECT id FROM coffeepos.branches WHERE id = $1::uuid AND shop_id = $2::uuid`, [branchId, shopId]);
         if (branchCheck.rowCount === 0) {

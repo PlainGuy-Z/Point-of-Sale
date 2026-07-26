@@ -7,7 +7,7 @@ import { validateBody } from '../http/validate.js';
 import { env } from '../env.js';
 import { requireOwner, requireRole } from '../middleware/requireRole.js';
 
-import { getDefaultBranchId } from './branches.js';
+import { getDefaultBranchId, resolveBranchId } from './branches.js';
 
 export const usersRouter = Router();
 
@@ -158,7 +158,7 @@ usersRouter.post('/', requireOwner, validateBody(CreateUserSchema), async (req, 
       throw new HttpError(409, 'EMAIL_TAKEN', 'Email sudah terdaftar');
     }
 
-    const branchId = body.branch_id ?? await getDefaultBranchId(shopId);
+    const branchId = await resolveBranchId(shopId, body.branch_id);
 
     // Validate branch belongs to shop
     const branchCheck = await pool.query(

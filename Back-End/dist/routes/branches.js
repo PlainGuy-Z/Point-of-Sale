@@ -23,6 +23,15 @@ const UpdateBranchSchema = z.object({
     notes: z.string().trim().nullish(),
     is_active: z.boolean().optional(),
 });
+export function isValidUuid(val) {
+    if (!val || typeof val !== 'string')
+        return false;
+    const trimmed = val.trim();
+    if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined' || trimmed === 'all')
+        return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(trimmed);
+}
 // Helper: get default branch ID for a shop
 export async function getDefaultBranchId(shopId, client) {
     const runner = client || pool;
@@ -35,6 +44,19 @@ export async function getDefaultBranchId(shopId, client) {
         return created.rows[0].id;
     }
     return res.rows[0].id;
+}
+export async function resolveBranchId(shopId, candidateBranchId, userBranchId, client) {
+    if (isValidUuid(candidateBranchId)) {
+        return candidateBranchId.trim();
+    }
+    if (isValidUuid(userBranchId)) {
+        return userBranchId.trim();
+    }
+    const defaultBranchId = await getDefaultBranchId(shopId, client);
+    if (!isValidUuid(defaultBranchId)) {
+        throw new Error(`Tidak dapat menentukan branch_id untuk shop ${shopId}`);
+    }
+    return defaultBranchId;
 }
 // ── GET /api/branches ───────────────────────────────────────
 branchesRouter.get('/', async (req, res, next) => {

@@ -4,7 +4,7 @@ import { pool } from '../db/pool.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { requireRole } from '../middleware/requireRole.js';
-import { getDefaultBranchId } from './branches.js';
+import { resolveBranchId } from './branches.js';
 export const shiftsRouter = Router();
 const OpenShiftSchema = z.object({
     opening_cash: z.number().int().min(0),
@@ -22,9 +22,7 @@ shiftsRouter.post('/open', requireRole('cashier'), validateBody(OpenShiftSchema)
     try {
         const { shop_id, id: cashier_id, name: cashier_name } = req.user;
         const { opening_cash, branch_id } = req.body;
-        const targetBranchId = branch_id
-            ?? req.user.branch_id
-            ?? await getDefaultBranchId(shop_id);
+        const targetBranchId = await resolveBranchId(shop_id, branch_id, req.user.branch_id);
         // Check if there is already an active shift for this cashier
         const { rows: activeShifts } = await pool.query(`SELECT id FROM coffeepos.shifts 
        WHERE cashier_id = $1 AND status = 'open'`, [cashier_id]);

@@ -5,7 +5,7 @@ import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { CreateTransactionRequestSchema, QuoteRequestSchema } from './pos.schemas.js';
 import { getProductsState } from './app.js';
-import { getDefaultBranchId } from './branches.js';
+import { resolveBranchId } from './branches.js';
 import crypto from 'node:crypto';
 async function getShopSettings(shopId) {
     const { rows } = await pool.query(`SELECT tax_enabled, tax_rate, tax_inclusive,
@@ -266,12 +266,7 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
             const changeAmount = cashReceived != null ? Math.max(0, cashReceived - grandTotal) : null;
             const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             const customerId = typeof body.customerId === 'string' && uuidRe.test(body.customerId.trim()) ? body.customerId.trim() : null;
-            const targetBranchId = body.branch_id
-                ?? req.user?.branch_id
-                ?? await getDefaultBranchId(shopId, client);
-            if (!targetBranchId) {
-                throw new Error(`Tidak dapat menentukan branch_id untuk shop ${shopId}`);
-            }
+            const targetBranchId = await resolveBranchId(shopId, body.branch_id, req.user?.branch_id, client);
             const txId = crypto.randomUUID();
             const tx = await client.query(`INSERT INTO coffeepos.transactions
            (id, subtotal, tax, service_charge, grand_total, discount_amount, customer_name, customer_id,
