@@ -335,6 +335,10 @@ posRouter.post('/transactions', validateBody(CreateTransactionRequestSchema), as
         ?? req.user?.branch_id
         ?? await getDefaultBranchId(shopId, client);
 
+      if (!targetBranchId) {
+        throw new Error(`Tidak dapat menentukan branch_id untuk shop ${shopId}`);
+      }
+
       const txId = crypto.randomUUID();
       const tx = await client.query(
         `INSERT INTO coffeepos.transactions
