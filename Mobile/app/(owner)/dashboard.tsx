@@ -511,7 +511,7 @@ export default function OwnerDashboard() {
         </View>
 
         {/* ── Quick Actions Grid (8 items: 4x2) ── */}
-        <QuickActionsGrid isDark={isDark} />
+        {!isLandscape && <QuickActionsGrid isDark={isDark} />}
 
         {/* ── 2. Tren Pendapatan + Layout varies by device/orientation ── */}
         {isLandscape ? (
