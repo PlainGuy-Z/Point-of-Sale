@@ -137,7 +137,7 @@ export default function BusinessInsightsScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={{
-        paddingLeft: isLandscape ? 16 : 60,
+        paddingLeft: 16,
         paddingRight: 16,
         paddingTop: isSmallLandscape ? 6 : 12,
         paddingBottom: isSmallLandscape ? 6 : 12,

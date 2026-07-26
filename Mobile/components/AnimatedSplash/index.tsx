@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Image } from 'react-native';
+import { StyleSheet, Image, Text, View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -41,11 +41,18 @@ export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
 
   return (
     <Animated.View style={[styles.container, containerStyle]} pointerEvents="none">
-      <Animated.Image
-        source={require('../../assets/SmartPos.png')}
-        style={[styles.logo, logoStyle]}
-        resizeMode="contain"
-      />
+      <Animated.View style={[styles.contentContainer, logoStyle]}>
+        <Image
+          source={require('../../assets/SmartPos.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>
+          <Text style={styles.titleSmart}>Smart</Text>
+          <Text style={styles.titlePOS}>POS</Text>
+        </Text>
+        <Text style={styles.subtitle}>Point of Sale untuk FnB</Text>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -53,14 +60,37 @@ export default function AnimatedSplash({ onFinish }: { onFinish: () => void }) {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#0d9488',
+    backgroundColor: '#0b8a7f',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 999,
     elevation: 999, // penting untuk Android agar menutupi konten
   },
+  contentContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   logo: {
-    width: 240,
-    height: 240,
+    width: 200,
+    height: 200,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '800',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  titleSmart: {
+    color: '#ffffff',
+  },
+  titlePOS: {
+    color: '#34d399',
+  },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginTop: 2,
+    textAlign: 'center',
   },
 });

@@ -619,7 +619,7 @@ export default function OwnerHistoryScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       {/* Header */}
-      <View style={[styles.headerSection, { paddingLeft: isLandscape ? 16 : 60 }]}>
+      <View style={[styles.headerSection, { paddingLeft: 16 }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.titleText, { color: c.text }]}>

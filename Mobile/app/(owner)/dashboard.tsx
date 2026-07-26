@@ -1,13 +1,15 @@
 import React, { useState, useRef, useCallback, useContext } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Image, ActivityIndicator
+  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Image, ActivityIndicator, Modal
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
   Zap, DollarSign, ShoppingCart, Users, TrendingUp,
   ChevronLeft, ChevronRight, Menu, Coffee,
+  Receipt, ClipboardList, UserCheck, BrainCircuit, Layers, Gift, Trash2, HelpCircle,
+  MoreHorizontal, X, LayoutDashboard, BarChart2, Package, Settings, Trophy
 } from 'lucide-react-native';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -211,6 +213,111 @@ function ProductCarousel({ topProducts, lowStockProducts, isDark, accentColor, p
   );
 }
 
+/* ─── Quick Actions Grid (4x2 = 8 slots) ────────────────────────────────── */
+
+interface QuickActionItem {
+  id: string;
+  label: string;
+  route?: string;
+  icon: any;
+  color: string;
+  isMore?: boolean;
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const cleanHex = hex.replace('#', '');
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function QuickActionsGrid({ isDark }: { isDark: boolean }) {
+  const quickActions: QuickActionItem[] = [
+    { id: 'transactions', label: 'Riwayat', route: '/(owner)/transactions', icon: Receipt, color: '#06b6d4' },
+    { id: 'shifts', label: 'Shift', route: '/(owner)/shifts', icon: ClipboardList, color: '#6366f1' },
+    { id: 'users', label: 'Kasir', route: '/(owner)/users', icon: UserCheck, color: '#ec4899' },
+    { id: 'insights', label: 'Insights', route: '/(owner)/insights', icon: BrainCircuit, color: '#8b5cf6' },
+    { id: 'inventory', label: 'Inventory', route: '/(owner)/inventory', icon: Layers, color: '#3b82f6' },
+    { id: 'members', label: 'Members', route: '/(owner)/members', icon: Users, color: '#10b981' },
+    { id: 'waste-log', label: 'Waste Log', route: '/(owner)/waste-log', icon: Trash2, color: '#ef4444' },
+    { id: 'all-menu', label: 'Lihat Semua', route: '/(owner)/all-menu', icon: MoreHorizontal, color: isDark ? '#94a3b8' : '#64748b', isMore: true },
+  ];
+
+  return (
+    <View style={{ gap: 8 }}>
+      <SectionLabel isDark={isDark}>Quick Actions</SectionLabel>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 6 }}>
+        {quickActions.map((action) => {
+          const IconComponent = action.icon;
+          const badgeBg = action.isMore
+            ? (isDark ? 'rgba(148, 163, 184, 0.18)' : 'rgba(100, 116, 139, 0.1)')
+            : hexToRgba(action.color, isDark ? 0.18 : 0.08);
+
+          return (
+            <TouchableOpacity
+              key={action.id}
+              onPress={() => {
+                if (action.route) {
+                  router.push(action.route as any);
+                }
+              }}
+              activeOpacity={0.7}
+              style={{
+                width: '23.5%',
+                backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+                borderWidth: 1,
+                borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
+                borderRadius: 16,
+                paddingVertical: 10,
+                paddingHorizontal: 4,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOpacity: isDark ? 0.2 : 0.04,
+                shadowOffset: { width: 0, height: 2 },
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+            >
+              {/* Squircle badge */}
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 15,
+                  backgroundColor: badgeBg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 6,
+                }}
+              >
+                <IconComponent
+                  size={18}
+                  color={action.color}
+                  strokeWidth={2}
+                />
+              </View>
+              <Text
+                numberOfLines={1}
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: '700',
+                  color: isDark ? '#ffffff' : '#0f172a',
+                  textAlign: 'center',
+                  lineHeight: 12,
+                }}
+              >
+                {action.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 /* ─── Dashboard ────────────────────────────────────────────────────────── */
 
 export default function OwnerDashboard() {
@@ -250,6 +357,8 @@ export default function OwnerDashboard() {
     };
     fetchChartData();
   }, [chartDate]);
+
+  const [showAllMenuModal, setShowAllMenuModal] = useState(false);
 
   // Sidebar context
   const { openSidebar, toggleSidebar, sidebarWidth, isSidebarOpen } = useContext(SidebarContext);
@@ -314,57 +423,13 @@ export default function OwnerDashboard() {
       style={{ flex: 1, backgroundColor: isDark ? '#0f0f0f' : '#f8fafc' }}
       edges={isLandscape ? ['top', 'right'] : ['top', 'left', 'right']}
     >
-      {/* ── Portrait Top Bar: Sidebar Toggle (left) + Store Logo (right) ── */}
-      {!isLandscape && (
-        <View style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          paddingHorizontal: contentPadding,
-          paddingVertical: 8,
-        }}>
-          {/* Sidebar toggle button */}
-          <TouchableOpacity
-            onPress={openSidebar}
-            style={{
-              width: 40, height: 40, borderRadius: 12,
-              backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-              borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
-              alignItems: 'center', justifyContent: 'center',
-              shadowColor: '#000', shadowOpacity: 0.06,
-              shadowOffset: { width: 0, height: 2 }, shadowRadius: 6,
-              elevation: 3,
-            }}
-          >
-            <Menu size={20} color={isDark ? '#d6d3d1' : '#475569'} strokeWidth={2} />
-          </TouchableOpacity>
-
-          {/* Store logo */}
-          <View style={{
-            width: 40, height: 40, borderRadius: 12,
-            backgroundColor: isDark ? '#4B3621' : '#f0fdfa',
-            borderWidth: 1, borderColor: isDark ? '#5a4631' : '#ccfbf1',
-            alignItems: 'center', justifyContent: 'center',
-            shadowColor: '#000', shadowOpacity: 0.06,
-            shadowOffset: { width: 0, height: 2 }, shadowRadius: 6,
-            elevation: 3,
-            overflow: 'hidden',
-          }}>
-            {settings?.logo_url ? (
-              <Image
-                source={{ uri: settings.logo_url.startsWith('http') ? settings.logo_url : `${process.env.EXPO_PUBLIC_API_URL}${settings.logo_url}` }}
-                style={{ width: '100%', height: '100%' }}
-                resizeMode="cover"
-              />
-            ) : (
-              <Coffee size={20} color={isDark ? '#fff' : '#0f172a'} strokeWidth={2} />
-            )}
-          </View>
-        </View>
-      )}
-
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: contentPadding, paddingTop: 8, paddingBottom: insets.bottom + 24, gap: 20 }}
+        contentContainerStyle={{
+          paddingHorizontal: contentPadding,
+          paddingTop: 12,
+          paddingBottom: !isLandscape ? 85 + insets.bottom : insets.bottom + 24,
+          gap: 20,
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Header ── */}
@@ -444,6 +509,9 @@ export default function OwnerDashboard() {
             pageWidth={availableWidth}
           />
         </View>
+
+        {/* ── Quick Actions Grid (8 items: 4x2) ── */}
+        <QuickActionsGrid isDark={isDark} />
 
         {/* ── 2. Tren Pendapatan + Layout varies by device/orientation ── */}
         {isLandscape ? (

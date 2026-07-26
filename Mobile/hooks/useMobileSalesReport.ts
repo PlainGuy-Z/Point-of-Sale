@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Alert } from 'react-native';
+import { Alert, InteractionManager } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import type { Transaction, Product } from '../types';
@@ -101,15 +101,17 @@ export function getDateRange(preset: PresetKey, customStart?: Date, customEnd?: 
     case '7days': {
       const s = new Date(now);
       s.setDate(s.getDate() - 6);
-      return { start: startOfDay(s), end: endOfDay(now) };
+      return { start: startOfDay(s), end: now };
     }
     case '30days': {
       const s = new Date(now);
       s.setDate(s.getDate() - 29);
-      return { start: startOfDay(s), end: endOfDay(now) };
+      return { start: startOfDay(s), end: now };
     }
-    case 'month':
-      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: endOfDay(now) };
+    case 'month': {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { start: startOfDay(s), end: now };
+    }
     case 'custom':
       return {
         start: customStart ? startOfDay(customStart) : startOfDay(now),
@@ -119,12 +121,9 @@ export function getDateRange(preset: PresetKey, customStart?: Date, customEnd?: 
 }
 
 function getPrevRange(range: DateRange): DateRange {
-  const diffTime = range.end.getTime() - range.start.getTime();
-  const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-  
+  const durationMs = range.end.getTime() - range.start.getTime();
   const pEnd = new Date(range.start.getTime() - 1);
-  const pStart = new Date(pEnd.getFullYear(), pEnd.getMonth(), pEnd.getDate() - diffDays + 1);
-  
+  const pStart = new Date(pEnd.getTime() - durationMs);
   return {
     start: startOfDay(pStart),
     end: endOfDay(pEnd),
@@ -157,223 +156,241 @@ export function useMobileSalesReport(
 
   const [remoteData, setRemoteData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isComputing, setIsComputing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const range = useMemo(() => getDateRange(preset, customStart, customEnd), [preset, customStart, customEnd]);
   const prevRange = useMemo(() => getPrevRange(range), [range]);
 
   const isCovered = useMemo(() => {
-    // If no cache metadata is provided, we default to covered=false unless transactions is empty.
     if (!cacheFrom || !cacheTo) return transactions.length === 0;
     const cFrom = new Date(cacheFrom);
     const cTo = new Date(cacheTo);
-    
-    // Add 1 hour buffer to avoid timezone edge cases
     cFrom.setHours(cFrom.getHours() - 1);
     cTo.setHours(cTo.getHours() + 1);
 
     return range.start >= cFrom && range.end <= cTo;
   }, [range, cacheFrom, cacheTo, transactions.length]);
 
-  const filtered = useMemo(() => filterTx(transactions, range), [transactions, range]);
-  const prevFiltered = useMemo(() => filterTx(transactions, prevRange), [transactions, prevRange]);
-
-  const productMap = useMemo(() => {
-    const m = new Map<string, Product>();
-    products.forEach((p) => m.set(p.id, p));
-    return m;
-  }, [products]);
-
-  const calcProfit = (txs: Transaction[]): { profit: number; hasCost: boolean } => {
-    let profit = 0;
-    let hasCost = false;
-    txs.forEach((t) => {
-      if (t.profit != null) {
-        profit += t.profit;
-        if (t.cost > 0) hasCost = true;
-      } else {
-        t.items.forEach((item) => {
-          const p = productMap.get(item.productId);
-          const cost = item.cost ?? p?.cost;
-          if (cost != null) {
-            hasCost = true;
-            profit += item.quantity * (item.price - cost);
-          }
-        });
-      }
-    });
-    return { profit, hasCost };
-  };
-
-  const localSummary: SummaryData = useMemo(() => {
-    const totalRevenue = filtered.reduce((s, t) => s + (Number(t.total) || Number((t as any).total_amount) || 0), 0);
-    const totalTransactions = filtered.length;
-    const avgTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
-    const { profit: netProfit, hasCost: hasCostData } = calcProfit(filtered);
-
-    const prevRevenue = prevFiltered.reduce((s, t) => s + (Number(t.total) || Number((t as any).total_amount) || 0), 0);
-    const prevTransactions = prevFiltered.length;
-    const prevAvgTicket = prevTransactions > 0 ? prevRevenue / prevTransactions : 0;
-    const { profit: prevNetProfit } = calcProfit(prevFiltered);
-
-    return {
-      totalRevenue, totalTransactions, avgTicket, netProfit, hasCostData,
-      prevRevenue, prevTransactions, prevAvgTicket, prevNetProfit,
-      revenueChange: pctChange(totalRevenue, prevRevenue),
-      transactionsChange: pctChange(totalTransactions, prevTransactions),
-      avgTicketChange: pctChange(avgTicket, prevAvgTicket),
-      profitChange: pctChange(netProfit, prevNetProfit),
-    };
-  }, [filtered, prevFiltered, productMap]);
+  const [localComputed, setLocalComputed] = useState<{
+    filtered: Transaction[];
+    localSummary: SummaryData;
+    localHourlyData: HourlyData[];
+    localDailyData: DailyData[];
+    localTopProducts: ProductRank[];
+    localPaymentBreakdown: PaymentBreakdown[];
+    localCashierPerformance: CashierPerformance[];
+    localCostBreakdown: CostBreakdown | null;
+  }>({
+    filtered: [],
+    localSummary: emptySummary,
+    localHourlyData: [],
+    localDailyData: [],
+    localTopProducts: [],
+    localPaymentBreakdown: [],
+    localCashierPerformance: [],
+    localCostBreakdown: null,
+  });
 
   const isSingleDay = preset === 'today' || preset === 'yesterday';
 
-  const localHourlyData: HourlyData[] = useMemo(() => {
-    if (!isSingleDay) return [];
-    const map = new Map<number, { revenue: number; count: number }>();
-    for (let h = 8; h <= 22; h++) map.set(h, { revenue: 0, count: 0 });
+  // Defer heavy computations until transition interactions are complete!
+  useEffect(() => {
+    setIsComputing(true);
+    const task = InteractionManager.runAfterInteractions(() => {
+      const filtered = filterTx(transactions, range);
+      const prevFiltered = filterTx(transactions, prevRange);
 
-    filtered.forEach((t) => {
-      const d = t.date instanceof Date ? t.date : new Date(t.date);
-      const h = d.getHours();
-      const e = map.get(h) || { revenue: 0, count: 0 };
-      e.revenue += (t.total || (t as any).total_amount || 0);
-      e.count += 1;
-      map.set(h, e);
-    });
+      const productMap = new Map<string, Product>();
+      products.forEach((p) => productMap.set(p.id, p));
 
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([h, d]) => ({ hour: h, label: `${String(h).padStart(2, '0')}:00`, ...d }));
-  }, [filtered, isSingleDay]);
-
-  const localDailyData: DailyData[] = useMemo(() => {
-    if (isSingleDay) return [];
-    const map = new Map<string, { revenue: number; count: number }>();
-    
-    const current = new Date(range.start);
-    const end = new Date(range.end);
-    current.setHours(0, 0, 0, 0);
-    end.setHours(0, 0, 0, 0);
-    
-    let daysCount = 0;
-    while (current <= end && daysCount < 60) {
-      const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
-      map.set(key, { revenue: 0, count: 0 });
-      current.setDate(current.getDate() + 1);
-      daysCount++;
-    }
-
-    filtered.forEach((t) => {
-      const d = t.date instanceof Date ? t.date : new Date(t.date);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const e = map.get(key) || { revenue: 0, count: 0 };
-      e.revenue += (t.total || (t as any).total_amount || 0);
-      e.count += 1;
-      map.set(key, e);
-    });
-
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, d]) => {
-        const [year, month, day] = date.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day);
-        let labelStr = preset === '7days' 
-          ? localDate.toLocaleDateString('id-ID', { weekday: 'short' })
-          : localDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-
-        return { date, label: labelStr, ...d };
-      });
-  }, [filtered, isSingleDay, range, preset]);
-
-  const localTopProducts: ProductRank[] = useMemo(() => {
-    const map = new Map<string, { name: string; qty: number; revenue: number; totalCost: number; hasCost: boolean }>();
-    filtered.forEach((t) => {
-      t.items.forEach((item) => {
-        const id = item.productId;
-        const p = productMap.get(id);
-        const name = item.name || p?.name || id;
-
-        if (id.startsWith('manual') || name.toLowerCase().includes('manual') || name.toLowerCase().includes('custom')) {
-          return;
-        }
-
-        const e = map.get(id) || { name, qty: 0, revenue: 0, totalCost: 0, hasCost: false };
-        e.qty += item.quantity;
-        e.revenue += Number(item.quantity) * Number(item.price);
-        const cost = item.cost ?? p?.cost;
-        if (cost != null) {
-          e.hasCost = true;
-          e.totalCost += Number(item.quantity) * Number(cost);
-        }
-        map.set(id, e);
-      });
-    });
-    return Array.from(map.values())
-      .sort((a, b) => b.qty - a.qty)
-      .slice(0, 10)
-      .map((p) => ({
-        name: p.name,
-        qty: p.qty,
-        revenue: p.revenue,
-        marginPct: p.hasCost ? ((p.revenue - p.totalCost) / p.revenue) * 100 : null,
-      }));
-  }, [filtered, productMap]);
-
-  const localPaymentBreakdown: PaymentBreakdown[] = useMemo(() => {
-    const map = new Map<string, { count: number; revenue: number }>();
-    filtered.forEach((t) => {
-      const m = t.paymentMethod || 'cash';
-      const e = map.get(m) || { count: 0, revenue: 0 };
-      e.count += 1;
-      e.revenue += (t.total || (t as any).total_amount || 0);
-      map.set(m, e);
-    });
-    const total = filtered.reduce((s, t) => s + (Number(t.total) || Number((t as any).total_amount) || 0), 0);
-    return Array.from(map.entries())
-      .sort(([, a], [, b]) => b.revenue - a.revenue)
-      .map(([method, d]) => ({
-        method, ...d, pct: total > 0 ? (d.revenue / total) * 100 : 0,
-      }));
-  }, [filtered]);
-
-  const localCashierPerformance: CashierPerformance[] = useMemo(() => {
-    const map = new Map<string, { transactions: number; revenue: number }>();
-    filtered.forEach((t) => {
-      const name = t.cashierName || 'Kasir';
-      const e = map.get(name) || { transactions: 0, revenue: 0 };
-      e.transactions += 1;
-      e.revenue += (t.total || (t as any).total_amount || 0);
-      map.set(name, e);
-    });
-    return Array.from(map.entries())
-      .sort(([, a], [, b]) => b.revenue - a.revenue)
-      .map(([name, d]) => ({
-        name, ...d, avgTicket: d.transactions > 0 ? d.revenue / d.transactions : 0,
-      }));
-  }, [filtered]);
-
-  const localCostBreakdown: CostBreakdown | null = useMemo(() => {
-    if (!localSummary.hasCostData) return null;
-    const grossRevenue = localSummary.totalRevenue;
-    let cogs = 0;
-    filtered.forEach((t) => {
-      if (t.cost != null) {
-        cogs += t.cost;
-      } else {
-        t.items.forEach((item) => {
-          const p = productMap.get(item.productId);
-          const cost = item.cost ?? p?.cost;
-          if (cost != null) cogs += item.quantity * cost;
+      const calcProfit = (txs: Transaction[]): { profit: number; hasCost: boolean } => {
+        let profit = 0;
+        let hasCost = false;
+        txs.forEach((t) => {
+          if (t.profit != null) {
+            profit += t.profit;
+            if (t.cost > 0) hasCost = true;
+          } else {
+            t.items.forEach((item) => {
+              const p = productMap.get(item.productId);
+              const cost = item.cost ?? p?.cost;
+              if (cost != null) {
+                hasCost = true;
+                profit += item.quantity * (item.price - cost);
+              }
+            });
+          }
         });
+        return { profit, hasCost };
+      };
+
+      const totalRevenue = filtered.reduce((s, t) => s + (Number(t.total) || Number((t as any).total_amount) || 0), 0);
+      const totalTransactions = filtered.length;
+      const avgTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+      const { profit: netProfit, hasCost: hasCostData } = calcProfit(filtered);
+
+      const prevRevenue = prevFiltered.reduce((s, t) => s + (Number(t.total) || Number((t as any).total_amount) || 0), 0);
+      const prevTransactions = prevFiltered.length;
+      const prevAvgTicket = prevTransactions > 0 ? prevRevenue / prevTransactions : 0;
+      const { profit: prevNetProfit } = calcProfit(prevFiltered);
+
+      const localSummary: SummaryData = {
+        totalRevenue, totalTransactions, avgTicket, netProfit, hasCostData,
+        prevRevenue, prevTransactions, prevAvgTicket, prevNetProfit,
+        revenueChange: pctChange(totalRevenue, prevRevenue),
+        transactionsChange: pctChange(totalTransactions, prevTransactions),
+        avgTicketChange: pctChange(avgTicket, prevAvgTicket),
+        profitChange: pctChange(netProfit, prevNetProfit),
+      };
+
+      let localHourlyData: HourlyData[] = [];
+      if (isSingleDay) {
+        const map = new Map<number, { revenue: number; count: number }>();
+        for (let h = 8; h <= 22; h++) map.set(h, { revenue: 0, count: 0 });
+
+        filtered.forEach((t) => {
+          const d = t.date instanceof Date ? t.date : new Date(t.date);
+          const h = d.getHours();
+          const e = map.get(h) || { revenue: 0, count: 0 };
+          e.revenue += (t.total || (t as any).total_amount || 0);
+          e.count += 1;
+          map.set(h, e);
+        });
+
+        localHourlyData = Array.from(map.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([h, d]) => ({ hour: h, label: `${String(h).padStart(2, '0')}:00`, ...d }));
       }
+
+      let localDailyData: DailyData[] = [];
+      if (!isSingleDay) {
+        const map = new Map<string, { revenue: number; count: number }>();
+        filtered.forEach((t) => {
+          const d = t.date instanceof Date ? t.date : new Date(t.date);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const key = `${year}-${month}-${day}`;
+          const e = map.get(key) || { revenue: 0, count: 0 };
+          e.revenue += (t.total || (t as any).total_amount || 0);
+          e.count += 1;
+          map.set(key, e);
+        });
+
+        localDailyData = Array.from(map.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, d]) => {
+            const [year, month, day] = date.split('-').map(Number);
+            const localDate = new Date(year, month - 1, day);
+            let labelStr = preset === '7days'
+              ? localDate.toLocaleDateString('id-ID', { weekday: 'short' })
+              : localDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+
+            return { date, label: labelStr, ...d };
+          });
+      }
+
+      const topMap = new Map<string, { name: string; qty: number; revenue: number; totalCost: number; hasCost: boolean }>();
+      filtered.forEach((t) => {
+        t.items.forEach((item) => {
+          const id = item.productId;
+          const p = productMap.get(id);
+          const name = item.name || p?.name || id;
+
+          if (id.startsWith('manual') || name.toLowerCase().includes('manual') || name.toLowerCase().includes('custom')) {
+            return;
+          }
+
+          const e = topMap.get(id) || { name, qty: 0, revenue: 0, totalCost: 0, hasCost: false };
+          e.qty += item.quantity;
+          e.revenue += Number(item.quantity) * Number(item.price);
+          const cost = item.cost ?? p?.cost;
+          if (cost != null) {
+            e.hasCost = true;
+            e.totalCost += Number(item.quantity) * Number(cost);
+          }
+          topMap.set(id, e);
+        });
+      });
+
+      const localTopProducts: ProductRank[] = Array.from(topMap.values())
+        .sort((a, b) => b.qty - a.qty)
+        .slice(0, 10)
+        .map((p) => ({
+          name: p.name,
+          qty: p.qty,
+          revenue: p.revenue,
+          marginPct: p.hasCost ? ((p.revenue - p.totalCost) / p.revenue) * 100 : null,
+        }));
+
+      const payMap = new Map<string, { count: number; revenue: number }>();
+      filtered.forEach((t) => {
+        const m = t.paymentMethod || 'cash';
+        const e = payMap.get(m) || { count: 0, revenue: 0 };
+        e.count += 1;
+        e.revenue += (t.total || (t as any).total_amount || 0);
+        payMap.set(m, e);
+      });
+      const totalPay = filtered.reduce((s, t) => s + (Number(t.total) || Number((t as any).total_amount) || 0), 0);
+      const localPaymentBreakdown: PaymentBreakdown[] = Array.from(payMap.entries())
+        .sort(([, a], [, b]) => b.revenue - a.revenue)
+        .map(([method, d]) => ({
+          method, ...d, pct: totalPay > 0 ? (d.revenue / totalPay) * 100 : 0,
+        }));
+
+      const cashMap = new Map<string, { transactions: number; revenue: number }>();
+      filtered.forEach((t) => {
+        const name = t.cashierName || 'Kasir';
+        const e = cashMap.get(name) || { transactions: 0, revenue: 0 };
+        e.transactions += 1;
+        e.revenue += (t.total || (t as any).total_amount || 0);
+        cashMap.set(name, e);
+      });
+      const localCashierPerformance: CashierPerformance[] = Array.from(cashMap.entries())
+        .sort(([, a], [, b]) => b.revenue - a.revenue)
+        .map(([name, d]) => ({
+          name, ...d, avgTicket: d.transactions > 0 ? d.revenue / d.transactions : 0,
+        }));
+
+      let localCostBreakdown: CostBreakdown | null = null;
+      if (localSummary.hasCostData) {
+        const grossRevenue = localSummary.totalRevenue;
+        let cogs = 0;
+        filtered.forEach((t) => {
+          if (t.cost != null) {
+            cogs += t.cost;
+          } else {
+            t.items.forEach((item) => {
+              const p = productMap.get(item.productId);
+              const cost = item.cost ?? p?.cost;
+              if (cost != null) cogs += item.quantity * cost;
+            });
+          }
+        });
+        const netProfit = grossRevenue - cogs;
+        localCostBreakdown = {
+          grossRevenue, cogs, netProfit,
+          marginPct: grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0,
+        };
+      }
+
+      setLocalComputed({
+        filtered,
+        localSummary,
+        localHourlyData,
+        localDailyData,
+        localTopProducts,
+        localPaymentBreakdown,
+        localCashierPerformance,
+        localCostBreakdown,
+      });
+
+      setIsComputing(false);
     });
-    const netProfit = grossRevenue - cogs;
-    return {
-      grossRevenue, cogs, netProfit,
-      marginPct: grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0,
-    };
-  }, [filtered, localSummary, productMap]);
+
+    return () => task.cancel();
+  }, [transactions, products, range, prevRange, isSingleDay, preset]);
 
   // Fetch from backend if NOT covered by local cache
   const fetchRemote = async () => {
@@ -409,13 +426,13 @@ export function useMobileSalesReport(
   }, [isCovered, range, preset]);
 
   // Combine Final Results
-  const summary: SummaryData = isCovered ? localSummary : (remoteData?.summary || emptySummary);
-  const hourlyData: HourlyData[] = isCovered ? localHourlyData : (remoteData?.granularity === 'hour' ? (remoteData?.chartData || []) : []);
-  const dailyData: DailyData[] = isCovered ? localDailyData : (remoteData?.granularity !== 'hour' ? (remoteData?.chartData || []) : []);
-  const topProducts: ProductRank[] = isCovered ? localTopProducts : (remoteData?.topProducts || []);
-  const paymentBreakdown: PaymentBreakdown[] = isCovered ? localPaymentBreakdown : (remoteData?.paymentMethods || []);
-  const cashierPerformance: CashierPerformance[] = isCovered ? localCashierPerformance : (remoteData?.cashierPerformance || []);
-  const costBreakdown: CostBreakdown | null = isCovered ? localCostBreakdown : (remoteData?.costBreakdown || null);
+  const summary: SummaryData = isCovered ? localComputed.localSummary : (remoteData?.summary || emptySummary);
+  const hourlyData: HourlyData[] = isCovered ? localComputed.localHourlyData : (remoteData?.granularity === 'hour' ? (remoteData?.chartData || []) : []);
+  const dailyData: DailyData[] = isCovered ? localComputed.localDailyData : (remoteData?.granularity !== 'hour' ? (remoteData?.chartData || []) : []);
+  const topProducts: ProductRank[] = isCovered ? localComputed.localTopProducts : (remoteData?.topProducts || []);
+  const paymentBreakdown: PaymentBreakdown[] = isCovered ? localComputed.localPaymentBreakdown : (remoteData?.paymentMethods || []);
+  const cashierPerformance: CashierPerformance[] = isCovered ? localComputed.localCashierPerformance : (remoteData?.cashierPerformance || []);
+  const costBreakdown: CostBreakdown | null = isCovered ? localComputed.localCostBreakdown : (remoteData?.costBreakdown || null);
 
   const peakHour = useMemo(() => {
     if (hourlyData.length === 0) return null;
@@ -429,7 +446,7 @@ export function useMobileSalesReport(
       Alert.alert('Belum Didukung', 'Export CSV untuk laporan dari server belum tersedia.');
       return;
     }
-    if (filtered.length === 0) {
+    if (localComputed.filtered.length === 0) {
       Alert.alert('Data Kosong', 'Tidak ada data transaksi untuk diekspor.');
       return;
     }
@@ -439,43 +456,52 @@ export function useMobileSalesReport(
         Alert.alert('Tidak Tersedia', 'Fitur sharing tidak tersedia di perangkat ini.');
         return;
       }
-      const esc = (cell: string) => `"${String(cell ?? '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
+      const esc = (cell: string | number) => `"${String(cell ?? '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
       const head = ['Waktu', 'ID Transaksi', 'Kasir', 'Items', 'Subtotal', 'Pajak', 'Total', 'Metode Bayar'];
       const csvRows = [head.map(esc).join(',')];
 
-      filtered.forEach((t) => {
+      localComputed.filtered.forEach((t) => {
         const d = t.date instanceof Date ? t.date : new Date(t.date);
         const waktu = d.toLocaleString('id-ID');
         const items = t.items.map((i) => `${i.name || i.productId}x${i.quantity}`).join('; ');
         const subtotal = t.items.reduce((s, i) => s + (i.price * i.quantity), 0);
-        const tax = (t.total || (t as any).total_amount || 0) - subtotal;
-        csvRows.push([
-          esc(waktu), esc(t.id), esc(t.cashierName || '-'), esc(items),
-          esc(String(subtotal)), esc(String(Math.max(0, tax))),
-          esc(String(t.total || (t as any).total_amount || 0)), esc(t.paymentMethod),
-        ].join(','));
+        const row = [waktu, t.id, t.cashierName || '-', items, subtotal, t.tax ?? 0, t.total, t.paymentMethod];
+        csvRows.push(row.map(esc).join(','));
       });
 
-      const csvContent = csvRows.join('\r\n');
-      const nowStr = new Date().toISOString().slice(0, 10);
-      const filename = `laporan-${preset}-${nowStr}.csv`;
-      const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+      const csvContent = csvRows.join('\n');
+      const filename = `Laporan_Penjualan_${preset}_${Date.now()}.csv`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
       await FileSystem.writeAsStringAsync(fileUri, csvContent, { encoding: FileSystem.EncodingType.UTF8 });
-      await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Export Laporan Penjualan' });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Gagal mengekspor laporan.';
-      Alert.alert('Ekspor Gagal', msg);
+      await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Ekspor Laporan Penjualan (CSV)' });
+    } catch (e: any) {
+      Alert.alert('Gagal Ekspor', e.message || 'Terjadi kesalahan saat membagikan file CSV.');
     }
   };
 
   return {
-    preset, setPreset,
-    customStart, setCustomStart,
-    customEnd, setCustomEnd,
-    range, filtered, summary, isSingleDay,
-    hourlyData, dailyData, peakHour, topProducts,
-    paymentBreakdown, cashierPerformance, costBreakdown,
+    preset,
+    setPreset,
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd,
+    range,
+    filtered: localComputed.filtered,
+    summary,
+    isSingleDay,
+    hourlyData,
+    dailyData,
+    peakHour,
+    topProducts,
+    paymentBreakdown,
+    cashierPerformance,
+    costBreakdown,
     exportCsvFile,
-    isLoading, error, isCovered, refetch: fetchRemote
+    isLoading,
+    isComputing,
+    error,
+    isCovered,
+    refetch: fetchRemote,
   };
 }

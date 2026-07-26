@@ -7,10 +7,12 @@ import OwnerSidebar, {
   SIDEBAR_EXPANDED_WIDTH,
   SIDEBAR_COLLAPSED_WIDTH,
 } from '../../components/navigation/OwnerDrawerContent';
+import OwnerBottomBar from '../../components/navigation/OwnerBottomBar';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { SidebarContext, SidebarContextValue } from '../../contexts/SidebarContext';
 import { useStableOrientation } from '../../hooks/useStableOrientation';
+import { useOwnerBackHandler } from '../../hooks/useOwnerBackHandler';
 
 export default function OwnerLayout() {
   const insets = useSafeAreaInsets();
@@ -21,7 +23,9 @@ export default function OwnerLayout() {
   const c = getColors(isDark);
   const { isLandscape } = useStableOrientation();
   const pathname = usePathname();
-  const isDashboardOrPos = pathname.includes('dashboard') || pathname.includes('pos');
+
+  // Attach root back handler for owner role
+  useOwnerBackHandler();
 
   const currentSidebarWidth = isLandscape
     ? (sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_COLLAPSED_WIDTH)
@@ -102,42 +106,12 @@ export default function OwnerLayout() {
               <Stack.Screen name="users" />
               <Stack.Screen name="help" />
               <Stack.Screen name="more" />
+              <Stack.Screen name="all-menu" />
             </Stack>
-
-            {/* Global Floating Sidebar Toggle Button in Portrait */}
-            {!isLandscape && !sidebarVisible && !isDashboardOrPos && (
-              <TouchableOpacity
-                onPress={openSidebar}
-                activeOpacity={0.7}
-                style={{
-                  position: 'absolute',
-                  top: insets.top + 8,
-                  left: 12,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  backgroundColor: c.bgCard,
-                  borderWidth: 1,
-                  borderColor: c.border,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  shadowColor: '#000',
-                  shadowOpacity: 0.1,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowRadius: 6,
-                  elevation: 4,
-                  zIndex: 9999,
-                }}
-              >
-                <Menu size={20} color={c.text} strokeWidth={2} />
-              </TouchableOpacity>
-            )}
           </View>
 
-          {/* Portrait: overlay sidebar */}
-          {!isLandscape && (
-            <OwnerSidebar visible={sidebarVisible} onClose={closeSidebar} />
-          )}
+          {/* Portrait: Bottom Navigation Bar */}
+          {!isLandscape && <OwnerBottomBar />}
         </View>
         {isLandscape && insets.bottom > 0 && (
           <View style={{

@@ -167,7 +167,7 @@ export default function UsersManagementScreen() {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingLeft: isLandscape ? 16 : 60,
+        paddingLeft: 16,
         paddingRight: 16,
         paddingVertical: 12,
       }}>
@@ -222,7 +222,7 @@ export default function UsersManagementScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => loadUsers(true)} tintColor={c.accent} />
           }

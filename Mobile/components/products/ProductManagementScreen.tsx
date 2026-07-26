@@ -1079,7 +1079,7 @@ export default function ProductManagementScreen() {
       {/* Header section */}
       <View
         style={{
-          paddingLeft: isLandscape ? 16 : 60,
+          paddingLeft: 16,
           paddingRight: 16,
           paddingVertical: isSmallLandscape ? 6 : 12,
           borderBottomWidth: 1,

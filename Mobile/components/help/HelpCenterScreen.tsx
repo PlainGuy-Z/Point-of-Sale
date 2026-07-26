@@ -43,7 +43,7 @@ export default function HelpCenterScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={{ paddingLeft: isLandscape ? 16 : 60, paddingRight: 16, paddingVertical: 12 }}>
+      <View style={{ paddingLeft: 16, paddingRight: 16, paddingVertical: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <HelpCircle size={22} color={c.accent} strokeWidth={2} />
           <Text style={{ color: c.text, fontSize: 22, fontWeight: '900' }}>

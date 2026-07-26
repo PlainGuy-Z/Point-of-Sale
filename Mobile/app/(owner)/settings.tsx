@@ -54,7 +54,7 @@ export default function OwnerSettings() {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 16, paddingVertical: 12,
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: isLandscape ? 0 : 44 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Settings size={22} color={c.accent} strokeWidth={2} />
           <Text style={{ color: c.text, fontSize: 20, fontWeight: '900' }}>Settings</Text>
         </View>

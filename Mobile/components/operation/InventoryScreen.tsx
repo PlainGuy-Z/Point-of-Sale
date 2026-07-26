@@ -44,7 +44,7 @@ export default function InventoryScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={{ paddingLeft: isLandscape ? 16 : 60, paddingRight: 16, paddingVertical: 12 }}>
+      <View style={{ paddingLeft: 16, paddingRight: 16, paddingVertical: 12 }}>
         <Text style={{ color: c.text, fontSize: 22, fontWeight: '900' }}>
           Inventory & <Text style={{ color: c.accent }}>Biaya</Text>
         </Text>
@@ -53,7 +53,7 @@ export default function InventoryScreen() {
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 100 }}>
         {/* Overview Cards */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {[

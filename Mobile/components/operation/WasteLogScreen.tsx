@@ -35,7 +35,7 @@ export default function WasteLogScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={{ paddingLeft: isLandscape ? 16 : 60, paddingRight: 16, paddingVertical: 12 }}>
+      <View style={{ paddingLeft: 16, paddingRight: 16, paddingVertical: 12 }}>
         <Text style={{ color: c.text, fontSize: 22, fontWeight: '900' }}>
           Waste <Text style={{ color: c.accent }}>Log</Text>
         </Text>
@@ -44,7 +44,7 @@ export default function WasteLogScreen() {
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 100 }}>
         {/* Summary Card */}
         <View style={{
           backgroundColor: c.errorBg, borderWidth: 1,

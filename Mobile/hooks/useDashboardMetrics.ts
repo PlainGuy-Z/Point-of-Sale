@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from 'react';
+import { InteractionManager } from 'react-native';
 import { appApi } from '../services/appApi';
 import type { Product, Transaction, WasteLog, Customer } from '../types';
 import { PresetKey, DateRange, getDateRange } from './useMobileSalesReport';
-import { calculateDashboardMetrics, getTopProductsToday } from '../utils/dashboardMetrics';
+import { calculateDashboardMetrics, getTopProductsToday, DashboardMetrics } from '../utils/dashboardMetrics';
 
 function getPrevRange(range: DateRange): DateRange {
   const durationMs = range.end.getTime() - range.start.getTime();
@@ -25,6 +26,7 @@ export function useDashboardMetrics(
   const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isComputing, setIsComputing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [remoteData, setRemoteData] = useState<any>(null);
 
@@ -38,31 +40,40 @@ export function useDashboardMetrics(
     const cFrom = new Date(cacheFrom);
     const cTo = new Date(cacheTo);
     
-    // Add 1 hour buffer to avoid timezone edge cases
     cFrom.setHours(cFrom.getHours() - 1);
     cTo.setHours(cTo.getHours() + 1);
 
     return currentRange.start >= cFrom && currentRange.end <= cTo;
   }, [currentRange, cacheFrom, cacheTo, transactions.length]);
 
-  // LOCAL COMPUTATION
-  const localMetrics = useMemo(() => {
-    if (!isCovered) return null;
-    // We still use calculateDashboardMetrics but it's hardcoded to "Today".
-    // For now, if the preset is not 'today', this local calculation will be incorrect if we rely solely on it,
-    // BUT the cache logic will likely force 'isCovered' to be false for 30 days anyway if cache is only 200 items.
-    // If it is covered, we still return it to avoid breaking changes, but Dashboard should prefer remote if preset !== today.
-    return calculateDashboardMetrics(transactions, products, customers, wasteLogs);
-  }, [isCovered, transactions, products, customers, wasteLogs]);
+  const [localComputed, setLocalComputed] = useState<{
+    localMetrics: DashboardMetrics | null;
+    localTopProducts: any[];
+  }>({
+    localMetrics: null,
+    localTopProducts: [],
+  });
 
-  const localTopProducts = useMemo(() => {
-    if (!isCovered) return [];
-    return getTopProductsToday(transactions, products, 5);
-  }, [isCovered, transactions, products]);
+  // Defer local metrics computation until transition interactions finish!
+  useEffect(() => {
+    setIsComputing(true);
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (!isCovered) {
+        setLocalComputed({ localMetrics: null, localTopProducts: [] });
+      } else {
+        const metrics = calculateDashboardMetrics(transactions, products, customers, wasteLogs);
+        const topProducts = getTopProductsToday(transactions, products, 5);
+        setLocalComputed({ localMetrics: metrics, localTopProducts: topProducts });
+      }
+      setIsComputing(false);
+    });
+
+    return () => task.cancel();
+  }, [isCovered, transactions, products, customers, wasteLogs]);
 
   // FETCH FROM SERVER
   const fetchRemote = async () => {
-    if (isCovered && preset === 'today') return; // Safe to use local for today
+    if (isCovered && preset === 'today') return;
     
     setIsLoading(true);
     setError(null);
@@ -94,50 +105,51 @@ export function useDashboardMetrics(
   };
 
   useEffect(() => {
-    // If we're not covered, OR if it's a multi-day range (because local calculateDashboardMetrics is hardcoded to today)
-    // we MUST fetch from remote to ensure correctness.
     if (!isCovered || preset !== 'today') {
       fetchRemote();
     } else {
       setRemoteData(null);
       setError(null);
     }
-  }, [isCovered, currentRange, preset]);
+  }, [isCovered, preset, currentRange]);
 
-  // MERGE RESULTS
-  const isUsingRemote = (!isCovered || preset !== 'today') && remoteData;
-
-  const finalMetrics = useMemo(() => {
-    if (isUsingRemote && remoteData?.metrics) {
-      // remoteData.metrics matches DashboardMetrics structure
-      return {
-        ...remoteData.metrics,
-        // we still need lowStockProducts and outOfStockProducts from LOCAL products array,
-        // because backend doesn't send the full product array objects for these lists.
-        lowStockProducts: localMetrics?.lowStockProducts || [],
-        outOfStockProducts: localMetrics?.outOfStockProducts || []
-      };
+  const metrics: DashboardMetrics | null = useMemo(() => {
+    if (isCovered && preset === 'today') {
+      return localComputed.localMetrics;
     }
-    return localMetrics;
-  }, [isUsingRemote, remoteData, localMetrics]);
+    if (remoteData?.metrics) {
+      return remoteData.metrics;
+    }
+    return localComputed.localMetrics;
+  }, [isCovered, preset, localComputed.localMetrics, remoteData]);
 
-  const finalTopProducts = isUsingRemote ? (remoteData?.topProductsToday || []) : localTopProducts;
-  const finalChartData = isUsingRemote ? (remoteData?.chartData || []) : null;
+  const topProducts = useMemo(() => {
+    if (isCovered && preset === 'today') {
+      return localComputed.localTopProducts;
+    }
+    if (remoteData?.topProducts) {
+      return remoteData.topProducts;
+    }
+    return localComputed.localTopProducts;
+  }, [isCovered, preset, localComputed.localTopProducts, remoteData]);
 
   return {
-    metrics: finalMetrics,
-    topProductsToday: finalTopProducts, // Keep old name for backward compatibility in UI
-    chartData: finalChartData,
-    rawData: { transactions },
-    isLoading,
-    error,
-    isCovered: !isUsingRemote, // Expose to UI
     preset,
     setPreset,
     customStart,
     setCustomStart,
     customEnd,
     setCustomEnd,
+    metrics,
+    topProducts,
+    topProductsToday: topProducts,
+    rawData: { transactions, products, customers, wasteLogs },
+    chartData: remoteData?.chartData || null,
+    remoteChartData: remoteData?.chartData || null,
+    isLoading: isLoading || isComputing,
+    isComputing,
+    error,
     refetch: fetchRemote,
+    isCovered,
   };
 }

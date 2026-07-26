@@ -111,6 +111,7 @@ export default function SalesReportScreen() {
     costBreakdown,
     exportCsvFile,
     isLoading,
+    isComputing,
     error,
     isCovered,
     refetch,
@@ -295,7 +296,7 @@ export default function SalesReportScreen() {
         flexDirection: isLandscape ? 'row' : 'column',
         justifyContent: 'space-between',
         alignItems: isLandscape ? 'center' : 'stretch',
-        paddingLeft: isLandscape ? 16 : 60,
+        paddingLeft: 16,
         paddingRight: 16,
         paddingVertical: 12,
         gap: 10,
@@ -334,10 +335,10 @@ export default function SalesReportScreen() {
       </View>
 
       {/* BODY CONTENT */}
-      {isLoading ? (
+      {isLoading || isComputing ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={c.accent} />
-          <Text style={{ color: c.textSecondary, fontSize: 14, marginTop: 12 }}>Memuat data laporan...</Text>
+          <Text style={{ color: c.textSecondary, fontSize: 13, marginTop: 12 }}>Menyiapkan data laporan...</Text>
         </View>
       ) : error ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
@@ -349,7 +350,7 @@ export default function SalesReportScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
         >
           {/* DATE FILTER CHIPS */}
           <View style={{

@@ -18,6 +18,7 @@ export interface DashboardMetrics {
   todayProfit: number;
   avgTicket: number;
   newCustomers: number;
+  newCustomersAvailable?: boolean;
   lowStockProducts: Product[];
   outOfStockProducts: Product[];
   totalProducts: number;

@@ -503,17 +503,6 @@ export default function POSScreen() {
           flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
           paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4,
         }}>
-          {!isCashier ? (
-            <TouchableOpacity
-              onPress={openSidebar}
-              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Menu size={20} color={c.text} strokeWidth={2} />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 40 }} />
-          )}
-
           <Text style={{ fontSize: 20, fontWeight: '900', color: c.text, letterSpacing: -0.5 }}>
             Menu <Text style={{ color: c.accent }}>Explorer</Text>
           </Text>
@@ -589,7 +578,7 @@ export default function POSScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
                   paddingTop: 10,
-                  paddingBottom: cartIsEmpty ? 20 : 100,
+                  paddingBottom: cartIsEmpty ? 70 + insets.bottom : 130 + insets.bottom,
                 }}
               />
             )}

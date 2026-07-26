@@ -355,9 +355,12 @@ export function useSettings() {
 }
 
 export function useApp() {
-  return {
-    ...useProducts(),
-    ...useTransactions(),
-    ...useSettings(),
-  };
+  const products = useProducts();
+  const transactions = useTransactions();
+  const settings = useSettings();
+
+  return useMemo(
+    () => ({ ...products, ...transactions, ...settings }),
+    [products, transactions, settings]
+  );
 }

@@ -33,7 +33,7 @@ export default function LoyaltyScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={{ paddingLeft: isLandscape ? 16 : 60, paddingRight: 16, paddingVertical: 12 }}>
+      <View style={{ paddingLeft: 16, paddingRight: 16, paddingVertical: 12 }}>
         <Text style={{ color: c.text, fontSize: 22, fontWeight: '900' }}>
           Loyalty & <Text style={{ color: c.accent }}>Kunjungan</Text>
         </Text>
