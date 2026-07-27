@@ -1,9 +1,9 @@
 import React, { useState, useRef, useCallback, useContext } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Image, ActivityIndicator, Modal
+  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Image, ActivityIndicator, Modal, Platform, StatusBar
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
   Zap, DollarSign, ShoppingCart, Users, TrendingUp,
@@ -418,11 +418,11 @@ export default function OwnerDashboard() {
 
   // ── Landscape layout dimensions ──
   const landscapeGap = 12;
+  const topInset = isLandscape ? 4 : Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, 10);
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: isDark ? '#0f0f0f' : '#f8fafc' }}
-      edges={isLandscape ? ['top', 'right'] : ['top', 'left', 'right']}
+    <View
+      style={{ flex: 1, backgroundColor: isDark ? '#0f0f0f' : '#f8fafc', paddingTop: topInset }}
     >
       <ScrollView
         contentContainerStyle={{
@@ -747,6 +747,6 @@ export default function OwnerDashboard() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

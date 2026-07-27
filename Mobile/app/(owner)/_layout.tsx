@@ -76,16 +76,15 @@ export default function OwnerLayout() {
     <SidebarContext.Provider value={contextValue}>
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         <View style={{ flex: 1, flexDirection: isLandscape ? 'row' : 'column', backgroundColor: c.bg }}>
-          {/* Landscape: inline persistent sidebar */}
-          {isLandscape && (
-            <OwnerSidebar
-              visible={true}
-              onClose={closeSidebar}
-              inline={true}
-              collapsed={!sidebarExpanded}
-              onToggleCollapse={toggleSidebar}
-            />
-          )}
+          {/* Landscape: inline persistent sidebar (display toggled via style) */}
+          <OwnerSidebar
+            visible={true}
+            onClose={closeSidebar}
+            inline={true}
+            collapsed={!sidebarExpanded}
+            onToggleCollapse={toggleSidebar}
+            style={{ display: isLandscape ? 'flex' : 'none' }}
+          />
 
           {/* Main content area */}
           <View style={{ flex: 1, backgroundColor: c.bg, position: 'relative' }}>
@@ -112,7 +111,7 @@ export default function OwnerLayout() {
           </View>
 
           {/* Portrait: Bottom Navigation Bar */}
-          {!isLandscape && <OwnerBottomBar />}
+          <OwnerBottomBar />
         </View>
         {isLandscape && insets.bottom > 0 && (
           <View style={{

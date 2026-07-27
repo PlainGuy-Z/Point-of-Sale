@@ -21,34 +21,28 @@ import { useWindowDimensions } from 'react-native';
  */
 export function useStableOrientation(debounceMs = 150) {
   const { width, height } = useWindowDimensions();
-  const isLandscapeRaw = width > height;
+  const isLandscape = width > height;
 
   const [stable, setStable] = useState({
     width,
     height,
-    isLandscape: isLandscapeRaw,
   });
 
   useEffect(() => {
-    // If the raw orientation matches our stable orientation,
-    // we can update the dimensions immediately (no debounce needed).
-    if (isLandscapeRaw === stable.isLandscape) {
-      if (width !== stable.width || height !== stable.height) {
-        setStable({ width, height, isLandscape: isLandscapeRaw });
-      }
-      return;
-    }
-
-    // Otherwise, the orientation has changed. We debounce this update
-    // to let the dimensions settle.
+    // Debounce exact dimension updates to allow viewport measurements to settle,
+    // while orientation direction (isLandscape) updates immediately.
     const timer = setTimeout(() => {
-      setStable({ width, height, isLandscape: isLandscapeRaw });
+      setStable({ width, height });
     }, debounceMs);
 
     return () => {
       clearTimeout(timer);
     };
-  }, [width, height, isLandscapeRaw, debounceMs, stable.width, stable.height, stable.isLandscape]);
+  }, [width, height, debounceMs]);
 
-  return stable;
+  return {
+    width: stable.width,
+    height: stable.height,
+    isLandscape,
+  };
 }

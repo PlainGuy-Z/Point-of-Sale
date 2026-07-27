@@ -109,11 +109,6 @@ export default function OwnerBottomBar() {
   const { isLandscape } = useStableOrientation();
   const { colors: c, isDark } = useColors();
 
-  // Only render on mobile portrait mode
-  if (isLandscape) {
-    return null;
-  }
-
   const handleNavigate = useCallback(
     (route: string) => {
       const targetRoute = `/(owner)/${route}`;
@@ -138,6 +133,7 @@ export default function OwnerBottomBar() {
   return (
     <View
       style={{
+        display: isLandscape ? 'none' : 'flex',
         position: 'absolute',
         bottom: 0,
         left: 0,

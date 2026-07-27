@@ -16,6 +16,7 @@ interface CashierSidebarProps {
   inline?: boolean;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  style?: any;
 }
 
 export default function CashierSidebar({
@@ -24,6 +25,7 @@ export default function CashierSidebar({
   inline = true,
   collapsed = false,
   onToggleCollapse,
+  style,
 }: CashierSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -401,14 +403,17 @@ export default function CashierSidebar({
   if (inline) {
     return (
       <View
-        style={{
-          width: sidebarWidth,
-          backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-          borderRightWidth: 1,
-          borderRightColor: c.border,
-          paddingTop: insets.top > 0 ? insets.top + 12 : 20,
-          height: '100%',
-        }}
+        style={[
+          {
+            width: sidebarWidth,
+            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+            borderRightWidth: 1,
+            borderRightColor: c.border,
+            paddingTop: insets.top > 0 ? insets.top + 12 : 20,
+            height: '100%',
+          },
+          style,
+        ]}
       >
         {renderContent(collapsed)}
       </View>

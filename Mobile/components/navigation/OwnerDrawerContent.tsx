@@ -57,6 +57,7 @@ interface OwnerSidebarProps {
   collapsed?: boolean;
   /** Toggle collapsed/expanded in inline mode */
   onToggleCollapse?: () => void;
+  style?: any;
 }
 
 /* ─── Component ──────────────────────────────────────────────────────── */
@@ -67,6 +68,7 @@ export default function OwnerSidebar({
   inline = false,
   collapsed = false,
   onToggleCollapse,
+  style,
 }: OwnerSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -765,13 +767,16 @@ export default function OwnerSidebar({
   if (inline) {
     return (
       <>
-        <View style={{
-          width: sidebarWidth,
-          backgroundColor: c.bg,
-          borderRightWidth: 1,
-          borderRightColor: c.borderLight,
-paddingTop: (Math.max(insets.top - 20, 2) + (insets.top > 0 ? insets.top : 16)) / 2,
-        }}>
+        <View style={[
+          {
+            width: sidebarWidth,
+            backgroundColor: c.bg,
+            borderRightWidth: 1,
+            borderRightColor: c.borderLight,
+            paddingTop: (Math.max(insets.top - 20, 2) + (insets.top > 0 ? insets.top : 16)) / 2,
+          },
+          style,
+        ]}>
           {/* ═══ TOP ZONE: Logo + Store Name ═══ */}
           <View style={{
             alignItems: 'center',

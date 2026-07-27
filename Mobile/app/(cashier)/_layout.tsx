@@ -75,16 +75,15 @@ export default function CashierLayout() {
     <SidebarContext.Provider value={contextValue}>
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         <View style={{ flex: 1, flexDirection: isLandscape ? 'row' : 'column', backgroundColor: c.bg }}>
-          {/* LANDSCAPE MODE: INLINE SIDEBAR */}
-          {isLandscape && (
-            <CashierSidebar
-              visible={true}
-              onClose={closeSidebar}
-              inline={true}
-              collapsed={sidebarCollapsed}
-              onToggleCollapse={toggleSidebar}
-            />
-          )}
+          {/* LANDSCAPE MODE: INLINE SIDEBAR (Persistent, display toggled via style) */}
+          <CashierSidebar
+            visible={true}
+            onClose={closeSidebar}
+            inline={true}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
+            style={{ display: isLandscape ? 'flex' : 'none' }}
+          />
           <View style={{ flex: 1 }}>
             <Tabs
               initialRouteName="pos"

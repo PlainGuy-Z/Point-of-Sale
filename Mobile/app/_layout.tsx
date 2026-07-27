@@ -1,6 +1,7 @@
 import '../global.css';
 import React, { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -48,21 +49,23 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <BranchProvider>
-          <ThemeProvider>
-            <AppProvider>
-              <ShiftProvider>
-                <PrinterProvider>
-                  <AIProvider>
-                    <ThemedStack />
-                  </AIProvider>
-                </PrinterProvider>
-              </ShiftProvider>
-            </AppProvider>
-          </ThemeProvider>
-        </BranchProvider>
-      </AuthProvider>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <AuthProvider>
+          <BranchProvider>
+            <ThemeProvider>
+              <AppProvider>
+                <ShiftProvider>
+                  <PrinterProvider>
+                    <AIProvider>
+                      <ThemedStack />
+                    </AIProvider>
+                  </PrinterProvider>
+                </ShiftProvider>
+              </AppProvider>
+            </ThemeProvider>
+          </BranchProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
 
       {showSplash && (
         <AnimatedSplash onFinish={() => setShowSplash(false)} />

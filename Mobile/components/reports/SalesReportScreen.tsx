@@ -10,9 +10,11 @@ import {
   Modal,
   FlatList,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BarChart2,
   TrendingUp,
@@ -83,8 +85,10 @@ function mapTransactionToHistory(t: Transaction): HistoryTransaction {
 }
 
 export default function SalesReportScreen() {
+  const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
+  const topInset = isLandscape ? 4 : Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, 10);
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
@@ -290,7 +294,7 @@ export default function SalesReportScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: topInset }}>
       {/* HEADER SECTION */}
       <View style={{
         flexDirection: isLandscape ? 'row' : 'column',
@@ -1318,7 +1322,7 @@ export default function SalesReportScreen() {
           onClose={() => setSelectedTx(null)}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

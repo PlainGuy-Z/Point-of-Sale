@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useContext, useMemo } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, Modal, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, Modal, Image, ActivityIndicator, RefreshControl, Platform, StatusBar } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -493,12 +493,14 @@ export default function POSScreen() {
     </Modal>
   );
 
+  const topInset = isLandscape ? 4 : Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, 10);
+
   // ══════════════════════════════════════════════════════════════════════════
   // PORTRAIT LAYOUT
   // ══════════════════════════════════════════════════════════════════════════
   if (!isLandscape) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
+      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: topInset }}>
         {/* Header with navbar: left menu, title, right logo+shop name */}
         <View style={{
           flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -808,7 +810,7 @@ export default function POSScreen() {
             </View>
           </Modal>
         )}
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -816,7 +818,7 @@ export default function POSScreen() {
   // LANDSCAPE LAYOUT
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top > 0 ? Math.max(insets.top - 10, 6) : 8}}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: topInset }}>
       <View style={{ flex: 1, flexDirection: 'row', gap: 14, paddingHorizontal: 6, paddingVertical: 2 }}>
         {/* LEFT — Product Grid */}
         <View style={{ flex: 2, minWidth: 0 }}>
