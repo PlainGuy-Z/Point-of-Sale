@@ -143,8 +143,16 @@ syncRouter.get('/catalog', async (req, res, next) => {
 // Batch upload offline transactions. Each transaction goes through the full
 // validation pipeline (price recalc, stock conflict detection, etc.).
 
+const NullableUuid = z.preprocess(
+  (val) => (typeof val === 'string' && val.trim().length > 0 ? val.trim() : null),
+  z.string().uuid().nullable().optional()
+);
+
 const SyncCartLineSchema = z.object({
-  productId: z.string().min(1),
+  productId: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim().length > 0 ? val.trim() : 'manual-item'),
+    z.string().min(1)
+  ),
   quantity: z.coerce.number().int().positive(),
   note: z.string().trim().optional(),
   description: z.string().trim().max(200).optional(),
@@ -157,17 +165,28 @@ const SyncTransactionSchema = z.object({
   id: z.string().uuid(),
   idempotency_key: z.string().trim().max(200),
   cart: z.array(SyncCartLineSchema).min(1),
-  payment_method: z.enum(['cash', 'card', 'qris']),
+  payment_method: z.preprocess((val) => {
+    if (typeof val !== 'string') return 'cash';
+    const s = val.toLowerCase().trim();
+    if (['cash', 'card', 'qris'].includes(s)) return s;
+    return 'card';
+  }, z.enum(['cash', 'card', 'qris'])),
   customer_name: z.string().trim().optional(),
-  customer_id: z.string().trim().optional(),
+  customer_id: NullableUuid,
   table_number: z.string().trim().optional(),
-  order_type: z.enum(['dine-in', 'take-away']).optional(),
+  order_type: z.preprocess((val) => {
+    if (typeof val !== 'string') return undefined;
+    const s = val.toLowerCase().trim();
+    if (s === 'takeaway' || s === 'take_away' || s === 'take-away') return 'take-away';
+    if (s === 'dinein' || s === 'dine_in' || s === 'dine-in') return 'dine-in';
+    return val;
+  }, z.enum(['dine-in', 'take-away']).optional()),
   notes: z.string().trim().optional(),
   order_note: z.string().trim().optional(),
   cash_received: z.coerce.number().int().nonnegative().optional(),
   apply_tax: z.boolean().optional(),
-  branch_id: z.string().uuid().optional().nullable(),
-  shift_id: z.string().uuid().optional().nullable(),
+  branch_id: NullableUuid,
+  shift_id: NullableUuid,
   created_at: z.string(),
 });
 

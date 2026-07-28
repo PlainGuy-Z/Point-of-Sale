@@ -175,24 +175,41 @@ async function syncBatch(batch: PendingTransaction[], deviceId: string): Promise
     markAsSyncing(tx.id);
   }
 
-  // Build request payload
-  const transactions = batch.map((tx) => ({
-    id: tx.id,
-    idempotency_key: tx.idempotencyKey,
-    cart: JSON.parse(tx.cartJson),
-    payment_method: tx.paymentMethod,
-    customer_name: tx.customerName,
-    customer_id: tx.customerId,
-    table_number: tx.tableNumber,
-    order_type: tx.orderType,
-    notes: tx.notes,
-    order_note: tx.orderNote,
-    cash_received: tx.cashReceived,
-    apply_tax: tx.applyTax,
-    branch_id: tx.branchId,
-    shift_id: tx.shiftId,
-    created_at: tx.createdAt,
-  }));
+  // Build request payload with normalized fields
+  const transactions = batch.map((tx) => {
+    const parsedCart = Array.isArray(JSON.parse(tx.cartJson)) ? JSON.parse(tx.cartJson) : [];
+    const normalizedCart = parsedCart.map((item: any) => ({
+      ...item,
+      productId: item.productId || (item.isCustom ? `manual-${item.id}` : `prod-${item.id}`),
+    }));
+
+    let normalizedOrderType = tx.orderType;
+    if (normalizedOrderType === 'takeaway' || normalizedOrderType === 'take_away') {
+      normalizedOrderType = 'take-away';
+    } else if (normalizedOrderType === 'dine_in' || normalizedOrderType === 'dineIn') {
+      normalizedOrderType = 'dine-in';
+    }
+
+    const cleanUuid = (val?: string | null) => (val && val.trim().length > 0 ? val.trim() : undefined);
+
+    return {
+      id: tx.id,
+      idempotency_key: tx.idempotencyKey,
+      cart: normalizedCart,
+      payment_method: tx.paymentMethod || 'cash',
+      customer_name: tx.customerName || undefined,
+      customer_id: cleanUuid(tx.customerId),
+      table_number: tx.tableNumber || undefined,
+      order_type: normalizedOrderType,
+      notes: tx.notes || undefined,
+      order_note: tx.orderNote || undefined,
+      cash_received: tx.cashReceived != null ? tx.cashReceived : undefined,
+      apply_tax: tx.applyTax ?? true,
+      branch_id: cleanUuid(tx.branchId),
+      shift_id: cleanUuid(tx.shiftId),
+      created_at: tx.createdAt,
+    };
+  });
 
   try {
     const response = await http<SyncResponse>(

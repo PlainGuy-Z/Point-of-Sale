@@ -176,7 +176,7 @@ export function createPendingTransaction(input: CreatePendingTransactionInput): 
 export function getPendingTransactionsToSync(): PendingTransaction[] {
   try {
     const db = getDb();
-    return db
+    const candidates = db
       .select()
       .from(pendingTransactions)
       .where(
@@ -184,6 +184,21 @@ export function getPendingTransactionsToSync(): PendingTransaction[] {
       )
       .orderBy(pendingTransactions.createdAt)
       .all() as PendingTransaction[];
+
+    const now = Date.now();
+    return candidates.filter((tx) => {
+      if (tx.status === 'pending') return true;
+      if (tx.status === 'failed') {
+        const retryCount = tx.retryCount || 0;
+        if (retryCount >= 5) return false; // Exceeded max retries
+
+        // Exponential backoff: retry 1 -> 15s, retry 2 -> 30s, retry 3 -> 60s, retry 4 -> 120s
+        const backoffMs = Math.min(15_000 * Math.pow(2, Math.max(0, retryCount - 1)), 300_000);
+        const lastUpdated = tx.updatedAt ? new Date(tx.updatedAt).getTime() : 0;
+        return (now - lastUpdated) >= backoffMs;
+      }
+      return false;
+    });
   } catch (err) {
     console.error('[PendingTx] getPendingTransactionsToSync error:', err);
     return [];
@@ -288,12 +303,24 @@ export function markAsSynced(id: string): void {
 export function markAsFailed(id: string, error: string): void {
   const sqlite = getSQLiteDb();
   const now = new Date().toISOString();
-  sqlite.runSync(
-    `UPDATE pending_transactions 
-     SET status = 'failed', sync_error = ?, retry_count = retry_count + 1, updated_at = ?
-     WHERE id = ?`,
-    [error, now, id]
-  );
+  const tx = getPendingTransactionById(id);
+  const nextRetry = (tx?.retryCount ?? 0) + 1;
+
+  if (nextRetry >= 5) {
+    sqlite.runSync(
+      `UPDATE pending_transactions 
+       SET status = 'needs_review', sync_error = ?, retry_count = ?, updated_at = ?
+       WHERE id = ?`,
+      [`Gagal sync setelah ${nextRetry}x percobaan: ${error}`, nextRetry, now, id]
+    );
+  } else {
+    sqlite.runSync(
+      `UPDATE pending_transactions 
+       SET status = 'failed', sync_error = ?, retry_count = ?, updated_at = ?
+       WHERE id = ?`,
+      [error, nextRetry, now, id]
+    );
+  }
 }
 
 /**

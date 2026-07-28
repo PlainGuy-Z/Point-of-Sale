@@ -48,7 +48,7 @@ const SyncContext = createContext<SyncContextValue | undefined>(undefined);
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const AUTO_SYNC_INTERVAL_MS = 5_000; // Auto-sync every 5 seconds if pending
+const AUTO_SYNC_INTERVAL_MS = 15_000; // Auto-sync every 15 seconds if pending
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 

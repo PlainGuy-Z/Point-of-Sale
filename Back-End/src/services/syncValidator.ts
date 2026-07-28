@@ -157,8 +157,8 @@ export async function validateAndInsertTransaction(
   }
 
   // ── Step 4: Product existence & availability ───────────────────────────
-  const manualLines = tx.cart.filter((l) => l.productId.startsWith('manual-'));
-  const realLines = tx.cart.filter((l) => !l.productId.startsWith('manual-'));
+  const manualLines = tx.cart.filter((l) => !l.productId || l.productId.startsWith('manual-'));
+  const realLines = tx.cart.filter((l) => Boolean(l.productId) && !l.productId.startsWith('manual-'));
   const productIds = realLines.map((l) => l.productId);
 
   const productById = new Map<string, {
