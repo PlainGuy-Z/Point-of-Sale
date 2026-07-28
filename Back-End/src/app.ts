@@ -123,8 +123,11 @@ export function createApp() {
   // 🔐 Protected routes (authentication required)
   app.use('/auth', authRouter);
   app.use('/app', authenticateToken, appRouter);
-  app.use('/pos', authenticateToken, posRouter);
+  // ⚠️ syncRouter MUST be registered before posRouter!
+  // Express matches routes in registration order — if posRouter (/pos) is first,
+  // it captures /pos/sync requests and returns 404 since posRouter has no /sync handler.
   app.use('/pos/sync', authenticateToken, syncRouter);
+  app.use('/pos', authenticateToken, posRouter);
   app.use('/users', authenticateToken, usersRouter);
   app.use('/shifts', authenticateToken, shiftsRouter);
   app.use('/transactions', authenticateToken, transactionsRouter);

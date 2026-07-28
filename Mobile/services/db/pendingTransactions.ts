@@ -176,11 +176,12 @@ export function createPendingTransaction(input: CreatePendingTransactionInput): 
 export function getPendingTransactionsToSync(): PendingTransaction[] {
   try {
     const db = getDb();
+    // Include 'syncing' to recover transactions stuck after app crash/kill
     const candidates = db
       .select()
       .from(pendingTransactions)
       .where(
-        inArray(pendingTransactions.status, ['pending', 'failed'])
+        inArray(pendingTransactions.status, ['pending', 'failed', 'syncing'])
       )
       .orderBy(pendingTransactions.createdAt)
       .all() as PendingTransaction[];
@@ -188,6 +189,13 @@ export function getPendingTransactionsToSync(): PendingTransaction[] {
     const now = Date.now();
     return candidates.filter((tx) => {
       if (tx.status === 'pending') return true;
+      if (tx.status === 'syncing') {
+        // Recover stuck 'syncing' transactions after 2 minutes.
+        // If a transaction has been 'syncing' for > 2 min, the original
+        // request likely failed (app crash/kill) and we should retry.
+        const lastUpdated = tx.updatedAt ? new Date(tx.updatedAt).getTime() : 0;
+        return (now - lastUpdated) >= 120_000;
+      }
       if (tx.status === 'failed') {
         const retryCount = tx.retryCount || 0;
         if (retryCount >= 5) return false; // Exceeded max retries

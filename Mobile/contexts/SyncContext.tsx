@@ -167,13 +167,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   // ── Auto-sync on reconnect ────────────────────────────────────────────────
 
+  const prevOnlineRef = useRef(isOnline);
   useEffect(() => {
-    if (isOnline && isDbReady && status === 'authenticated') {
-      // Trigger sync immediately when coming back online
+    const wasOffline = !prevOnlineRef.current;
+    prevOnlineRef.current = isOnline;
+
+    // Only trigger sync when transitioning from offline → online
+    if (wasOffline && isOnline && isDbReady && status === 'authenticated') {
       console.log('[SyncContext] Network back online — triggering sync');
       triggerSync();
     }
-  }, [isOnline]); // Intentionally only depend on isOnline for reconnect trigger
+  }, [isOnline, isDbReady, status, triggerSync]);
 
   // ── Auto-sync interval ────────────────────────────────────────────────────
 
