@@ -22,9 +22,12 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    // Store token securely
+    // Store token and user profile securely
     if (result.token) {
       await SecureStore.setItemAsync('auth_token', result.token);
+    }
+    if (result.user) {
+      await SecureStore.setItemAsync('auth_user', JSON.stringify(result.user));
     }
     return result;
   },
@@ -36,6 +39,9 @@ export const authApi = {
     });
     if (result.token) {
       await SecureStore.setItemAsync('auth_token', result.token);
+    }
+    if (result.user) {
+      await SecureStore.setItemAsync('auth_user', JSON.stringify(result.user));
     }
     return result;
   },
@@ -54,6 +60,7 @@ export const authApi = {
       console.error('Logout API failed:', err);
     } finally {
       await SecureStore.deleteItemAsync('auth_token');
+      await SecureStore.deleteItemAsync('auth_user');
     }
   },
 

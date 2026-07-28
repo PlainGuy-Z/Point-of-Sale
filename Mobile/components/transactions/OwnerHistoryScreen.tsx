@@ -788,11 +788,12 @@ export default function OwnerHistoryScreen() {
           transaction={review.t}
           action={review.action}
           onClose={() => setReview(null)}
-          onSuccess={(msg) => {
-            setFeedbackMsg(msg);
+          onSuccess={(msg?: string) => {
+            if (msg) setFeedbackMsg(msg);
             void loadSummaries();
-            void fetchTransactions(page);
+            void loadRows();
           }}
+          isDark={isDark}
         />
       )}
 
@@ -802,7 +803,7 @@ export default function OwnerHistoryScreen() {
         onClose={() => setNeedsReviewOpen(false)}
         onResolved={() => {
           void loadSummaries();
-          void fetchTransactions(page);
+          void loadRows();
         }}
         isDark={isDark}
       />

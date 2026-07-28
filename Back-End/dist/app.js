@@ -16,6 +16,7 @@ import { reportsRouter } from './routes/reports.js';
 import { printerRouter } from './routes/printer.js';
 import { publicRouter } from './routes/public.js';
 import { branchesRouter } from './routes/branches.js';
+import { syncRouter } from './routes/sync.js';
 import { authenticateToken } from './middleware/auth.js';
 export function createApp() {
     const app = express();
@@ -99,6 +100,10 @@ export function createApp() {
     // 🔐 Protected routes (authentication required)
     app.use('/auth', authRouter);
     app.use('/app', authenticateToken, appRouter);
+    // ⚠️ syncRouter MUST be registered before posRouter!
+    // Express matches routes in registration order — if posRouter (/pos) is first,
+    // it captures /pos/sync requests and returns 404 since posRouter has no /sync handler.
+    app.use('/pos/sync', authenticateToken, syncRouter);
     app.use('/pos', authenticateToken, posRouter);
     app.use('/users', authenticateToken, usersRouter);
     app.use('/shifts', authenticateToken, shiftsRouter);

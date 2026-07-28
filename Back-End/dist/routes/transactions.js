@@ -67,6 +67,10 @@ function mapRowToTransactionPayload(r) {
         shift_id: r.shift_id ?? null,
         branch_id: r.branch_id ?? null,
         branch_name: r.branch_name ?? null,
+        created_offline: r.created_offline ?? false,
+        synced_at: r.synced_at ?? null,
+        needs_review: r.needs_review ?? false,
+        review_reason: r.review_reason ?? null,
     };
 }
 function itemsAggJson() {
@@ -117,6 +121,10 @@ const TX_AGG_SELECT = `
     t.shift_id::text,
     t.branch_id::text,
     b.name AS branch_name,
+    t.created_offline,
+    t.synced_at,
+    t.needs_review,
+    t.review_reason,
     ${itemsAggJson()} AS items_json
   FROM coffeepos.transactions t
   LEFT JOIN coffeepos.branches b ON b.id = t.branch_id
@@ -495,6 +503,111 @@ transactionsRouter.post('/:id/void-direct', requireOwner, validateBody(VoidDirec
         });
         const mapped = await loadTransactionMapped(txId, shopId);
         res.json(mapped);
+    }
+    catch (e) {
+        next(e);
+    }
+});
+// ─── Offline Sync: Needs Review ──────────────────────────────────────────────
+const ResolveReviewSchema = z.object({
+    action: z.enum(['accept', 'void']),
+    note: z.string().trim().optional(),
+});
+// GET /transactions/needs-review — List transactions flagged for owner review
+transactionsRouter.get('/needs-review', requireOwner, async (req, res, next) => {
+    try {
+        const shopId = req.user.shop_id;
+        // We need to include review_reason which is not in the standard TX_AGG_SELECT,
+        // so we query it separately and merge
+        const sql = `
+      ${TX_AGG_SELECT}
+      WHERE t.shop_id = $1::uuid AND t.needs_review = true
+      GROUP BY t.id
+      ORDER BY t.created_at DESC
+    `;
+        const { rows } = await pool.query(sql, [shopId]);
+        // Also fetch the extra offline columns
+        const { rows: extraRows } = await pool.query(`SELECT id::text, review_reason, sync_device_id, created_offline, synced_at
+       FROM coffeepos.transactions
+       WHERE shop_id = $1::uuid AND needs_review = true`, [shopId]);
+        const extraMap = new Map(extraRows.map(r => [r.id, r]));
+        const data = rows.map((r) => {
+            const shaped = shapeAggregatedRow(r);
+            const extra = extraMap.get(shaped.id);
+            return {
+                ...shaped,
+                review_reason: extra?.review_reason ?? null,
+                sync_device_id: extra?.sync_device_id ?? null,
+                created_offline: extra?.created_offline ?? false,
+                synced_at: extra?.synced_at ?? null,
+            };
+        });
+        res.json({ data, total: data.length });
+    }
+    catch (e) {
+        next(e);
+    }
+});
+// POST /transactions/:id/resolve-review — Owner accepts or voids a flagged transaction
+transactionsRouter.post('/:id/resolve-review', requireOwner, validateBody(ResolveReviewSchema), async (req, res, next) => {
+    try {
+        const txId = req.params.id;
+        const shopId = req.user.shop_id;
+        const ownerId = req.user.id;
+        const body = req.body;
+        await withTransaction(async (client) => {
+            const { rows } = await client.query(`SELECT *, grand_total FROM coffeepos.transactions
+         WHERE id = $1::uuid AND shop_id = $2::uuid
+         FOR UPDATE`, [txId, shopId]);
+            if (rows.length === 0)
+                throw new HttpError(404, 'NOT_FOUND', 'Transaction not found');
+            const trx = rows[0];
+            if (!trx.needs_review) {
+                throw new HttpError(400, 'INVALID_STATE', 'Transaction does not need review');
+            }
+            if (body.action === 'accept') {
+                // Owner accepts the transaction despite stock conflict
+                await client.query(`UPDATE coffeepos.transactions SET
+             needs_review = false,
+             reviewed_at = now(),
+             reviewed_by = $1::uuid,
+             void_review_note = COALESCE($2, void_review_note),
+             updated_at = now()
+           WHERE id = $3::uuid`, [ownerId, body.note ?? 'Accepted by owner', txId]);
+            }
+            else {
+                // Owner voids the transaction — reverse stock
+                await reverseStockForTransaction(client, txId);
+                await client.query(`UPDATE coffeepos.transactions SET
+             status = 'voided',
+             needs_review = false,
+             reviewed_at = now(),
+             reviewed_by = $1::uuid,
+             void_reason = COALESCE(void_reason, 'Stock conflict'),
+             void_requested_by = $1::uuid,
+             void_requested_at = now(),
+             void_reviewed_by = $1::uuid,
+             void_reviewed_at = now(),
+             void_review_note = COALESCE($2, 'Voided due to stock conflict'),
+             updated_at = now()
+           WHERE id = $3::uuid`, [ownerId, body.note ?? 'Voided due to stock conflict', txId]);
+                // Update shift stats
+                const shiftId = trx.shift_id;
+                const grandTotal = Number(trx.grand_total ?? 0);
+                if (shiftId) {
+                    await client.query(`UPDATE coffeepos.shifts
+             SET total_transactions = GREATEST(0, COALESCE(total_transactions, 0) - 1),
+                 total_sales = GREATEST(0, COALESCE(total_sales, 0) - $1::bigint)
+             WHERE id = $2::uuid`, [grandTotal, shiftId]);
+                }
+            }
+        });
+        const mapped = await loadTransactionMapped(txId, shopId);
+        res.json({
+            ...mapped,
+            review_resolved: true,
+            review_action: body.action,
+        });
     }
     catch (e) {
         next(e);

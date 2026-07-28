@@ -27,6 +27,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const token = await SecureStore.getItemAsync('auth_token');
+        const cachedUserStr = await SecureStore.getItemAsync('auth_user');
+        let cachedUser: AuthUser | null = null;
+        if (cachedUserStr) {
+          try {
+            cachedUser = JSON.parse(cachedUserStr);
+          } catch { /* ignore parse error */ }
+        }
+
         if (!token) {
           if (mounted) {
             setUser(null);
@@ -34,16 +42,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           return;
         }
-        const { user: me } = await authApi.me();
-        if (mounted) {
-          setUser(me);
-          setStatus('authenticated');
+
+        try {
+          const { user: me } = await authApi.me();
+          if (mounted) {
+            await SecureStore.setItemAsync('auth_user', JSON.stringify(me));
+            setUser(me);
+            setStatus('authenticated');
+          }
+        } catch (err: any) {
+          const isUnauthorized = err?.status === 401;
+          if (isUnauthorized) {
+            if (mounted) {
+              setUser(null);
+              setStatus('unauthenticated');
+              await SecureStore.deleteItemAsync('auth_token');
+              await SecureStore.deleteItemAsync('auth_user');
+            }
+          } else {
+            // Network error / offline / timeout / server down — fallback to cached user
+            if (cachedUser && mounted) {
+              console.log('[AuthContext] App is offline — restoring session from cached user profile:', cachedUser.email);
+              setUser(cachedUser);
+              setStatus('authenticated');
+            } else if (mounted) {
+              setUser(null);
+              setStatus('unauthenticated');
+            }
+          }
         }
       } catch {
         if (mounted) {
           setUser(null);
           setStatus('unauthenticated');
-          await SecureStore.deleteItemAsync('auth_token');
         }
       }
     })();
@@ -52,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string): Promise<AuthUser> => {
     const { user: loggedIn } = await authApi.login({ email, password });
+    await SecureStore.setItemAsync('auth_user', JSON.stringify(loggedIn));
     setUser(loggedIn);
     setStatus('authenticated');
     return loggedIn;
@@ -59,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(async (data: RegisterData): Promise<AuthUser> => {
     const { user: created } = await authApi.register(data);
+    await SecureStore.setItemAsync('auth_user', JSON.stringify(created));
     setUser(created);
     setStatus('authenticated');
     return created;
@@ -70,6 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Logout failed:', err);
     } finally {
+      await SecureStore.deleteItemAsync('auth_token');
+      await SecureStore.deleteItemAsync('auth_user');
       setUser(null);
       setStatus('unauthenticated');
     }
@@ -77,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async (): Promise<AuthUser> => {
     const { user: me } = await authApi.me();
+    await SecureStore.setItemAsync('auth_user', JSON.stringify(me));
     setUser(me);
     return me;
   }, []);

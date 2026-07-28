@@ -67,6 +67,7 @@ export async function http<T>(
 
     if (res.status === 401) {
       await SecureStore.deleteItemAsync('auth_token');
+      await SecureStore.deleteItemAsync('auth_user');
       // If message is still generic or is the default backend token error, rewrite it for UX
       if (message === 'HTTP 401' || message === 'Invalid or expired token') {
         message = 'Sesi telah berakhir, silakan login kembali.';

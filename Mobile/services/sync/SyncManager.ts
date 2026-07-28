@@ -110,15 +110,18 @@ export function isSyncing(): boolean {
  * 
  * This function is safe to call repeatedly — it uses a mutex to ensure
  * only one sync runs at a time.
+ * 
+ * @param deviceId Unique identifier for this device
+ * @param force If true, bypass retry limits and backoff periods (used for manual sync)
  */
-export async function runSync(deviceId: string): Promise<SyncStats | null> {
+export async function runSync(deviceId: string, force: boolean = false): Promise<SyncStats | null> {
   // Mutex — prevent concurrent syncs
   if (_isSyncing) {
     console.log('[SyncManager] Sync already in progress, skipping');
     return null;
   }
 
-  const pendingTxs = getPendingTransactionsToSync();
+  const pendingTxs = getPendingTransactionsToSync(force);
   if (pendingTxs.length === 0) {
     return null;
   }

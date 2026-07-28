@@ -174,8 +174,9 @@ export function createPendingTransaction(input: CreatePendingTransactionInput): 
 /**
  * Get all pending transactions that need to be synced.
  * Returns transactions with status: 'pending' or 'failed' (retryable).
+ * @param force If true, bypasses retry limits and backoff timeouts (for manual sync)
  */
-export function getPendingTransactionsToSync(): PendingTransaction[] {
+export function getPendingTransactionsToSync(force: boolean = false): PendingTransaction[] {
   try {
     const db = getDb();
     // Include 'syncing' to recover transactions stuck after app crash/kill
@@ -187,6 +188,10 @@ export function getPendingTransactionsToSync(): PendingTransaction[] {
       )
       .orderBy(pendingTransactions.createdAt)
       .all() as PendingTransaction[];
+
+    if (force) {
+      return candidates;
+    }
 
     const now = Date.now();
     return candidates.filter((tx) => {
