@@ -8,6 +8,7 @@
 
 import { useSync } from '../contexts/SyncContext';
 import { getPendingTransactionById, type PendingTransaction } from '../services/db/pendingTransactions';
+import type { SyncStatus } from '../components/sync/TransactionSyncBadge';
 
 type SyncDisplayStatus = 'online' | 'synced' | 'pending' | 'syncing' | 'needs_review' | 'rejected' | 'offline';
 
@@ -60,7 +61,7 @@ export function useSyncStatus(): SyncStatusInfo {
  * Get the sync status for a specific transaction by ID.
  * Checks the pending queue first, falls back to 'synced'.
  */
-export function getTransactionSyncStatus(transactionId: string): SyncDisplayStatus {
+export function getTransactionSyncStatus(transactionId: string): SyncStatus {
   try {
     const pending = getPendingTransactionById(transactionId);
     if (!pending) return 'synced';

@@ -15,7 +15,7 @@ import { View, Text } from 'react-native';
 import { Cloud, Clock, RefreshCw, AlertTriangle, XCircle, Smartphone } from 'lucide-react-native';
 import { useColors } from '../../utils/theme';
 
-type SyncStatus = 'synced' | 'pending' | 'syncing' | 'needs_review' | 'rejected' | 'offline';
+export type SyncStatus = 'synced' | 'pending' | 'syncing' | 'needs_review' | 'rejected' | 'offline';
 
 interface Props {
   status: SyncStatus;
