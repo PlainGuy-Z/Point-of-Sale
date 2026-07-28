@@ -311,6 +311,9 @@ export function buildReceiptText(data: PrintReceiptData): string {
   const lines: string[] = []
 
   lines.push(`=== ${data.shopName.toUpperCase()} ===`)
+  if (data.isOffline) {
+    lines.push('*** STRUK OFFLINE — BELUM SYNC ***')
+  }
   if (data.shopAddress) lines.push(data.shopAddress)
   lines.push('--------------------------------')
   lines.push(`ID: #${data.transactionId.slice(0, 8).toUpperCase()}`)

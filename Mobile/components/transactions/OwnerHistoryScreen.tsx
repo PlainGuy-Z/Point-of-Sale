@@ -25,6 +25,8 @@ import { Zap } from 'lucide-react-native';
 import TransactionCard from './TransactionCard';
 import TransactionDetailSheet from './TransactionDetailSheet';
 import VoidReviewModal from './VoidReviewModal';
+import NeedsReviewModal from './NeedsReviewModal';
+import { useSync } from '../../contexts/SyncContext';
 
 const LIMIT = 20;
 
@@ -92,11 +94,13 @@ export default function OwnerHistoryScreen() {
   const [payMethod, setPayMethod] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Detail / void review
+  // Detail / void review / needs review
   const [detail, setDetail] = useState<HistoryTransaction | null>(null);
   const [review, setReview] = useState<{ t: HistoryTransaction; action: 'approve' | 'reject' | 'direct-void' } | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [needsReviewOpen, setNeedsReviewOpen] = useState(false);
+  const { needsReviewCount } = useSync();
 
   // ── Load Summaries ──
   const loadSummaries = useCallback(async () => {
@@ -349,6 +353,45 @@ export default function OwnerHistoryScreen() {
 
   const ListHeaderComponent = useMemo(() => (
     <>
+      {/* Needs Review Offline Banner */}
+      {needsReviewCount > 0 && (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setNeedsReviewOpen(true)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)',
+            borderWidth: 1,
+            borderColor: isDark ? '#7F1D1D' : '#FCA5A5',
+            borderRadius: 12,
+            padding: 12,
+            marginBottom: 12,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+            <AlertCircle size={20} color="#DC2626" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#FCA5A5' : '#DC2626' }}>
+                {needsReviewCount} Transaksi Perlu Review Owner
+              </Text>
+              <Text style={{ fontSize: 11, color: isDark ? '#FCA5A5' : '#991B1B', marginTop: 1 }}>
+                Transaksi offline menyebabkan stok minus saat tersinkronisasi.
+              </Text>
+            </View>
+          </View>
+          <View style={{
+            backgroundColor: '#DC2626',
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 8,
+          }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800' }}>Review</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
       {/* Filters */}
       <View style={[styles.filterBox, { backgroundColor: c.bgCard, borderColor: c.border }]}>
         {/* Collapsible toggle */}
@@ -741,14 +784,28 @@ export default function OwnerHistoryScreen() {
       {/* Void Review Modal */}
       {review && (
         <VoidReviewModal
+          visible={!!review}
           transaction={review.t}
           action={review.action}
-          visible={!!review}
           onClose={() => setReview(null)}
-          onSuccess={handleReviewSuccess}
-          isDark={isDark}
+          onSuccess={(msg) => {
+            setFeedbackMsg(msg);
+            void loadSummaries();
+            void fetchTransactions(page);
+          }}
         />
       )}
+
+      {/* Offline Needs Review Modal */}
+      <NeedsReviewModal
+        visible={needsReviewOpen}
+        onClose={() => setNeedsReviewOpen(false)}
+        onResolved={() => {
+          void loadSummaries();
+          void fetchTransactions(page);
+        }}
+        isDark={isDark}
+      />
     </SafeAreaView>
   );
 }

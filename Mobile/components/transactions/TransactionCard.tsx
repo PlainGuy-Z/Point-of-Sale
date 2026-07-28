@@ -5,6 +5,8 @@ import StatusBadge from './StatusBadge';
 import { getColors, type ThemeColors } from '../../utils/theme';
 import { formatRupiah } from '../../utils/currency';
 import { formatTime } from '../../utils/dateFormatter';
+import TransactionSyncBadge from '../sync/TransactionSyncBadge';
+import { getTransactionSyncStatus } from '../../hooks/useSyncStatus';
 
 interface TransactionCardProps {
   transaction: HistoryTransaction;
@@ -57,7 +59,16 @@ export default function TransactionCard({
           </Text>
         </View>
         <View style={styles.topRight}>
-          <StatusBadge status={t.status} isDark={isDark} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TransactionSyncBadge status={
+              (t as any).needs_review
+                ? 'needs_review'
+                : (t as any).created_offline && !(t as any).synced_at
+                ? 'pending'
+                : getTransactionSyncStatus(t.id)
+            } />
+            <StatusBadge status={t.status} isDark={isDark} />
+          </View>
           <View style={[styles.orderBadge, { borderColor: c.border }]}>
             <Text style={[styles.orderBadgeText, { color: c.textSecondary }]}>
               {orderTypeLabel(t.order_type)}

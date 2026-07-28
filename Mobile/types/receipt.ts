@@ -42,4 +42,5 @@ export interface PrintReceiptData {
   // Config
   receiptFooter?: string
   paperSize: '58mm' | '80mm'
+  isOffline?: boolean
 }

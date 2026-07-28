@@ -16,6 +16,8 @@ import { getColors } from '../../utils/theme'
 import { usePrinter } from '../../contexts/PrinterContext'
 import { buildReceiptText } from '../../services/printer'
 import { getEffectivePrice } from '../../utils/priceUtils'
+import { useSync } from '../../contexts/SyncContext'
+import { getTransactionSyncStatus } from '../../hooks/useSyncStatus'
 import type { Transaction } from '../../types'
 import type { PrintReceiptData } from '../../types/receipt'
 
@@ -57,6 +59,15 @@ export default function PaymentSuccessScreen({
   const { effectiveTheme } = useTheme()
   const isDark = effectiveTheme === 'dark'
   const colors = getColors(isDark)
+  const { isOnline } = useSync()
+
+  const isTxOffline = useMemo(() => {
+    return (
+      (transaction as any).created_offline ||
+      getTransactionSyncStatus(transaction.id) !== 'synced' ||
+      !isOnline
+    )
+  }, [transaction, isOnline])
 
   const { printReceipt, config } = usePrinter()
   const [isPrinting, setIsPrinting] = useState(false)
@@ -175,7 +186,8 @@ export default function PaymentSuccessScreen({
     change: changeVal,
     receiptFooter: settings?.receiptFooter,
     paperSize: config.paperSize,
-  }), [settings, user, transaction, resolvedItems, config.paperSize])
+    isOffline: isTxOffline,
+  }), [settings, user, transaction, resolvedItems, config.paperSize, isTxOffline])
 
   const handlePrint = useCallback(async () => {
     setIsPrinting(true)
@@ -394,6 +406,31 @@ export default function PaymentSuccessScreen({
               <Feather name="x" size={20} color={isDark ? "#a8a29e" : "#475569"} />
             </TouchableOpacity>
           </View>
+
+          {/* Offline Watermark Banner */}
+          {isTxOffline && (
+            <View style={{
+              backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.1)',
+              borderBottomWidth: 1,
+              borderColor: isDark ? '#78350f' : '#fcd34d',
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}>
+              <Feather name="wifi-off" size={12} color={isDark ? '#fcd34d' : '#d97706'} />
+              <Text style={{
+                color: isDark ? '#fcd34d' : '#d97706',
+                fontSize: 11,
+                fontWeight: '800',
+                letterSpacing: 0.5,
+              }}>
+                STRUK OFFLINE — Transaksi Disimpan Lokal
+              </Text>
+            </View>
+          )}
 
           <ScrollView 
             style={styles.contentScroll} 

@@ -11,6 +11,7 @@
 import * as SQLite from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as schema from './schema';
+import { getOrCreateDatabaseKey } from './encryption';
 
 const DB_NAME = 'smartpos_offline.db';
 
@@ -19,7 +20,7 @@ let _drizzle: ReturnType<typeof drizzle> | null = null;
 
 /**
  * Get or create the SQLite database instance.
- * Uses WAL journal mode for better concurrent read/write safety.
+ * Uses WAL journal mode for better concurrent read/write safety and applies PRAGMA hardening.
  */
 export function getSQLiteDb(): SQLite.SQLiteDatabase {
   if (!_db) {
@@ -27,6 +28,7 @@ export function getSQLiteDb(): SQLite.SQLiteDatabase {
     // Enable WAL mode for crash safety and concurrent reads
     _db.execSync('PRAGMA journal_mode = WAL;');
     _db.execSync('PRAGMA foreign_keys = ON;');
+    _db.execSync('PRAGMA secure_delete = ON;'); // Overwrite deleted data with zeros
   }
   return _db;
 }

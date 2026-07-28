@@ -121,4 +121,20 @@ export const historyApi = {
   getCashiers: async (): Promise<Array<{ id: string; name: string; email?: string; role?: string }>> => {
     return http<Array<{ id: string; name: string; email?: string; role?: string }>>('/users');
   },
+  /**
+   * GET /transactions/needs-review — List transactions flagged for owner review
+   */
+  getNeedsReview: async (): Promise<{ data: HistoryTransaction[]; total: number }> => {
+    return http<{ data: HistoryTransaction[]; total: number }>('/transactions/needs-review');
+  },
+
+  /**
+   * POST /transactions/:id/resolve-review — Resolve stock conflict (accept or void)
+   */
+  resolveReview: async (id: string, action: 'accept' | 'void', note?: string): Promise<HistoryTransaction> => {
+    return http<HistoryTransaction>(`/transactions/${id}/resolve-review`, {
+      method: 'POST',
+      body: JSON.stringify({ action, note }),
+    });
+  },
 };
