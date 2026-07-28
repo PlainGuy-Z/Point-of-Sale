@@ -16,7 +16,8 @@ import { useAuth } from './AuthContext';
 import { runMigrations, wipeLocalDatabase } from '../services/db/database';
 import { syncCatalog, hasLocalCatalog } from '../services/db/catalogSync';
 import { getPendingCount, getNeedsReviewCount } from '../services/db/pendingTransactions';
-import { runSync, isSyncing as checkIsSyncing, type SyncStats } from '../services/sync/SyncManager';
+import { runSync, isSyncing as checkIsSyncing, addSyncListener, type SyncStats } from '../services/sync/SyncManager';
+import { Alert } from 'react-native';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -143,6 +144,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const stats = await runSync(deviceId);
       if (stats) {
         setLastSyncStats(stats);
+
+        if (stats.rejected > 0) {
+          Alert.alert(
+            '⚠️ Sync Sebagian Ditolak',
+            `${stats.rejected} transaksi offline ditolak oleh server. Pastikan migrasi database PostgreSQL (migration-offline-first.sql) sudah dijalankan di server.`
+          );
+        }
       }
       refreshCounts();
       return stats;

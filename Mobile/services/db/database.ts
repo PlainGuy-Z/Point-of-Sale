@@ -17,18 +17,33 @@ const DB_NAME = 'smartpos_offline.db';
 
 let _db: SQLite.SQLiteDatabase | null = null;
 let _drizzle: ReturnType<typeof drizzle> | null = null;
+let _isMigrated = false;
 
 /**
  * Get or create the SQLite database instance.
  * Uses WAL journal mode for better concurrent read/write safety and applies PRAGMA hardening.
+ * Guarantees tables exist by running migrations on open.
  */
 export function getSQLiteDb(): SQLite.SQLiteDatabase {
   if (!_db) {
-    _db = SQLite.openDatabaseSync(DB_NAME);
-    // Enable WAL mode for crash safety and concurrent reads
-    _db.execSync('PRAGMA journal_mode = WAL;');
-    _db.execSync('PRAGMA foreign_keys = ON;');
-    _db.execSync('PRAGMA secure_delete = ON;'); // Overwrite deleted data with zeros
+    try {
+      _db = SQLite.openDatabaseSync(DB_NAME);
+      // Enable WAL mode for crash safety and concurrent reads
+      _db.execSync('PRAGMA journal_mode = WAL;');
+      _db.execSync('PRAGMA foreign_keys = ON;');
+      _db.execSync('PRAGMA secure_delete = ON;'); // Overwrite deleted data with zeros
+    } catch (err) {
+      console.error('[OfflineDB] Failed to open SQLite database:', err);
+      throw err;
+    }
+  }
+  if (!_isMigrated && _db) {
+    _isMigrated = true;
+    try {
+      runMigrationsInternal(_db);
+    } catch (err) {
+      console.error('[OfflineDB] Failed to run migrations on open:', err);
+    }
   }
   return _db;
 }
@@ -48,9 +63,7 @@ export function getDb() {
  * Run all schema migrations (idempotent — safe to call repeatedly).
  * Creates tables if they don't exist yet.
  */
-export function runMigrations(): void {
-  const db = getSQLiteDb();
-
+function runMigrationsInternal(db: SQLite.SQLiteDatabase): void {
   db.execSync(`
     CREATE TABLE IF NOT EXISTS products (
       id              TEXT PRIMARY KEY,
@@ -174,6 +187,14 @@ export function runMigrations(): void {
   `);
 
   console.log('[OfflineDB] Migrations completed successfully');
+}
+
+/**
+ * Public function to run migrations (idempotent).
+ */
+export function runMigrations(): void {
+  const db = getSQLiteDb();
+  runMigrationsInternal(db);
 }
 
 /**

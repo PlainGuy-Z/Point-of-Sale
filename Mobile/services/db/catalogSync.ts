@@ -214,70 +214,88 @@ export async function syncCatalog(): Promise<{ synced: boolean; productsCount: n
  * Adjusts stock by local_stock_adj for accurate offline display.
  */
 export function getLocalProducts(): Product[] {
-  const db = getDb();
-  const rows = db.select().from(products).all();
+  try {
+    const db = getDb();
+    const rows = db.select().from(products).all();
 
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    description: r.description ?? undefined,
-    price: r.price,
-    category: r.category ?? 'Other',
-    categoryId: r.categoryId ?? undefined,
-    // Adjust stock for pending offline transactions
-    stock: r.stock === -1 ? -1 : Math.max(0, r.stock - (r.localStockAdj ?? 0)),
-    cost: r.cost ?? 0,
-    minStock: r.minStock ?? 0,
-    unit: 'pcs',
-    image: r.image ?? undefined,
-    discount: r.discount ?? 0,
-    isPromo: r.isPromo ?? false,
-    promoPrice: r.promoPrice ?? 0,
-    promoLabel: r.promoLabel ?? undefined,
-    promoStart: r.promoStart ?? undefined,
-    promoEnd: r.promoEnd ?? undefined,
-    isAvailable: r.isAvailable ?? true,
-  }));
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description ?? undefined,
+      price: r.price,
+      category: r.category ?? 'Other',
+      categoryId: r.categoryId ?? undefined,
+      stock: r.stock === -1 ? -1 : Math.max(0, r.stock - (r.localStockAdj ?? 0)),
+      cost: r.cost ?? 0,
+      minStock: r.minStock ?? 0,
+      unit: 'pcs',
+      image: r.image ?? undefined,
+      discount: r.discount ?? 0,
+      isPromo: r.isPromo ?? false,
+      promoPrice: r.promoPrice ?? 0,
+      promoLabel: r.promoLabel ?? undefined,
+      promoStart: r.promoStart ?? undefined,
+      promoEnd: r.promoEnd ?? undefined,
+      isAvailable: r.isAvailable ?? true,
+    }));
+  } catch (err) {
+    console.error('[CatalogSync] getLocalProducts error:', err);
+    return [];
+  }
 }
 
 /**
  * Load all cached categories from local SQLite.
  */
 export function getLocalCategories(): { names: string[]; withId: { id: string; name: string }[] } {
-  const db = getDb();
-  const rows = db.select().from(categories).all();
-  return {
-    names: rows.map((r) => r.name),
-    withId: rows.map((r) => ({ id: r.id, name: r.name })),
-  };
+  try {
+    const db = getDb();
+    const rows = db.select().from(categories).all();
+    return {
+      names: rows.map((r) => r.name),
+      withId: rows.map((r) => ({ id: r.id, name: r.name })),
+    };
+  } catch (err) {
+    console.error('[CatalogSync] getLocalCategories error:', err);
+    return { names: [], withId: [] };
+  }
 }
 
 /**
  * Load cached shop settings from local SQLite.
  */
 export function getLocalShopSettings(): ServerShopSettings | null {
-  const db = getDb();
-  const row = db.select().from(shopSettings).limit(1).get();
-  if (!row) return null;
-  return {
-    shopId: row.shopId,
-    taxEnabled: row.taxEnabled ?? true,
-    taxRate: row.taxRate ?? 11.0,
-    taxLabel: row.taxLabel ?? 'PPN',
-    taxInclusive: row.taxInclusive ?? false,
-    serviceChargeEnabled: row.serviceChargeEnabled ?? false,
-    serviceChargeRate: row.serviceChargeRate ?? 0.0,
-    serviceChargeLabel: row.serviceChargeLabel ?? 'Service',
-  };
+  try {
+    const db = getDb();
+    const row = db.select().from(shopSettings).limit(1).get();
+    if (!row) return null;
+    return {
+      shopId: row.shopId,
+      taxEnabled: row.taxEnabled ?? true,
+      taxRate: row.taxRate ?? 11.0,
+      taxLabel: row.taxLabel ?? 'PPN',
+      taxInclusive: row.taxInclusive ?? false,
+      serviceChargeEnabled: row.serviceChargeEnabled ?? false,
+      serviceChargeRate: row.serviceChargeRate ?? 0.0,
+      serviceChargeLabel: row.serviceChargeLabel ?? 'Service',
+    };
+  } catch (err) {
+    console.error('[CatalogSync] getLocalShopSettings error:', err);
+    return null;
+  }
 }
 
 /**
  * Check if we have any locally cached catalog data.
  */
 export function hasLocalCatalog(): boolean {
-  const db = getDb();
-  const row = db.select().from(products).limit(1).get();
-  return !!row;
+  try {
+    const db = getDb();
+    const row = db.select().from(products).limit(1).get();
+    return !!row;
+  } catch (err) {
+    return false;
+  }
 }
 
 /**

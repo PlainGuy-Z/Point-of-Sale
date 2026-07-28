@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import { offlineCheckout } from '../services/sync/offlineCheckout';
 import { getLocalProducts, getLocalCategories, syncCatalog } from '../services/db/catalogSync';
 import { getPendingCount } from '../services/db/pendingTransactions';
+import { addSyncListener } from '../services/sync/SyncManager';
 
 interface AppContextType {
   products: Product[];
@@ -192,8 +193,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (mounted) setIsServiceLoading(false);
       }
     })();
-    return () => { mounted = false; };
-  }, [status]);
+
+    // Subscribe to SyncManager completion to automatically refresh UI state when offline txs are synced
+    const unsubscribeSync = addSyncListener((stats) => {
+      if (stats && (stats.synced > 0 || stats.needsReview > 0)) {
+        console.log('[AppContext] Offline transactions synced — refreshing UI state');
+        refreshState();
+      }
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribeSync();
+    };
+  }, [status, refreshState]);
 
   const checkout = useCallback(async (params: CheckoutParams) => {
     setIsServiceLoading(true);
@@ -201,7 +214,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedBranchId = await AsyncStorage.getItem('selected_branch_id');
       const branch_id = (savedBranchId && savedBranchId !== 'all') ? savedBranchId : undefined;
 
-      // ── Try online checkout first ──────────────────────────────────────
+      // ── Instant offline checkout if already in offline mode ────────────
+      if (isOfflineMode && user) {
+        console.log('[AppContext] Device is offline — instant offline checkout (<50ms)');
+        const transaction = await offlineCheckout({
+          cart: params.cart,
+          paymentMethod: params.paymentMethod,
+          customerId: params.selectedCustomer,
+          customerName: params.customCustomerName,
+          orderType: params.orderType,
+          tableNumber: params.tableNumber,
+          cashReceived: params.cashReceived,
+          orderNote: params.orderNote,
+          notes: params.notes,
+          applyTax: params.applyTax,
+          branchId: branch_id,
+          shiftId: undefined,
+          cashierId: user.id,
+          cashierName: user.name,
+          shopId: user.shop_id,
+        });
+
+        try {
+          const localProducts = getLocalProducts();
+          if (localProducts.length > 0) {
+            setState(prev => ({
+              ...prev,
+              products: localProducts,
+              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+            }));
+          } else {
+            setState(prev => ({
+              ...prev,
+              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+            }));
+          }
+        } catch {
+          setState(prev => ({
+            ...prev,
+            transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+          }));
+        }
+
+        return transaction;
+      }
+
+      // ── Try online checkout (with 3s fast timeout) ──────────────────────
       try {
         const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 

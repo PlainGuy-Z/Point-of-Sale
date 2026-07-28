@@ -174,65 +174,86 @@ export function createPendingTransaction(input: CreatePendingTransactionInput): 
  * Returns transactions with status: 'pending' or 'failed' (retryable).
  */
 export function getPendingTransactionsToSync(): PendingTransaction[] {
-  const db = getDb();
-  return db
-    .select()
-    .from(pendingTransactions)
-    .where(
-      inArray(pendingTransactions.status, ['pending', 'failed'])
-    )
-    .orderBy(pendingTransactions.createdAt)
-    .all() as PendingTransaction[];
+  try {
+    const db = getDb();
+    return db
+      .select()
+      .from(pendingTransactions)
+      .where(
+        inArray(pendingTransactions.status, ['pending', 'failed'])
+      )
+      .orderBy(pendingTransactions.createdAt)
+      .all() as PendingTransaction[];
+  } catch (err) {
+    console.error('[PendingTx] getPendingTransactionsToSync error:', err);
+    return [];
+  }
 }
 
 /**
  * Get count of pending (unsynced) transactions.
  */
 export function getPendingCount(): number {
-  const db = getDb();
-  const rows = db
-    .select()
-    .from(pendingTransactions)
-    .where(inArray(pendingTransactions.status, ['pending', 'failed', 'syncing']))
-    .all();
-  return rows.length;
+  try {
+    const db = getDb();
+    const rows = db
+      .select()
+      .from(pendingTransactions)
+      .where(inArray(pendingTransactions.status, ['pending', 'failed', 'syncing']))
+      .all();
+    return rows.length;
+  } catch (err) {
+    return 0;
+  }
 }
 
 /**
  * Get count of transactions needing review.
  */
 export function getNeedsReviewCount(): number {
-  const db = getDb();
-  const rows = db
-    .select()
-    .from(pendingTransactions)
-    .where(eq(pendingTransactions.status, 'needs_review'))
-    .all();
-  return rows.length;
+  try {
+    const db = getDb();
+    const rows = db
+      .select()
+      .from(pendingTransactions)
+      .where(eq(pendingTransactions.status, 'needs_review'))
+      .all();
+    return rows.length;
+  } catch (err) {
+    return 0;
+  }
 }
 
 /**
  * Get all pending transactions for display (any status except 'synced').
  */
 export function getAllPendingTransactions(): PendingTransaction[] {
-  const db = getDb();
-  return db
-    .select()
-    .from(pendingTransactions)
-    .orderBy(pendingTransactions.createdAt)
-    .all() as PendingTransaction[];
+  try {
+    const db = getDb();
+    return db
+      .select()
+      .from(pendingTransactions)
+      .orderBy(pendingTransactions.createdAt)
+      .all() as PendingTransaction[];
+  } catch (err) {
+    return [];
+  }
 }
 
 /**
  * Get a single pending transaction by ID.
  */
 export function getPendingTransactionById(id: string): PendingTransaction | undefined {
-  const db = getDb();
-  return db
-    .select()
-    .from(pendingTransactions)
-    .where(eq(pendingTransactions.id, id))
-    .get() as PendingTransaction | undefined;
+  try {
+    const db = getDb();
+    return db
+      .select()
+      .from(pendingTransactions)
+      .where(eq(pendingTransactions.id, id))
+      .get() as PendingTransaction | undefined;
+  } catch (err) {
+    return undefined;
+  }
 }
 
 // ─── Update ──────────────────────────────────────────────────────────────────
