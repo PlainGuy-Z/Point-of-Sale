@@ -77,6 +77,10 @@ function mapRowToTransactionPayload(r: Record<string, unknown>): Record<string, 
     shift_id: r.shift_id ?? null,
     branch_id: r.branch_id ?? null,
     branch_name: r.branch_name ?? null,
+    created_offline: r.created_offline ?? false,
+    synced_at: r.synced_at ?? null,
+    needs_review: r.needs_review ?? false,
+    review_reason: r.review_reason ?? null,
   };
 }
 
@@ -129,6 +133,10 @@ const TX_AGG_SELECT = `
     t.shift_id::text,
     t.branch_id::text,
     b.name AS branch_name,
+    t.created_offline,
+    t.synced_at,
+    t.needs_review,
+    t.review_reason,
     ${itemsAggJson()} AS items_json
   FROM coffeepos.transactions t
   LEFT JOIN coffeepos.branches b ON b.id = t.branch_id

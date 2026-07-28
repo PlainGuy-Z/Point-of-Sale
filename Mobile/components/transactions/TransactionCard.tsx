@@ -60,13 +60,13 @@ export default function TransactionCard({
         </View>
         <View style={styles.topRight}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <TransactionSyncBadge status={
-              (t as any).needs_review
-                ? 'needs_review'
-                : (t as any).created_offline && !(t as any).synced_at
-                ? 'pending'
-                : getTransactionSyncStatus(t.id)
-            } />
+            <TransactionSyncBadge status={(() => {
+              const pendingStatus = getTransactionSyncStatus(t.id);
+              if (pendingStatus !== 'synced') return pendingStatus;
+              if ((t as any).needs_review) return 'needs_review';
+              if ((t as any).created_offline && !(t as any).synced_at) return 'pending';
+              return 'synced';
+            })()} />
             <StatusBadge status={t.status} isDark={isDark} />
           </View>
           <View style={[styles.orderBadge, { borderColor: c.border }]}>
