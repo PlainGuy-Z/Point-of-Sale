@@ -3,9 +3,11 @@
  * 
  * CRUD operations for the pending_transactions and pending_transaction_items tables.
  * These represent transactions created while offline, waiting to be synced to the server.
+ * Also provides getPendingAsTransactions() to convert pending records into Transaction[]
+ * format for display in UI alongside server data.
  */
 
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, not } from 'drizzle-orm';
 import { getDb, getSQLiteDb } from './database';
 import { pendingTransactions, pendingTransactionItems } from './schema';
 import { incrementLocalStockAdj } from './catalogSync';
@@ -390,4 +392,112 @@ export function pruneSyncedTransactions(olderThanDays: number = 7): number {
     console.log(`[PendingTx] Pruned ${deleted} synced transactions older than ${olderThanDays} days`);
   }
   return deleted;
+}
+
+// ─── Conversion for UI Display ───────────────────────────────────────────────
+
+/**
+ * Convert unsynced pending transactions to Transaction[] format for UI display.
+ * 
+ * This allows the AppContext to merge offline transactions with server data,
+ * ensuring they remain visible in dashboard, sales reports, and history
+ * even after app restart (when server state overwrites in-memory state).
+ * 
+ * Only returns transactions that haven't been synced yet (excludes 'synced' status).
+ */
+export function getPendingAsTransactions(): Array<{
+  id: string;
+  date: Date;
+  items: Array<{
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    note?: string;
+    description?: string;
+    variantName?: string;
+    variantPrice?: number;
+  }>;
+  total: number;
+  cost: number;
+  profit: number;
+  paymentMethod: 'cash' | 'card' | 'qris';
+  customerId?: string;
+  customerName?: string;
+  cashierName?: string;
+  tableNumber?: string;
+  notes?: string;
+  cashReceived?: number;
+  change?: number;
+  taxRate?: number;
+  subtotal?: number;
+  tax?: number;
+  service_charge?: number;
+  orderType?: 'dine-in' | 'take-away';
+  orderNote?: string;
+}> {
+  try {
+    const db = getDb();
+    const sqlite = getSQLiteDb();
+
+    // Get all pending transactions that are NOT yet synced
+    const txRows = db
+      .select()
+      .from(pendingTransactions)
+      .where(not(eq(pendingTransactions.status, 'synced')))
+      .orderBy(pendingTransactions.createdAt)
+      .all();
+
+    if (txRows.length === 0) return [];
+
+    return txRows.map((tx) => {
+      // Fetch items for this transaction
+      const itemRows = db
+        .select()
+        .from(pendingTransactionItems)
+        .where(eq(pendingTransactionItems.transactionId, tx.id))
+        .all();
+
+      const items = itemRows.map((item) => ({
+        productId: item.productId || `manual-${item.id}`,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        note: item.note ?? undefined,
+        description: item.description ?? undefined,
+        variantName: item.variantName ?? undefined,
+        variantPrice: item.variantPrice ?? undefined,
+      }));
+
+      const cashReceived = tx.cashReceived ?? undefined;
+      const grandTotal = tx.localGrandTotal;
+      const change = cashReceived != null ? Math.max(0, cashReceived - grandTotal) : undefined;
+
+      return {
+        id: tx.id,
+        date: new Date(tx.createdAt),
+        items,
+        total: grandTotal,
+        cost: 0,      // Cost not available offline
+        profit: 0,    // Profit not available offline
+        paymentMethod: (tx.paymentMethod as 'cash' | 'card' | 'qris') || 'cash',
+        customerId: tx.customerId ?? undefined,
+        customerName: tx.customerName ?? undefined,
+        cashierName: tx.cashierName,
+        tableNumber: tx.tableNumber ?? undefined,
+        notes: tx.notes ?? undefined,
+        cashReceived,
+        change,
+        taxRate: undefined, // Will be recalculated by server during sync
+        subtotal: tx.localSubtotal,
+        tax: tx.localTax,
+        service_charge: tx.localService,
+        orderType: (tx.orderType as 'dine-in' | 'take-away') ?? undefined,
+        orderNote: tx.orderNote ?? undefined,
+      };
+    });
+  } catch (err) {
+    console.error('[PendingTx] getPendingAsTransactions error:', err);
+    return [];
+  }
 }

@@ -6,7 +6,7 @@ import { posApi } from '../services/posApi';
 import { useAuth } from './AuthContext';
 import { offlineCheckout } from '../services/sync/offlineCheckout';
 import { getLocalProducts, getLocalCategories, syncCatalog } from '../services/db/catalogSync';
-import { getPendingCount } from '../services/db/pendingTransactions';
+import { getPendingCount, getPendingAsTransactions } from '../services/db/pendingTransactions';
 import { addSyncListener } from '../services/sync/SyncManager';
 
 interface AppContextType {
@@ -101,12 +101,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setServiceError(null);
   }, []);
 
+  /**
+   * Merge unsynced pending transactions from SQLite into the state.
+   * This ensures offline transactions remain visible in dashboard, sales report,
+   * and history even after app restart when server state overwrites in-memory state.
+   */
+  const mergePendingIntoState = useCallback((serverState: AppDataState): AppDataState => {
+    try {
+      const pendingTxs = getPendingAsTransactions() as Transaction[];
+      if (pendingTxs.length === 0) return serverState;
+
+      // Deduplicate: remove any pending tx that already exists in server data
+      const serverTxIds = new Set(serverState.transactions.map(t => t.id));
+      const newPendingTxs = pendingTxs.filter(t => !serverTxIds.has(t.id));
+
+      if (newPendingTxs.length === 0) return serverState;
+
+      console.log(`[AppContext] Merging ${newPendingTxs.length} pending offline transactions into state`);
+
+      // Merge: pending transactions go first (most recent), then server data
+      const mergedTransactions = [
+        ...newPendingTxs,
+        ...serverState.transactions,
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      return {
+        ...serverState,
+        transactions: mergedTransactions,
+      };
+    } catch (err) {
+      console.error('[AppContext] Failed to merge pending transactions:', err);
+      return serverState;
+    }
+  }, []);
+
   const refreshState = useCallback(async () => {
     try {
       setIsServiceLoading(true);
       setServiceError(null);
       const next = await appApi.getAppState();
-      setState(next);
+      setState(mergePendingIntoState(next));
       setIsOfflineMode(false);
 
       // Also sync catalog to SQLite for offline fallback
@@ -120,11 +154,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const localCats = getLocalCategories();
         if (localProducts.length > 0) {
           console.log('[AppContext] Using offline cache:', localProducts.length, 'products');
+          const pendingTxs = getPendingAsTransactions() as Transaction[];
           setState(prev => ({
             ...prev,
             products: localProducts,
             categories: localCats.names,
             categoriesWithId: localCats.withId,
+            transactions: pendingTxs.length > 0 ? pendingTxs : prev.transactions,
           }));
           setIsOfflineMode(true);
           setServiceError(null); // Don't show error if we have cached data
@@ -136,7 +172,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsServiceLoading(false);
     }
-  }, []);
+  }, [mergePendingIntoState]);
 
   useEffect(() => {
     if (status !== 'authenticated') {
@@ -160,7 +196,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setServiceError(null);
         const next = await appApi.getAppState();
         if (mounted) {
-          setState(next);
+          setState(mergePendingIntoState(next));
           setIsOfflineMode(false);
         }
 
@@ -176,11 +212,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const localCats = getLocalCategories();
             if (localProducts.length > 0) {
               console.log('[AppContext] Offline fallback:', localProducts.length, 'products from cache');
+              // Also merge pending transactions so they appear in UI while offline
+              const pendingTxs = getPendingAsTransactions() as Transaction[];
               setState(prev => ({
                 ...prev,
                 products: localProducts,
                 categories: localCats.names,
                 categoriesWithId: localCats.withId,
+                transactions: pendingTxs.length > 0 ? pendingTxs : prev.transactions,
               }));
               setIsOfflineMode(true);
               return; // Don't show error — we have cached data
@@ -357,7 +396,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsServiceLoading(false);
     }
-  }, [user]);
+  }, [user, isOfflineMode]);
 
   const updateSettings = useCallback(async (newSettings: Partial<BusinessSettings> & { shop_name?: string }): Promise<BusinessSettings> => {
     setIsServiceLoading(true);
