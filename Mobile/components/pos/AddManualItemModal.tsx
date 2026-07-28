@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { X, Zap, ShoppingCart } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
@@ -326,14 +326,21 @@ export default function AddManualItemModal({ visible, onClose, onAdd, onQuickPay
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={{
           backgroundColor: c.bgCard,
           borderTopLeftRadius: 24, borderTopRightRadius: 24,
-          maxHeight: '85%',
+          borderTopWidth: 1, borderTopColor: c.border,
+          maxHeight: '90%',
           width: '100%',
           flex: 1,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 10,
         }}>
           {formContent}
         </View>

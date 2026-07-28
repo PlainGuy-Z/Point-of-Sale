@@ -49,6 +49,11 @@ export default function TopProductsRN({
       borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
       backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
       padding: 20,
+      shadowColor: '#f59e0b',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 10,
+      elevation: 4,
     }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <View style={{ padding: 8, borderRadius: 12, backgroundColor: isDark ? '#252525' : '#f0fdf4' }}>

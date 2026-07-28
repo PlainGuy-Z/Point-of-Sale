@@ -11,12 +11,15 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback,
   Keyboard,
+  Pressable,
+  StyleSheet,
 } from 'react-native';
 import { X, Pencil, Building2, Check } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { appApi } from '../../services/appApi';
 import { useBranch } from '../../contexts/BranchContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CashierUserRow } from './UsersManagementScreen';
 
 interface EditCashierModalProps {
@@ -29,6 +32,7 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
+  const insets = useSafeAreaInsets();
   const { branches } = useBranch();
 
   const activeBranches = branches.filter((b) => b.is_active);
@@ -92,25 +96,33 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
   } as const;
 
   return (
-    <Modal visible animationType="slide" transparent statusBarTranslucent>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'flex-end',
-        }}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={0}
-          >
-            <View style={{
-              backgroundColor: c.bgCard,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              borderWidth: 1,
-              borderBottomWidth: 0,
-              borderColor: c.border,
-            }}>
+    <Modal visible animationType="fade" transparent statusBarTranslucent onRequestClose={() => !loading && onClose()}>
+      <View style={{
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+      }}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => !loading && onClose()} />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
+          style={{ width: '100%' }}
+        >
+          <View style={{
+            backgroundColor: c.bgCard,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderTopColor: c.border,
+            width: '100%',
+            maxHeight: '88%',
+            paddingBottom: Math.max(insets.bottom, 12),
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            elevation: 10,
+          }}>
               {/* Handle bar */}
               <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 4 }}>
                 <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: c.borderLight }} />
@@ -140,7 +152,7 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
 
               {/* Form */}
               <ScrollView
-                contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 32 }}
+                contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: Math.max(insets.bottom + 24, 40) }}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
               >
@@ -273,7 +285,6 @@ export default function EditCashierModal({ cashier, onClose, onSaved }: EditCash
             </View>
           </KeyboardAvoidingView>
         </View>
-      </TouchableWithoutFeedback>
     </Modal>
   );
 }

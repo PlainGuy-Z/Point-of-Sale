@@ -21,12 +21,13 @@ import { useWindowDimensions } from 'react-native';
  */
 export function useStableOrientation(debounceMs = 150) {
   const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
 
   const [stable, setStable] = useState({
     width,
     height,
   });
+
+  const isLandscape = stable.width > stable.height;
 
   useEffect(() => {
     // Debounce exact dimension updates to allow viewport measurements to settle,

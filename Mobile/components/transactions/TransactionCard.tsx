@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import type { HistoryTransaction } from '../../types/historyTransaction';
 import StatusBadge from './StatusBadge';
 import { getColors, type ThemeColors } from '../../utils/theme';
@@ -35,16 +35,24 @@ export default function TransactionCard({
   buttonLabel = 'Lihat Detail',
 }: TransactionCardProps) {
   const c = getColors(isDark);
+  const { width: ww, height: wh } = useWindowDimensions();
+  const isLandscape = ww > wh;
+
+  const cardPadding = isLandscape ? 10 : 14;
+  const cardMarginBottom = isLandscape ? 8 : 10;
+  const timeFontSize = isLandscape ? 15 : 18;
+  const itemsMarginBottom = isLandscape ? 6 : 10;
+  const bottomPaddingTop = isLandscape ? 8 : 10;
 
   return (
-    <View style={[styles.card, { backgroundColor: c.bgCard, borderColor: c.border }]}>
+    <View style={[styles.card, { backgroundColor: c.bgCard, borderColor: c.border, padding: cardPadding, marginBottom: cardMarginBottom }]}>
       {/* Top row: ID + Time left, Status + Order Type right */}
       <View style={styles.topRow}>
         <View style={styles.topLeft}>
           <Text style={[styles.idText, { color: c.textMuted }]}>
             #{t.id.slice(0, 8).toUpperCase()}
           </Text>
-          <Text style={[styles.timeText, { color: c.text }]}>
+          <Text style={[styles.timeText, { color: c.text, fontSize: timeFontSize }]}>
             {formatTime(t.created_at)}
           </Text>
         </View>
@@ -71,12 +79,12 @@ export default function TransactionCard({
       </View>
 
       {/* Item summary */}
-      <Text style={[styles.itemsText, { color: c.textSecondary }]} numberOfLines={2}>
+      <Text style={[styles.itemsText, { color: c.textSecondary, marginBottom: itemsMarginBottom }]} numberOfLines={2}>
         {itemSummary(t)}
       </Text>
 
       {/* Bottom row: Payment method + Total + Button */}
-      <View style={[styles.bottomRow, { borderTopColor: c.border }]}>
+      <View style={[styles.bottomRow, { borderTopColor: c.border, paddingTop: bottomPaddingTop }]}>
         <Text style={[styles.paymentText, { color: c.accent }]}>
           {String(t.payment_method)}
         </Text>

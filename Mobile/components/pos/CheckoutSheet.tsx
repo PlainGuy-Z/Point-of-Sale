@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView, Switch, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView, Switch, KeyboardAvoidingView, Platform, Keyboard, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, CreditCard } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -287,14 +287,21 @@ export default function CheckoutSheet({ visible, onClose, onProceedPayment, inli
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={{
           backgroundColor: c.bgCard,
           borderTopLeftRadius: 24, borderTopRightRadius: 24,
+          borderTopWidth: 1, borderTopColor: c.border,
           maxHeight: '90%',
           width: '100%',
           flex: 1,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 10,
         }}>
           {formContent}
         </View>

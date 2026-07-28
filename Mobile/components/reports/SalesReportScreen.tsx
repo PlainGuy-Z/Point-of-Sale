@@ -113,7 +113,6 @@ export default function SalesReportScreen() {
     paymentBreakdown,
     cashierPerformance,
     costBreakdown,
-    exportCsvFile,
     isLoading,
     isComputing,
     error,
@@ -297,45 +296,25 @@ export default function SalesReportScreen() {
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: topInset }}>
       {/* HEADER SECTION */}
       <View style={{
-        flexDirection: isLandscape ? 'row' : 'column',
+        flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        alignItems: isLandscape ? 'center' : 'stretch',
-        paddingLeft: 16,
-        paddingRight: 16,
-        paddingVertical: 12,
-        gap: 10,
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 10,
       }}>
-        <View>
-          <Text style={{ color: c.text, fontSize: 22, fontWeight: '900' }}>
+        <View style={{ flex: 1, paddingRight: 8 }}>
+          <Text style={{ color: c.text, fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }}>
             Laporan <Text style={{ color: c.accent }}>Penjualan</Text>
           </Text>
-          <Text style={{ color: c.textSecondary, fontSize: 11, marginTop: 3, flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={{ color: c.textSecondary, fontSize: 11, marginTop: 2, flexDirection: 'row', alignItems: 'center' }}>
             <Clock size={11} color={c.textMuted} /> Terakhir diperbarui: {new Date().toLocaleTimeString('id-ID')}
             {!isCovered && !isLoading && !error && (
               <Text style={{ color: c.accent, fontWeight: '800' }}> (Data Server)</Text>
             )}
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={exportCsvFile}
-          activeOpacity={0.7}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            backgroundColor: c.bgCard,
-            borderWidth: 1,
-            borderColor: c.border,
-            borderRadius: 12,
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            alignSelf: isLandscape ? 'auto' : 'flex-end',
-          }}
-        >
-          <Download size={15} color={c.textSecondary} />
-          <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '700' }}>Export CSV</Text>
-        </TouchableOpacity>
+
       </View>
 
       {/* BODY CONTENT */}
@@ -361,10 +340,15 @@ export default function SalesReportScreen() {
             marginHorizontal: 16,
             backgroundColor: c.bgCard,
             borderWidth: 1,
-            borderColor: c.border,
+            borderColor: c.borderLight,
             borderRadius: 16,
             padding: 6,
             marginBottom: 16,
+            shadowColor: c.accent,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: isDark ? 0.25 : 0.06,
+            shadowRadius: 8,
+            elevation: 3,
           }}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 6 }}>
@@ -431,10 +415,15 @@ export default function SalesReportScreen() {
                       flex: 1,
                       backgroundColor: c.bgCard,
                       borderWidth: 1,
-                      borderColor: c.border,
+                      borderColor: c.borderLight,
                       borderRadius: 16,
                       padding: 14,
                       gap: 8,
+                      shadowColor: card.iconColor,
+                      shadowOffset: { width: 0, height: 3 },
+                      shadowOpacity: isDark ? 0.3 : 0.08,
+                      shadowRadius: 8,
+                      elevation: 3,
                     }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: card.iconBg, alignItems: 'center', justifyContent: 'center' }}>
@@ -468,10 +457,15 @@ export default function SalesReportScreen() {
                       flexGrow: 1,
                       backgroundColor: c.bgCard,
                       borderWidth: 1,
-                      borderColor: c.border,
+                      borderColor: c.borderLight,
                       borderRadius: 16,
                       padding: 12,
                       gap: 6,
+                      shadowColor: card.iconColor,
+                      shadowOffset: { width: 0, height: 3 },
+                      shadowOpacity: isDark ? 0.3 : 0.08,
+                      shadowRadius: 8,
+                      elevation: 3,
                     }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: card.iconBg, alignItems: 'center', justifyContent: 'center' }}>

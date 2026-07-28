@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useContext, useMemo } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, Modal, Image, ActivityIndicator, RefreshControl, Platform, StatusBar } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, Modal, Image, ActivityIndicator, RefreshControl, Platform, StatusBar, Pressable, StyleSheet } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,7 +41,7 @@ const TRENDING_PERIODS = [
 export default function POSScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isLandscape } = useStableOrientation();
+  const { isLandscape, width: windowWidth } = useStableOrientation();
 
   const { products, categories } = useProducts();
   const { transactions, checkout: appCheckout } = useTransactions();
@@ -467,14 +467,10 @@ export default function POSScreen() {
   // PORTRAIT CART MODAL (bottom sheet style)
   // ══════════════════════════════════════════════════════════════════════════
   const renderPortraitCartModal = () => (
-    <Modal visible={showCartModal} transparent animationType="slide">
+    <Modal visible={showCartModal} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setShowCartModal(false)}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            activeOpacity={1}
-            onPress={() => setShowCartModal(false)}
-          />
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowCartModal(false)} />
           <View style={{
             backgroundColor: c.bgCard,
             borderTopLeftRadius: 24, borderTopRightRadius: 24,
@@ -627,7 +623,7 @@ export default function POSScreen() {
 
         {/* Category modal shown when user taps Lihat Semua */}
         {categoryModal && (
-          <Modal visible animationType="slide">
+          <Modal visible animationType="slide" statusBarTranslucent onRequestClose={() => setCategoryModal(null)}>
             <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '900', color: c.text }}>{categoryModal.title}</Text>
@@ -687,7 +683,7 @@ export default function POSScreen() {
         />
 
         {showPaymentModal && (
-          <Modal visible={showPaymentModal} animationType="fade" transparent={true}>
+          <Modal visible={showPaymentModal} animationType="fade" transparent={true} statusBarTranslucent onRequestClose={() => setShowPaymentModal(false)}>
             <PaymentScreen
               onClose={() => setShowPaymentModal(false)}
               onSuccess={(tx) => {
@@ -704,7 +700,7 @@ export default function POSScreen() {
         )}
 
         {showSuccessModal && (
-          <Modal visible={showSuccessModal} animationType="fade" transparent={true}>
+          <Modal visible={showSuccessModal} animationType="fade" transparent={true} statusBarTranslucent onRequestClose={() => setShowSuccessModal(false)}>
             <PaymentSuccessScreen
               transaction={completedTransaction || undefined}
               onClose={() => setShowSuccessModal(false)}
@@ -713,7 +709,7 @@ export default function POSScreen() {
         )}
 
         {showShiftValidationModal && (
-          <Modal visible={showShiftValidationModal} transparent animationType="fade">
+          <Modal visible={showShiftValidationModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowShiftValidationModal(false)}>
             <View style={{
               flex: 1,
               justifyContent: 'center',
@@ -978,7 +974,7 @@ export default function POSScreen() {
               refreshControl={<RefreshControl refreshing={isServiceLoading} onRefresh={refreshState} />}
               keyExtractor={item => item.id}
               numColumns={4}
-              key="landscape-grid-4"
+              key={`landscape-grid-${windowWidth}`}
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
               columnWrapperStyle={{ justifyContent: 'flex-start' }}
               showsVerticalScrollIndicator={true}
@@ -1046,7 +1042,7 @@ export default function POSScreen() {
 
       {/* Payment Modals (always modal sheets) */}
       {showPaymentModal && (
-        <Modal visible={showPaymentModal} animationType="fade" transparent={true}>
+        <Modal visible={showPaymentModal} animationType="fade" transparent={true} statusBarTranslucent onRequestClose={() => setShowPaymentModal(false)}>
           <PaymentScreen
             onClose={() => setShowPaymentModal(false)}
             onSuccess={(tx) => {
@@ -1063,7 +1059,7 @@ export default function POSScreen() {
       )}
 
       {showSuccessModal && (
-        <Modal visible={showSuccessModal} animationType="fade" transparent={true}>
+        <Modal visible={showSuccessModal} animationType="fade" transparent={true} statusBarTranslucent onRequestClose={() => setShowSuccessModal(false)}>
           <PaymentSuccessScreen
             transaction={completedTransaction || undefined}
             onClose={() => setShowSuccessModal(false)}
@@ -1073,7 +1069,7 @@ export default function POSScreen() {
 
       {/* Shift Validation Modal */}
       {showShiftValidationModal && (
-        <Modal visible={showShiftValidationModal} transparent animationType="fade">
+        <Modal visible={showShiftValidationModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowShiftValidationModal(false)}>
           <View style={{
             flex: 1,
             justifyContent: 'center',

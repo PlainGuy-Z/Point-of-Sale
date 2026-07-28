@@ -16,6 +16,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -1097,24 +1098,6 @@ export default function ProductManagementScreen() {
             {products.length} produk • {categories.length} kategori
           </Text>
         </View>
-
-        {activeTab === 'products' && (
-          <TouchableOpacity
-            onPress={handleOpenAddModal}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              backgroundColor: c.accent,
-              paddingHorizontal: isSmallLandscape ? 12 : 14,
-              paddingVertical: isSmallLandscape ? 6 : 8,
-              borderRadius: 12,
-            }}
-          >
-            <Plus size={isSmallLandscape ? 14 : 16} color={c.textInverse} strokeWidth={2.5} />
-            <Text style={{ color: c.textInverse, fontSize: isSmallLandscape ? 11 : 13, fontWeight: '700' }}>Produk Baru</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Screen Tabs */}
@@ -1164,8 +1147,10 @@ export default function ProductManagementScreen() {
       {/* Main Content Area */}
       {activeTab === 'products' ? (
         <View style={{ flex: 1 }}>
-          {/* Toolbar: Search + Horizontal Categories */}
+          {/* Toolbar: Produk Baru + Search + Horizontal Categories */}
           <View style={{ padding: isSmallLandscape ? 6 : 12, gap: isSmallLandscape ? 6 : 10, borderBottomWidth: 1, borderBottomColor: c.border, backgroundColor: c.bgCard }}>
+
+
             <View
               style={{
                 flexDirection: 'row',
@@ -1192,6 +1177,43 @@ export default function ProductManagementScreen() {
                 </TouchableOpacity>
               )}
             </View>
+
+                        {/* Produk Baru button positioned directly above Search */}
+          <TouchableOpacity
+        onPress={handleOpenAddModal}
+        activeOpacity={0.8}
+        style={{
+          marginLeft: 'auto', // Pindah ke kanan
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 5,
+          backgroundColor: c.accent,
+          paddingVertical: isSmallLandscape ? 6 : 8,
+          paddingHorizontal: 12,
+          borderRadius: 10,
+          shadowColor: c.accent,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 4,
+          elevation: 3,
+        }}
+      >
+        <Plus
+          size={isSmallLandscape ? 12 : 14}
+          color={c.textInverse}
+          strokeWidth={2.5}
+        />
+        <Text
+          style={{
+            color: c.textInverse,
+            fontSize: isSmallLandscape ? 10 : 11,
+            fontWeight: '700',
+          }}
+        >
+          Produk Baru
+        </Text>
+      </TouchableOpacity>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: isSmallLandscape ? 0 : 2 }}>
               <TouchableOpacity
@@ -1338,16 +1360,18 @@ export default function ProductManagementScreen() {
       )}
 
       {/* Add / Edit Product Modal */}
-      <Modal visible={isModalOpen} animationType="slide" transparent>
+      <Modal visible={isModalOpen} animationType="fade" transparent statusBarTranslucent onRequestClose={() => setModalOpen(false)}>
         <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setModalOpen(false)} />
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={[
               styles.modalContainer,
               {
+                width: '100%',
                 backgroundColor: c.bgCard,
-                borderColor: c.border,
-                maxHeight: isSmallLandscape ? '98%' : '90%',
+                borderTopColor: c.border,
+                maxHeight: isSmallLandscape ? '98%' : '92%',
                 paddingLeft: Math.max(16, insets.left),
                 paddingRight: Math.max(16, insets.right),
               }
@@ -1434,8 +1458,13 @@ const styles = StyleSheet.create({
   modalContainer: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    borderWidth: 1,
-    maxHeight: '90%',
+    borderTopWidth: 1,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',

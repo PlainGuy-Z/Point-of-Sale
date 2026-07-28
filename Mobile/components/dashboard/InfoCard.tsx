@@ -107,6 +107,8 @@ export default function InfoCard({ variant, value, isDark }: InfoCardProps) {
     ? `${Math.min(numVal, 100)}%`
     : numVal === 0 ? '100%' : `${Math.min(numVal * 15, 100)}%`;
 
+  const shadowColor = variant === 'stock-warning' ? '#f97316' : variant === 'out-of-stock' ? '#ef4444' : '#3b82f6';
+
   return (
     <View style={{
       flex: 1,
@@ -116,6 +118,11 @@ export default function InfoCard({ variant, value, isDark }: InfoCardProps) {
       backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
       padding: 16,
       minHeight: 170,
+      shadowColor,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.1,
+      shadowRadius: 8,
+      elevation: 3,
     }}>
       {/* Icon */}
       <View style={{

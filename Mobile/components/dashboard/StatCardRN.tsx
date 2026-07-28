@@ -59,6 +59,8 @@ export default function StatCardRN({
     ? (trend === 'up' ? '#4ade80' : trend === 'down' ? '#f87171' : '#78716c')
     : (trend === 'up' ? '#059669' : trend === 'down' ? '#dc2626' : '#94a3b8');
 
+  const cardColor = getLightIconColor(title);
+
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -66,9 +68,13 @@ export default function StatCardRN({
         borderRadius: 20,
         borderWidth: 1,
         padding: compact ? 14 : 20,
-        overflow: 'hidden',
         backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
         borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
+        shadowColor: cardColor,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: isDark ? 0.35 : 0.12,
+        shadowRadius: 10,
+        elevation: 4,
       }, style]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: compact ? 10 : 16 }}>

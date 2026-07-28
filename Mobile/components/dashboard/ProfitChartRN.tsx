@@ -155,7 +155,11 @@ export default function ProfitChartRN({ transactions, isDark, containerWidth, re
       borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
       backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
       padding: cardPad,
-      overflow: 'hidden',
+      shadowColor: '#0d9488',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 10,
+      elevation: 4,
     }}>
       {/* Header row */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: isCompact ? 12 : 20 }}>

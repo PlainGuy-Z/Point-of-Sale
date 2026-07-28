@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { useApp } from '../../contexts/AppContext';
@@ -13,6 +14,7 @@ interface SidebarModalProps {
 }
 
 export default function SidebarModal({ visible, onClose, onSelectCategory, selectedCategory }: SidebarModalProps) {
+  const insets = useSafeAreaInsets();
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
@@ -21,16 +23,16 @@ export default function SidebarModal({ visible, onClose, onSelectCategory, selec
   const allCategories = ['Semua', ...(categories || [])];
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={{
           backgroundColor: c.bgCard,
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           paddingTop: 16,
           paddingHorizontal: 20,
-          paddingBottom: 32,
+          paddingBottom: Math.max(32, insets.bottom + 12),
           maxHeight: '60%',
           borderWidth: 1,
           borderColor: c.borderLight,

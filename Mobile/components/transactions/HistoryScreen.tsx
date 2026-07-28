@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl, Alert, StyleSheet,
+  ActivityIndicator, RefreshControl, Alert, StyleSheet, useWindowDimensions, ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Inbox, AlertCircle } from 'lucide-react-native';
@@ -32,6 +32,8 @@ const SORT_OPTIONS: Array<{ key: 'desc' | 'asc'; label: string }> = [
 ];
 
 export default function HistoryScreen() {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isLandscape = windowWidth > windowHeight;
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
@@ -162,122 +164,89 @@ export default function HistoryScreen() {
 
   const keyExtractor = useCallback((item: HistoryTransaction) => item.id, []);
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.headerSection}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.titleText, { color: c.text }]}>
-              Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
-            </Text>
-            <Text style={[styles.subtitleText, { color: c.textSecondary }]}>
-              Transaksi Hari Ini — {todayLabel}
-            </Text>
-          </View>
-          <View style={{
-            flexDirection: 'row', alignItems: 'center', gap: 4,
-            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
-            backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
-          }}>
-            <Zap size={10} color={isCovered ? "#f59e0b" : "#3b82f6"} />
-            <Text style={{ fontSize: 9, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
-              {isCovered ? 'Live Cache — 200 transaksi terbaru' : 'Data Server'}
-            </Text>
-          </View>
-        </View>
-        {isCovered && (
-          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 8, fontStyle: 'italic' }}>
-            💡 Gunakan filter pencarian atau pengurutan untuk melihat transaksi lama dari server.
-          </Text>
-        )}
+  const renderFilters = () => (
+    <View style={[styles.filterBox, { backgroundColor: c.bgCard, borderColor: c.border, marginTop: isLandscape ? 8 : 10, marginHorizontal: isLandscape ? 12 : 16 }]}>
+      {/* Search */}
+      <View style={[styles.searchRow, { backgroundColor: c.bgInput, borderColor: c.border }]}>
+        <Search size={16} color={c.textMuted} />
+        <TextInput
+          style={[styles.searchInput, { color: c.text }]}
+          placeholder="Cari nama atau ID..."
+          placeholderTextColor={c.textMuted}
+          value={search}
+          onChangeText={setSearch}
+          autoCapitalize="none"
+          returnKeyType="search"
+        />
       </View>
 
-      {/* Feedback */}
-      {feedbackMsg && (
-        <View style={[styles.feedbackBar, { backgroundColor: c.successBg }]}>
-          <Text style={[styles.feedbackText, { color: c.success }]}>{feedbackMsg}</Text>
-        </View>
-      )}
-
-      {/* Filters */}
-      <View style={[styles.filterBox, { backgroundColor: c.bgCard, borderColor: c.border }]}>
-        {/* Search */}
-        <View style={[styles.searchRow, { backgroundColor: c.bgInput, borderColor: c.border }]}>
-          <Search size={16} color={c.textMuted} />
-          <TextInput
-            style={[styles.searchInput, { color: c.text }]}
-            placeholder="Cari nama pelanggan atau ID transaksi"
-            placeholderTextColor={c.textMuted}
-            value={search}
-            onChangeText={setSearch}
-            autoCapitalize="none"
-            returnKeyType="search"
-          />
-        </View>
-
-        {/* Status chips */}
-        <View style={styles.chipRow}>
-          {STATUS_FILTERS.map((f) => {
-            const active = status === f.key;
-            return (
-              <TouchableOpacity
-                key={f.key}
-                onPress={() => setStatus(f.key)}
-                style={[
-                  styles.chip,
-                  active
-                    ? { backgroundColor: c.accent }
-                    : { borderWidth: 1, borderColor: c.border },
-                ]}
-                activeOpacity={0.7}
-              >
-                <Text style={[
-                  styles.chipText,
-                  { color: active ? '#fff' : c.textSecondary },
-                ]}>
-                  {f.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Sort */}
-        <View style={styles.chipRow}>
-          {SORT_OPTIONS.map((s) => {
-            const active = sort === s.key;
-            return (
-              <TouchableOpacity
-                key={s.key}
-                onPress={() => setSort(s.key)}
-                style={[
-                  styles.chip,
-                  active
-                    ? { backgroundColor: c.accent }
-                    : { borderWidth: 1, borderColor: c.border },
-                ]}
-                activeOpacity={0.7}
-              >
-                <Text style={[
-                  styles.chipText,
-                  { color: active ? '#fff' : c.textSecondary },
-                ]}>
-                  {s.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+      {/* Status chips */}
+      <View style={styles.chipRow}>
+        {STATUS_FILTERS.map((f) => {
+          const active = status === f.key;
+          return (
+            <TouchableOpacity
+              key={f.key}
+              onPress={() => setStatus(f.key)}
+              style={[
+                styles.chip,
+                active
+                  ? { backgroundColor: c.accent }
+                  : { borderWidth: 1, borderColor: c.border },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.chipText,
+                { color: active ? '#fff' : c.textSecondary },
+              ]}>
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {/* Content */}
-      {loading && !refreshing ? (
+      {/* Sort */}
+      <View style={styles.chipRow}>
+        {SORT_OPTIONS.map((s) => {
+          const active = sort === s.key;
+          return (
+            <TouchableOpacity
+              key={s.key}
+              onPress={() => setSort(s.key)}
+              style={[
+                styles.chip,
+                active
+                  ? { backgroundColor: c.accent }
+                  : { borderWidth: 1, borderColor: c.border },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.chipText,
+                { color: active ? '#fff' : c.textSecondary },
+              ]}>
+                {s.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const renderContent = () => {
+    if (loading && !refreshing) {
+      return (
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={c.accent} />
           <Text style={[styles.stateText, { color: c.textMuted }]}>Memuat transaksi...</Text>
         </View>
-      ) : error ? (
+      );
+    }
+    if (error) {
+      return (
         <View style={styles.centerState}>
           <AlertCircle size={40} color={c.error} strokeWidth={1.5} />
           <Text style={[styles.stateText, { color: c.error }]}>{error}</Text>
@@ -288,51 +257,140 @@ export default function HistoryScreen() {
             <Text style={[styles.retryText, { color: c.accent }]}>Coba Lagi</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          data={rows}
-          renderItem={renderCard}
-          keyExtractor={keyExtractor}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={c.accent}
-              colors={[c.accent]}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.centerState}>
-              <Inbox size={48} color={c.textMuted} strokeWidth={1.5} />
-              <Text style={[styles.stateTitle, { color: c.text }]}>Belum ada transaksi</Text>
-              <Text style={[styles.stateText, { color: c.textSecondary }]}>
-                Mulai shift dan proses transaksi di POS
-              </Text>
+      );
+    }
+    return (
+      <FlatList
+        data={rows}
+        renderItem={renderCard}
+        keyExtractor={keyExtractor}
+        contentContainerStyle={[styles.listContent, { paddingTop: isLandscape ? 12 : 6 }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={c.accent}
+            colors={[c.accent]}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.centerState}>
+            <Inbox size={48} color={c.textMuted} strokeWidth={1.5} />
+            <Text style={[styles.stateTitle, { color: c.text }]}>Belum ada transaksi</Text>
+            <Text style={[styles.stateText, { color: c.textSecondary }]}>
+              Mulai shift dan proses transaksi di POS
+            </Text>
+          </View>
+        }
+        ListFooterComponent={
+          hasMore && !loading ? (
+            <View style={styles.paginationRow}>
+              <TouchableOpacity
+                disabled={page <= 1}
+                onPress={() => setPage((p) => Math.max(1, p - 1))}
+                style={[styles.pageBtn, { borderColor: c.border, opacity: page <= 1 ? 0.4 : 1 }]}
+              >
+                <Text style={[styles.pageBtnText, { color: c.text }]}>Sebelumnya</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={page * LIMIT >= total}
+                onPress={() => setPage((p) => p + 1)}
+                style={[styles.pageBtn, { borderColor: c.border, opacity: page * LIMIT >= total ? 0.4 : 1 }]}
+              >
+                <Text style={[styles.pageBtnText, { color: c.text }]}>Berikutnya</Text>
+              </TouchableOpacity>
             </View>
-          }
-          ListFooterComponent={
-            hasMore && !loading ? (
-              <View style={styles.paginationRow}>
-                <TouchableOpacity
-                  disabled={page <= 1}
-                  onPress={() => setPage((p) => Math.max(1, p - 1))}
-                  style={[styles.pageBtn, { borderColor: c.border, opacity: page <= 1 ? 0.4 : 1 }]}
-                >
-                  <Text style={[styles.pageBtnText, { color: c.text }]}>Sebelumnya</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  disabled={page * LIMIT >= total}
-                  onPress={() => setPage((p) => p + 1)}
-                  style={[styles.pageBtn, { borderColor: c.border, opacity: page * LIMIT >= total ? 0.4 : 1 }]}
-                >
-                  <Text style={[styles.pageBtnText, { color: c.text }]}>Berikutnya</Text>
-                </TouchableOpacity>
+          ) : null
+        }
+      />
+    );
+  };
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
+      {isLandscape ? (
+        <View style={{ flex: 1, flexDirection: 'row' }}>
+          {/* Left Panel: Header + Filters */}
+          <View style={{ width: 280, borderRightWidth: 1, borderRightColor: c.border }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
+              {/* Compressed Header */}
+              <View style={[styles.headerSection, { paddingBottom: 0 }]}>
+                <Text style={[styles.titleText, { color: c.text, fontSize: 18 }]}>
+                  Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
+                </Text>
+                <Text style={[styles.subtitleText, { color: c.textSecondary, fontSize: 10, marginTop: 2 }]}>
+                  {todayLabel}
+                </Text>
               </View>
-            ) : null
-          }
-        />
+
+              {/* Feedback Msg */}
+              {feedbackMsg && (
+                <View style={[styles.feedbackBar, { backgroundColor: c.successBg, marginVertical: 6, marginHorizontal: 12 }]}>
+                  <Text style={[styles.feedbackText, { color: c.success, fontSize: 11 }]}>{feedbackMsg}</Text>
+                </View>
+              )}
+
+              {/* Filters */}
+              {renderFilters()}
+
+              {isCovered && (
+                <View style={{ paddingHorizontal: 16, marginTop: 4 }}>
+                  <Text style={{ fontSize: 9.5, color: c.textMuted, fontStyle: 'italic', lineHeight: 14 }}>
+                    💡 Cari atau urutkan untuk memuat data dari server.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+
+          {/* Right Panel: Content */}
+          <View style={{ flex: 1 }}>
+            {renderContent()}
+          </View>
+        </View>
+      ) : (
+        // Portrait Layout
+        <>
+          {/* Header */}
+          <View style={styles.headerSection}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.titleText, { color: c.text }]}>
+                  Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
+                </Text>
+                <Text style={[styles.subtitleText, { color: c.textSecondary }]}>
+                  Transaksi Hari Ini — {todayLabel}
+                </Text>
+              </View>
+              <View style={{
+                flexDirection: 'row', alignItems: 'center', gap: 4,
+                paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+                backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
+              }}>
+                <Zap size={10} color={isCovered ? "#f59e0b" : "#3b82f6"} />
+                <Text style={{ fontSize: 9, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
+                  {isCovered ? 'Live Cache — 200 transaksi terbaru' : 'Data Server'}
+                </Text>
+              </View>
+            </View>
+            {isCovered && (
+              <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 8, fontStyle: 'italic' }}>
+                💡 Gunakan filter pencarian atau pengurutan untuk melihat transaksi lama dari server.
+              </Text>
+            )}
+          </View>
+
+          {/* Feedback */}
+          {feedbackMsg && (
+            <View style={[styles.feedbackBar, { backgroundColor: c.successBg }]}>
+              <Text style={[styles.feedbackText, { color: c.success }]}>{feedbackMsg}</Text>
+            </View>
+          )}
+
+          {renderFilters()}
+          {renderContent()}
+        </>
       )}
 
       {/* Detail Sheet */}

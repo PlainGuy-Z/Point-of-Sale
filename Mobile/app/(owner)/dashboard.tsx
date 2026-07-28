@@ -274,11 +274,11 @@ function QuickActionsGrid({ isDark }: { isDark: boolean }) {
                 paddingHorizontal: 4,
                 alignItems: 'center',
                 justifyContent: 'center',
-                shadowColor: '#000',
-                shadowOpacity: isDark ? 0.2 : 0.04,
-                shadowOffset: { width: 0, height: 2 },
-                shadowRadius: 4,
-                elevation: 2,
+                shadowColor: action.color,
+                shadowOpacity: isDark ? 0.35 : 0.12,
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 8,
+                elevation: 4,
               }}
             >
               {/* Squircle badge */}
@@ -438,6 +438,11 @@ export default function OwnerDashboard() {
           borderRadius: 16, padding: 20,
           backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
           borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
+          shadowColor: accentColor,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: isDark ? 0.35 : 0.08,
+          shadowRadius: 10,
+          elevation: 4,
         }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12 }}>
