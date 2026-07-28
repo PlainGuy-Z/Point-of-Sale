@@ -47,8 +47,9 @@ const ProductCardInner = React.memo(function ProductCardInner({
       activeOpacity={0.85}
       style={{
         width: isCompact ? cardWidth : undefined,
-        flex: isCompact ? undefined : 1,
-        maxWidth: isLandscape && !isCompact ? '24%' : undefined,
+        flex: isCompact || isLandscape ? undefined : 1,
+        flexBasis: isLandscape && !isCompact ? '23%' : undefined,
+        maxWidth: isLandscape && !isCompact ? '23%' : undefined,
         alignSelf: isLandscape && !isCompact ? 'flex-start' : undefined,
         backgroundColor: c.bgCard,
         borderRadius: 16,

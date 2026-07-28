@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { SidebarContext } from '../../contexts/SidebarContext';
+import LogoutModal from '../../components/common/LogoutModal';
 import {
   Settings, Home, Percent, Printer, Clipboard, CreditCard, Box,
   ChevronRight, LogOut, Menu, UserCheck, Building2
@@ -29,12 +30,11 @@ export default function OwnerSettings() {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Yakin ingin keluar?', [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: async () => { await logout(); router.replace('/(auth)/login'); } },
-    ]);
+  const handleConfirmLogout = async () => {
+    await logout();
+    router.replace('/(auth)/login');
   };
 
   const handlePress = (label: string) => {
@@ -95,7 +95,7 @@ export default function OwnerSettings() {
         ))}
 
         <View style={{ height: 16 }} />
-        <TouchableOpacity onPress={handleLogout} style={{
+        <TouchableOpacity onPress={() => setShowLogoutModal(true)} style={{
           backgroundColor: c.errorBg, borderWidth: 1,
           borderColor: isDark ? 'rgba(239,68,68,0.3)' : 'rgba(220,38,38,0.2)',
           borderRadius: 14, padding: 16,
@@ -105,6 +105,12 @@ export default function OwnerSettings() {
           <Text style={{ color: c.error, fontWeight: '700', fontSize: 14 }}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <LogoutModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </SafeAreaView>
   );
 }

@@ -13,6 +13,7 @@ import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { getColors } from '../utils/theme';
 import { PrinterProvider } from '../contexts/PrinterContext';
 import { AIProvider } from '../contexts/AIContext';
+import { SyncProvider } from '../contexts/SyncContext';
 import AnimatedSplash from '../components/AnimatedSplash';
 
 function ThemedStack() {
@@ -53,15 +54,17 @@ export default function RootLayout() {
         <AuthProvider>
           <BranchProvider>
             <ThemeProvider>
-              <AppProvider>
-                <ShiftProvider>
-                  <PrinterProvider>
-                    <AIProvider>
-                      <ThemedStack />
-                    </AIProvider>
-                  </PrinterProvider>
-                </ShiftProvider>
-              </AppProvider>
+              <SyncProvider>
+                <AppProvider>
+                  <ShiftProvider>
+                    <PrinterProvider>
+                      <AIProvider>
+                        <ThemedStack />
+                      </AIProvider>
+                    </PrinterProvider>
+                  </ShiftProvider>
+                </AppProvider>
+              </SyncProvider>
             </ThemeProvider>
           </BranchProvider>
         </AuthProvider>

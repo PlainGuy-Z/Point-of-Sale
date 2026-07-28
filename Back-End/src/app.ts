@@ -16,6 +16,7 @@ import { reportsRouter } from './routes/reports.js';
 import { printerRouter } from './routes/printer.js';
 import { publicRouter } from './routes/public.js';
 import { branchesRouter } from './routes/branches.js';
+import { syncRouter } from './routes/sync.js';
 import { authenticateToken } from './middleware/auth.js';
 
 export function createApp() {
@@ -123,6 +124,7 @@ export function createApp() {
   app.use('/auth', authRouter);
   app.use('/app', authenticateToken, appRouter);
   app.use('/pos', authenticateToken, posRouter);
+  app.use('/pos/sync', authenticateToken, syncRouter);
   app.use('/users', authenticateToken, usersRouter);
   app.use('/shifts', authenticateToken, shiftsRouter);
   app.use('/transactions', authenticateToken, transactionsRouter);

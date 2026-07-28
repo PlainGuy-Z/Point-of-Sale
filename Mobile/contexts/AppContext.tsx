@@ -4,6 +4,9 @@ import type { Product, Transaction, WasteLog, Customer, BusinessSettings, Checko
 import { appApi, normalizeAppStateWire, type AppStateWire } from '../services/appApi';
 import { posApi } from '../services/posApi';
 import { useAuth } from './AuthContext';
+import { offlineCheckout } from '../services/sync/offlineCheckout';
+import { getLocalProducts, getLocalCategories, syncCatalog } from '../services/db/catalogSync';
+import { getPendingCount } from '../services/db/pendingTransactions';
 
 interface AppContextType {
   products: Product[];
@@ -76,7 +79,7 @@ const defaultSettings: BusinessSettings = {
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const [state, setState] = useState<AppDataState>({
     products: [],
     transactions: [],
@@ -91,6 +94,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   });
   const [isServiceLoading, setIsServiceLoading] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   const clearServiceError = useCallback(() => {
     setServiceError(null);
@@ -102,8 +106,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setServiceError(null);
       const next = await appApi.getAppState();
       setState(next);
+      setIsOfflineMode(false);
+
+      // Also sync catalog to SQLite for offline fallback
+      try { await syncCatalog(); } catch { /* non-critical */ }
     } catch (e: any) {
       console.error('Failed to load state:', e);
+
+      // Fallback to local SQLite cache if server is unreachable
+      try {
+        const localProducts = getLocalProducts();
+        const localCats = getLocalCategories();
+        if (localProducts.length > 0) {
+          console.log('[AppContext] Using offline cache:', localProducts.length, 'products');
+          setState(prev => ({
+            ...prev,
+            products: localProducts,
+            categories: localCats.names,
+            categoriesWithId: localCats.withId,
+          }));
+          setIsOfflineMode(true);
+          setServiceError(null); // Don't show error if we have cached data
+          return;
+        }
+      } catch { /* SQLite not initialized yet */ }
+
       setServiceError(e?.message || 'Gagal memuat data dari server. Periksa koneksi internet Anda.');
     } finally {
       setIsServiceLoading(false);
@@ -122,6 +149,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         categoriesWithId: [],
       });
       setServiceError(null);
+      setIsOfflineMode(false);
       return;
     }
     let mounted = true;
@@ -130,10 +158,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsServiceLoading(true);
         setServiceError(null);
         const next = await appApi.getAppState();
-        if (mounted) setState(next);
+        if (mounted) {
+          setState(next);
+          setIsOfflineMode(false);
+        }
+
+        // Sync catalog to SQLite for offline fallback
+        try { await syncCatalog(); } catch { /* non-critical */ }
       } catch (e: any) {
         console.error('Failed to load state from backend:', e);
+
+        // Fallback to local SQLite cache
         if (mounted) {
+          try {
+            const localProducts = getLocalProducts();
+            const localCats = getLocalCategories();
+            if (localProducts.length > 0) {
+              console.log('[AppContext] Offline fallback:', localProducts.length, 'products from cache');
+              setState(prev => ({
+                ...prev,
+                products: localProducts,
+                categories: localCats.names,
+                categoriesWithId: localCats.withId,
+              }));
+              setIsOfflineMode(true);
+              return; // Don't show error — we have cached data
+            }
+          } catch { /* SQLite not initialized yet */ }
+
           setServiceError(e?.message || 'Gagal terhubung ke server backend.');
         }
       } finally {
@@ -146,47 +198,108 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const checkout = useCallback(async (params: CheckoutParams) => {
     setIsServiceLoading(true);
     try {
-      // Generate idempotency key to prevent duplicate transactions
-      // if the same request is retried due to timeout/network issues
-      const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
       const savedBranchId = await AsyncStorage.getItem('selected_branch_id');
       const branch_id = (savedBranchId && savedBranchId !== 'all') ? savedBranchId : undefined;
 
-      const { transaction, appState } = await posApi.createTransaction({
-        cart: params.cart.map((i: CartItemWithInput) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-          note: i.note,
-          modifiers: i.modifiers,
-          description: i.description,
-          variantName: i.variantName,
-          variantPrice: i.variantPrice,
-          ...(i.productId.startsWith('manual-') ? { price: i.price } : {}),
-        })),
-        paymentMethod: params.paymentMethod,
-        customerId: params.selectedCustomer,
-        customerName: params.customCustomerName,
-        orderType: params.orderType,
-        tableNumber: params.tableNumber,
-        cashReceived: params.cashReceived,
-        orderNote: params.orderNote,
-        notes: params.notes,
-        applyTax: params.applyTax,
-        idempotencyKey,
-        branch_id,
-      });
+      // ── Try online checkout first ──────────────────────────────────────
+      try {
+        const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
-      const normalized = normalizeAppStateWire(appState as AppStateWire);
-      setState(prev => ({
-        ...prev,
-        products: normalized.products,
-        transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-      }));
-      return transaction;
+        const { transaction, appState } = await posApi.createTransaction({
+          cart: params.cart.map((i: CartItemWithInput) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            note: i.note,
+            modifiers: i.modifiers,
+            description: i.description,
+            variantName: i.variantName,
+            variantPrice: i.variantPrice,
+            ...(i.productId.startsWith('manual-') ? { price: i.price } : {}),
+          })),
+          paymentMethod: params.paymentMethod,
+          customerId: params.selectedCustomer,
+          customerName: params.customCustomerName,
+          orderType: params.orderType,
+          tableNumber: params.tableNumber,
+          cashReceived: params.cashReceived,
+          orderNote: params.orderNote,
+          notes: params.notes,
+          applyTax: params.applyTax,
+          idempotencyKey,
+          branch_id,
+        });
+
+        const normalized = normalizeAppStateWire(appState as AppStateWire);
+        setState(prev => ({
+          ...prev,
+          products: normalized.products,
+          transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+        }));
+        return transaction;
+      } catch (onlineErr: any) {
+        // ── Fallback to offline checkout if network error ───────────────
+        const isNetworkError =
+          onlineErr?.code === 'TIMEOUT' ||
+          onlineErr?.code === 'NO_BASE_URL' ||
+          onlineErr?.status === 0 ||
+          onlineErr?.message?.includes('Network request failed') ||
+          onlineErr?.message?.includes('timed out');
+
+        if (!isNetworkError) {
+          // Server returned a real error (validation, insufficient stock, etc.)
+          throw onlineErr;
+        }
+
+        console.log('[AppContext] Online checkout failed, falling back to offline:', onlineErr?.message);
+
+        if (!user) throw onlineErr;
+
+        const transaction = await offlineCheckout({
+          cart: params.cart,
+          paymentMethod: params.paymentMethod,
+          customerId: params.selectedCustomer,
+          customerName: params.customCustomerName,
+          orderType: params.orderType,
+          tableNumber: params.tableNumber,
+          cashReceived: params.cashReceived,
+          orderNote: params.orderNote,
+          notes: params.notes,
+          applyTax: params.applyTax,
+          branchId: branch_id,
+          shiftId: undefined, // Will be resolved from ShiftContext by caller
+          cashierId: user.id,
+          cashierName: user.name,
+          shopId: user.shop_id,
+        });
+
+        // Update local products with adjusted stock
+        try {
+          const localProducts = getLocalProducts();
+          if (localProducts.length > 0) {
+            setState(prev => ({
+              ...prev,
+              products: localProducts,
+              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+            }));
+          } else {
+            setState(prev => ({
+              ...prev,
+              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+            }));
+          }
+        } catch {
+          setState(prev => ({
+            ...prev,
+            transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+          }));
+        }
+
+        return transaction;
+      }
     } finally {
       setIsServiceLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const updateSettings = useCallback(async (newSettings: Partial<BusinessSettings> & { shop_name?: string }): Promise<BusinessSettings> => {
     setIsServiceLoading(true);

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, Animated, Pressable, useWindowDimensions } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,6 +6,7 @@ import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import LogoutModal from '../common/LogoutModal';
 import {
   Coffee, ShoppingCart, Clock, List, Settings, LogOut, Sun, Moon, ChevronLeft, ChevronRight
 } from 'lucide-react-native';
@@ -85,6 +86,8 @@ export default function CashierSidebar({
     { id: 'settings', label: 'Pengaturan', icon: Settings, route: '/(cashier)/settings' },
   ];
 
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   const handleNav = (route: string) => {
     router.push(route as any);
     if (!inline) {
@@ -92,7 +95,11 @@ export default function CashierSidebar({
     }
   };
 
-  const handleLogout = async () => {
+  const handleOpenLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = async () => {
     try {
       await logout();
       router.replace('/(auth)/login');
@@ -313,7 +320,7 @@ export default function CashierSidebar({
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleLogout}
+                onPress={handleOpenLogout}
                 style={{
                   width: 32,
                   height: 32,
@@ -329,38 +336,29 @@ export default function CashierSidebar({
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={{ gap: 10 }}>
-              {/* User Info Row */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: c.accent,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Text style={{ color: c.textInverse, fontSize: 12, fontWeight: '800' }}>
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: c.text, fontSize: 12, fontWeight: '700' }} numberOfLines={1}>
-                    {user?.name || 'Kasir'}
-                  </Text>
-                  <Text style={{ color: isDark ? '#f59e0b' : '#ea580c', fontSize: 9, fontWeight: '700' }}>
-                    {user?.role?.toUpperCase() || 'CASHIER'}
-                  </Text>
-                </View>
+            <View style={{ gap: 10, paddingBottom: insets.bottom > 0 ? insets.bottom + 8 : 12 }}>
+              {/* Dark Mode Toggle */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  borderRadius: 10,
+                  backgroundColor: c.bgInput,
+                }}
+              >
+                <Text style={{ color: c.textSecondary, fontSize: 12, fontWeight: '600' }}>
+                  {isDark ? 'Mode Gelap' : 'Mode Terang'}
+                </Text>
                 <TouchableOpacity
                   onPress={toggleTheme}
                   style={{
                     width: 28,
                     height: 28,
-                    borderRadius: 8,
-                    backgroundColor: c.bgInput,
+                    borderRadius: 6,
+                    backgroundColor: c.bgCard,
                     borderWidth: 1,
                     borderColor: c.border,
                     alignItems: 'center',
@@ -377,7 +375,7 @@ export default function CashierSidebar({
 
               {/* Logout Button */}
               <TouchableOpacity
-                onPress={handleLogout}
+                onPress={handleOpenLogout}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -416,6 +414,11 @@ export default function CashierSidebar({
         ]}
       >
         {renderContent(collapsed)}
+        <LogoutModal
+          visible={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={handleConfirmLogout}
+        />
       </View>
     );
   }
@@ -456,6 +459,12 @@ export default function CashierSidebar({
       >
         {renderContent(false)}
       </Animated.View>
+
+      <LogoutModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </View>
   );
 }

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -7,6 +7,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getColors } from '../../../utils/theme';
 import { usePrinter } from '../../../contexts/PrinterContext';
+import LogoutModal from '../../../components/common/LogoutModal';
 
 export default function CashierSettings() {
   const router = useRouter();
@@ -14,21 +15,20 @@ export default function CashierSettings() {
   const { effectiveTheme, toggleTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
-  const { selectedDevice, config, connectionStatus } = usePrinter();
+  const { selectedDevice, config } = usePrinter();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Yakin ingin keluar?', [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: async () => { await logout(); router.replace('/(auth)/login'); } },
-    ]);
+  const handleConfirmLogout = async () => {
+    await logout();
+    router.replace('/(auth)/login');
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <Text style={{ color: c.text, fontSize: 20, fontWeight: '900', paddingHorizontal: 16, paddingVertical: 12 }}>Pengaturan</Text>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 100 }}>
         {/* Profile */}
         <View style={{ backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.border, borderRadius: 16, padding: 16 }}>
           <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 }}>PROFIL</Text>
@@ -108,12 +108,18 @@ export default function CashierSettings() {
         <View style={{ backgroundColor: c.bgCard, borderWidth: 1, borderColor: c.border, borderRadius: 16, padding: 16 }}>
           <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 }}>LAINNYA</Text>
           <Text style={{ color: c.textSecondary, fontSize: 12, marginBottom: 12 }}>SmartPOS v1.0.0</Text>
-          <TouchableOpacity onPress={handleLogout} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}>
+          <TouchableOpacity onPress={() => setShowLogoutModal(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}>
             <Feather name="log-out" size={16} color={c.error} />
             <Text style={{ color: c.error, fontSize: 14, fontWeight: '600' }}>Logout</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <LogoutModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </SafeAreaView>
   );
 }

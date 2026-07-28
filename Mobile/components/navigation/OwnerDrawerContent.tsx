@@ -9,6 +9,7 @@ import { getNavigation } from '../../data/navigation';
 import { appApi } from '../../services/appApi';
 import { useApp } from '../../contexts/AppContext';
 import * as LucideIcons from 'lucide-react-native';
+import LogoutModal from '../common/LogoutModal';
 import {
   Coffee, ChevronLeft, ChevronRight, LogOut, Sun, Moon,
   ChevronDown, Settings
@@ -506,6 +507,13 @@ export default function OwnerSidebar({
     });
   };
 
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleConfirmLogout = async () => {
+    await logout();
+    router.replace('/(auth)/login');
+  };
+
   /* ─── Logout Button (shared across modes) ─────────────────────────── */
 
   const renderLogoutButton = (isCollapsedLocal: boolean) => {
@@ -513,7 +521,7 @@ export default function OwnerSidebar({
       return (
         <View style={{ alignItems: 'center', marginTop: isPhoneLandscape ? 4 : 8, marginBottom: isPhoneLandscape ? 2 : 4 }}>
           <TouchableOpacity
-            onPress={async () => { await logout(); router.replace('/(auth)/login'); }}
+            onPress={() => setShowLogoutModal(true)}
             style={{
               width: sz.logoutBtnSize,
               height: sz.logoutBtnSize,
@@ -533,7 +541,7 @@ export default function OwnerSidebar({
 
     return (
       <TouchableOpacity
-        onPress={async () => { await logout(); router.replace('/(auth)/login'); }}
+        onPress={() => setShowLogoutModal(true)}
         style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -994,7 +1002,7 @@ export default function OwnerSidebar({
             </View>
             {/* Logout button at the bottom of navigation */}
             <TouchableOpacity
-              onPress={async () => { await logout(); router.replace('/(auth)/login'); }}
+              onPress={() => setShowLogoutModal(true)}
               style={{
                 flexDirection: 'row', alignItems: 'center', gap: 8,
                 marginHorizontal: 8,

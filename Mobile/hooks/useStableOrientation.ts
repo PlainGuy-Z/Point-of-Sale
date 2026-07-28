@@ -25,15 +25,16 @@ export function useStableOrientation(debounceMs = 150) {
   const [stable, setStable] = useState({
     width,
     height,
+    isLandscape: width > height,
   });
 
-  const isLandscape = stable.width > stable.height;
-
   useEffect(() => {
-    // Debounce exact dimension updates to allow viewport measurements to settle,
-    // while orientation direction (isLandscape) updates immediately.
+    // Debounce ALL values (dimensions + orientation) so they transition
+    // atomically. This prevents the layout from switching to the landscape
+    // branch while still holding portrait-sized dimensions (or vice-versa),
+    // which caused the compressed 4-column grid bug during rotation.
     const timer = setTimeout(() => {
-      setStable({ width, height });
+      setStable({ width, height, isLandscape: width > height });
     }, debounceMs);
 
     return () => {
@@ -44,6 +45,6 @@ export function useStableOrientation(debounceMs = 150) {
   return {
     width: stable.width,
     height: stable.height,
-    isLandscape,
+    isLandscape: stable.isLandscape,
   };
 }

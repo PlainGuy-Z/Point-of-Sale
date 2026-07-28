@@ -91,26 +91,34 @@ export default function CashierLayout() {
                 headerShown: false,
                 tabBarStyle: {
                   // BOTTOM NAVIGATION BAR - CASHIER PORTRAIT MODE ONLY
-                  // - Only visible in portrait (display: flex)
-                  // - Hidden in landscape (display: none), sidebar used instead
-                  // - Safe area: paddingBottom uses insets.bottom for Android nav bar
-                  backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+                  // - Matches OwnerBottomBar size, height, padding, elevation, and positioning
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: c.bgCard,
                   borderTopWidth: 1,
-                  borderTopColor: c.border,
-                  height: 60 + insets.bottom,
-                  paddingBottom: insets.bottom + 6,
-                  paddingTop: 8,
+                  borderTopColor: c.borderLight,
+                  height: 50 + Math.max(insets.bottom, 4),
+                  paddingBottom: Math.max(insets.bottom, 4),
+                  paddingTop: 3,
                   display: isLandscape ? 'none' : 'flex',
+                  elevation: 16,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: -3 },
+                  shadowOpacity: 0.08,
+                  shadowRadius: 8,
+                  zIndex: 999,
                 },
-                tabBarActiveTintColor: c.tabActive,
+                tabBarActiveTintColor: c.accent,
                 tabBarInactiveTintColor: c.tabInactive,
                 tabBarLabelStyle: {
-                  fontSize: 10,
-                  fontWeight: '600',
-                  marginTop: 2,
+                  fontSize: 9.5,
+                  fontWeight: '500',
+                  marginTop: 3,
                 },
                 tabBarIconStyle: {
-                  marginTop: 2,
+                  marginTop: 0,
                 },
               }}
             >

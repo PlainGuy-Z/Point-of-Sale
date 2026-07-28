@@ -23,8 +23,8 @@ export default function FloatingCart({ onPress, bottomOffset }: FloatingCartProp
 
   if (cartIsEmpty) return null;
 
-  // In portrait mode, elevate FloatingCart above OwnerBottomBar with a clean floating gap
-  const defaultBottom = !isLandscape ? 68 + Math.max(insets.bottom, 4) : 0;
+  // In portrait mode, elevate FloatingCart above the bottom bar (Owner & Cashier) with a consistent gap
+  const defaultBottom = !isLandscape ? 62 + Math.max(insets.bottom, 4) : 0;
   const finalBottom = bottomOffset !== undefined ? bottomOffset : defaultBottom;
 
   return (
@@ -46,9 +46,9 @@ export default function FloatingCart({ onPress, bottomOffset }: FloatingCartProp
         activeOpacity={0.9}
         style={{
           backgroundColor: c.accent,
-          borderRadius: 16,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
+          borderRadius: 18,
+          paddingHorizontal: 18,
+          paddingVertical: 16,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -59,32 +59,32 @@ export default function FloatingCart({ onPress, bottomOffset }: FloatingCartProp
           shadowRadius: 6,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ position: 'relative' }}>
-            <ShoppingCart size={20} color={c.textInverse} strokeWidth={2} />
+            <ShoppingCart size={22} color={c.textInverse} strokeWidth={2.2} />
             <View
               style={{
                 position: 'absolute',
-                top: -6,
-                right: -8,
+                top: -7,
+                right: -9,
                 backgroundColor: isDark ? '#000' : '#fff',
-                width: 18,
-                height: 18,
-                borderRadius: 9,
+                width: 20,
+                height: 20,
+                borderRadius: 10,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ color: c.accent, fontSize: 10, fontWeight: '900' }}>
+              <Text style={{ color: c.accent, fontSize: 10.5, fontWeight: '900' }}>
                 {totalQuantity}
               </Text>
             </View>
           </View>
-          <Text style={{ color: c.textInverse, fontSize: 13, fontWeight: '700' }}>
+          <Text style={{ color: c.textInverse, fontSize: 14, fontWeight: '800' }}>
             {cart.length} item · {formatRupiahShort(subtotal)}
           </Text>
         </View>
-        <Text style={{ color: c.textInverse, fontSize: 13, fontWeight: '900' }}>
+        <Text style={{ color: c.textInverse, fontSize: 14, fontWeight: '900' }}>
           Buka →
         </Text>
       </TouchableOpacity>

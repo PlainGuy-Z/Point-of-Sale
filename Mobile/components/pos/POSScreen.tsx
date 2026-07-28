@@ -26,6 +26,7 @@ import PaymentScreen from './PaymentScreen';
 import PaymentSuccessScreen from './PaymentSuccessScreen';
 import SidebarModal from './SidebarModal';
 import BranchSelectorHeader from '../navigation/BranchSelectorHeader';
+import SyncStatusBanner from '../sync/SyncStatusBanner';
 import type { CartItemWithInput, Transaction, Product } from '../../types';
 
 // ─── Trending period options ────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ const TRENDING_PERIODS = [
 export default function POSScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isLandscape, width: windowWidth } = useStableOrientation();
+  const { isLandscape } = useStableOrientation();
 
   const { products, categories } = useProducts();
   const { transactions, checkout: appCheckout } = useTransactions();
@@ -467,7 +468,7 @@ export default function POSScreen() {
   // PORTRAIT CART MODAL (bottom sheet style)
   // ══════════════════════════════════════════════════════════════════════════
   const renderPortraitCartModal = () => (
-    <Modal visible={showCartModal} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setShowCartModal(false)}>
+    <Modal visible={showCartModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowCartModal(false)}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowCartModal(false)} />
@@ -537,6 +538,7 @@ export default function POSScreen() {
           </View>
         </View>
 
+        <SyncStatusBanner />
         {renderSearchBar()}
         {renderTrendingBar()}
 
@@ -623,7 +625,7 @@ export default function POSScreen() {
 
         {/* Category modal shown when user taps Lihat Semua */}
         {categoryModal && (
-          <Modal visible animationType="slide" statusBarTranslucent onRequestClose={() => setCategoryModal(null)}>
+          <Modal visible animationType="fade" statusBarTranslucent onRequestClose={() => setCategoryModal(null)}>
             <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '900', color: c.text }}>{categoryModal.title}</Text>
@@ -854,6 +856,8 @@ export default function POSScreen() {
             </View>
           </View>
 
+          <SyncStatusBanner />
+
           {/* Categories Carousel */}
           {renderCategoryPills()}
 
@@ -974,7 +978,7 @@ export default function POSScreen() {
               refreshControl={<RefreshControl refreshing={isServiceLoading} onRefresh={refreshState} />}
               keyExtractor={item => item.id}
               numColumns={4}
-              key={`landscape-grid-${windowWidth}`}
+              key="landscape-grid-4"
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
               columnWrapperStyle={{ justifyContent: 'flex-start' }}
               showsVerticalScrollIndicator={true}
