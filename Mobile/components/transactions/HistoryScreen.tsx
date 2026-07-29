@@ -333,14 +333,6 @@ export default function HistoryScreen() {
 
               {/* Filters */}
               {renderFilters()}
-
-              {isCovered && (
-                <View style={{ paddingHorizontal: 16, marginTop: 4 }}>
-                  <Text style={{ fontSize: 9.5, color: c.textMuted, fontStyle: 'italic', lineHeight: 14 }}>
-                    💡 Cari atau urutkan untuk memuat data dari server.
-                  </Text>
-                </View>
-              )}
             </ScrollView>
           </View>
 
@@ -354,31 +346,28 @@ export default function HistoryScreen() {
         <>
           {/* Header */}
           <View style={styles.headerSection}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.titleText, { color: c.text }]}>
                   Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
                 </Text>
                 <Text style={[styles.subtitleText, { color: c.textSecondary }]}>
-                  Transaksi Hari Ini — {todayLabel}
+                  {todayLabel}
                 </Text>
               </View>
-              <View style={{
-                flexDirection: 'row', alignItems: 'center', gap: 4,
-                paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
-                backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
-              }}>
-                <Zap size={10} color={isCovered ? "#f59e0b" : "#3b82f6"} />
-                <Text style={{ fontSize: 9, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
-                  {isCovered ? 'Live Cache — 200 transaksi terbaru' : 'Data Server'}
-                </Text>
-              </View>
+              {isCovered && (
+                <View style={{
+                  flexDirection: 'row', alignItems: 'center', gap: 4,
+                  paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+                  backgroundColor: isDark ? '#292524' : '#fef3c7',
+                }}>
+                  <Zap size={10} color="#f59e0b" />
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: "#f59e0b" }}>
+                    Offline
+                  </Text>
+                </View>
+              )}
             </View>
-            {isCovered && (
-              <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 8, fontStyle: 'italic' }}>
-                💡 Gunakan filter pencarian atau pengurutan untuk melihat transaksi lama dari server.
-              </Text>
-            )}
           </View>
 
           {/* Feedback */}
