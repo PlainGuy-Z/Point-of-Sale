@@ -35,7 +35,7 @@ interface SyncContextValue {
   /** Whether the initial catalog sync has completed */
   isCatalogReady: boolean;
   /** Manually trigger a sync */
-  triggerSync: (isManual?: boolean) => Promise<SyncStats | null>;
+  triggerSync: () => Promise<SyncStats | null>;
   /** Manually trigger a catalog refresh */
   triggerCatalogSync: () => Promise<void>;
   /** Last sync result stats */
@@ -136,12 +136,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   // ── Sync trigger ───────────────────────────────────────────────────────────
 
-  const triggerSync = useCallback(async (isManual: boolean = false): Promise<SyncStats | null> => {
+  const triggerSync = useCallback(async (): Promise<SyncStats | null> => {
     if (!isDbReady || !isOnline || checkIsSyncing()) return null;
 
     setIsSyncing(true);
     try {
-      const stats = await runSync(deviceId, isManual); // force bypass only if manual
+      const stats = await runSync(deviceId, true); // force=true to bypass retry limits on manual sync
       if (stats) {
         setLastSyncStats(stats);
 
@@ -150,14 +150,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             '⚠️ Sync Sebagian Ditolak',
             `${stats.rejected} transaksi offline ditolak oleh server. Pastikan migrasi database PostgreSQL (migration-offline-first.sql) sudah dijalankan di server.`
           );
-        } else if (stats.failed > 0 && isManual) {
-          // Only show failure popup if user manually tapped the button
+        } else if (stats.failed > 0) {
           Alert.alert(
             '❌ Sync Gagal',
             `${stats.failed} transaksi gagal disinkronkan. Periksa koneksi internet atau pastikan server backend berjalan normal.`
           );
         } else if (stats.synced > 0) {
-          console.log(`[SyncContext] Successfully synced ${stats.synced} transactions.`);
+          console.log(`[SyncContext] Successfully synced ${stats.synced} transactions manually.`);
         }
       }
       refreshCounts();

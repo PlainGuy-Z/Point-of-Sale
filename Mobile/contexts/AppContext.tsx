@@ -7,7 +7,6 @@ import { useAuth } from './AuthContext';
 import { offlineCheckout } from '../services/sync/offlineCheckout';
 import { getLocalProducts, getLocalCategories, syncCatalog } from '../services/db/catalogSync';
 import { getPendingCount, getPendingAsTransactions } from '../services/db/pendingTransactions';
-import { cacheSyncedTransactions, getCachedSyncedTransactions } from '../services/db/transactionCache';
 import { addSyncListener } from '../services/sync/SyncManager';
 
 interface AppContextType {
@@ -144,9 +143,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setState(mergePendingIntoState(next));
       setIsOfflineMode(false);
 
-      // Cache server transactions to local SQLite for offline history view
-      try { cacheSyncedTransactions(next.transactions); } catch { /* ignore */ }
-
       // Also sync catalog to SQLite for offline fallback
       try { await syncCatalog(); } catch { /* non-critical */ }
     } catch (e: any) {
@@ -157,24 +153,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const localProducts = getLocalProducts();
         const localCats = getLocalCategories();
-        
-        const cachedTxs = getCachedSyncedTransactions();
         const pendingTxs = getPendingAsTransactions() as Transaction[];
-        
-        if (localProducts.length > 0 || pendingTxs.length > 0 || cachedTxs.length > 0) {
-          console.log('[AppContext] Using offline cache:', localProducts.length, 'products,', pendingTxs.length, 'pending txs,', cachedTxs.length, 'cached txs');
-          
-          // Merge pending and cached transactions
-          const cachedTxIds = new Set(cachedTxs.map(t => t.id));
-          const newPendingTxs = pendingTxs.filter(t => !cachedTxIds.has(t.id));
-          const mergedTransactions = [...newPendingTxs, ...cachedTxs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+        if (localProducts.length > 0 || pendingTxs.length > 0) {
+          console.log('[AppContext] Using offline cache:', localProducts.length, 'products,', pendingTxs.length, 'pending txs');
           setState(prev => ({
             ...prev,
             products: localProducts.length > 0 ? localProducts : prev.products,
             categories: localCats.names.length > 0 ? localCats.names : prev.categories,
             categoriesWithId: localCats.withId.length > 0 ? localCats.withId : prev.categoriesWithId,
-            transactions: mergedTransactions,
+            transactions: pendingTxs.length > 0 ? pendingTxs : prev.transactions,
           }));
           setServiceError(null); // Don't show error if we have cached data
           return;
@@ -211,8 +198,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           setState(mergePendingIntoState(next));
           setIsOfflineMode(false);
-          // Cache server transactions to local SQLite for offline history view
-          try { cacheSyncedTransactions(next.transactions); } catch { /* ignore */ }
         }
 
         // Sync catalog to SQLite for offline fallback
@@ -226,24 +211,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           try {
             const localProducts = getLocalProducts();
             const localCats = getLocalCategories();
-
-            const cachedTxs = getCachedSyncedTransactions();
             const pendingTxs = getPendingAsTransactions() as Transaction[];
-            
-            if (localProducts.length > 0 || pendingTxs.length > 0 || cachedTxs.length > 0) {
-              console.log('[AppContext] Offline fallback:', localProducts.length, 'products,', pendingTxs.length, 'pending txs,', cachedTxs.length, 'cached txs');
-              
-              // Merge pending and cached transactions
-              const cachedTxIds = new Set(cachedTxs.map(t => t.id));
-              const newPendingTxs = pendingTxs.filter(t => !cachedTxIds.has(t.id));
-              const mergedTransactions = [...newPendingTxs, ...cachedTxs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+            if (localProducts.length > 0 || pendingTxs.length > 0) {
+              console.log('[AppContext] Offline fallback:', localProducts.length, 'products from cache');
               setState(prev => ({
                 ...prev,
                 products: localProducts.length > 0 ? localProducts : prev.products,
                 categories: localCats.names.length > 0 ? localCats.names : prev.categories,
                 categoriesWithId: localCats.withId.length > 0 ? localCats.withId : prev.categoriesWithId,
-                transactions: mergedTransactions,
+                transactions: pendingTxs.length > 0 ? pendingTxs : prev.transactions,
               }));
               setServiceError(null); // Don't show error — we have cached data
               return;
@@ -272,67 +248,155 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [status, refreshState]);
 
   const checkout = useCallback(async (params: CheckoutParams) => {
-    // ── True Offline-First Checkout ──────────────────────────────────────────
-    // No loading spinner. Instant local save. Background sync handles the rest.
+    setIsServiceLoading(true);
     try {
       const savedBranchId = await AsyncStorage.getItem('selected_branch_id');
       const branch_id = (savedBranchId && savedBranchId !== 'all') ? savedBranchId : undefined;
 
-      if (!user) throw new Error('User not authenticated');
+      // ── Instant offline checkout if already in offline mode ────────────
+      if (isOfflineMode && user) {
+        console.log('[AppContext] Device is offline — instant offline checkout (<50ms)');
+        const transaction = await offlineCheckout({
+          cart: params.cart,
+          paymentMethod: params.paymentMethod,
+          customerId: params.selectedCustomer,
+          customerName: params.customCustomerName,
+          orderType: params.orderType,
+          tableNumber: params.tableNumber,
+          cashReceived: params.cashReceived,
+          orderNote: params.orderNote,
+          notes: params.notes,
+          applyTax: params.applyTax,
+          branchId: branch_id,
+          shiftId: undefined,
+          cashierId: user.id,
+          cashierName: user.name,
+          shopId: user.shop_id,
+        });
 
-      console.log('[AppContext] True offline-first checkout (<50ms)');
-      
-      const transaction = await offlineCheckout({
-        cart: params.cart,
-        paymentMethod: params.paymentMethod,
-        customerId: params.selectedCustomer,
-        customerName: params.customCustomerName,
-        orderType: params.orderType,
-        tableNumber: params.tableNumber,
-        cashReceived: params.cashReceived,
-        orderNote: params.orderNote,
-        notes: params.notes,
-        applyTax: params.applyTax,
-        branchId: branch_id,
-        shiftId: undefined, // Will be resolved from ShiftContext by caller
-        cashierId: user.id,
-        cashierName: user.name,
-        shopId: user.shop_id,
-      });
-
-      // Update local state immediately for snappy UI
-      try {
-        const localProducts = getLocalProducts();
-        if (localProducts.length > 0) {
-          setState(prev => ({
-            ...prev,
-            products: localProducts,
-            transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-          }));
-        } else {
+        try {
+          const localProducts = getLocalProducts();
+          if (localProducts.length > 0) {
+            setState(prev => ({
+              ...prev,
+              products: localProducts,
+              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+            }));
+          } else {
+            setState(prev => ({
+              ...prev,
+              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+            }));
+          }
+        } catch {
           setState(prev => ({
             ...prev,
             transactions: [transaction, ...prev.transactions.slice(0, 9999)],
           }));
         }
-      } catch {
-        setState(prev => ({
-          ...prev,
-          transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-        }));
+
+        return transaction;
       }
 
-      // Note: We don't trigger sync manually here.
-      // The auto-sync interval (30s) in SyncContext will automatically pick this up
-      // and sync it in the background without blocking the UI.
-      
-      return transaction;
-    } catch (err: any) {
-      console.error('[AppContext] Offline checkout failed:', err);
-      throw err;
-    }
-  }, [user]);
+      // ── Try online checkout (with 3s fast timeout) ──────────────────────
+      try {
+        const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
+        const { transaction, appState } = await posApi.createTransaction({
+          cart: params.cart.map((i: CartItemWithInput) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            note: i.note,
+            modifiers: i.modifiers,
+            description: i.description,
+            variantName: i.variantName,
+            variantPrice: i.variantPrice,
+            ...(i.productId.startsWith('manual-') ? { price: i.price } : {}),
+          })),
+          paymentMethod: params.paymentMethod,
+          customerId: params.selectedCustomer,
+          customerName: params.customCustomerName,
+          orderType: params.orderType,
+          tableNumber: params.tableNumber,
+          cashReceived: params.cashReceived,
+          orderNote: params.orderNote,
+          notes: params.notes,
+          applyTax: params.applyTax,
+          idempotencyKey,
+          branch_id,
+        });
+
+        const normalized = normalizeAppStateWire(appState as AppStateWire);
+        setState(prev => ({
+          ...prev,
+          products: normalized.products,
+          transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+        }));
+        return transaction;
+      } catch (onlineErr: any) {
+        // ── Fallback to offline checkout if network error ───────────────
+        const isNetworkError =
+          onlineErr?.code === 'TIMEOUT' ||
+          onlineErr?.code === 'NO_BASE_URL' ||
+          onlineErr?.status === 0 ||
+          onlineErr?.message?.includes('Network request failed') ||
+          onlineErr?.message?.includes('timed out');
+
+        if (!isNetworkError) {
+          // Server returned a real error (validation, insufficient stock, etc.)
+          throw onlineErr;
+        }
+
+        console.log('[AppContext] Online checkout failed, falling back to offline:', onlineErr?.message);
+
+        if (!user) throw onlineErr;
+
+        const transaction = await offlineCheckout({
+          cart: params.cart,
+          paymentMethod: params.paymentMethod,
+          customerId: params.selectedCustomer,
+          customerName: params.customCustomerName,
+          orderType: params.orderType,
+          tableNumber: params.tableNumber,
+          cashReceived: params.cashReceived,
+          orderNote: params.orderNote,
+          notes: params.notes,
+          applyTax: params.applyTax,
+          branchId: branch_id,
+          shiftId: undefined, // Will be resolved from ShiftContext by caller
+          cashierId: user.id,
+          cashierName: user.name,
+          shopId: user.shop_id,
+        });
+
+        // Update local products with adjusted stock
+        try {
+          const localProducts = getLocalProducts();
+          if (localProducts.length > 0) {
+            setState(prev => ({
+              ...prev,
+              products: localProducts,
+              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+            }));
+          } else {
+            setState(prev => ({
+              ...prev,
+              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+            }));
+          }
+        } catch {
+          setState(prev => ({
+            ...prev,
+            transactions: [transaction, ...prev.transactions.slice(0, 9999)],
+          }));
+        }
+
+        return transaction;
+      }
+    } finally {
+      setIsServiceLoading(false);
+    }
+  }, [user, isOfflineMode]);
 
   const updateSettings = useCallback(async (newSettings: Partial<BusinessSettings> & { shop_name?: string }): Promise<BusinessSettings> => {
     setIsServiceLoading(true);

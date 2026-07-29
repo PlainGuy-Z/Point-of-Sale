@@ -26,6 +26,7 @@ import PaymentScreen from './PaymentScreen';
 import PaymentSuccessScreen from './PaymentSuccessScreen';
 import SidebarModal from './SidebarModal';
 import BranchSelectorHeader from '../navigation/BranchSelectorHeader';
+import SyncStatusBanner from '../sync/SyncStatusBanner';
 import type { CartItemWithInput, Transaction, Product } from '../../types';
 
 // ─── Trending period options ────────────────────────────────────────────────────
@@ -537,7 +538,7 @@ export default function POSScreen() {
           </View>
         </View>
 
-
+        <SyncStatusBanner />
         {renderSearchBar()}
         {renderTrendingBar()}
 
@@ -855,6 +856,7 @@ export default function POSScreen() {
             </View>
           </View>
 
+          <SyncStatusBanner />
 
           {/* Categories Carousel */}
           {renderCategoryPills()}
