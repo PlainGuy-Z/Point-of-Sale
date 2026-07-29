@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Banknote, CreditCard, QrCode, CheckCircle, Delete } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTransactions } from '../../contexts/AppContext';
+import { useShift } from '../../contexts/ShiftContext';
 import { usePOSCart } from '../../contexts/POSCartContext';
 import { formatRupiah } from '../../utils/currency';
 import { useLayout } from '../../hooks/useLayout';
@@ -83,6 +84,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { checkout: appCheckout } = useTransactions();
+  const { activeShift } = useShift();
   const { isLandscape, isTablet, mode } = useLayout();
   const isSplitLayout = isLandscape && isTablet;
   const isPhoneLandscape = mode === 'phone-landscape';
@@ -211,6 +213,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
         cashReceived: method === 'cash' ? received : undefined,
         change: method === 'cash' ? Math.max(0, change) : undefined,
         applyTax: fullCheckout.applyTax,
+        shiftId: activeShift?.id,
       });
 
       // Lightweight: pass variant info from cart to transaction items

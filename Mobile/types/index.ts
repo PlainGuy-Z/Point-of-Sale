@@ -212,6 +212,7 @@ export interface CheckoutParams {
   orderNote?: string;
   notes?: string;
   applyTax?: boolean;
+  shiftId?: string;
 }
 
 // ==================== CART ITEM EXTENSION ====================

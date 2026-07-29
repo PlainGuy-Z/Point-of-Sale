@@ -355,18 +355,6 @@ export default function HistoryScreen() {
                   {todayLabel}
                 </Text>
               </View>
-              {isCovered && (
-                <View style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 4,
-                  paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
-                  backgroundColor: isDark ? '#292524' : '#fef3c7',
-                }}>
-                  <Zap size={10} color="#f59e0b" />
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: "#f59e0b" }}>
-                    Offline
-                  </Text>
-                </View>
-              )}
             </View>
           </View>
 

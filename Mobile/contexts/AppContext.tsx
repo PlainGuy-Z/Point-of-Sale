@@ -8,6 +8,7 @@ import { offlineCheckout } from '../services/sync/offlineCheckout';
 import { getLocalProducts, getLocalCategories, syncCatalog } from '../services/db/catalogSync';
 import { getPendingCount, getPendingAsTransactions } from '../services/db/pendingTransactions';
 import { addSyncListener } from '../services/sync/SyncManager';
+import { useSync } from './SyncContext';
 
 interface AppContextType {
   products: Product[];
@@ -81,6 +82,7 @@ const defaultSettings: BusinessSettings = {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { status, user } = useAuth();
+  const { triggerSync } = useSync();
   const [state, setState] = useState<AppDataState>({
     products: [],
     transactions: [],
@@ -250,153 +252,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const checkout = useCallback(async (params: CheckoutParams) => {
     setIsServiceLoading(true);
     try {
+      if (!user) throw new Error("User not authenticated");
       const savedBranchId = await AsyncStorage.getItem('selected_branch_id');
       const branch_id = (savedBranchId && savedBranchId !== 'all') ? savedBranchId : undefined;
 
-      // ── Instant offline checkout if already in offline mode ────────────
-      if (isOfflineMode && user) {
-        console.log('[AppContext] Device is offline — instant offline checkout (<50ms)');
-        const transaction = await offlineCheckout({
-          cart: params.cart,
-          paymentMethod: params.paymentMethod,
-          customerId: params.selectedCustomer,
-          customerName: params.customCustomerName,
-          orderType: params.orderType,
-          tableNumber: params.tableNumber,
-          cashReceived: params.cashReceived,
-          orderNote: params.orderNote,
-          notes: params.notes,
-          applyTax: params.applyTax,
-          branchId: branch_id,
-          shiftId: undefined,
-          cashierId: user.id,
-          cashierName: user.name,
-          shopId: user.shop_id,
-        });
+      console.log('[AppContext] Processing local-first checkout');
+      const transaction = await offlineCheckout({
+        cart: params.cart,
+        paymentMethod: params.paymentMethod,
+        customerId: params.selectedCustomer,
+        customerName: params.customCustomerName,
+        orderType: params.orderType,
+        tableNumber: params.tableNumber,
+        cashReceived: params.cashReceived,
+        orderNote: params.orderNote,
+        notes: params.notes,
+        applyTax: params.applyTax,
+        branchId: branch_id,
+        shiftId: params.shiftId,
+        cashierId: user.id,
+        cashierName: user.name,
+        shopId: user.shop_id,
+      });
 
-        try {
-          const localProducts = getLocalProducts();
-          if (localProducts.length > 0) {
-            setState(prev => ({
-              ...prev,
-              products: localProducts,
-              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-            }));
-          } else {
-            setState(prev => ({
-              ...prev,
-              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-            }));
+      // Update local state without hitting SQLite for all products (drastically improves speed)
+      setState(prev => {
+        const updatedProducts = prev.products.map(p => {
+          const cartItem = params.cart.find(c => c.productId === p.id);
+          if (cartItem && p.stock !== -1) {
+            return { ...p, stock: Math.max(0, p.stock - cartItem.quantity) };
           }
-        } catch {
-          setState(prev => ({
-            ...prev,
-            transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-          }));
-        }
-
-        return transaction;
-      }
-
-      // ── Try online checkout (with 3s fast timeout) ──────────────────────
-      try {
-        const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-
-        const { transaction, appState } = await posApi.createTransaction({
-          cart: params.cart.map((i: CartItemWithInput) => ({
-            productId: i.productId,
-            quantity: i.quantity,
-            note: i.note,
-            modifiers: i.modifiers,
-            description: i.description,
-            variantName: i.variantName,
-            variantPrice: i.variantPrice,
-            ...(i.productId.startsWith('manual-') ? { price: i.price } : {}),
-          })),
-          paymentMethod: params.paymentMethod,
-          customerId: params.selectedCustomer,
-          customerName: params.customCustomerName,
-          orderType: params.orderType,
-          tableNumber: params.tableNumber,
-          cashReceived: params.cashReceived,
-          orderNote: params.orderNote,
-          notes: params.notes,
-          applyTax: params.applyTax,
-          idempotencyKey,
-          branch_id,
+          return p;
         });
 
-        const normalized = normalizeAppStateWire(appState as AppStateWire);
-        setState(prev => ({
+        return {
           ...prev,
-          products: normalized.products,
+          products: updatedProducts,
           transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-        }));
-        return transaction;
-      } catch (onlineErr: any) {
-        // ── Fallback to offline checkout if network error ───────────────
-        const isNetworkError =
-          onlineErr?.code === 'TIMEOUT' ||
-          onlineErr?.code === 'NO_BASE_URL' ||
-          onlineErr?.status === 0 ||
-          onlineErr?.message?.includes('Network request failed') ||
-          onlineErr?.message?.includes('timed out');
+        };
+      });
 
-        if (!isNetworkError) {
-          // Server returned a real error (validation, insufficient stock, etc.)
-          throw onlineErr;
-        }
+      // Fire-and-forget sync (delayed slightly to allow UI animations like modal closing to finish smoothly)
+      setTimeout(() => {
+        triggerSync().catch(console.error);
+      }, 300);
 
-        console.log('[AppContext] Online checkout failed, falling back to offline:', onlineErr?.message);
-
-        if (!user) throw onlineErr;
-
-        const transaction = await offlineCheckout({
-          cart: params.cart,
-          paymentMethod: params.paymentMethod,
-          customerId: params.selectedCustomer,
-          customerName: params.customCustomerName,
-          orderType: params.orderType,
-          tableNumber: params.tableNumber,
-          cashReceived: params.cashReceived,
-          orderNote: params.orderNote,
-          notes: params.notes,
-          applyTax: params.applyTax,
-          branchId: branch_id,
-          shiftId: undefined, // Will be resolved from ShiftContext by caller
-          cashierId: user.id,
-          cashierName: user.name,
-          shopId: user.shop_id,
-        });
-
-        // Update local products with adjusted stock
-        try {
-          const localProducts = getLocalProducts();
-          if (localProducts.length > 0) {
-            setState(prev => ({
-              ...prev,
-              products: localProducts,
-              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-            }));
-          } else {
-            setState(prev => ({
-              ...prev,
-              transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-            }));
-          }
-        } catch {
-          setState(prev => ({
-            ...prev,
-            transactions: [transaction, ...prev.transactions.slice(0, 9999)],
-          }));
-        }
-
-        return transaction;
-      }
+      return transaction;
     } finally {
       setIsServiceLoading(false);
     }
-  }, [user, isOfflineMode]);
+  }, [user, triggerSync]);
 
   const updateSettings = useCallback(async (newSettings: Partial<BusinessSettings> & { shop_name?: string }): Promise<BusinessSettings> => {
     setIsServiceLoading(true);

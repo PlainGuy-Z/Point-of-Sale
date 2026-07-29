@@ -3,11 +3,12 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, Modal, I
 import { FlashList } from '@shopify/flash-list';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, TrendingUp, Flame, Award, PlusCircle, Package, Menu, ChevronDown, SlidersHorizontal, AlertCircle } from 'lucide-react-native';
+import { Search, TrendingUp, Flame, Award, PlusCircle, Package, Menu, ChevronDown, SlidersHorizontal, AlertCircle, Wifi, WifiOff } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useProducts, useTransactions, useSettings } from '../../contexts/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useShift } from '../../contexts/ShiftContext';
+import { useSync } from '../../contexts/SyncContext';
 import { SidebarContext } from '../../contexts/SidebarContext';
 import { useColors } from '../../utils/theme';
 import { usePOSCart } from '../../contexts/POSCartContext';
@@ -26,7 +27,6 @@ import PaymentScreen from './PaymentScreen';
 import PaymentSuccessScreen from './PaymentSuccessScreen';
 import SidebarModal from './SidebarModal';
 import BranchSelectorHeader from '../navigation/BranchSelectorHeader';
-import SyncStatusBanner from '../sync/SyncStatusBanner';
 import type { CartItemWithInput, Transaction, Product } from '../../types';
 
 // ─── Trending period options ────────────────────────────────────────────────────
@@ -49,6 +49,7 @@ export default function POSScreen() {
   const { serviceError, refreshState, isServiceLoading } = useSettings();
   const { user, isCashier } = useAuth();
   const { activeShift } = useShift();
+  const { isOnline } = useSync();
   const { openSidebar } = useContext(SidebarContext);
   const { colors: c, isDark } = useColors();
 
@@ -535,10 +536,33 @@ export default function POSScreen() {
             <Text style={{ color: c.textSecondary, fontSize: 12, fontWeight: '700' }} numberOfLines={1}>
               {user?.shop?.name || 'Toko'}
             </Text>
+            
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              gap: 4,
+              backgroundColor: isOnline ? (isDark ? 'rgba(16, 185, 129, 0.15)' : '#dcfce7') : (isDark ? '#292524' : '#fef3c7'),
+              paddingHorizontal: 6,
+              paddingVertical: 2,
+              borderRadius: 999,
+              marginLeft: 2
+            }}>
+              {isOnline ? (
+                <Wifi size={10} color={isDark ? '#34d399' : '#059669'} />
+              ) : (
+                <WifiOff size={10} color="#f59e0b" />
+              )}
+              <Text style={{ 
+                fontSize: 10, 
+                fontWeight: '700', 
+                color: isOnline ? (isDark ? '#34d399' : '#059669') : "#f59e0b" 
+              }}>
+                {isOnline ? 'Online' : 'Offline'}
+              </Text>
+            </View>
           </View>
         </View>
 
-        <SyncStatusBanner />
         {renderSearchBar()}
         {renderTrendingBar()}
 
@@ -855,9 +879,6 @@ export default function POSScreen() {
               </View>
             </View>
           </View>
-
-          <SyncStatusBanner />
-
           {/* Categories Carousel */}
           {renderCategoryPills()}
 

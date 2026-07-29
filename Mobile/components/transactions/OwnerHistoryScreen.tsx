@@ -663,7 +663,7 @@ export default function OwnerHistoryScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: c.bg }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.headerSection, { paddingLeft: 16 }]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.titleText, { color: c.text }]}>
               Riwayat <Text style={{ color: c.accent }}>Transaksi</Text>
@@ -672,22 +672,19 @@ export default function OwnerHistoryScreen() {
               Filter lengkap untuk semua transaksi di toko Anda
             </Text>
           </View>
-          <View style={{
-            flexDirection: 'row', alignItems: 'center', gap: 4,
-            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
-            backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
-          }}>
-            <Zap size={10} color={isCovered ? "#f59e0b" : "#3b82f6"} />
-            <Text style={{ fontSize: 9, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
-              {isCovered ? 'Live Cache — 200 transaksi terbaru' : 'Data Server'}
-            </Text>
-          </View>
+          {isCovered && (
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', gap: 4,
+              paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+              backgroundColor: isDark ? '#292524' : '#fef3c7',
+            }}>
+              <Zap size={10} color="#f59e0b" />
+              <Text style={{ fontSize: 10, fontWeight: '700', color: "#f59e0b" }}>
+                Offline
+              </Text>
+            </View>
+          )}
         </View>
-        {isCovered && (
-          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 8, fontStyle: 'italic' }}>
-            💡 Gunakan filter tanggal, pencarian, status, metode pembayaran, atau kasir untuk menarik transaksi lama dari server.
-          </Text>
-        )}
       </View>
 
       {/* Feedback */}
