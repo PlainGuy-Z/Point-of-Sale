@@ -14,6 +14,7 @@
  *  10. Shift stats update
  */
 import { pool } from '../db/pool.js';
+import { resolveBranchId } from '../routes/branches.js';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 async function getShopSettings(shopId) {
     const { rows } = await pool.query(`SELECT tax_enabled, tax_rate, tax_inclusive,
@@ -45,7 +46,7 @@ function computeEffectivePrice(row) {
  * Validate and process a single offline transaction within a DB transaction.
  * Returns a SyncResult describing the outcome.
  */
-export async function validateAndInsertTransaction(client, tx, shopId, cashierId, cashierName, deviceId) {
+export async function validateAndInsertTransaction(client, tx, shopId, cashierId, cashierName, deviceId, userBranchId) {
     const txId = tx.id;
     // ── Step 1: Idempotency check ──────────────────────────────────────────
     const { rows: existing } = await client.query(`SELECT id FROM coffeepos.transactions WHERE id = $1::uuid`, [txId]);
@@ -174,11 +175,12 @@ export async function validateAndInsertTransaction(client, tx, shopId, cashierId
         : null;
     // Use the client-provided created_at as the transaction timestamp
     const clientCreatedAt = tx.created_at ? new Date(tx.created_at).toISOString() : new Date().toISOString();
+    const targetBranchId = await resolveBranchId(shopId, tx.branch_id, userBranchId, client);
     await client.query(`INSERT INTO coffeepos.transactions
        (id, subtotal, tax, service_charge, grand_total, discount_amount,
         customer_name, customer_id, table_number, notes, payment_method,
         cash_received, change_amount, order_type, status,
-        shop_id, cashier_id, cashier_name, shift_id,
+        shop_id, cashier_id, cashier_name, shift_id, branch_id,
         created_offline, synced_at, sync_device_id,
         needs_review, review_reason,
         created_at, updated_at)
@@ -186,15 +188,15 @@ export async function validateAndInsertTransaction(client, tx, shopId, cashierId
        ($1::uuid, $2, $3, $4::int, $5, 0,
         $6, $7::uuid, $8, $9, $10,
         $11, $12, $13::text, 'completed',
-        $14::uuid, $15::uuid, $16, $17::uuid,
-        true, now(), $18,
-        $19, $20,
-        $21::timestamptz, now())`, [
+        $14::uuid, $15::uuid, $16, $17::uuid, $18::uuid,
+        true, now(), $19,
+        $20, $21,
+        $22::timestamptz, now())`, [
         txId, subtotal, tax, serviceCharge, grandTotal,
         tx.customer_name ?? null, customerId, tx.table_number ?? null,
         tx.notes ?? null, tx.payment_method,
         cashReceived, changeAmount, tx.order_type,
-        shopId, cashierId, cashierName, shiftId,
+        shopId, cashierId, cashierName, shiftId, targetBranchId,
         deviceId,
         needsReview, needsReview ? reviewReasons.join('; ') : null,
         clientCreatedAt,

@@ -16,6 +16,7 @@
 
 import type { PoolClient } from 'pg';
 import { pool } from '../db/pool.js';
+import { resolveBranchId } from '../routes/branches.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ export async function validateAndInsertTransaction(
   cashierId: string,
   cashierName: string,
   deviceId: string,
+  userBranchId?: string | null,
 ): Promise<SyncResult> {
   const txId = tx.id;
 
@@ -303,12 +305,14 @@ export async function validateAndInsertTransaction(
   // Use the client-provided created_at as the transaction timestamp
   const clientCreatedAt = tx.created_at ? new Date(tx.created_at).toISOString() : new Date().toISOString();
 
+  const targetBranchId = await resolveBranchId(shopId, tx.branch_id, userBranchId, client);
+
   await client.query(
     `INSERT INTO coffeepos.transactions
        (id, subtotal, tax, service_charge, grand_total, discount_amount,
         customer_name, customer_id, table_number, notes, payment_method,
         cash_received, change_amount, order_type, status,
-        shop_id, cashier_id, cashier_name, shift_id,
+        shop_id, cashier_id, cashier_name, shift_id, branch_id,
         created_offline, synced_at, sync_device_id,
         needs_review, review_reason,
         created_at, updated_at)
@@ -316,16 +320,16 @@ export async function validateAndInsertTransaction(
        ($1::uuid, $2, $3, $4::int, $5, 0,
         $6, $7::uuid, $8, $9, $10,
         $11, $12, $13::text, 'completed',
-        $14::uuid, $15::uuid, $16, $17::uuid,
-        true, now(), $18,
-        $19, $20,
-        $21::timestamptz, now())`,
+        $14::uuid, $15::uuid, $16, $17::uuid, $18::uuid,
+        true, now(), $19,
+        $20, $21,
+        $22::timestamptz, now())`,
     [
       txId, subtotal, tax, serviceCharge, grandTotal,
       tx.customer_name ?? null, customerId, tx.table_number ?? null,
       tx.notes ?? null, tx.payment_method,
       cashReceived, changeAmount, tx.order_type,
-      shopId, cashierId, cashierName, shiftId,
+      shopId, cashierId, cashierName, shiftId, targetBranchId,
       deviceId,
       needsReview, needsReview ? reviewReasons.join('; ') : null,
       clientCreatedAt,

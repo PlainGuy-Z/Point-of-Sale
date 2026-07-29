@@ -132,7 +132,7 @@ const TX_AGG_SELECT = `
     t.void_review_note,
     t.shift_id::text,
     t.branch_id::text,
-    b.name AS branch_name,
+    MAX(b.name) AS branch_name,
     t.created_offline,
     t.synced_at,
     t.needs_review,

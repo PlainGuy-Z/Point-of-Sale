@@ -175,6 +175,7 @@ syncRouter.post('/', validateBody(SyncRequestSchema), async (req, res, next) => 
         const shopId = req.user.shop_id;
         const cashierId = req.user.id;
         const cashierName = req.user.name;
+        const userBranchId = req.user?.branch_id ?? null;
         const deviceId = body.device_id;
         console.log(`[Sync] POST /pos/sync — shop=${shopId}, device=${deviceId}, txCount=${body.transactions.length}`);
         const results = [];
@@ -183,12 +184,13 @@ syncRouter.post('/', validateBody(SyncRequestSchema), async (req, res, next) => 
         for (const offlineTx of body.transactions) {
             try {
                 const result = await withTransaction(async (client) => {
-                    return validateAndInsertTransaction(client, offlineTx, shopId, cashierId, cashierName, deviceId);
+                    return validateAndInsertTransaction(client, offlineTx, shopId, cashierId, cashierName, deviceId, userBranchId);
                 });
                 results.push(result);
             }
             catch (err) {
-                console.error(`[Sync] Failed to process tx ${offlineTx.id}:`, err?.message);
+                console.error(`[Sync] Failed to process tx ${offlineTx.id}:`, err);
+                console.error(`[Sync] Full Error Detail: code=${err?.code}, detail=${err?.detail}, constraint=${err?.constraint}`);
                 results.push({
                     client_transaction_id: offlineTx.id,
                     status: 'rejected',

@@ -181,10 +181,17 @@ async function syncBatch(batch: PendingTransaction[], deviceId: string): Promise
   // Build request payload with normalized fields
   const transactions = batch.map((tx) => {
     const parsedCart = Array.isArray(JSON.parse(tx.cartJson)) ? JSON.parse(tx.cartJson) : [];
-    const normalizedCart = parsedCart.map((item: any) => ({
-      ...item,
-      productId: item.productId || (item.isCustom ? `manual-${item.id}` : `prod-${item.id}`),
-    }));
+    const normalizedCart = parsedCart.map((item: any) => {
+      const isCustomItem = typeof item.productId === 'string' && item.productId.startsWith('manual-');
+      let validProductId = item.productId;
+
+      if (!isCustomItem && (!validProductId || validProductId.startsWith('prod-'))) {
+        console.warn(`[Sync] Peringatan: Item keranjang non-custom tanpa productId valid. Item:`, item);
+        validProductId = null;
+      }
+
+      return { ...item, productId: validProductId ?? null };
+    });
 
     let normalizedOrderType = tx.orderType;
     if (normalizedOrderType === 'takeaway' || normalizedOrderType === 'take_away') {
