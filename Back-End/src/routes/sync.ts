@@ -48,7 +48,7 @@ syncRouter.get('/catalog', async (req, res, next) => {
           shop_id::text AS "shopId",
           updated_at AS "updatedAt"
         FROM coffeepos.products
-        WHERE shop_id = $1::uuid
+        WHERE shop_id = $1::uuid AND is_deleted = false
         ORDER BY name ASC
       `;
     } else {
@@ -65,7 +65,8 @@ syncRouter.get('/catalog', async (req, res, next) => {
           promo_end::text AS "promoEnd",
           is_available AS "isAvailable",
           shop_id::text AS "shopId",
-          updated_at AS "updatedAt"
+          updated_at AS "updatedAt",
+          is_deleted AS "isDeleted"
         FROM coffeepos.products
         WHERE shop_id = $1::uuid AND updated_at > $2::timestamptz
         ORDER BY name ASC
@@ -86,6 +87,7 @@ syncRouter.get('/catalog', async (req, res, next) => {
       isPromo: Boolean(r.isPromo),
       promoPrice: Number(r.promoPrice ?? 0),
       isAvailable: r.isAvailable !== false,
+      isDeleted: Boolean(r.isDeleted),
     }));
 
     // ── Categories ───────────────────────────────────────────────────────────

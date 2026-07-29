@@ -45,6 +45,7 @@ interface ServerProduct {
   isAvailable?: boolean;
   shopId?: string;
   updatedAt?: string;
+  isDeleted?: boolean;
 }
 
 interface ServerCategory {
@@ -92,6 +93,10 @@ function upsertProducts(serverProducts: ServerProduct[]): void {
   sqlite.execSync('BEGIN TRANSACTION;');
   try {
     for (const p of serverProducts) {
+      if (p.isDeleted) {
+        sqlite.runSync(`DELETE FROM products WHERE id = ?`, [p.id]);
+        continue;
+      }
       sqlite.runSync(
         `INSERT OR REPLACE INTO products 
           (id, name, description, price, category, category_id, stock, cost, min_stock,
