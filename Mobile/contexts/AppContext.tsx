@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import { offlineCheckout } from '../services/sync/offlineCheckout';
 import { getLocalProducts, getLocalCategories, syncCatalog } from '../services/db/catalogSync';
 import { getPendingCount, getPendingAsTransactions } from '../services/db/pendingTransactions';
+import { getSyncedTransactions, upsertSyncedTransactions } from '../services/db/syncedTransactions';
 import { addSyncListener } from '../services/sync/SyncManager';
 import { useSync } from './SyncContext';
 
@@ -146,7 +147,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsOfflineMode(false);
 
       // Also sync catalog to SQLite for offline fallback
-      try { await syncCatalog(); } catch { /* non-critical */ }
+      try { 
+        await syncCatalog(); 
+        upsertSyncedTransactions(next.transactions);
+      } catch { /* non-critical */ }
     } catch (e: any) {
       console.error('Failed to load state:', e);
 
@@ -156,14 +160,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const localProducts = getLocalProducts();
         const localCats = getLocalCategories();
         const pendingTxs = getPendingAsTransactions() as Transaction[];
-        if (localProducts.length > 0 || pendingTxs.length > 0) {
-          console.log('[AppContext] Using offline cache:', localProducts.length, 'products,', pendingTxs.length, 'pending txs');
+        const syncedTxs = getSyncedTransactions();
+        
+        // Combine pending and synced for offline view, sorted by date descending
+        const combinedTxs = [...pendingTxs, ...syncedTxs].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+        if (localProducts.length > 0 || combinedTxs.length > 0) {
+          console.log('[AppContext] Using offline cache:', localProducts.length, 'products,', pendingTxs.length, 'pending txs,', syncedTxs.length, 'synced txs');
           setState(prev => ({
             ...prev,
             products: localProducts.length > 0 ? localProducts : prev.products,
             categories: localCats.names.length > 0 ? localCats.names : prev.categories,
             categoriesWithId: localCats.withId.length > 0 ? localCats.withId : prev.categoriesWithId,
-            transactions: pendingTxs.length > 0 ? pendingTxs : prev.transactions,
+            transactions: combinedTxs.length > 0 ? combinedTxs : prev.transactions,
           }));
           setServiceError(null); // Don't show error if we have cached data
           return;
