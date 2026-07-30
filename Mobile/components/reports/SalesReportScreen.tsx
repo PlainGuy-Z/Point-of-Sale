@@ -43,6 +43,7 @@ import { useApp } from '../../contexts/AppContext';
 import { useMobileSalesReport, PresetKey } from '../../hooks/useMobileSalesReport';
 import TransactionDetailSheet from '../transactions/TransactionDetailSheet';
 import type { Transaction } from '../../types';
+import { SkeletonCard, SkeletonText } from '../common/Skeleton';
 import type { HistoryTransaction } from '../../types/historyTransaction';
 
 const medals = ['🥇', '🥈', '🥉'];
@@ -70,7 +71,7 @@ function mapTransactionToHistory(t: Transaction): HistoryTransaction {
     amount_paid: t.cashReceived ?? t.total,
     change_amount: t.change ?? 0,
     raw_payment_method: t.paymentMethod,
-    items: (t.items || []).map(item => ({
+    items: (t.items || []).map((item: any) => ({
       product_id: item.productId,
       product_name: item.name,
       quantity: item.quantity,
@@ -318,10 +319,14 @@ export default function SalesReportScreen() {
       </View>
 
       {/* BODY CONTENT */}
-      {isLoading || isComputing ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={c.accent} />
-          <Text style={{ color: c.textSecondary, fontSize: 13, marginTop: 12 }}>Menyiapkan data laporan...</Text>
+      {isLoading || isComputing || (isServiceLoading && transactions.length === 0) ? (
+        <View style={{ flex: 1, padding: 16, gap: 16 }}>
+          <SkeletonCard width="100%" height={220} borderRadius={16} />
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <SkeletonCard width={(windowWidth - 44) / 2} height={100} borderRadius={12} />
+            <SkeletonCard width={(windowWidth - 44) / 2} height={100} borderRadius={12} />
+          </View>
+          <SkeletonCard width="100%" height={140} borderRadius={16} />
         </View>
       ) : error ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>

@@ -16,6 +16,7 @@ import { Zap } from 'lucide-react-native';
 import TransactionCard from './TransactionCard';
 import TransactionDetailSheet from './TransactionDetailSheet';
 import VoidRequestModal from './VoidRequestModal';
+import { SkeletonCard, SkeletonCircle, SkeletonText } from '../common/Skeleton';
 
 const LIMIT = 20;
 
@@ -37,7 +38,7 @@ export default function HistoryScreen() {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
-  const { transactions } = useApp();
+  const { transactions, isServiceLoading } = useApp();
 
   // Data state
   const [rows, setRows] = useState<HistoryTransaction[]>([]);
@@ -246,11 +247,19 @@ export default function HistoryScreen() {
   );
 
   const renderContent = () => {
-    if (loading && !refreshing) {
+    if ((loading && !refreshing) || (isServiceLoading && rows.length === 0)) {
       return (
-        <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={c.accent} />
-          <Text style={[styles.stateText, { color: c.textMuted }]}>Memuat transaksi...</Text>
+        <View style={{ flex: 1, padding: 16, gap: 12 }}>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.bgCard, padding: 16, borderRadius: 16, gap: 16 }}>
+              <SkeletonCircle size={48} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <SkeletonText width="60%" height={16} />
+                <SkeletonText width="40%" height={14} />
+              </View>
+              <SkeletonText width={80} height={18} />
+            </View>
+          ))}
         </View>
       );
     }

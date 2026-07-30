@@ -26,6 +26,7 @@ import TransactionCard from './TransactionCard';
 import TransactionDetailSheet from './TransactionDetailSheet';
 import VoidReviewModal from './VoidReviewModal';
 import NeedsReviewModal from './NeedsReviewModal';
+import { SkeletonCard, SkeletonCircle, SkeletonText } from '../common/Skeleton';
 import { useSync } from '../../contexts/SyncContext';
 
 const LIMIT = 20;
@@ -66,7 +67,7 @@ export default function OwnerHistoryScreen() {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
-  const { transactions, transactionsCacheFrom, transactionsCacheTo } = useApp();
+  const { transactions, transactionsCacheFrom, transactionsCacheTo, isServiceLoading } = useApp();
 
   // Summary data
   const [todaySumm, setTodaySumm] = useState<TxSummaryToday | null>(null);
@@ -639,10 +640,12 @@ export default function OwnerHistoryScreen() {
       )}
 
       {/* Summary Cards */}
-      {summLoading && !todaySumm ? (
-        <View style={styles.summaryLoading}>
-          <ActivityIndicator size="small" color={c.accent} />
-        </View>
+      {summLoading || (isServiceLoading && !todaySumm) ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.summaryScroll} style={styles.summaryScrollOuter}>
+          {[1, 2, 3].map((i) => (
+            <SkeletonCard key={i} width={140} height={80} borderRadius={16} />
+          ))}
+        </ScrollView>
       ) : (
         <ScrollView
           horizontal
@@ -712,10 +715,18 @@ export default function OwnerHistoryScreen() {
           />
         }
         ListEmptyComponent={
-          loading && !refreshing ? (
-            <View style={[styles.centerState, { paddingVertical: 80 }]}>
-              <ActivityIndicator size="large" color={c.accent} />
-              <Text style={[styles.stateText, { color: c.textMuted, marginTop: 8 }]}>Memuat transaksi...</Text>
+          (loading && !refreshing) || (isServiceLoading && rows.length === 0) ? (
+            <View style={{ flex: 1, padding: 16, gap: 12 }}>
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.bgCard, padding: 16, borderRadius: 16, gap: 16 }}>
+                  <SkeletonCircle size={48} />
+                  <View style={{ flex: 1, gap: 8 }}>
+                    <SkeletonText width="60%" height={16} />
+                    <SkeletonText width="40%" height={14} />
+                  </View>
+                  <SkeletonText width={80} height={18} />
+                </View>
+              ))}
             </View>
           ) : error ? (
             <View style={[styles.centerState, { paddingVertical: 80 }]}>

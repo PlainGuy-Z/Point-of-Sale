@@ -10,6 +10,7 @@ import Numpad from '../common/Numpad';
 import {
   Clock, ShoppingBag, DollarSign, TrendingUp, ArrowDownCircle,
 } from 'lucide-react-native';
+import { SkeletonCard, SkeletonText } from '../common/Skeleton';
 
 export default function ShiftScreen() {
   const { user } = useAuth();
@@ -73,8 +74,14 @@ export default function ShiftScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color={c.accent} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, padding: 16 }}>
+        <View style={{ gap: 20 }}>
+          <View style={{ alignItems: 'center', marginVertical: 20 }}>
+            <SkeletonCard width={100} height={100} borderRadius={50} style={{ marginBottom: 16 }} />
+            <SkeletonText width={150} height={20} />
+          </View>
+          <SkeletonCard width="100%" height={240} borderRadius={16} />
+        </View>
       </SafeAreaView>
     );
   }

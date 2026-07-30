@@ -26,6 +26,7 @@ import CheckoutSheet from './CheckoutSheet';
 import PaymentScreen from './PaymentScreen';
 import PaymentSuccessScreen from './PaymentSuccessScreen';
 import SidebarModal from './SidebarModal';
+import { SkeletonCard, SkeletonText } from '../common/Skeleton';
 import BranchSelectorHeader from '../navigation/BranchSelectorHeader';
 import type { CartItemWithInput, Transaction, Product } from '../../types';
 
@@ -216,11 +217,39 @@ export default function POSScreen() {
   // ── Initial Loading State ──────────────────────────────────────────────────
   if (products.length === 0 && isServiceLoading && !serviceError) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }} edges={['top', 'bottom']}>
-        <ActivityIndicator size="large" color={c.accent} />
-        <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 16 }}>
-          Memuat menu dan data POS...
-        </Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top', 'bottom']}>
+        {/* Header Skeleton */}
+        <View style={{ flexDirection: 'row', padding: 16, alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: c.border }}>
+          <SkeletonText width={120} height={24} />
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <SkeletonCard width={40} height={40} borderRadius={20} />
+            <SkeletonCard width={40} height={40} borderRadius={20} />
+          </View>
+        </View>
+
+        <View style={{ flex: 1, flexDirection: !isLandscape ? 'column' : 'row' }}>
+          {/* Main Content Area */}
+          <View style={{ flex: 1, padding: 16 }}>
+            {/* Category Carousel Skeleton */}
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+              {[1, 2, 3, 4].map(i => (
+                <SkeletonCard key={i} width={100} height={36} borderRadius={18} />
+              ))}
+            </View>
+            
+            {/* Grid Skeleton */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <View key={i} style={{ width: !isLandscape ? '100%' : 160, gap: 8 }}>
+                  <SkeletonCard width="100%" height={!isLandscape ? 80 : 120} borderRadius={12} />
+                  <SkeletonText width="80%" height={14} />
+                  <SkeletonText width="60%" height={14} />
+                  <SkeletonText width="40%" height={16} />
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }

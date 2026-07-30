@@ -37,6 +37,8 @@ import {
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
+import { historyApi } from '../../services/historyApi';
+import { SkeletonCard, SkeletonText } from '../common/Skeleton';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../utils/theme';
@@ -1275,15 +1277,30 @@ export default function ProductManagementScreen() {
             contentContainerStyle={{ padding: 8, paddingBottom: isSmallLandscape ? 20 : 64 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
-              <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 10 }}>
-                <Package size={54} color={c.textMuted} strokeWidth={1.2} />
-                <Text style={{ color: c.textSecondary, fontSize: 15, fontWeight: '600' }}>
-                  Tidak ada produk ditemukan
-                </Text>
-                <Text style={{ color: c.textMuted, fontSize: 12 }}>
-                  Silakan buat produk baru atau bersihkan pencarian Anda.
-                </Text>
-              </View>
+              isServiceLoading && filteredProducts.length === 0 ? (
+                <View style={{ flex: 1, padding: 8 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                      <View key={i} style={{ width: !isLandscape && !isTablet ? '100%' : (isTablet && isLandscape ? '31%' : '47%'), gap: 8 }}>
+                        <SkeletonCard width="100%" height={120} borderRadius={12} />
+                        <SkeletonText width="80%" height={14} />
+                        <SkeletonText width="60%" height={14} />
+                        <SkeletonText width="40%" height={16} />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 10 }}>
+                  <Package size={54} color={c.textMuted} strokeWidth={1.2} />
+                  <Text style={{ color: c.textSecondary, fontSize: 15, fontWeight: '600' }}>
+                    Tidak ada produk ditemukan
+                  </Text>
+                  <Text style={{ color: c.textMuted, fontSize: 12 }}>
+                    Silakan buat produk baru atau bersihkan pencarian Anda.
+                  </Text>
+                </View>
+              )
             }
           />
         </View>

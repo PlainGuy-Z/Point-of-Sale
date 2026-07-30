@@ -27,6 +27,7 @@ import LowStockAlertRN from '../../components/dashboard/LowStockAlertRN';
 import InfoCard from '../../components/dashboard/InfoCard';
 import BranchSelectorHeader from '../../components/navigation/BranchSelectorHeader';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
+import { SkeletonCard, SkeletonText } from '../../components/common/Skeleton';
 
 /* ─── Section Label ───────────────────────────────────────────────────── */
 
@@ -324,7 +325,7 @@ function QuickActionsGrid({ isDark }: { isDark: boolean }) {
 /* ─── Dashboard ────────────────────────────────────────────────────────── */
 
 export default function OwnerDashboard() {
-  const { products, transactions, customers, wasteLogs, settings, transactionsCacheFrom, transactionsCacheTo } = useApp();
+  const { products, transactions, customers, wasteLogs, settings, transactionsCacheFrom, transactionsCacheTo, isServiceLoading } = useApp();
   const { isOnline } = useSync();
   const {
     metrics, topProductsToday, rawData, chartData,
@@ -447,10 +448,21 @@ export default function OwnerDashboard() {
           }
         />
 
-        {isLoading ? (
-          <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>
-            <ActivityIndicator size="large" color={accentColor} />
-            <Text style={{ color: isDark ? '#a8a29e' : '#64748b', marginTop: 12 }}>Memuat data server...</Text>
+        {isLoading || (isServiceLoading && transactions.length === 0) ? (
+          <View style={{ gap: 24, paddingVertical: 12 }}>
+            <View>
+              <SkeletonText width={120} height={14} style={{ marginBottom: 8 }} />
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <SkeletonCard width={(availableWidth - 12) / 2} height={130} borderRadius={16} />
+                <SkeletonCard width={(availableWidth - 12) / 2} height={130} borderRadius={16} />
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <SkeletonCard key={i} width={(availableWidth - 36) / 4} height={80} borderRadius={12} />
+              ))}
+            </View>
+            <SkeletonCard width="100%" height={200} borderRadius={16} />
           </View>
         ) : error ? (
           <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>
