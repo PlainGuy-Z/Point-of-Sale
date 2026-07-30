@@ -17,6 +17,7 @@ import { runMigrations, wipeLocalDatabase } from '../services/db/database';
 import { syncCatalog, hasLocalCatalog } from '../services/db/catalogSync';
 import { getPendingCount, getNeedsReviewCount } from '../services/db/pendingTransactions';
 import { runSync, isSyncing as checkIsSyncing, addSyncListener, type SyncStats } from '../services/sync/SyncManager';
+import { OfflineShiftManager } from '../services/shift/OfflineShiftManager';
 import { Alert } from 'react-native';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -192,10 +193,15 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     if (!isDbReady || status !== 'authenticated') return;
 
     syncIntervalRef.current = setInterval(() => {
-      if (isOnline && getPendingCount() > 0 && !checkIsSyncing()) {
-        console.log('[SyncContext] Auto-sync interval — pending transactions detected');
-        triggerSync();
-      }
+      (async () => {
+        if (!isOnline || checkIsSyncing()) return;
+        const pendingCount = getPendingCount();
+        const hasShiftSync = await OfflineShiftManager.hasPendingShiftSync();
+        if (pendingCount > 0 || hasShiftSync) {
+          console.log('[SyncContext] Auto-sync interval — pending data detected');
+          triggerSync();
+        }
+      })();
     }, AUTO_SYNC_INTERVAL_MS);
 
     return () => {
@@ -212,13 +218,15 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     if (!isDbReady || status !== 'authenticated') return;
 
     const handleAppState = (nextState: AppStateStatus) => {
-      if (nextState === 'active' && isOnline) {
-        console.log('[SyncContext] App came to foreground — refreshing');
-        refreshCounts();
-        if (getPendingCount() > 0) {
-          triggerSync();
+        if (nextState === 'active' && isOnline) {
+          console.log('[SyncContext] App came to foreground — refreshing');
+          refreshCounts();
+          (async () => {
+            if (getPendingCount() > 0 || await OfflineShiftManager.hasPendingShiftSync()) {
+              triggerSync();
+            }
+          })();
         }
-      }
     };
 
     const sub = AppState.addEventListener('change', handleAppState);

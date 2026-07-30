@@ -25,6 +25,7 @@ import {
 import { pruneSyncedTransactionsCache } from '../db/syncedTransactionsCache';
 import { syncCatalog, resetLocalStockAdj } from '../db/catalogSync';
 import { ShiftSyncService } from '../shift/ShiftSyncService';
+import { OfflineShiftManager } from '../shift/OfflineShiftManager';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -124,7 +125,9 @@ export async function runSync(deviceId: string, force: boolean = false): Promise
   }
 
   const pendingTxs = getPendingTransactionsToSync(force);
-  if (pendingTxs.length === 0) {
+  const hasPendingShiftSync = await OfflineShiftManager.hasPendingShiftSync();
+  
+  if (pendingTxs.length === 0 && !hasPendingShiftSync) {
     return null;
   }
 

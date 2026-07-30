@@ -125,4 +125,30 @@ export const OfflineShiftManager = {
       console.error('[OfflineShiftManager] Failed to clear offline shift:', err);
     }
   },
+
+  /**
+   * Checks if there is an offline shift waiting to be synced (open or close).
+   */
+  async hasPendingShiftSync(): Promise<boolean> {
+    const shift = await this.getOfflineShift();
+    return !!shift && (shift.needs_sync_open === true || shift.needs_sync_close === true);
+  },
+
+  /**
+   * Caches an online shift so it can be retrieved if the device goes offline.
+   */
+  async cacheOnlineShift(shift: Shift): Promise<void> {
+    const offlineShift: OfflineShift = {
+      ...shift,
+      is_offline: false,
+      needs_sync_open: false,
+      needs_sync_close: false,
+    };
+    try {
+      await AsyncStorage.setItem(OFFLINE_SHIFT_KEY, JSON.stringify(offlineShift));
+      console.log('[OfflineShiftManager] Cached online shift:', shift.id);
+    } catch (err) {
+      console.error('[OfflineShiftManager] Failed to cache online shift:', err);
+    }
+  },
 };

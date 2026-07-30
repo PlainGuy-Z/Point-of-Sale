@@ -3,6 +3,8 @@ import { useAuth } from './AuthContext';
 import { api } from '../services/api';
 import type { Shift } from '../types';
 import { OfflineShiftManager } from '../services/shift/OfflineShiftManager';
+import { getPendingTotalsByShiftId } from '../services/db/pendingTransactions';
+import { addSyncListener } from '../services/sync/SyncManager';
 
 interface ShiftContextValue {
   activeShift: Shift | null;
@@ -36,15 +38,46 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.get<Shift | null>('/shifts/active');
       
-      // If we are online and successfully fetched the active shift, we can check if there's an offline shift
-      // that we haven't synced yet. The SyncManager will handle it, but for UI sake, we prioritize the offline shift
-      // if it's open, because it hasn't synced yet.
+      let finalShift = response || null;
       const offlineShift = await OfflineShiftManager.getOfflineShift();
-      if (offlineShift && offlineShift.status === 'open') {
-        setActiveShift(offlineShift);
+      
+      if (response) {
+        // If there is an active shift from server, cache it for offline fallback.
+        // But if we have an unsynced offline shift that we JUST opened, 
+        // we prioritize the offline shift until it syncs to prevent UI jumps.
+        if (offlineShift && offlineShift.needs_sync_open) {
+          finalShift = offlineShift;
+        } else if (offlineShift && offlineShift.needs_sync_close) {
+          finalShift = offlineShift;
+        } else {
+          await OfflineShiftManager.cacheOnlineShift(response);
+          finalShift = response;
+        }
       } else {
-        setActiveShift(response || null);
+        // Server says no active shift
+        if (offlineShift && offlineShift.needs_sync_open) {
+          // Keep our pending open intent
+          finalShift = offlineShift;
+        } else {
+          // If we had a cached shift but server says it's closed, clear it
+          await OfflineShiftManager.clearOfflineShift();
+          finalShift = null;
+        }
       }
+      
+      if (finalShift) {
+        const pendingTotals = getPendingTotalsByShiftId(finalShift.id);
+        if (pendingTotals.totalTransactions > 0 || (finalShift as any).is_offline) {
+            finalShift = {
+                ...finalShift,
+                current_total_sales: ((finalShift as any).is_offline ? 0 : (finalShift.current_total_sales || 0)) + pendingTotals.totalSales,
+                current_total_transactions: ((finalShift as any).is_offline ? 0 : (finalShift.current_total_transactions || 0)) + pendingTotals.totalTransactions,
+                current_expected_cash: ((finalShift as any).is_offline ? finalShift.opening_cash : (finalShift.current_expected_cash || finalShift.opening_cash)) + pendingTotals.totalSales,
+            };
+        }
+      }
+      
+      setActiveShift(finalShift);
       
       setError(null);
     } catch (err: any) {
@@ -54,7 +87,15 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
       if (err.message === 'Network request failed' || err.code === 'ECONNABORTED' || err.status === 0 || !err.status) {
         const offlineShift = await OfflineShiftManager.getOfflineShift();
         if (offlineShift && offlineShift.status === 'open') {
-          setActiveShift(offlineShift);
+          let finalShift: Shift = offlineShift;
+          const pendingTotals = getPendingTotalsByShiftId(finalShift.id);
+          finalShift = {
+              ...finalShift,
+              current_total_sales: ((finalShift as any).is_offline ? 0 : (finalShift.current_total_sales || 0)) + pendingTotals.totalSales,
+              current_total_transactions: ((finalShift as any).is_offline ? 0 : (finalShift.current_total_transactions || 0)) + pendingTotals.totalTransactions,
+              current_expected_cash: ((finalShift as any).is_offline ? finalShift.opening_cash : (finalShift.current_expected_cash || finalShift.opening_cash)) + pendingTotals.totalSales,
+          };
+          setActiveShift(finalShift);
           setError(null); // No error, we are using offline shift!
         } else {
           setActiveShift(null);
@@ -76,12 +117,27 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     void refreshShift();
   }, [refreshShift]);
 
+  useEffect(() => {
+    // Subscribe to SyncManager completion to automatically refresh shift state when offline txs are synced
+    const unsubscribeSync = addSyncListener((stats) => {
+      if (stats && (stats.synced > 0 || stats.needsReview > 0)) {
+        console.log('[ShiftContext] Offline transactions synced — refreshing shift state');
+        refreshShift();
+      }
+    });
+
+    return () => {
+      unsubscribeSync();
+    };
+  }, [refreshShift]);
+
   const openShift = async (opening_cash: number) => {
     setIsOpening(true);
     setError(null);
     try {
       const shift = await api.post<Shift>('/shifts/open', { opening_cash });
       setActiveShift(shift);
+      await OfflineShiftManager.cacheOnlineShift(shift);
       try {
         await refreshShift();
       } catch (refreshError) {

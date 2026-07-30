@@ -84,7 +84,7 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { checkout: appCheckout } = useTransactions();
-  const { activeShift } = useShift();
+  const { activeShift, refreshShift } = useShift();
   const { isLandscape, isTablet, mode } = useLayout();
   const isSplitLayout = isLandscape && isTablet;
   const isPhoneLandscape = mode === 'phone-landscape';
@@ -238,6 +238,10 @@ export default function PaymentScreen({ onClose, onSuccess }: PaymentScreenProps
 
       resetCheckout();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      // Update shift totals locally (for offline real-time UI)
+      refreshShift().catch((err) => console.error('Failed to refresh shift after checkout:', err));
+
       // NOTE: Do NOT reset isProcessingRef here — the modal will close
       // after onSuccess, so there's no need to re-enable the button.
       // This prevents any race condition where a queued tap could fire

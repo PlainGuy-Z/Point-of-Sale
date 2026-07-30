@@ -286,6 +286,36 @@ export function getPendingTransactionById(id: string): PendingTransaction | unde
   }
 }
 
+/**
+ * Get totals for pending transactions by shift ID.
+ * Excludes rejected transactions.
+ */
+export function getPendingTotalsByShiftId(shiftId: string): { totalSales: number; totalTransactions: number } {
+  try {
+    const db = getDb();
+    const rows = db
+      .select()
+      .from(pendingTransactions)
+      .where(
+        and(
+          eq(pendingTransactions.shiftId, shiftId),
+          not(inArray(pendingTransactions.status, ['synced', 'rejected']))
+        )
+      )
+      .all();
+
+    let totalSales = 0;
+    for (const row of rows) {
+      totalSales += row.localGrandTotal;
+    }
+    return { totalSales, totalTransactions: rows.length };
+  } catch (err) {
+    console.error('[PendingTx] getPendingTotalsByShiftId error:', err);
+    return { totalSales: 0, totalTransactions: 0 };
+  }
+}
+
+
 // ─── Update ──────────────────────────────────────────────────────────────────
 
 /**
