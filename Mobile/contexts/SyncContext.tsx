@@ -9,7 +9,7 @@
  *   - Database initialization on login
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useAuth } from './AuthContext';
@@ -248,9 +248,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     }
   }, [status, isDbReady]);
 
-  // ── Context value ──────────────────────────────────────────────────────────
-
-  const value: SyncContextValue = {
+  const value: SyncContextValue = useMemo(() => ({
     isOnline,
     isSyncing,
     pendingCount,
@@ -261,7 +259,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     triggerCatalogSync,
     lastSyncStats,
     deviceId,
-  };
+  }), [isOnline, isSyncing, pendingCount, needsReviewCount, isDbReady, isCatalogReady, triggerSync, triggerCatalogSync, lastSyncStats, deviceId]);
 
   return (
     <SyncContext.Provider value={value}>

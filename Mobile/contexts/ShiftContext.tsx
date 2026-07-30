@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { api } from '../services/api';
 import type { Shift } from '../types';
@@ -210,8 +210,10 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
+  const contextValue = useMemo(() => ({ activeShift, isLoading, error, isOpening, isClosing, openShift, closeShift, refreshShift, clearError }), [activeShift, isLoading, error, isOpening, isClosing, openShift, closeShift, refreshShift, clearError]);
+
   return (
-    <ShiftContext.Provider value={{ activeShift, isLoading, error, isOpening, isClosing, openShift, closeShift, refreshShift, clearError }}>
+    <ShiftContext.Provider value={contextValue}>
       {children}
     </ShiftContext.Provider>
   );

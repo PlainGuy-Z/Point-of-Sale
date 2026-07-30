@@ -113,7 +113,7 @@ export default function OwnerBottomBar() {
     (route: string) => {
       const targetRoute = `/(owner)/${route}`;
       if (!pathname.includes(route)) {
-        router.push(targetRoute as any);
+        router.replace(targetRoute as any);
       }
     },
     [pathname, router]

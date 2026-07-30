@@ -89,7 +89,7 @@ export default function CashierSidebar({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleNav = (route: string) => {
-    router.push(route as any);
+    router.replace(route as any);
     if (!inline) {
       onClose?.();
     }

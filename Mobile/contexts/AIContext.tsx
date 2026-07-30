@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 import { aiApi, ChatMessage } from '../services/aiApi';
 
 interface AIContextProps {
@@ -66,8 +66,10 @@ export function AIProvider({ children }: { children: ReactNode }) {
     sendMessage(text);
   };
 
+  const contextValue = useMemo(() => ({ messages, isLoading, error, lastContextSnapshot, sendMessage, clearChat, setPresetPrompt }), [messages, isLoading, error, lastContextSnapshot, sendMessage, clearChat, setPresetPrompt]);
+
   return (
-    <AIContext.Provider value={{ messages, isLoading, error, lastContextSnapshot, sendMessage, clearChat, setPresetPrompt }}>
+    <AIContext.Provider value={contextValue}>
       {children}
     </AIContext.Provider>
   );

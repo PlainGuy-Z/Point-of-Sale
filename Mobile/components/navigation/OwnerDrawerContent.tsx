@@ -222,7 +222,7 @@ export default function OwnerSidebar({
   }, [visible, inline]);
 
   const handleNav = (route: string) => {
-    router.push(`/(owner)/${route}` as any);
+    router.replace(`/(owner)/${route}` as any);
     if (!inline) onClose();
   };
 

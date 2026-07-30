@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Stack, usePathname } from 'expo-router';
+import { Stack } from 'expo-router';
 import { View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Menu } from 'lucide-react-native';
@@ -22,7 +22,7 @@ export default function OwnerLayout() {
   const isDark = effectiveTheme === 'dark';
   const c = getColors(isDark);
   const { isLandscape } = useStableOrientation();
-  const pathname = usePathname();
+
 
   // Attach root back handler for owner role
   useOwnerBackHandler();

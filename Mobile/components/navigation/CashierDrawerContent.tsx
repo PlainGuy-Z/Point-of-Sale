@@ -98,7 +98,7 @@ export default function CashierDrawerContent(props: any) {
   }, [user?.role]);
 
   const handleNav = (route: string) => {
-    router.push(`/(cashier)/${route}` as any);
+    router.replace(`/(cashier)/${route}` as any);
     props.navigation?.closeDrawer?.();
   };
 
