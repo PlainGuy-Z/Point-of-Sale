@@ -16,7 +16,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const fetchSettings = async () => {
     // Only load settings for owners.
-    if (!user || user.role !== 'owner') {
+    if (!user) {
       setSettings(null);
       setIsLoading(false);
       return;

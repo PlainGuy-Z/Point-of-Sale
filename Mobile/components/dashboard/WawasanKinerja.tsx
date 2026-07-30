@@ -7,7 +7,7 @@ interface WawasanKinerjaProps {
 
 export default function WawasanKinerja({ numColumns }: WawasanKinerjaProps) {
   const metrics = [
-    { label: 'Rata-rata Nilai Psnm', value: 'Rp 25.000' },
+    { label: 'Rata-rata Nilai Pesanan', value: 'Rp 25.000' },
     { label: 'Tingkat Konversi', value: '33%' },
     { label: 'Retensi Pelanggan', value: '85%' },
     { label: 'Perputaran Inventaris', value: '0 hari' },

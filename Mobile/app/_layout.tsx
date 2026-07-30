@@ -14,6 +14,7 @@ import { getColors } from '../utils/theme';
 import { PrinterProvider } from '../contexts/PrinterContext';
 import { AIProvider } from '../contexts/AIContext';
 import { SyncProvider } from '../contexts/SyncContext';
+import { POSCartProvider } from '../contexts/POSCartContext';
 import AnimatedSplash from '../components/AnimatedSplash';
 
 function ThemedStack() {
@@ -59,7 +60,9 @@ export default function RootLayout() {
                   <ShiftProvider>
                     <PrinterProvider>
                       <AIProvider>
-                        <ThemedStack />
+                        <POSCartProvider>
+                          <ThemedStack />
+                        </POSCartProvider>
                       </AIProvider>
                     </PrinterProvider>
                   </ShiftProvider>

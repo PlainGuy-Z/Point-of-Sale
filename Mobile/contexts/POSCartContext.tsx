@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CartItemWithInput, Product } from '../types';
 import { useApp } from './AppContext';
 import { getEffectivePrice } from '../utils/priceUtils';
+
+const CART_STORAGE_KEY = '@pos_mobile_cart_items';
+const CHECKOUT_STORAGE_KEY = '@pos_mobile_checkout_data';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -76,10 +80,68 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
   }));
   const [panel, setPanel] = useState<CartPanel>('cart');
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const tableNumberRef = useRef('');
   const customerNameRef = useRef('');
   const orderNoteRef = useRef('');
+
+  // Restore cart and checkout from AsyncStorage on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const savedCart = await AsyncStorage.getItem(CART_STORAGE_KEY);
+        const savedCheckout = await AsyncStorage.getItem(CHECKOUT_STORAGE_KEY);
+
+        if (mounted) {
+          if (savedCart) {
+            const parsedCart = JSON.parse(savedCart);
+            if (Array.isArray(parsedCart)) {
+              setCart(parsedCart);
+            }
+          }
+          if (savedCheckout) {
+            const parsedCheckout = JSON.parse(savedCheckout);
+            if (parsedCheckout && typeof parsedCheckout === 'object') {
+              setCheckoutData(prev => ({ ...prev, ...parsedCheckout }));
+              if (parsedCheckout.tableNumber) tableNumberRef.current = parsedCheckout.tableNumber;
+              if (parsedCheckout.customerName) customerNameRef.current = parsedCheckout.customerName;
+              if (parsedCheckout.orderNote) orderNoteRef.current = parsedCheckout.orderNote;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load cart from AsyncStorage:', err);
+      } finally {
+        if (mounted) setIsLoaded(true);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Save cart to AsyncStorage whenever cart changes
+  useEffect(() => {
+    if (!isLoaded) return;
+    AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)).catch(err => {
+      console.error('Failed to save cart to AsyncStorage:', err);
+    });
+  }, [cart, isLoaded]);
+
+  // Save checkout to AsyncStorage whenever checkoutData changes
+  useEffect(() => {
+    if (!isLoaded) return;
+    AsyncStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify({
+      ...checkoutData,
+      tableNumber: tableNumberRef.current,
+      customerName: customerNameRef.current,
+      orderNote: orderNoteRef.current,
+    })).catch(err => {
+      console.error('Failed to save checkout to AsyncStorage:', err);
+    });
+  }, [checkoutData, isLoaded]);
 
   const getCheckoutData = useCallback(() => ({
     ...checkoutData,
@@ -163,6 +225,7 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = useCallback(() => {
     setCart([]);
+    AsyncStorage.removeItem(CART_STORAGE_KEY).catch(() => {});
   }, []);
 
   // ── Checkout operations ─────────────────────────────────────────────────────
@@ -179,14 +242,17 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
 
   const setTableNumber = useCallback((value: string) => {
     tableNumberRef.current = value;
+    setCheckoutData(prev => ({ ...prev, tableNumber: value }));
   }, []);
 
   const setCustomerName = useCallback((value: string) => {
     customerNameRef.current = value;
+    setCheckoutData(prev => ({ ...prev, customerName: value }));
   }, []);
 
   const setOrderNote = useCallback((value: string) => {
     orderNoteRef.current = value;
+    setCheckoutData(prev => ({ ...prev, orderNote: value }));
   }, []);
 
   const setApplyTax = useCallback((value: boolean) => {
@@ -204,6 +270,8 @@ export function POSCartProvider({ children }: { children: React.ReactNode }) {
     orderNoteRef.current = '';
     setPanel('cart');
     setEditingItemIndex(null);
+    AsyncStorage.removeItem(CART_STORAGE_KEY).catch(() => {});
+    AsyncStorage.removeItem(CHECKOUT_STORAGE_KEY).catch(() => {});
   }, []);
 
   // ── Computed ────────────────────────────────────────────────────────────────

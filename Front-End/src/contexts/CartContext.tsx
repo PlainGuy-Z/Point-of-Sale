@@ -16,13 +16,39 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
+const CART_STORAGE_KEY = 'coffee_pos_cart';
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const { status } = useAuth();
-  const [cart, setCart] = useState<CartItemWithInput[]>([]);
+  const [cart, setCart] = useState<CartItemWithInput[]>(() => {
+    try {
+      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
-    if (status !== 'authenticated') {
+    try {
+      if (cart.length > 0) {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+      } else {
+        localStorage.removeItem(CART_STORAGE_KEY);
+      }
+    } catch (e) {
+      console.error('Failed to save cart to localStorage:', e);
+    }
+  }, [cart]);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
       setCart([]);
+      try {
+        localStorage.removeItem(CART_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
     }
   }, [status]);
 
@@ -94,6 +120,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => {
     setCart([]);
+    try {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
   }, []);
 
   return (
