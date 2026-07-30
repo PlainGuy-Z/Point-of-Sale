@@ -408,7 +408,8 @@ export function useMobileSalesReport(
       const res = await appApi.get(`/reports/sales${qs}`);
       setRemoteData(res);
     } catch (err: any) {
-      setError(err.message || 'Gagal memuat laporan dari server');
+      // setError(err.message || 'Gagal memuat laporan dari server');
+      console.warn('[useMobileSalesReport] Failed to fetch remote report, falling back to local:', err.message);
     } finally {
       setIsLoading(false);
     }
@@ -426,13 +427,13 @@ export function useMobileSalesReport(
   }, [isCovered, range, preset]);
 
   // Combine Final Results
-  const summary: SummaryData = isCovered ? localComputed.localSummary : (remoteData?.summary || emptySummary);
-  const hourlyData: HourlyData[] = isCovered ? localComputed.localHourlyData : (remoteData?.granularity === 'hour' ? (remoteData?.chartData || []) : []);
-  const dailyData: DailyData[] = isCovered ? localComputed.localDailyData : (remoteData?.granularity !== 'hour' ? (remoteData?.chartData || []) : []);
-  const topProducts: ProductRank[] = isCovered ? localComputed.localTopProducts : (remoteData?.topProducts || []);
-  const paymentBreakdown: PaymentBreakdown[] = isCovered ? localComputed.localPaymentBreakdown : (remoteData?.paymentMethods || []);
-  const cashierPerformance: CashierPerformance[] = isCovered ? localComputed.localCashierPerformance : (remoteData?.cashierPerformance || []);
-  const costBreakdown: CostBreakdown | null = isCovered ? localComputed.localCostBreakdown : (remoteData?.costBreakdown || null);
+  const summary: SummaryData = isCovered ? localComputed.localSummary : (remoteData?.summary || localComputed.localSummary);
+  const hourlyData: HourlyData[] = isCovered ? localComputed.localHourlyData : (remoteData?.granularity === 'hour' ? (remoteData?.chartData || []) : localComputed.localHourlyData);
+  const dailyData: DailyData[] = isCovered ? localComputed.localDailyData : (remoteData?.granularity !== 'hour' ? (remoteData?.chartData || []) : localComputed.localDailyData);
+  const topProducts: ProductRank[] = isCovered ? localComputed.localTopProducts : (remoteData?.topProducts || localComputed.localTopProducts);
+  const paymentBreakdown: PaymentBreakdown[] = isCovered ? localComputed.localPaymentBreakdown : (remoteData?.paymentMethods || localComputed.localPaymentBreakdown);
+  const cashierPerformance: CashierPerformance[] = isCovered ? localComputed.localCashierPerformance : (remoteData?.cashierPerformance || localComputed.localCashierPerformance);
+  const costBreakdown: CostBreakdown | null = isCovered ? localComputed.localCostBreakdown : (remoteData?.costBreakdown || localComputed.localCostBreakdown);
 
   const peakHour = useMemo(() => {
     if (hourlyData.length === 0) return null;

@@ -58,13 +58,9 @@ export function useDashboardMetrics(
   useEffect(() => {
     setIsComputing(true);
     const task = InteractionManager.runAfterInteractions(() => {
-      if (!isCovered) {
-        setLocalComputed({ localMetrics: null, localTopProducts: [] });
-      } else {
-        const metrics = calculateDashboardMetrics(transactions, products, customers, wasteLogs);
-        const topProducts = getTopProductsToday(transactions, products, 5);
-        setLocalComputed({ localMetrics: metrics, localTopProducts: topProducts });
-      }
+      const metrics = calculateDashboardMetrics(transactions, products, customers, wasteLogs);
+      const topProducts = getTopProductsToday(transactions, products, 5);
+      setLocalComputed({ localMetrics: metrics, localTopProducts: topProducts });
       setIsComputing(false);
     });
 
@@ -98,7 +94,8 @@ export function useDashboardMetrics(
       const res = await appApi.get(`/reports/dashboard${qs}`);
       setRemoteData(res);
     } catch (err: any) {
-      setError(err.message || 'Gagal memuat dashboard dari server');
+      // setError(err.message || 'Gagal memuat dashboard dari server');
+      console.warn('[useDashboardMetrics] Failed to fetch remote dashboard, falling back to local:', err.message);
     } finally {
       setIsLoading(false);
     }

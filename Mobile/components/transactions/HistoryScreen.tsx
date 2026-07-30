@@ -70,10 +70,8 @@ export default function HistoryScreen() {
     return true;
   }, [search, status, sort, page, transactions.length]);
 
-  const load = useCallback(async (isRefresh = false) => {
-    if (isCovered && !isRefresh) {
-      // Local cache logic
-      const cached = transactions.slice((page - 1) * LIMIT, page * LIMIT).map((t: any) => ({
+  const getCachedRows = useCallback(() => {
+    return transactions.slice((page - 1) * LIMIT, page * LIMIT).map((t: any) => ({
         id: t.id,
         created_at: t.date,
         status: 'completed' as HistoryTransactionStatus,
@@ -101,7 +99,12 @@ export default function HistoryScreen() {
           notes: i.description || null,
         }))
       } as HistoryTransaction));
-      setRows(cached);
+  }, [transactions, page]);
+
+  const load = useCallback(async (isRefresh = false) => {
+    if (isCovered && !isRefresh) {
+      // Local cache logic
+      setRows(getCachedRows());
       setTotal(transactions.length);
       setLoading(false);
       setError(null);
@@ -123,9 +126,15 @@ export default function HistoryScreen() {
       setRows(res.data);
       setTotal(res.pagination.total);
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Gagal memuat transaksi.';
-      setError(msg);
-      setRows([]);
+      if (transactions.length > 0) {
+        setRows(getCachedRows());
+        setTotal(transactions.length);
+        setError(null);
+      } else {
+        const msg = e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Gagal memuat transaksi.';
+        setError(msg);
+        setRows([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

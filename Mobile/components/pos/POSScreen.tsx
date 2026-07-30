@@ -536,30 +536,6 @@ export default function POSScreen() {
             <Text style={{ color: c.textSecondary, fontSize: 12, fontWeight: '700' }} numberOfLines={1}>
               {user?.shop?.name || 'Toko'}
             </Text>
-            
-            <View style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              gap: 4,
-              backgroundColor: isOnline ? (isDark ? 'rgba(16, 185, 129, 0.15)' : '#dcfce7') : (isDark ? '#292524' : '#fef3c7'),
-              paddingHorizontal: 6,
-              paddingVertical: 2,
-              borderRadius: 999,
-              marginLeft: 2
-            }}>
-              {isOnline ? (
-                <Wifi size={10} color={isDark ? '#34d399' : '#059669'} />
-              ) : (
-                <WifiOff size={10} color="#f59e0b" />
-              )}
-              <Text style={{ 
-                fontSize: 10, 
-                fontWeight: '700', 
-                color: isOnline ? (isDark ? '#34d399' : '#059669') : "#f59e0b" 
-              }}>
-                {isOnline ? 'Online' : 'Offline'}
-              </Text>
-            </View>
           </View>
         </View>
 

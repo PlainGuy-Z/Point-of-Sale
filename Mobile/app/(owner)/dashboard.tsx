@@ -9,8 +9,9 @@ import {
   Zap, DollarSign, ShoppingCart, Users, TrendingUp,
   ChevronLeft, ChevronRight, Menu, Coffee,
   Receipt, ClipboardList, UserCheck, BrainCircuit, Layers, Gift, Trash2, HelpCircle,
-  MoreHorizontal, X, LayoutDashboard, BarChart2, Package, Settings, Trophy
+  MoreHorizontal, X, LayoutDashboard, BarChart2, Package, Settings, Trophy, Wifi, WifiOff
 } from 'lucide-react-native';
+import { useSync } from '../../contexts/SyncContext';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatRupiah } from '../../utils/currency';
@@ -25,6 +26,7 @@ import TopProductsRN from '../../components/dashboard/TopProductsRN';
 import LowStockAlertRN from '../../components/dashboard/LowStockAlertRN';
 import InfoCard from '../../components/dashboard/InfoCard';
 import BranchSelectorHeader from '../../components/navigation/BranchSelectorHeader';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
 
 /* ─── Section Label ───────────────────────────────────────────────────── */
 
@@ -323,6 +325,7 @@ function QuickActionsGrid({ isDark }: { isDark: boolean }) {
 
 export default function OwnerDashboard() {
   const { products, transactions, customers, wasteLogs, settings, transactionsCacheFrom, transactionsCacheTo } = useApp();
+  const { isOnline } = useSync();
   const {
     metrics, topProductsToday, rawData, chartData,
     isLoading, error, isCovered,
@@ -434,60 +437,15 @@ export default function OwnerDashboard() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Header ── */}
-        <View style={{
-          borderRadius: 16, padding: 20,
-          backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-          borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
-          shadowColor: accentColor,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: isDark ? 0.35 : 0.08,
-          shadowRadius: 10,
-          elevation: 4,
-        }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12 }}>
-              {/* Hamburger / Sidebar toggle button — only in landscape when sidebar closed */}
-              {isLandscape && !isSidebarOpen && (
-                <TouchableOpacity
-                  onPress={toggleSidebar}
-                  style={{
-                    width: 36, height: 36, borderRadius: 10,
-                    backgroundColor: isDark ? '#252525' : '#f1f5f9',
-                    borderWidth: 1, borderColor: isDark ? '#2a2a2a' : '#e2e8f0',
-                    alignItems: 'center', justifyContent: 'center',
-                    marginTop: 2,
-                  }}
-                >
-                  <Menu size={18} color={isDark ? '#d6d3d1' : '#475569'} strokeWidth={2} />
-                </TouchableOpacity>
-              )}
-
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 24, fontWeight: '900' }}>
-                  <Text style={{ color: accentColor }}>Dashboard </Text>
-                  <Text style={{ color: isDark ? '#ffffff' : '#0f172a' }}>Bisnis</Text>
-                </Text>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? '#78716c' : '#475569', marginTop: 4 }}>
-                  {formattedDate}
-                </Text>
-              </View>
-            </View>
+        <DashboardHeader 
+          showMenu={isLandscape && !isSidebarOpen}
+          onMenuPress={toggleSidebar}
+          branchSelector={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <BranchSelectorHeader />
-              <View style={{
-                flexDirection: 'row', alignItems: 'center', gap: 4,
-                paddingHorizontal: 12, paddingVertical: 6,
-                borderRadius: 999,
-                backgroundColor: isCovered ? (isDark ? '#292524' : '#fef3c7') : (isDark ? '#1e3a8a' : '#dbeafe'),
-              }}>
-                <Zap size={12} color={isCovered ? "#f59e0b" : "#3b82f6"} />
-                <Text style={{ fontSize: 11, fontWeight: '700', color: isCovered ? "#f59e0b" : "#3b82f6" }}>
-                  {isCovered ? 'Live Cache' : 'Data Server'}
-                </Text>
-              </View>
             </View>
-          </View>
-        </View>
+          }
+        />
 
         {isLoading ? (
           <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>

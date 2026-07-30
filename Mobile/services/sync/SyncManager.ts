@@ -22,7 +22,9 @@ import {
   pruneSyncedTransactions,
   type PendingTransaction,
 } from '../db/pendingTransactions';
+import { pruneSyncedTransactionsCache } from '../db/syncedTransactionsCache';
 import { syncCatalog, resetLocalStockAdj } from '../db/catalogSync';
+import { ShiftSyncService } from '../shift/ShiftSyncService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -134,6 +136,14 @@ export async function runSync(deviceId: string, force: boolean = false): Promise
   try {
     console.log(`[SyncManager] Starting sync — ${pendingTxs.length} pending transactions`);
 
+    // 1. Sync any offline shift openings before syncing transactions
+    try {
+      await ShiftSyncService.syncOfflineShiftOpen();
+    } catch (shiftErr) {
+      console.error('[SyncManager] Aborting sync due to shift open error:', shiftErr);
+      return stats; // Return early, don't try to sync transactions with invalid shift IDs
+    }
+
     // Process in batches
     for (let i = 0; i < pendingTxs.length; i += BATCH_SIZE) {
       const batch = pendingTxs.slice(i, i + BATCH_SIZE);
@@ -145,6 +155,13 @@ export async function runSync(deviceId: string, force: boolean = false): Promise
       stats.failed += batchStats.failed;
     }
 
+    // 2. Sync any offline shift closures after transactions are synced
+    try {
+      await ShiftSyncService.syncOfflineShiftClose();
+    } catch (shiftCloseErr) {
+      console.error('[SyncManager] Failed to sync offline shift close, ignoring for now:', shiftCloseErr);
+    }
+
     // After successful sync, refresh catalog to get updated stock from server
     if (stats.synced > 0) {
       console.log('[SyncManager] Refreshing catalog after sync...');
@@ -154,6 +171,7 @@ export async function runSync(deviceId: string, force: boolean = false): Promise
 
     // Prune old synced transactions
     pruneSyncedTransactions(7);
+    pruneSyncedTransactionsCache(30);
 
     console.log(`[SyncManager] Sync complete — synced:${stats.synced} review:${stats.needsReview} rejected:${stats.rejected} dup:${stats.duplicates} failed:${stats.failed}`);
     notifyListeners(stats);

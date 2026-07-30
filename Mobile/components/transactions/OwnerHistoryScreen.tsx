@@ -133,8 +133,6 @@ export default function OwnerHistoryScreen() {
     
     if (!transactionsCacheFrom || !transactionsCacheTo) return transactions.length === 0;
     
-    if (!dateFrom && !dateTo) return true;
-    
     const cFrom = new Date(transactionsCacheFrom);
     const cTo = new Date(transactionsCacheTo);
     cFrom.setHours(cFrom.getHours() - 1);
@@ -147,10 +145,8 @@ export default function OwnerHistoryScreen() {
     return dFrom >= cFrom && dTo <= cTo;
   }, [search, status, cashierId, payMethod, page, transactions.length, transactionsCacheFrom, transactionsCacheTo, dateFrom, dateTo]);
 
-  // ── Load Rows ──
-  const loadRows = useCallback(async (isRefresh = false) => {
-    if (isCovered && !isRefresh) {
-      const cached = transactions.slice((page - 1) * LIMIT, page * LIMIT).map((t: any) => ({
+  const getCachedRows = useCallback(() => {
+    return transactions.slice((page - 1) * LIMIT, page * LIMIT).map((t: any) => ({
         id: t.id,
         created_at: t.date,
         status: 'completed' as HistoryTransactionStatus,
@@ -178,7 +174,12 @@ export default function OwnerHistoryScreen() {
           notes: i.description || null,
         }))
       } as HistoryTransaction));
-      setRows(cached);
+  }, [transactions, page]);
+
+  // ── Load Rows ──
+  const loadRows = useCallback(async (isRefresh = false) => {
+    if (isCovered && !isRefresh) {
+      setRows(getCachedRows());
       setTotal(transactions.length);
       setLoading(false);
       setError(null);
@@ -203,9 +204,15 @@ export default function OwnerHistoryScreen() {
       setRows(res.data);
       setTotal(res.pagination.total);
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : 'Gagal memuat transaksi.';
-      setError(msg);
-      setRows([]);
+      if (transactions.length > 0) {
+        setRows(getCachedRows());
+        setTotal(transactions.length);
+        setError(null);
+      } else {
+        const msg = e instanceof ApiError ? e.message : 'Gagal memuat transaksi.';
+        setError(msg);
+        setRows([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -432,14 +439,20 @@ export default function OwnerHistoryScreen() {
                         const toDateStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
                         let dFrom = new Date();
                         let dTo = new Date();
-                        if (key === 'yesterday') { dFrom.setDate(now.getDate() - 1); dTo.setDate(now.getDate() - 1); }
-                        else if (key === 'this_week') {
+                        if (key === 'today') {
+                          dFrom = new Date(now);
+                          dTo = new Date(now);
+                        } else if (key === 'yesterday') { 
+                          dFrom.setDate(now.getDate() - 1); 
+                          dTo.setDate(now.getDate() - 1); 
+                        } else if (key === 'this_week') {
                           const day = now.getDay();
                           const diff = now.getDate() - day + (day === 0 ? -6 : 1);
                           dFrom.setDate(diff);
-                        }
-                        else if (key === 'this_month') {
+                          dTo = new Date(now);
+                        } else if (key === 'this_month') {
                           dFrom.setDate(1);
+                          dTo = new Date(now);
                         }
                         setDateFrom(toDateStr(dFrom));
                         setDateTo(toDateStr(dTo));
@@ -626,7 +639,7 @@ export default function OwnerHistoryScreen() {
       )}
 
       {/* Summary Cards */}
-      {summLoading ? (
+      {summLoading && !todaySumm ? (
         <View style={styles.summaryLoading}>
           <ActivityIndicator size="small" color={c.accent} />
         </View>
@@ -656,7 +669,7 @@ export default function OwnerHistoryScreen() {
   ), [
     summLoading, summaryCards, pendingList, filtersOpen, dateFrom, dateTo,
     cashierId, cashierOptions, search, status, payMethod, exporting,
-    c, isDark, exportCsv,
+    c, isDark, exportCsv, needsReviewCount, setNeedsReviewOpen
   ]);
 
   return (
@@ -672,18 +685,6 @@ export default function OwnerHistoryScreen() {
               Filter lengkap untuk semua transaksi di toko Anda
             </Text>
           </View>
-          {isCovered && (
-            <View style={{
-              flexDirection: 'row', alignItems: 'center', gap: 4,
-              paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
-              backgroundColor: isDark ? '#292524' : '#fef3c7',
-            }}>
-              <Zap size={10} color="#f59e0b" />
-              <Text style={{ fontSize: 10, fontWeight: '700', color: "#f59e0b" }}>
-                Offline
-              </Text>
-            </View>
-          )}
         </View>
       </View>
 
@@ -698,7 +699,7 @@ export default function OwnerHistoryScreen() {
       {loading && !refreshing ? (
         <>
           {ListHeaderComponent}
-          <View style={styles.centerState}>
+          <View style={[styles.centerState, { flex: 1 }]}>
             <ActivityIndicator size="large" color={c.accent} />
             <Text style={[styles.stateText, { color: c.textMuted }]}>Memuat transaksi...</Text>
           </View>
@@ -706,7 +707,7 @@ export default function OwnerHistoryScreen() {
       ) : error ? (
         <>
           {ListHeaderComponent}
-          <View style={styles.centerState}>
+          <View style={[styles.centerState, { flex: 1 }]}>
             <AlertCircle size={40} color={c.error} strokeWidth={1.5} />
             <Text style={[styles.stateText, { color: c.error }]}>{error}</Text>
             <TouchableOpacity

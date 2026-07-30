@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import { offlineCheckout } from '../services/sync/offlineCheckout';
 import { getLocalProducts, getLocalCategories, syncCatalog } from '../services/db/catalogSync';
 import { getPendingCount, getPendingAsTransactions } from '../services/db/pendingTransactions';
+import { cacheSyncedTransactions, getLocalSyncedTransactions } from '../services/db/syncedTransactionsCache';
 import { addSyncListener } from '../services/sync/SyncManager';
 import { useSync } from './SyncContext';
 
@@ -142,6 +143,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsServiceLoading(true);
       setServiceError(null);
       const next = await appApi.getAppState();
+      
+      // Cache transactions from server for offline fallback
+      if (next && next.transactions) {
+        setTimeout(() => {
+          cacheSyncedTransactions(next.transactions);
+        }, 100);
+      }
+
       setState(mergePendingIntoState(next));
       setIsOfflineMode(false);
 
@@ -156,14 +165,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const localProducts = getLocalProducts();
         const localCats = getLocalCategories();
         const pendingTxs = getPendingAsTransactions() as Transaction[];
-        if (localProducts.length > 0 || pendingTxs.length > 0) {
-          console.log('[AppContext] Using offline cache:', localProducts.length, 'products,', pendingTxs.length, 'pending txs');
+        const cachedTxs = getLocalSyncedTransactions();
+        
+        // Merge pending and cached transactions, deduplicate by ID, and sort by date descending
+        const mergedOfflineTxs = [...pendingTxs, ...cachedTxs].reduce((acc, tx) => {
+          if (!acc.some(t => t.id === tx.id)) acc.push(tx);
+          return acc;
+        }, [] as Transaction[]).sort((a, b) => {
+          const aTime = a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime();
+          const bTime = b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime();
+          return bTime - aTime;
+        });
+
+        if (localProducts.length > 0 || mergedOfflineTxs.length > 0) {
+          console.log('[AppContext] Using offline cache:', localProducts.length, 'products,', mergedOfflineTxs.length, 'total offline txs');
           setState(prev => ({
             ...prev,
             products: localProducts.length > 0 ? localProducts : prev.products,
             categories: localCats.names.length > 0 ? localCats.names : prev.categories,
             categoriesWithId: localCats.withId.length > 0 ? localCats.withId : prev.categoriesWithId,
-            transactions: pendingTxs.length > 0 ? pendingTxs : prev.transactions,
+            transactions: mergedOfflineTxs.length > 0 ? mergedOfflineTxs : prev.transactions,
           }));
           setServiceError(null); // Don't show error if we have cached data
           return;
@@ -197,6 +218,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsServiceLoading(true);
         setServiceError(null);
         const next = await appApi.getAppState();
+        
+        // Cache transactions from server for offline fallback
+        if (mounted && next && next.transactions) {
+          setTimeout(() => {
+            cacheSyncedTransactions(next.transactions);
+          }, 100);
+        }
+
         if (mounted) {
           setState(mergePendingIntoState(next));
           setIsOfflineMode(false);
@@ -214,14 +243,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const localProducts = getLocalProducts();
             const localCats = getLocalCategories();
             const pendingTxs = getPendingAsTransactions() as Transaction[];
-            if (localProducts.length > 0 || pendingTxs.length > 0) {
-              console.log('[AppContext] Offline fallback:', localProducts.length, 'products from cache');
+            const cachedTxs = getLocalSyncedTransactions();
+            
+            // Merge pending and cached transactions, deduplicate by ID, and sort by date descending
+            const mergedOfflineTxs = [...pendingTxs, ...cachedTxs].reduce((acc, tx) => {
+              if (!acc.some(t => t.id === tx.id)) acc.push(tx);
+              return acc;
+            }, [] as Transaction[]).sort((a, b) => {
+              const aTime = a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime();
+              const bTime = b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime();
+              return bTime - aTime;
+            });
+
+            if (localProducts.length > 0 || mergedOfflineTxs.length > 0) {
+              console.log('[AppContext] Offline fallback:', localProducts.length, 'products,', mergedOfflineTxs.length, 'total offline txs');
               setState(prev => ({
                 ...prev,
                 products: localProducts.length > 0 ? localProducts : prev.products,
                 categories: localCats.names.length > 0 ? localCats.names : prev.categories,
                 categoriesWithId: localCats.withId.length > 0 ? localCats.withId : prev.categoriesWithId,
-                transactions: pendingTxs.length > 0 ? pendingTxs : prev.transactions,
+                transactions: mergedOfflineTxs.length > 0 ? mergedOfflineTxs : prev.transactions,
               }));
               setServiceError(null); // Don't show error — we have cached data
               return;
