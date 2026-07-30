@@ -287,7 +287,7 @@ async function ensureCategory(
 
 /* ─── buildAppState ─────────────────────────────────────────── */
 
-export async function buildAppState(shopId: string) {
+export async function buildAppState(shopId: string, user?: { id: string; role: string }) {
   const [products, txs, wastes, cats] = await Promise.all([
     pool.query(
       `SELECT p.id::text, p.name, p.description, p.price,
@@ -341,6 +341,7 @@ export async function buildAppState(shopId: string) {
        LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = t.shop_id
        WHERE t.shop_id = $1::uuid
          AND COALESCE(t.status::text, 'completed') <> 'voided'
+         ${user && user.role === 'cashier' ? `AND t.cashier_id = '${user.id}'::uuid` : ''}
        ORDER BY t.created_at DESC
        LIMIT 200`,
       [shopId]
@@ -432,7 +433,7 @@ export async function buildAppState(shopId: string) {
 appRouter.get('/state', async (req, res, next) => {
   try {
     console.log('[DB] GET /app/state - Mengambil snapshot data dengan tabel categories...');
-    res.json(await buildAppState(req.user!.shop_id));
+    res.json(await buildAppState(req.user!.shop_id, req.user));
   } catch (err) {
     next(err);
   }
@@ -456,7 +457,7 @@ appRouter.post('/waste-logs', validateBody(CreateWasteLogSchema), async (req, re
       await client.query(`UPDATE coffeepos.products SET stock = stock - $2::int, updated_at = now() WHERE id = $1::uuid AND shop_id = $3::uuid`, [body.productId, body.quantity, shopId]);
       await client.query(`INSERT INTO coffeepos.waste_logs (product_id, quantity, reason, loss_amount, shop_id) VALUES ($1::uuid, $2::int, $3::text, $4::int, $5::uuid)`, [body.productId, body.quantity, body.reason, cost * body.quantity, shopId]);
     });
-    res.status(201).json(await buildAppState(shopId));
+    res.status(201).json(await buildAppState(shopId, req.user));
   } catch (err) {
     next(err);
   }
@@ -480,7 +481,7 @@ appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) 
        body.promoLabel || null, body.promoStart || null, body.promoEnd || null,
        body.isAvailable !== false, shopId]
     );
-    res.status(201).json(await buildAppState(shopId));
+    res.status(201).json(await buildAppState(shopId, req.user));
   } catch (err: any) {
     console.error('[DB] Error inserting product:', err);
     if (err.code === '23502') { // NOT NULL violation
@@ -514,7 +515,7 @@ appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, nex
        body.isAvailable !== false, id, shopId]
     );
     if (result.rowCount === 0) throw new HttpError(404, 'NOT_FOUND', 'Product not found');
-    res.json(await buildAppState(shopId));
+    res.json(await buildAppState(shopId, req.user));
   } catch (err: any) {
     console.error('[DB] Error updating product:', err);
     if (err.code === '23502') { // NOT NULL violation
@@ -531,7 +532,7 @@ appRouter.delete('/products/:id', async (req, res, next) => {
     const shopId = req.user!.shop_id;
     const result = await pool.query(`DELETE FROM coffeepos.products WHERE id = $1::uuid AND shop_id = $2::uuid`, [id, shopId]);
     if (result.rowCount === 0) throw new HttpError(404, 'NOT_FOUND', 'Product not found');
-    res.json(await buildAppState(shopId));
+    res.json(await buildAppState(shopId, req.user));
   } catch (err) {
     next(err);
   }
@@ -545,7 +546,7 @@ appRouter.post('/categories', validateBody(CategorySchema), async (req, res, nex
       `INSERT INTO coffeepos.categories (name, shop_id) VALUES ($1, $2::uuid) ON CONFLICT (name, shop_id) DO NOTHING`,
       [req.body.name, shopId]
     );
-    res.json(await buildAppState(shopId));
+    res.json(await buildAppState(shopId, req.user));
   } catch (err) {
     next(err);
   }
@@ -557,7 +558,7 @@ appRouter.delete('/categories/:name', async (req, res, next) => {
     const shopId = req.user!.shop_id;
     // Note: User should handle product reassignment before deleting category in UI
     await pool.query(`DELETE FROM coffeepos.categories WHERE name = $1 AND shop_id = $2::uuid`, [req.params.name, shopId]);
-    res.json(await buildAppState(shopId));
+    res.json(await buildAppState(shopId, req.user));
   } catch (err) {
     next(err);
   }
