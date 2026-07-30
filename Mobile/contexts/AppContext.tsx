@@ -333,10 +333,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       });
 
-      // Fire-and-forget sync (delayed slightly to allow UI animations like modal closing to finish smoothly)
+      // Fire-and-forget background sync (instant trigger)
       setTimeout(() => {
         triggerSync().catch(console.error);
-      }, 300);
+      }, 0);
 
       return transaction;
     } finally {

@@ -1043,7 +1043,7 @@ export default function POSScreen() {
 
       {/* Payment Modals (always modal sheets) */}
       {showPaymentModal && (
-        <Modal visible={showPaymentModal} animationType="fade" transparent={true} statusBarTranslucent onRequestClose={() => setShowPaymentModal(false)}>
+        <Modal visible={showPaymentModal} animationType="none" transparent={true} statusBarTranslucent onRequestClose={() => setShowPaymentModal(false)}>
           <PaymentScreen
             onClose={() => setShowPaymentModal(false)}
             onSuccess={(tx) => {
@@ -1060,7 +1060,7 @@ export default function POSScreen() {
       )}
 
       {showSuccessModal && (
-        <Modal visible={showSuccessModal} animationType="fade" transparent={true} statusBarTranslucent onRequestClose={() => setShowSuccessModal(false)}>
+        <Modal visible={showSuccessModal} animationType="none" transparent={true} statusBarTranslucent onRequestClose={() => setShowSuccessModal(false)}>
           <PaymentSuccessScreen
             transaction={completedTransaction || undefined}
             onClose={() => setShowSuccessModal(false)}
@@ -1070,7 +1070,7 @@ export default function POSScreen() {
 
       {/* Shift Validation Modal */}
       {showShiftValidationModal && (
-        <Modal visible={showShiftValidationModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowShiftValidationModal(false)}>
+        <Modal visible={showShiftValidationModal} transparent animationType="none" statusBarTranslucent onRequestClose={() => setShowShiftValidationModal(false)}>
           <View style={{
             flex: 1,
             justifyContent: 'center',

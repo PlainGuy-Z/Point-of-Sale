@@ -270,7 +270,7 @@ export default function CartItemEditModal({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={{
