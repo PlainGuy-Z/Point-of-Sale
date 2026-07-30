@@ -696,75 +696,69 @@ export default function OwnerHistoryScreen() {
       )}
 
       {/* Content */}
-      {loading && !refreshing ? (
-        <>
-          {ListHeaderComponent}
-          <View style={[styles.centerState, { flex: 1 }]}>
-            <ActivityIndicator size="large" color={c.accent} />
-            <Text style={[styles.stateText, { color: c.textMuted }]}>Memuat transaksi...</Text>
-          </View>
-        </>
-      ) : error ? (
-        <>
-          {ListHeaderComponent}
-          <View style={[styles.centerState, { flex: 1 }]}>
-            <AlertCircle size={40} color={c.error} strokeWidth={1.5} />
-            <Text style={[styles.stateText, { color: c.error }]}>{error}</Text>
-            <TouchableOpacity
-              style={[styles.retryBtn, { borderColor: c.accent }]}
-              onPress={() => void loadRows()}
-            >
-              <Text style={[styles.retryText, { color: c.accent }]}>Coba Lagi</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      ) : (
-        <FlatList
-          data={rows}
-          renderItem={renderCard}
-          keyExtractor={keyExtractor}
-          ListHeaderComponent={ListHeaderComponent}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={c.accent}
-              colors={[c.accent]}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.centerState}>
+      <FlatList
+        data={loading && !refreshing ? [] : (error ? [] : rows)}
+        renderItem={renderCard}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={ListHeaderComponent}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={c.accent}
+            colors={[c.accent]}
+          />
+        }
+        ListEmptyComponent={
+          loading && !refreshing ? (
+            <View style={[styles.centerState, { paddingVertical: 80 }]}>
+              <ActivityIndicator size="large" color={c.accent} />
+              <Text style={[styles.stateText, { color: c.textMuted, marginTop: 8 }]}>Memuat transaksi...</Text>
+            </View>
+          ) : error ? (
+            <View style={[styles.centerState, { paddingVertical: 80 }]}>
+              <AlertCircle size={40} color={c.error} strokeWidth={1.5} />
+              <Text style={[styles.stateText, { color: c.error, marginTop: 8 }]}>{error}</Text>
+              <TouchableOpacity
+                style={[styles.retryBtn, { borderColor: c.accent, marginTop: 16 }]}
+                onPress={() => void loadRows()}
+              >
+                <Text style={[styles.retryText, { color: c.accent }]}>Coba Lagi</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={[styles.centerState, { paddingVertical: 80 }]}>
               <Inbox size={48} color={c.textMuted} strokeWidth={1.5} />
-              <Text style={[styles.stateTitle, { color: c.text }]}>Belum ada data transaksi</Text>
-              <Text style={[styles.stateText, { color: c.textSecondary }]}>
+              <Text style={[styles.stateTitle, { color: c.text, marginTop: 8 }]}>Belum ada data transaksi</Text>
+              <Text style={[styles.stateText, { color: c.textSecondary, marginTop: 4 }]}>
                 Tidak ada transaksi untuk filter ini
               </Text>
             </View>
-          }
-          ListFooterComponent={
-            hasMore && !loading ? (
-              <View style={styles.paginationRow}>
-                <TouchableOpacity
-                  disabled={page <= 1}
-                  onPress={() => setPage((p) => Math.max(1, p - 1))}
-                  style={[styles.pageBtn, { borderColor: c.border, opacity: page <= 1 ? 0.4 : 1 }]}
-                >
-                  <Text style={[styles.pageBtnText, { color: c.text }]}>Sebelumnya</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  disabled={page * LIMIT >= total}
-                  onPress={() => setPage((p) => p + 1)}
-                  style={[styles.pageBtn, { borderColor: c.border, opacity: page * LIMIT >= total ? 0.4 : 1 }]}
-                >
-                  <Text style={[styles.pageBtnText, { color: c.text }]}>Berikutnya</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null
-          }
-        />
-      )}
+          )
+        }
+        ListFooterComponent={
+          hasMore && !loading && !error ? (
+            <View style={styles.paginationRow}>
+              <TouchableOpacity
+                disabled={page <= 1}
+                onPress={() => setPage((p) => Math.max(1, p - 1))}
+                style={[styles.pageBtn, { borderColor: c.border, opacity: page <= 1 ? 0.4 : 1 }]}
+              >
+                <Text style={[styles.pageBtnText, { color: c.text }]}>Sebelumnya</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={page * LIMIT >= total}
+                onPress={() => setPage((p) => p + 1)}
+                style={[styles.pageBtn, { borderColor: c.border, opacity: page * LIMIT >= total ? 0.4 : 1 }]}
+              >
+                <Text style={[styles.pageBtnText, { color: c.text }]}>Berikutnya</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null
+        }
+      />
 
       {/* Detail Sheet */}
       {detail && (

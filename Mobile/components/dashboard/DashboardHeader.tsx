@@ -84,7 +84,6 @@ export default function DashboardHeader({ onMenuPress, showMenu, branchSelector 
             </View>
             <View style={styles.titleContainer}>
               <Text style={styles.titleBold}>SmartPOS</Text>
-              <Text style={styles.titleRegular}> Cafe</Text>
             </View>
             <Text style={styles.dateText}>{dateStr}</Text>
           </View>
