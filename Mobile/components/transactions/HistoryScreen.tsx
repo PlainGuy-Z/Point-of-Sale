@@ -64,11 +64,8 @@ export default function HistoryScreen() {
     // For cashier, default date is always today.
     // Cache covers today. We only fallback if there's a search, non-default status, asc sort,
     // or if the requested page is beyond the cached items length.
-    if (search.trim() !== '') return false;
-    if (status !== 'all') return false;
-    if (sort !== 'desc') return false;
-    if (page * LIMIT > transactions.length + LIMIT) return false;
-    return true;
+    // UPDATE: Always fetch from backend so cashier can see all time history and avoid stale cache
+    return false;
   }, [search, status, sort, page, transactions.length]);
 
   const getCachedRows = useCallback(() => {
@@ -282,7 +279,7 @@ export default function HistoryScreen() {
         data={rows}
         renderItem={renderCard}
         keyExtractor={keyExtractor}
-        contentContainerStyle={[styles.listContent, { paddingTop: isLandscape ? 12 : 6 }]}
+        contentContainerStyle={[styles.listContent, { paddingTop: isLandscape ? 12 : 6, paddingBottom: isLandscape ? 20 : 100 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

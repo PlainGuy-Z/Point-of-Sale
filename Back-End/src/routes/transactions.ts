@@ -286,7 +286,6 @@ transactionsRouter.get('/', async (req, res, next) => {
         clauses.push(`t.branch_id = $${pidx++}::uuid`);
         qp.push(req.user!.branch_id);
       }
-      clauses.push(`(DATE(t.created_at AT TIME ZONE '${TZ}') = DATE((now() AT TIME ZONE '${TZ}')))`);
     } else {
       if (typeof req.query.date_from === 'string' && req.query.date_from) {
         clauses.push(`(t.created_at AT TIME ZONE '${TZ}')::date >= $${pidx++}::date`);

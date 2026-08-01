@@ -17,47 +17,28 @@ import type {
   ConnectionStatus 
 } from '../services/printer/types'
 
-// ── Check and Request Android Permissions ─────────────────────────────────────
 async function checkAndRequestBluetoothPermissions(): Promise<boolean> {
   if (Platform.OS !== 'android') return true
 
   try {
-    // For Android 12 and above (API level 31+)
     if (Platform.Version >= 31) {
-      const alreadyGrantedConnect = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT
-      )
-      const alreadyGrantedScan = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN
-      )
-
-      if (alreadyGrantedConnect && alreadyGrantedScan) {
-        return true
-      }
-
-      const granted = await PermissionsAndroid.requestMultiple([
+      const permissionsToRequest = [
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-      ])
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION, // tetap dibutuhkan untuk classic BT discovery
+      ]
+
+      const granted = await PermissionsAndroid.requestMultiple(permissionsToRequest)
 
       return (
         granted['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED &&
-        granted['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED
+        granted['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
+        granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
       )
     } else {
-      // For Android 11 and below (API level 23-30)
-      const alreadyGrantedLocation = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-      )
-
-      if (alreadyGrantedLocation) {
-        return true
-      }
-
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
       )
-
       return granted === PermissionsAndroid.RESULTS.GRANTED
     }
   } catch (err) {

@@ -259,7 +259,7 @@ export default function LaporanShift() {
       <ScrollView
         contentContainerStyle={{
           padding: 16,
-          paddingBottom: 32,
+          paddingBottom: isLandscape ? 32 : 100,
         }}
         showsVerticalScrollIndicator={false}
       >
