@@ -82,7 +82,7 @@ export function buildReceipt(data: ReceiptData): string {
   // Header
   doc += ALIGN_CENTER
   doc += BOLD_ON + DOUBLE_HEIGHT
-  doc += data.shopName.toUpperCase() + FEED_LINE
+  doc += (data.shopName || 'STORE').toUpperCase() + FEED_LINE
   doc += NORMAL_SIZE + BOLD_OFF
   if (data.shopAddress) doc += data.shopAddress + FEED_LINE
   if (data.shopPhone) doc += data.shopPhone + FEED_LINE
@@ -97,7 +97,7 @@ export function buildReceipt(data: ReceiptData): string {
     }).format(data.createdAt), W) + FEED_LINE
   doc += formatTwoColumns('Kasir', data.cashierName, W) + FEED_LINE
   doc += formatTwoColumns('No. Trx', 
-    data.transactionId.slice(-8).toUpperCase(), W) + FEED_LINE
+    (data.transactionId || '').slice(-8).toUpperCase(), W) + FEED_LINE
   if (data.orderType) {
     const isDineIn = data.orderType === 'dine_in' || data.orderType === 'dine-in';
     doc += formatTwoColumns('Tipe Pesanan', isDineIn ? 'Dine In' : 'Take Away', W) + FEED_LINE
@@ -174,7 +174,7 @@ export function buildReceipt(data: ReceiptData): string {
     cash: 'Tunai', card: 'Kartu', qris: 'QRIS', transfer: 'Transfer'
   }
   doc += formatTwoColumns('Bayar', 
-    methodLabel[data.paymentMethod] || data.paymentMethod, W) + FEED_LINE
+    methodLabel[data.paymentMethod || 'cash'] || data.paymentMethod || 'CASH', W) + FEED_LINE
   if (data.amountPaid) {
     doc += formatTwoColumns('Diterima', fmt(data.amountPaid), W) + FEED_LINE
   }

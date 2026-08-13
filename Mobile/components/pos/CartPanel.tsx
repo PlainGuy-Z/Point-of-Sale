@@ -15,7 +15,7 @@ interface CartPanelProps {
   onQuickPay: () => void;
 }
 
-export default function CartPanel({
+function CartPanel({
   onManualItem,
   onEditItem,
   onCheckout,
@@ -210,3 +210,5 @@ export default function CartPanel({
     </View>
   );
 }
+
+export default React.memo(CartPanel);

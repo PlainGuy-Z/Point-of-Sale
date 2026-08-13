@@ -933,6 +933,11 @@ export default function OwnerSidebar({
         </View>
         {renderFlyoutPopover()}
         {renderBottomSheet()}
+        <LogoutModal
+          visible={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={handleConfirmLogout}
+        />
       </>
     );
   }
@@ -1051,6 +1056,11 @@ export default function OwnerSidebar({
         </Animated.View>
       </View>
       {renderBottomSheet()}
+      <LogoutModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </>
   );
 }

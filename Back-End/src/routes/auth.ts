@@ -116,7 +116,7 @@ function setCookie(res: import('express').Response, token: string): void {
     httpOnly: true,
     secure: isProd,              // true di production (HTTPS wajib)
     sameSite: 'none',            // Cross-origin frontend requires SameSite=None in dev and prod
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days — match JWT_EXPIRES_IN
     path: '/',
   });
 }

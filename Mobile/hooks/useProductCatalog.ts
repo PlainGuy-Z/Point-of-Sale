@@ -57,9 +57,14 @@ export function useProductCatalog(
 
   const { productsWithBestSeller, topBestSellers } = analyticsData;
 
-  // 2. Fast computation: UI Filtering & Sorting (Recalculate on search/category change)
+  // 2. Pre-sort all products once whenever productsWithBestSeller changes
+  const sortedAllProducts = useMemo(() => {
+    return sortProductsByPriority(productsWithBestSeller);
+  }, [productsWithBestSeller]);
+
+  // 3. Fast computation: UI Filtering (Recalculate on search/category change)
   return useMemo(() => {
-    const filteredProducts = productsWithBestSeller.filter(product => {
+    const filteredProducts = sortedAllProducts.filter(product => {
       const matchesSearch = product.name
         .toLowerCase()
         .includes(search.toLowerCase());
@@ -70,22 +75,20 @@ export function useProductCatalog(
       return matchesSearch && matchesCategory;
     });
 
-    const sortedProducts = sortProductsByPriority(filteredProducts);
-
-    const promoProductsCount = sortedProducts.filter(
+    const promoProductsCount = filteredProducts.filter(
       p => getEffectivePrice(p).isPromoActive
     ).length;
 
-    const bestSellerCount = sortedProducts.filter(p => p.isBestSeller).length;
+    const bestSellerCount = filteredProducts.filter(p => p.isBestSeller).length;
 
     return {
-      sortedProducts,
+      sortedProducts: filteredProducts,
       topBestSellers,
       promoProductsCount,
       bestSellerCount,
       filteredProducts,
     };
-  }, [productsWithBestSeller, topBestSellers, search, selectedCategory]);
+  }, [sortedAllProducts, topBestSellers, search, selectedCategory]);
 }
 
 // ─── Sort helper ────────────────────────────────────────────────────────────────

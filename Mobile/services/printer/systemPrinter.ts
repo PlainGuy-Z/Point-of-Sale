@@ -150,7 +150,7 @@ function buildHTMLReceipt(data: PrintReceiptData): string {
     <body>
       <!-- Store header -->
       <div class="center">
-        <div class="bold large">${data.shopName.toUpperCase()}</div>
+        <div class="bold large">${(data.shopName || 'STORE').toUpperCase()}</div>
         ${data.shopAddress ? `<div>${data.shopAddress}</div>` : ''}
         ${data.shopPhone ? `<div>${data.shopPhone}</div>` : ''}
       </div>
@@ -160,11 +160,11 @@ function buildHTMLReceipt(data: PrintReceiptData): string {
       <!-- Transaction info -->
       <div class="row">
         <span>Receipt ID</span>
-        <span>#${data.transactionId.slice(0, 8).toUpperCase()}</span>
+        <span>#${(data.transactionId || '').slice(0, 8).toUpperCase()}</span>
       </div>
       <div class="row">
         <span>Tanggal</span>
-        <span>${new Date(data.createdAt).toLocaleString('id-ID')}</span>
+        <span>${new Date(data.createdAt || Date.now()).toLocaleString('id-ID')}</span>
       </div>
       ${
         data.orderType
@@ -242,7 +242,7 @@ function buildHTMLReceipt(data: PrintReceiptData): string {
       <div style="margin-top:6px">
         <div class="row">
           <span>Pembayaran</span>
-          <span class="bold">${data.paymentMethod.toUpperCase()}</span>
+          <span class="bold">${(data.paymentMethod || 'CASH').toUpperCase()}</span>
         </div>
         ${
           data.amountPaid
@@ -310,14 +310,14 @@ export const systemPrinterBackend: PrinterBackend = {
 export function buildReceiptText(data: PrintReceiptData): string {
   const lines: string[] = []
 
-  lines.push(`=== ${data.shopName.toUpperCase()} ===`)
+  lines.push(`=== ${(data.shopName || 'STORE').toUpperCase()} ===`)
   if (data.isOffline) {
     lines.push('*** STRUK OFFLINE — BELUM SYNC ***')
   }
   if (data.shopAddress) lines.push(data.shopAddress)
   lines.push('--------------------------------')
-  lines.push(`ID: #${data.transactionId.slice(0, 8).toUpperCase()}`)
-  lines.push(`Tanggal: ${new Date(data.createdAt).toLocaleString('id-ID')}`)
+  lines.push(`ID: #${(data.transactionId || '').slice(0, 8).toUpperCase()}`)
+  lines.push(`Tanggal: ${new Date(data.createdAt || Date.now()).toLocaleString('id-ID')}`)
   if (data.orderType) {
     lines.push(
       `Tipe: ${data.orderType === 'dine_in' ? 'Dine In' : 'Take Away'}`
@@ -376,7 +376,7 @@ export function buildReceiptText(data: PrintReceiptData): string {
     )
   }
   lines.push(`TOTAL: Rp ${data.grandTotal.toLocaleString('id-ID')}`)
-  lines.push(`Bayar: ${data.paymentMethod.toUpperCase()}`)
+  lines.push(`Bayar: ${(data.paymentMethod || 'CASH').toUpperCase()}`)
   if (data.amountPaid) {
     lines.push(`Tunai: Rp ${data.amountPaid.toLocaleString('id-ID')}`)
     lines.push(

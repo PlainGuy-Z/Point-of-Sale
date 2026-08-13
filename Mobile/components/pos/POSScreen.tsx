@@ -129,6 +129,11 @@ export default function POSScreen() {
   }, [editingItemIndex, removeAtIndex, setEditingItemIndex]);
 
   // ── Manual item ───────────────────────────────────────────────────────────
+  const handleOpenManualModal = useCallback(() => {
+    setShowCartModal(false);
+    setShowManualModal(true);
+  }, []);
+
   const handleManualAdd = useCallback((item: CartItemWithInput) => {
     addCustomItem(item);
     setShowManualModal(false);
@@ -180,6 +185,11 @@ export default function POSScreen() {
 
   // ── Edit item from cart ───────────────────────────────────────────────────
   const handleEditItem = useCallback((index: number) => {
+    setEditingItemIndex(index);
+  }, [setEditingItemIndex]);
+
+  const handlePortraitEditItem = useCallback((index: number) => {
+    setShowCartModal(false);
     setEditingItemIndex(index);
   }, [setEditingItemIndex]);
 
@@ -509,10 +519,10 @@ export default function POSScreen() {
             borderWidth: 1, borderColor: c.border,
           }}>
             <CartPanel
-              onManualItem={() => { setShowCartModal(false); setShowManualModal(true); }}
-              onEditItem={(idx) => { setShowCartModal(false); handleEditItem(idx); }}
-              onCheckout={() => handleCheckout()}
-              onQuickPay={() => handleQuickPay()}
+              onManualItem={handleOpenManualModal}
+              onEditItem={handlePortraitEditItem}
+              onCheckout={handleCheckout}
+              onQuickPay={handleQuickPay}
             />
           </View>
         </View>
@@ -998,20 +1008,16 @@ export default function POSScreen() {
           {products.length === 0 && serviceError ? (
             renderNetworkError()
           ) : (
-            <FlatList
+            <FlashList
               data={sortedProducts}
               style={{ flex: 1 }}
               refreshControl={<RefreshControl refreshing={isServiceLoading} onRefresh={refreshState} />}
               keyExtractor={item => item.id}
               numColumns={4}
-              key="landscape-grid-4"
+              // @ts-ignore
+              estimatedItemSize={150}
               contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 12 }}
-              columnWrapperStyle={{ justifyContent: 'flex-start' }}
               showsVerticalScrollIndicator={true}
-              initialNumToRender={8}
-              maxToRenderPerBatch={4}
-              windowSize={3}
-              removeClippedSubviews={true}
               ListEmptyComponent={
                 <View style={{ alignItems: 'center', paddingVertical: 60 }}>
                   <Package size={40} color={c.textMuted} strokeWidth={1.5} />
@@ -1035,7 +1041,7 @@ export default function POSScreen() {
           borderLeftColor: c.borderLight,
         }}>
           <CartPanel
-            onManualItem={() => setShowManualModal(true)}
+            onManualItem={handleOpenManualModal}
             onEditItem={handleEditItem}
             onCheckout={handleCheckout}
             onQuickPay={handleQuickPay}

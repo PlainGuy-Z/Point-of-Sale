@@ -6,7 +6,7 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1),
   CORS_ORIGINS: z.string().default(''),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 chars'),
-  JWT_EXPIRES_IN: z.string().default('24h'),
+  JWT_EXPIRES_IN: z.string().default('30d'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).default(12),
   RESEND_API_KEY: z.string().min(1),
   RESEND_FROM_EMAIL: z.string().email().default('noreply@app'),
