@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { HttpError } from '../http/errors.js';
-import { generateBusinessInsights } from '../services/gemini.js';
+import { generateBusinessInsights } from '../services/grok.js';
 export const reportsRouter = Router();
 const TZ = 'Asia/Jakarta';
 const NON_VOID = `(COALESCE(status, '') <> 'voided')`;

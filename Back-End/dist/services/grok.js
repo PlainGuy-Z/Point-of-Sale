@@ -33,14 +33,26 @@ import { withTransaction } from '../db/with-transaction.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { z } from 'zod';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../env.js';
-const geminiApiKey = env.GEMINI_API_KEY;
-if (!geminiApiKey) {
-    throw new Error('Missing GEMINI_API_KEY environment variable');
+async function createCompletion(messages) {
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${env.GROK_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model: env.GROK_MODEL, messages, stream: false }),
+        signal: AbortSignal.timeout(60_000),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+        throw new Error(`Grok API error (${response.status}): ${payload.error?.message ?? response.statusText}`);
+    }
+    const content = payload.choices?.[0]?.message?.content?.trim();
+    if (!content)
+        throw new Error('Grok API returned an empty response');
+    return content;
 }
-const genAI = new GoogleGenerativeAI(geminiApiKey);
-const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL_NAME });
 export async function generateChatResponse(messages, context) {
     if (messages.length === 0) {
         throw new Error('Messages array cannot be empty');
@@ -179,21 +191,13 @@ Data toko:
 
 Gunakan data di atas untuk menjawab pertanyaan dengan akurat dan relevan.
 `.trim();
-    const historyMessages = messages.slice(0, -1);
-    const formattedHistory = historyMessages.map((msg) => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }],
-    }));
-    const lastMessage = messages[messages.length - 1];
-    const chat = model.startChat({
-        history: [
-            { role: 'user', parts: [{ text: systemPrompt }] },
-            { role: 'model', parts: [{ text: 'Baik, saya siap membantu. Silakan.' }] },
-            ...formattedHistory,
-        ],
-    });
-    const result = await chat.sendMessage(lastMessage.content);
-    return result.response.text();
+    return createCompletion([
+        { role: 'system', content: systemPrompt },
+        ...messages.map((message) => ({
+            role: message.role === 'model' ? 'assistant' : 'user',
+            content: message.content,
+        })),
+    ]);
 }
 export async function generateBusinessInsights(dataPayload, from, to) {
     const prompt = `Kamu adalah Konsultan Bisnis Profesional. 
@@ -205,14 +209,10 @@ Berikan 3 paragraf analisis ringkas dan konkret (tanpa format khusus seperti ** 
 Paragraf 1: Ringkasan tren pendapatan dan transaksi secara umum.
 Paragraf 2: Sorotan pada produk terlaris dan kategori terkuat.
 Paragraf 3: Peringatan mengenai stok menipis dan waste, beserta rekomendasi langkah nyata.`;
-    const chat = model.startChat({
-        history: [
-            { role: 'user', parts: [{ text: "Berikan insight bisnis tanpa formatting khusus." }] },
-            { role: 'model', parts: [{ text: "Baik, saya akan menganalisis data yang diberikan." }] },
-        ]
-    });
-    const result = await chat.sendMessage(prompt);
-    return result.response.text();
+    return createCompletion([
+        { role: 'system', content: 'Berikan insight bisnis tanpa formatting khusus.' },
+        { role: 'user', content: prompt },
+    ]);
 }
 export const appRouter = Router();
 const CreateWasteLogSchema = z.object({
@@ -253,7 +253,7 @@ async function ensureCategory(categoryName, shopId, client) {
     return inserted.rows[0].id;
 }
 /* ─── buildAppState ─────────────────────────────────────────── */
-export async function buildAppState(shopId) {
+export async function buildAppState(shopId, user) {
     const [products, txs, wastes, cats] = await Promise.all([
         pool.query(`SELECT p.id::text, p.name, p.description, p.price,
               c.name as category, p.stock, p.min_stock, p.cost,
@@ -303,6 +303,7 @@ export async function buildAppState(shopId) {
        LEFT JOIN coffeepos.shop_settings ss ON ss.shop_id = t.shop_id
        WHERE t.shop_id = $1::uuid
          AND COALESCE(t.status::text, 'completed') <> 'voided'
+         ${user && user.role === 'cashier' ? `AND t.cashier_id = '${user.id}'::uuid` : ''}
        ORDER BY t.created_at DESC
        LIMIT 200`, [shopId]),
         pool.query(`SELECT
@@ -383,7 +384,7 @@ export async function buildAppState(shopId) {
 appRouter.get('/state', async (req, res, next) => {
     try {
         console.log('[DB] GET /app/state - Mengambil snapshot data dengan tabel categories...');
-        res.json(await buildAppState(req.user.shop_id));
+        res.json(await buildAppState(req.user.shop_id, req.user));
     }
     catch (err) {
         next(err);
@@ -406,7 +407,7 @@ appRouter.post('/waste-logs', validateBody(CreateWasteLogSchema), async (req, re
             await client.query(`UPDATE coffeepos.products SET stock = stock - $2::int, updated_at = now() WHERE id = $1::uuid AND shop_id = $3::uuid`, [body.productId, body.quantity, shopId]);
             await client.query(`INSERT INTO coffeepos.waste_logs (product_id, quantity, reason, loss_amount, shop_id) VALUES ($1::uuid, $2::int, $3::text, $4::int, $5::uuid)`, [body.productId, body.quantity, body.reason, cost * body.quantity, shopId]);
         });
-        res.status(201).json(await buildAppState(shopId));
+        res.status(201).json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         next(err);
@@ -427,7 +428,7 @@ appRouter.post('/products', validateBody(ProductSchema), async (req, res, next) 
             body.discount || 0, body.isPromo || false, body.promoPrice || null,
             body.promoLabel || null, body.promoStart || null, body.promoEnd || null,
             body.isAvailable !== false, shopId]);
-        res.status(201).json(await buildAppState(shopId));
+        res.status(201).json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         console.error('[DB] Error inserting product:', err);
@@ -459,7 +460,7 @@ appRouter.put('/products/:id', validateBody(ProductSchema), async (req, res, nex
             body.isAvailable !== false, id, shopId]);
         if (result.rowCount === 0)
             throw new HttpError(404, 'NOT_FOUND', 'Product not found');
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         console.error('[DB] Error updating product:', err);
@@ -477,7 +478,7 @@ appRouter.delete('/products/:id', async (req, res, next) => {
         const result = await pool.query(`DELETE FROM coffeepos.products WHERE id = $1::uuid AND shop_id = $2::uuid`, [id, shopId]);
         if (result.rowCount === 0)
             throw new HttpError(404, 'NOT_FOUND', 'Product not found');
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         next(err);
@@ -488,7 +489,7 @@ appRouter.post('/categories', validateBody(CategorySchema), async (req, res, nex
     try {
         const shopId = req.user.shop_id;
         await pool.query(`INSERT INTO coffeepos.categories (name, shop_id) VALUES ($1, $2::uuid) ON CONFLICT (name, shop_id) DO NOTHING`, [req.body.name, shopId]);
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         next(err);
@@ -500,7 +501,7 @@ appRouter.delete('/categories/:name', async (req, res, next) => {
         const shopId = req.user.shop_id;
         // Note: User should handle product reassignment before deleting category in UI
         await pool.query(`DELETE FROM coffeepos.categories WHERE name = $1 AND shop_id = $2::uuid`, [req.params.name, shopId]);
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         next(err);

@@ -9,10 +9,7 @@ settingsRouter.get('/', async (req, res) => {
             res.status(401).json({ message: 'Unauthorized' });
             return;
         }
-        if (req.user?.role !== 'owner') {
-            res.status(403).json({ message: 'Forbidden' });
-            return;
-        }
+        // Any authenticated user in the shop (owner or cashier) can read settings
         // Get shop name
         const shopResult = await pool.query('SELECT name, slug FROM coffeepos.shops WHERE id = $1', [shopId]);
         if (shopResult.rows.length === 0) {

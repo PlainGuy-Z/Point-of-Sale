@@ -146,7 +146,7 @@ export async function getProductsState(shopId) {
         image: p.image || null
     }));
 }
-export async function buildAppState(shopId) {
+export async function buildAppState(shopId, user) {
     // Fetch shop settings and shop info
     const [shopRes, settingsRes] = await Promise.all([
         pool.query(`SELECT name, address FROM coffeepos.shops WHERE id = $1::uuid`, [shopId]),
@@ -161,6 +161,12 @@ export async function buildAppState(shopId) {
     }
     const shopRow = shopRes.rows[0];
     const productsData = await getProductsState(shopId);
+    const txParams = [shopId];
+    let cashierCondition = '';
+    if (user && user.role === 'cashier') {
+        cashierCondition = 'AND t.cashier_id = $2::uuid';
+        txParams.push(user.id);
+    }
     // [FIX-3] Replaced correlated subqueries with LEFT JOIN aggregation to eliminate N+1
     const txQuery = await pool.query(`
     SELECT
@@ -192,9 +198,10 @@ export async function buildAppState(shopId) {
     ) cost_agg ON cost_agg.transaction_id = t.id
     WHERE t.shop_id = $1::uuid
       AND COALESCE(t.status::text, 'completed') <> 'voided'
+      ${cashierCondition}
     ORDER BY t.created_at DESC
     LIMIT 200
-  `, [shopId]);
+  `, txParams);
     // STEP 2 — Fetch ALL items for those transactions in ONE query
     const txIds = txQuery.rows.map(r => r.id);
     const itemsMap = new Map();
@@ -383,7 +390,7 @@ appRouter.delete('/data/transactions', async (req, res, next) => {
             await client.query(`DELETE FROM coffeepos.transaction_items WHERE transaction_id IN (SELECT id FROM coffeepos.transactions WHERE shop_id = $1::uuid)`, [shopId]);
             await client.query(`DELETE FROM coffeepos.transactions WHERE shop_id = $1::uuid`, [shopId]);
         });
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         next(err);
@@ -393,7 +400,7 @@ appRouter.delete('/data/transactions', async (req, res, next) => {
 appRouter.get('/state', async (req, res, next) => {
     try {
         console.log('[DB] GET /app/state - Mengambil snapshot data dengan tabel categories...');
-        res.json(await buildAppState(req.user.shop_id));
+        res.json(await buildAppState(req.user.shop_id, req.user));
     }
     catch (err) {
         next(err);
@@ -416,7 +423,7 @@ appRouter.post('/waste-logs', validateBody(CreateWasteLogSchema), async (req, re
             await client.query(`UPDATE coffeepos.products SET stock = stock - $2::int, updated_at = now() WHERE id = $1::uuid AND shop_id = $3::uuid`, [body.productId, body.quantity, shopId]);
             await client.query(`INSERT INTO coffeepos.waste_logs (product_id, quantity, reason, loss_amount, shop_id) VALUES ($1::uuid, $2::int, $3::text, $4::int, $5::uuid)`, [body.productId, body.quantity, body.reason, cost * body.quantity, shopId]);
         });
-        res.status(201).json(await buildAppState(shopId));
+        res.status(201).json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         next(err);
@@ -437,7 +444,7 @@ appRouter.post('/products', requireRole('owner'), validateBody(ProductSchema), a
             body.discount || 0, body.isPromo || false, body.promoPrice || null,
             body.promoLabel || null, body.promoStart || null, body.promoEnd || null,
             body.isAvailable !== false, shopId, body.branchId || null]);
-        res.status(201).json(await buildAppState(shopId));
+        res.status(201).json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         console.error('[DB] Error inserting product:', err);
@@ -469,7 +476,7 @@ appRouter.put('/products/:id', requireRole('owner'), validateBody(ProductSchema)
             body.isAvailable !== false, body.branchId || null, id, shopId]);
         if (result.rowCount === 0)
             throw new HttpError(404, 'NOT_FOUND', 'Product not found');
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         console.error('[DB] Error updating product:', err);
@@ -491,7 +498,7 @@ appRouter.delete('/products/:id', requireRole('owner'), async (req, res, next) =
        WHERE id = $1::uuid AND shop_id = $2::uuid`, [id, shopId]);
         if (result.rowCount === 0)
             throw new HttpError(404, 'NOT_FOUND', 'Product not found');
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         next(err);
@@ -502,7 +509,7 @@ appRouter.post('/categories', requireRole('owner'), validateBody(CategorySchema)
     try {
         const shopId = req.user.shop_id;
         await pool.query(`INSERT INTO coffeepos.categories (name, shop_id) VALUES ($1, $2::uuid) ON CONFLICT (name, shop_id) DO NOTHING`, [req.body.name, shopId]);
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         next(err);
@@ -514,7 +521,7 @@ appRouter.delete('/categories/:name', requireRole('owner'), async (req, res, nex
         const shopId = req.user.shop_id;
         // Note: User should handle product reassignment before deleting category in UI
         await pool.query(`DELETE FROM coffeepos.categories WHERE name = $1 AND shop_id = $2::uuid`, [req.params.name, shopId]);
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (err) {
         next(err);
@@ -615,7 +622,7 @@ appRouter.put('/settings', requireRole('owner'), validateBody(updateSettingsSche
             await pool.query(query, values);
         }
         await pool.query('COMMIT');
-        res.json(await buildAppState(shopId));
+        res.json(await buildAppState(shopId, req.user));
     }
     catch (error) {
         await pool.query('ROLLBACK');

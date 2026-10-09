@@ -5,14 +5,13 @@ const EnvSchema = z.object({
     DATABASE_URL: z.string().min(1),
     CORS_ORIGINS: z.string().default(''),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 chars'),
-    JWT_EXPIRES_IN: z.string().default('24h'),
+    JWT_EXPIRES_IN: z.string().default('30d'),
     BCRYPT_ROUNDS: z.coerce.number().int().min(10).default(12),
     RESEND_API_KEY: z.string().min(1),
     RESEND_FROM_EMAIL: z.string().email().default('noreply@app'),
     FRONTEND_URL: z.string().url().default('http://localhost:5173'),
-    // ✅ Optional — tidak crash jika belum ada
-    GEMINI_API_KEY: z.string().min(1).optional(),
-    GEMINI_MODEL_NAME: z.string().min(1).default('gemini-2.5-flash'),
+    GROK_API_KEY: z.string().min(1),
+    GROK_MODEL: z.string().min(1).default('grok-4.20-0309-non-reasoning'),
 });
 const parsed = EnvSchema.safeParse(process.env);
 if (!parsed.success) {

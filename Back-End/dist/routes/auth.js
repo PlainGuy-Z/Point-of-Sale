@@ -89,9 +89,10 @@ function setCookie(res, token) {
     const isProd = env.NODE_ENV === 'production';
     res.cookie('token', token, {
         httpOnly: true,
-        secure: isProd, // true di production (HTTPS wajib)
-        sameSite: 'none', // Cross-origin frontend requires SameSite=None in dev and prod
-        maxAge: 24 * 60 * 60 * 1000,
+        secure: isProd,
+        // Browser menolak SameSite=None tanpa Secure. Gunakan Lax untuk HTTP localhost.
+        sameSite: isProd ? 'none' : 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days — match JWT_EXPIRES_IN
         path: '/',
     });
 }
@@ -251,7 +252,7 @@ authRouter.post('/logout', (_req, res) => {
     const clearOptions = {
         httpOnly: true,
         secure: isProd,
-        sameSite: 'none',
+        sameSite: (isProd ? 'none' : 'lax'),
         path: '/',
     };
     res.clearCookie('token', clearOptions);

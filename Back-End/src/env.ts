@@ -12,9 +12,8 @@ const EnvSchema = z.object({
   RESEND_FROM_EMAIL: z.string().email().default('noreply@app'),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
 
-  // ✅ Optional — tidak crash jika belum ada
-  GEMINI_API_KEY: z.string().min(1).optional(),
-  GEMINI_MODEL_NAME: z.string().min(1).default('gemini-2.5-flash'),
+  GROK_API_KEY: z.string().min(1),
+  GROK_MODEL: z.string().min(1).default('grok-4.20-0309-non-reasoning'),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

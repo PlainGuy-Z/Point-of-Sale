@@ -18,11 +18,51 @@ import { publicRouter } from './routes/public.js';
 import { branchesRouter } from './routes/branches.js';
 import { syncRouter } from './routes/sync.js';
 import { authenticateToken } from './middleware/auth.js';
+const stateChangingMethods = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
+function isPrivateIpv4(hostname) {
+    const parts = hostname.split('.').map(Number);
+    if (parts.length !== 4 ||
+        parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+        return false;
+    }
+    return (parts[0] === 10 ||
+        (parts[0] === 192 && parts[1] === 168) ||
+        (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31));
+}
+function isLocalDevelopmentOrigin(url) {
+    if (env.NODE_ENV === 'production' || url.protocol !== 'http:')
+        return false;
+    return (url.hostname === 'localhost' ||
+        url.hostname === '127.0.0.1' ||
+        url.hostname === '[::1]' ||
+        isPrivateIpv4(url.hostname));
+}
+function isAllowedOrigin(origin) {
+    // Requests without Origin include native mobile apps and server-to-server calls.
+    if (!origin)
+        return true;
+    if (env.corsOrigins.includes(origin))
+        return true;
+    try {
+        const url = new URL(origin);
+        if (url.origin !== origin || !['http:', 'https:'].includes(url.protocol))
+            return false;
+        // Backward compatibility for the existing SmartPOS Vercel deployments.
+        const isSmartPosVercel = url.protocol === 'https:' &&
+            url.hostname.endsWith('.vercel.app') &&
+            url.hostname.includes('point-of-sale');
+        return isSmartPosVercel || isLocalDevelopmentOrigin(url);
+    }
+    catch {
+        return false;
+    }
+}
 export function createApp() {
     const app = express();
     // Set trust proxy to trust the first proxy (e.g. Nginx, Cloudflare)
     // This resolves ERR_ERL_UNEXPECTED_X_FORWARDED_FOR from express-rate-limit
-    app.set('trust proxy', 1);
+    // Production runs one hop behind the configured reverse proxy. Localhost does not.
+    app.set('trust proxy', env.NODE_ENV === 'production' ? 1 : false);
     app.disable('x-powered-by');
     app.use(helmet({
         crossOriginResourcePolicy: false,
@@ -31,21 +71,10 @@ export function createApp() {
     app.use(cookieParser());
     const corsOptions = {
         origin: (origin, callback) => {
-            if (!origin)
+            if (isAllowedOrigin(origin))
                 return callback(null, true);
-            if (env.corsOrigins.includes(origin)) {
-                return callback(null, true);
-            }
-            // ✅ Fix: nama project yang benar
-            if (origin.endsWith('.vercel.app') &&
-                origin.includes('point-of-sale')) {
-                return callback(null, true);
-            }
-            if (origin.startsWith('http://localhost:') || origin.startsWith('http://192.168.') || origin.startsWith('http://10.') || origin.startsWith('http://172.')) {
-                return callback(null, true);
-            }
             console.warn(`[CORS] Blocked origin: ${origin}`);
-            callback(new Error(`CORS: origin ${origin} not allowed`));
+            callback(null, false);
         },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -54,37 +83,30 @@ export function createApp() {
     };
     app.options(/.*/, cors(corsOptions));
     app.use(cors(corsOptions));
-    app.use((_req, res, next) => {
-        res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    app.use((req, res, next) => {
+        const origin = req.headers.origin;
+        if (origin) {
+            try {
+                if (isLocalDevelopmentOrigin(new URL(origin))) {
+                    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+                }
+            }
+            catch {
+                // Invalid origins are rejected by CORS/CSRF; do not emit the PNA header.
+            }
+        }
         next();
     });
     // CSRF mitigation via custom header check
     app.use((req, res, next) => {
-        // [FIX-2] Apply CSRF check to all state-changing methods on all routes except public endpoints
-        const publicEndpoints = [
-            'POST /auth/login',
-            'POST /auth/register',
-            'POST /auth/verify-token',
-            'POST /auth/forgot-password',
-            'POST /auth/reset-password',
-        ];
+        // Validate Origin for every state-changing browser request.
+        // Native mobile and server-to-server requests normally omit Origin and remain supported.
         // GET requests to /api/public/* are always public (no CSRF check needed)
         if (req.method === 'GET' && req.path.startsWith('/api/public/')) {
             return next();
         }
-        const requestKey = `${req.method} ${req.path}`;
-        const isPublic = publicEndpoints.some(e => requestKey.startsWith(e));
-        if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method) && !isPublic) {
-            const origin = req.headers.origin || '';
-            const allowed = env.corsOrigins;
-            // Allow requests with no origin (mobile apps, server-to-server)
-            if (origin &&
-                !allowed.includes(origin) &&
-                !origin.endsWith('.vercel.app') &&
-                !origin.startsWith('http://localhost:') &&
-                !origin.startsWith('http://192.168.') &&
-                !origin.startsWith('http://10.') &&
-                !origin.startsWith('http://172.')) {
+        if (stateChangingMethods.has(req.method)) {
+            if (!isAllowedOrigin(req.headers.origin)) {
                 return res.status(403).json({
                     error: { code: 'CSRF_BLOCKED', message: 'Invalid origin' },
                 });

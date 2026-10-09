@@ -4,7 +4,7 @@ import { pool } from '../db/pool.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { HttpError } from '../http/errors.js';
 import { getSalesForecast, getInventoryAlerts, getWasteAnalysis, getBusinessSummary } from '../utils/aiCalculations.js';
-import { generateChatResponse } from '../services/gemini.js';
+import { generateChatResponse } from '../services/grok.js';
 const aiRouter = Router();
 // In-memory caches
 const forecastCache = new Map();

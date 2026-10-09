@@ -34,7 +34,6 @@ import { withTransaction } from '../db/with-transaction.js';
 import { HttpError } from '../http/errors.js';
 import { validateBody } from '../http/validate.js';
 import { z } from 'zod';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../env.js';
 
 export type ChatMessage = {
@@ -42,13 +41,36 @@ export type ChatMessage = {
   content: string;
 };
 
-const geminiApiKey = env.GEMINI_API_KEY;
-if (!geminiApiKey) {
-  throw new Error('Missing GEMINI_API_KEY environment variable');
-}
+type GrokMessage = {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+};
 
-const genAI = new GoogleGenerativeAI(geminiApiKey);
-const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL_NAME });
+type GrokChatCompletion = {
+  choices?: Array<{ message?: { content?: string } }>;
+  error?: { message?: string };
+};
+
+async function createCompletion(messages: GrokMessage[]): Promise<string> {
+  const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.GROK_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ model: env.GROK_MODEL, messages, stream: false }),
+    signal: AbortSignal.timeout(60_000),
+  });
+
+  const payload = await response.json() as GrokChatCompletion;
+  if (!response.ok) {
+    throw new Error(`Grok API error (${response.status}): ${payload.error?.message ?? response.statusText}`);
+  }
+
+  const content = payload.choices?.[0]?.message?.content?.trim();
+  if (!content) throw new Error('Grok API returned an empty response');
+  return content;
+}
 
 export async function generateChatResponse(messages: ChatMessage[], context: any) {
   if (messages.length === 0) {
@@ -190,21 +212,13 @@ Data toko:
 Gunakan data di atas untuk menjawab pertanyaan dengan akurat dan relevan.
 `.trim();
 
-  const historyMessages = messages.slice(0, -1);
-  const formattedHistory = historyMessages.map((msg) => ({
-    role: msg.role === 'user' ? 'user' : 'model',
-    parts: [{ text: msg.content }],
-  }));
-  const lastMessage = messages[messages.length - 1];
-  const chat = model.startChat({
-    history: [
-      { role: 'user', parts: [{ text: systemPrompt }] },
-      { role: 'model', parts: [{ text: 'Baik, saya siap membantu. Silakan.' }] },
-      ...formattedHistory,
-    ],
-  });
-  const result = await chat.sendMessage(lastMessage.content);
-  return result.response.text();
+  return createCompletion([
+    { role: 'system', content: systemPrompt },
+    ...messages.map((message): GrokMessage => ({
+      role: message.role === 'model' ? 'assistant' : 'user',
+      content: message.content,
+    })),
+  ]);
 }
 
 export async function generateBusinessInsights(dataPayload: any, from: string, to: string) {
@@ -218,15 +232,10 @@ Paragraf 1: Ringkasan tren pendapatan dan transaksi secara umum.
 Paragraf 2: Sorotan pada produk terlaris dan kategori terkuat.
 Paragraf 3: Peringatan mengenai stok menipis dan waste, beserta rekomendasi langkah nyata.`;
 
-  const chat = model.startChat({
-    history: [
-      { role: 'user', parts: [{ text: "Berikan insight bisnis tanpa formatting khusus." }] },
-      { role: 'model', parts: [{ text: "Baik, saya akan menganalisis data yang diberikan." }] },
-    ]
-  });
-
-  const result = await chat.sendMessage(prompt);
-  return result.response.text();
+  return createCompletion([
+    { role: 'system', content: 'Berikan insight bisnis tanpa formatting khusus.' },
+    { role: 'user', content: prompt },
+  ]);
 }
 
 export const appRouter = Router();

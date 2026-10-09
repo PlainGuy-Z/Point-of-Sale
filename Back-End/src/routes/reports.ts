@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireOwner } from '../middleware/requireRole.js';
 import { HttpError } from '../http/errors.js';
-import { generateChatResponse, generateBusinessInsights } from '../services/gemini.js';
+import { generateChatResponse, generateBusinessInsights } from '../services/grok.js';
 
 export const reportsRouter = Router();
 const TZ = 'Asia/Jakarta';
