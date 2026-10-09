@@ -17,8 +17,8 @@ export interface RegisterData {
 }
 
 export const authApi = {
-  login: async (data: LoginData): Promise<{ user: AuthUser; token: string }> => {
-    const result = await http<{ user: AuthUser; token: string }>('/auth/login', {
+  login: async (data: LoginData): Promise<{ user: AuthUser; token: string; refreshToken: string }> => {
+    const result = await http<{ user: AuthUser; token: string; refreshToken: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -26,19 +26,25 @@ export const authApi = {
     if (result.token) {
       await SecureStore.setItemAsync('auth_token', result.token);
     }
+    if (result.refreshToken) {
+      await SecureStore.setItemAsync('auth_refresh_token', result.refreshToken);
+    }
     if (result.user) {
       await SecureStore.setItemAsync('auth_user', JSON.stringify(result.user));
     }
     return result;
   },
 
-  register: async (data: RegisterData): Promise<{ user: AuthUser; token: string }> => {
-    const result = await http<{ user: AuthUser; token: string }>('/auth/register', {
+  register: async (data: RegisterData): Promise<{ user: AuthUser; token: string; refreshToken: string }> => {
+    const result = await http<{ user: AuthUser; token: string; refreshToken: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
     if (result.token) {
       await SecureStore.setItemAsync('auth_token', result.token);
+    }
+    if (result.refreshToken) {
+      await SecureStore.setItemAsync('auth_refresh_token', result.refreshToken);
     }
     if (result.user) {
       await SecureStore.setItemAsync('auth_user', JSON.stringify(result.user));
@@ -60,6 +66,7 @@ export const authApi = {
       console.error('Logout API failed:', err);
     } finally {
       await SecureStore.deleteItemAsync('auth_token');
+      await SecureStore.deleteItemAsync('auth_refresh_token');
       await SecureStore.deleteItemAsync('auth_user');
     }
   },

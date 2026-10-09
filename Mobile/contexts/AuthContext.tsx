@@ -104,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout failed:', err);
     } finally {
       await SecureStore.deleteItemAsync('auth_token');
+      await SecureStore.deleteItemAsync('auth_refresh_token');
       await SecureStore.deleteItemAsync('auth_user');
       setUser(null);
       setStatus('unauthenticated');

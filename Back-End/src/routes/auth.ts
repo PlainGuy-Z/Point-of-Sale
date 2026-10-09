@@ -104,9 +104,20 @@ interface TokenPayload {
   branch_id?: string | null;
 }
 
+interface RefreshTokenPayload {
+  sub: string;
+  token_type: 'refresh';
+}
+
 function signToken(payload: TokenPayload): string {
   return jwt.sign(payload, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN as any
+  });
+}
+
+function signRefreshToken(userId: string): string {
+  return jwt.sign({ sub: userId, token_type: 'refresh' } satisfies RefreshTokenPayload, env.JWT_SECRET, {
+    expiresIn: '30d'
   });
 }
 
@@ -207,6 +218,7 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
       name: result.user.name,
       email: result.user.email
     });
+    const refreshToken = signRefreshToken(result.user.id);
 
     setCookie(res, token);
 
@@ -224,7 +236,8 @@ authRouter.post('/register', validateBody(RegisterSchema), async (req, res, next
           slug: result.shop.slug
         }
       },
-      token: token
+      token,
+      refreshToken
     });
   } catch (err) {
     next(err);
@@ -302,6 +315,7 @@ authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, r
       email: user.email,
       branch_id: user.branch_id ?? null,
     });
+    const refreshToken = signRefreshToken(user.id);
 
     setCookie(res, token);
 
@@ -321,9 +335,54 @@ authRouter.post('/login', loginLimiter, validateBody(LoginSchema), async (req, r
           slug: user.shop_slug
         }
       },
-      token: token
+      token,
+      refreshToken
     });
   } catch (err) {
+    next(err);
+  }
+});
+
+const RefreshTokenSchema = z.object({
+  refreshToken: z.string().min(1)
+});
+
+// Keep mobile sessions alive without storing the user's password on-device.
+authRouter.post('/refresh', validateBody(RefreshTokenSchema), async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body as z.infer<typeof RefreshTokenSchema>;
+    const decoded = jwt.verify(refreshToken, env.JWT_SECRET) as RefreshTokenPayload;
+
+    if (decoded.token_type !== 'refresh' || !decoded.sub) {
+      throw new HttpError(401, 'INVALID_REFRESH_TOKEN', 'Refresh token tidak valid atau kedaluwarsa');
+    }
+
+    const result = await pool.query(
+      `SELECT id::text, name, email, role, shop_id::text, branch_id::text
+       FROM coffeepos.users
+       WHERE id = $1::uuid AND is_active = true`,
+      [decoded.sub]
+    );
+
+    if (result.rowCount === 0) {
+      throw new HttpError(401, 'INVALID_REFRESH_TOKEN', 'Pengguna tidak ditemukan atau sudah nonaktif');
+    }
+
+    const user = result.rows[0];
+    const token = signToken({
+      sub: user.id,
+      shop_id: user.shop_id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      branch_id: user.branch_id ?? null,
+    });
+
+    res.json({ token });
+  } catch (err) {
+    if (err instanceof jwt.JsonWebTokenError || err instanceof jwt.TokenExpiredError) {
+      return next(new HttpError(401, 'INVALID_REFRESH_TOKEN', 'Refresh token tidak valid atau kedaluwarsa'));
+    }
     next(err);
   }
 });
