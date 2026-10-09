@@ -120,7 +120,11 @@ export function createApp() {
     // 🔓 Public routes (no authentication required)
     app.use('/api/public', publicRouter);
     // 🔐 Protected routes (authentication required)
+    // Keep both prefixes for compatibility:
+    // - /auth is used by the current web client and localhost
+    // - /api/auth is used by existing Railway/mobile deployments
     app.use('/auth', authRouter);
+    app.use('/api/auth', authRouter);
     app.use('/app', authenticateToken, appRouter);
     // ⚠️ syncRouter MUST be registered before posRouter!
     // Express matches routes in registration order — if posRouter (/pos) is first,
